@@ -63,13 +63,6 @@ Stokity está diseñado para facilitar la gestión diaria de un negocio, permiti
 4. **Generar reportes**: Analizar ventas por periodos, productos más vendidos, etc.
 5. **Gestionar sucursales**: Coordinar el inventario y ventas entre múltiples ubicaciones
 
-## Futuras Características
-
-- **App móvil**: Acceso a funcionalidades básicas desde dispositivos móviles
-- **Integración con pasarelas de pago**: Procesar pagos electrónicos directamente 
-- **Sistema de notificaciones**: Alertas de inventario bajo, recordatorios y más
-- **API REST**: Integración con otros sistemas y servicios
-- **Módulo de fidelización**: Sistema de puntos y recompensas para clientes frecuentes
 
 ## Contribuir
 
