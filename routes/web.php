@@ -11,6 +11,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+    
+    // Rutas para las páginas del sidebar
+    Route::get('users', function () {
+        return Inertia::render('users/index');
+    })->name('users');
+    
+    Route::get('branches', function () {
+        return Inertia::render('branches/index');
+    })->name('branches');
+    
+    Route::get('categories', function () {
+        return Inertia::render('categories/index');
+    })->name('categories');
+    
+    Route::get('products', function () {
+        return Inertia::render('products/index');
+    })->name('products');
+    
+    Route::get('clients', function () {
+        return Inertia::render('clients/index');
+    })->name('clients');
+    
+    Route::get('sales', function () {
+        return Inertia::render('sales/index');
+    })->name('sales');
+    
+    Route::get('report-sales', function () {
+        return Inertia::render('report-sales/index');
+    })->name('report-sales');
 });
 
 require __DIR__.'/settings.php';
