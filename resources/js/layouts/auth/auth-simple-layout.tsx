@@ -11,11 +11,14 @@ export default function AuthSimpleLayout({ children, title, description }: Props
 
     return (
         <div
-            className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10"
+            className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10 shadow-2xl shadow-black"
             style={{
                 background: "url('/plantilla/back.png')",
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
+                borderRadius: '20px',
+                backgroundColor: '#f7f8fa',
+                boxShadow: '20px 20px 60px #bebebe, -20px -20px 60px #ffffff'
             }}
         >
             <div className="w-full max-w-sm">
