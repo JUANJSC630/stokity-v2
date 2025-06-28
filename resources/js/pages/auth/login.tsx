@@ -35,7 +35,7 @@ export default function Login({ status }: LoginProps) {
     };
 
     return (
-        <AuthLayout title="¡Ingresa al sistema!" description="Accede con tu cuenta super wow">
+        <AuthLayout title="¡Ingresa al sistema!">
             <Head title="Log in" />
 
             {status && <div className="mb-4 rounded bg-red-100 p-3 text-center text-sm font-medium text-red-600">{status}</div>}
