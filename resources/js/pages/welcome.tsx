@@ -10,13 +10,20 @@ export default function Welcome() {
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700" rel="stylesheet" />
             </Head>
-            <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f8fa] p-6">
-                <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+            <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f8fa] dark:bg-gray-900 p-6">
+                <div className="w-full max-w-md rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-lg">
                     <div className="mb-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <img 
+                                src="/stokity-icon.png" 
+                                alt="Stokity Logo" 
+                                className="w-24 h-24 object-contain"
+                            />
+                        </div>
                         <h1 className="mb-2 inline-block bg-gradient-to-r from-[#c850c0] to-[#ffcc70] bg-clip-text text-4xl font-bold text-transparent">
                             Stokity
                         </h1>
-                        <p className="mb-6 text-gray-600">Sistema simple para registrar ventas y gestionar productos en tu negocio</p>
+                        <p className="mb-6 text-gray-600 dark:text-gray-300">Sistema simple para registrar ventas y gestionar productos en tu negocio</p>
 
                         <div className="flex justify-center">
                             {auth.user ? (
@@ -47,7 +54,7 @@ export default function Welcome() {
                         </div>
                     </div>
 
-                    <div className="text-center text-sm text-gray-500">© {new Date().getFullYear()} Stokity. Todos los derechos reservados.</div>
+                    <div className="text-center text-sm text-gray-500 dark:text-gray-400">© {new Date().getFullYear()} Stokity. Todos los derechos reservados.</div>
                 </div>
             </div>
         </>

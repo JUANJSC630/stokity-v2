@@ -35,16 +35,19 @@ export default function Login({ status }: LoginProps) {
     };
 
     return (
-        <AuthLayout title="¡Ingresa al sistema!">
-            <Head title="Log in" />
+        <AuthLayout title="Stokity" description="¡Ingresa al sistema para gestionar tu negocio!">
+            <Head title="Iniciar sesión">
+                <link rel="preconnect" href="https://fonts.bunny.net" />
+                <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700" rel="stylesheet" />
+            </Head>
 
-            {status && <div className="mb-4 rounded bg-red-100 p-3 text-center text-sm font-medium text-red-600">{status}</div>}
+            {status && <div className="mb-4 rounded bg-red-100 dark:bg-red-900/30 p-3 text-center text-sm font-medium text-red-600 dark:text-red-400">{status}</div>}
 
             <form className="flex flex-col gap-4" onSubmit={submit}>
                 <div className="grid gap-4">
                     <div className="grid gap-2">
                         <div className="flex items-center">
-                            <Label htmlFor="email">Correo electrónico</Label>
+                            <Label htmlFor="email" className="dark:text-gray-200">Correo electrónico</Label>
                         </div>
                         <Input
                             id="email"
@@ -61,7 +64,7 @@ export default function Login({ status }: LoginProps) {
 
                     <div className="grid gap-2">
                         <div className="flex items-center">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password" className="dark:text-gray-200">Contraseña</Label>
                         </div>
                         <Input
                             id="password"
@@ -83,17 +86,18 @@ export default function Login({ status }: LoginProps) {
                             onClick={() => setData('remember', !data.remember)}
                             tabIndex={3}
                         />
-                        <Label htmlFor="remember">Recordarme</Label>
+                        <Label htmlFor="remember" className="dark:text-gray-200">Recordarme</Label>
                     </div>
 
                     <Button
                         type="submit"
-                        className="mt-3 flex h-12 w-full items-center justify-center text-base"
+                        className="mt-3 flex h-12 w-full items-center justify-center text-base rounded-xl font-medium text-white shadow-md transition-all duration-200"
                         tabIndex={4}
                         disabled={processing}
                         style={{
                             background: 'linear-gradient(90deg, #C850C0 0%, #FFCC70 100%)',
                             border: 'none',
+                            boxShadow: '0 6px 18px 0 rgba(200, 80, 192, 0.2)',
                         }}
                     >
                         {processing ? <LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> : null}
@@ -101,7 +105,7 @@ export default function Login({ status }: LoginProps) {
                     </Button>
                 </div>
             </form>
-            {status && <div className="mb-4 text-center text-sm font-medium text-green-600">{status}</div>}
+            {status && <div className="mb-4 text-center text-sm font-medium text-green-600 dark:text-green-400">{status}</div>}
         </AuthLayout>
     );
 }

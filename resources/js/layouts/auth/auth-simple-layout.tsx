@@ -10,40 +10,27 @@ export default function AuthSimpleLayout({ children, title, description }: Props
     const currentYear = new Date().getFullYear();
 
     return (
-        <div
-            className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10 shadow-2xl shadow-black"
-            style={{
-                background: "url('/plantilla/back.png')",
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: '20px',
-                backgroundColor: '#f7f8fa',
-                boxShadow: '20px 20px 60px #bebebe, -20px -20px 60px #ffffff'
-            }}
-        >
-            <div className="w-full max-w-sm">
-                <div className="rounded-[1rem] border-0 bg-white p-5 shadow-lg">
-                    <div className="mb-4 flex flex-col gap-4">
-                        <div className="flex flex-col items-center gap-2">
-                            <img src="https://img.icons8.com/color/96/000000/rocket--v1.png" alt="Logo" className="mb-3 w-16" />
-                            <h2
-                                className="mb-1 text-xl font-bold"
-                                style={{
-                                    background: 'linear-gradient(90deg, #C850C0, #FFCC70)',
-                                    WebkitBackgroundClip: 'text',
-                                    color: 'transparent',
-                                }}
-                            >
-                                {title}
-                            </h2>
-                            <p className="text-center text-sm text-muted-foreground">{description}</p>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-[#f7f8fa] dark:bg-gray-900 p-6">
+            <div className="w-full max-w-md">
+                <div className="rounded-2xl border-0 bg-white p-8 shadow-lg dark:bg-gray-800">
+                    <div className="mb-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <img 
+                                src="/stokity-icon.png" 
+                                alt="Stokity Logo" 
+                                className="w-24 h-24 object-contain"
+                            />
                         </div>
+                        <h2
+                            className="mb-2 inline-block bg-gradient-to-r from-[#c850c0] to-[#ffcc70] bg-clip-text text-4xl font-bold text-transparent"
+                        >
+                            {title}
+                        </h2>
+                        <p className="mb-6 text-gray-600 dark:text-gray-300">{description}</p>
                     </div>
                     {children}
                 </div>
-                <div className="mt-4 text-center">
-                    <small className="text-white">© {currentYear} TuApp MegaWow. Todos los derechos reservados.</small>
-                </div>
+                <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">© {currentYear} Stokity. Todos los derechos reservados.</div>
             </div>
         </div>
     );

@@ -1,30 +1,51 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { Banknote, BarChart3, Building2, LayoutGrid, Package, Tags, UserRound, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Inicio',
         href: '/dashboard',
         icon: LayoutGrid,
     },
-];
-
-const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
+        title: 'Usuarios',
+        href: '/users',
+        icon: Users,
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Sucursales',
+        href: '/branches',
+        icon: Building2,
+    },
+    {
+        title: 'Categorías',
+        href: '/categories',
+        icon: Tags,
+    },
+    {
+        title: 'Productos',
+        href: '/products',
+        icon: Package,
+    },
+    {
+        title: 'Clientes',
+        href: '/clients',
+        icon: UserRound,
+    },
+    {
+        title: 'Administrar Ventas',
+        href: '/sales',
+        icon: Banknote,
+    },
+    {
+        title: 'Reportes de Ventas',
+        href: '/report-sales',
+        icon: BarChart3,
     },
 ];
 
@@ -48,7 +69,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
