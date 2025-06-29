@@ -64,10 +64,6 @@ Stokity está diseñado para facilitar la gestión diaria de un negocio, permiti
 5. **Gestionar sucursales**: Coordinar el inventario y ventas entre múltiples ubicaciones
 
 
-## Contribuir
-
-Las contribuciones son bienvenidas. Por favor, siéntete libre de fork el repositorio y enviar pull requests.
-
 ## Licencia
 
 [MIT License](LICENSE)
