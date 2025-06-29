@@ -1,6 +1,6 @@
 # Stokity v2
 
-![Stokity Logo](/public/stokity-icon.png)
+<img src="/public/stokity-icon.png" alt="Stokity Logo" width="100" height="100">
 
 ## Acerca de Stokity
 
