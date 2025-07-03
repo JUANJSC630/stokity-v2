@@ -17,10 +17,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('users/index');
     })->name('users');
     
-    Route::get('branches', function () {
-        return Inertia::render('branches/index');
-    })->name('branches');
-    
     Route::get('categories', function () {
         return Inertia::render('categories/index');
     })->name('categories');
@@ -44,3 +40,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/branches.php';
