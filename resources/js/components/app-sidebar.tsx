@@ -61,11 +61,12 @@ const allNavItems: NavItem[] = [
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
-    
+
     // Filter navigation items based on user's role
-    const filteredNavItems = allNavItems.filter(item => 
-        // If no roles specified, allow access to all, otherwise check if user's role is included
-        !item.roles || item.roles.includes(userRole)
+    const filteredNavItems = allNavItems.filter(
+        (item) =>
+            // If no roles specified, allow access to all, otherwise check if user's role is included
+            !item.roles || item.roles.includes(userRole),
     );
     return (
         <Sidebar collapsible="icon" variant="inset">

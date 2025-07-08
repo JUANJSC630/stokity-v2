@@ -127,7 +127,7 @@ export default function Categories({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4" style={{ minHeight: "calc(100vh - 64px)" }}>
+            <div className="flex h-full flex-1 flex-col gap-6 p-4" style={{ minHeight: 'calc(100vh - 64px)' }}>
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-2xl font-bold text-gray-900">Gestión de Categorías</h1>
 
@@ -166,7 +166,7 @@ export default function Categories({
 
                 <div className="flex flex-1 flex-col">
                     {/* Content area with min-height to ensure pagination stays at bottom */}
-                    <div className="flex-grow" style={{ minHeight: "300px" }}>
+                    <div className="flex-grow" style={{ minHeight: '300px' }}>
                         <div className="flex flex-wrap gap-2">
                             {categories?.data?.length > 0 ? (
                                 categories.data.map((category: Category) => (
@@ -210,7 +210,7 @@ export default function Categories({
                             )}
                         </div>
                     </div>
-                    
+
                     {/* Pagination - always at bottom */}
                     <div className="mt-auto border-t border-gray-100 pt-5">
                         <div className="flex items-center justify-between">
