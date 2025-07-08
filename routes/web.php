@@ -12,10 +12,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
     
-    // Rutas para las páginas del sidebar
-    Route::get('users', function () {
-        return Inertia::render('users/index');
-    })->name('users');
+    // Rutas para las páginas del sidebar - La ruta de usuarios está definida en users.php
     
     Route::get('categories', function () {
         return Inertia::render('categories/index');
@@ -41,3 +38,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
 require __DIR__.'/branches.php';
+require __DIR__.'/users.php';
