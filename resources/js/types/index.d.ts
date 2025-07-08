@@ -20,6 +20,7 @@ export interface NavItem {
     href: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    roles?: string[]; // Which roles can access this menu item
 }
 
 export interface SharedData {
