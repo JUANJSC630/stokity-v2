@@ -165,37 +165,37 @@ export default function Categories({
                 </div>
 
                 <div className="flex-1">
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                         {categories?.data?.length > 0 ? (
                             categories.data.map((category: Category) => (
                                 <div
                                     key={category.id}
-                                    className="inline-flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
-                                    style={{ width: 'fit-content', minWidth: '200px', maxWidth: '100%' }}
+                                    className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+                                    style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
                                 >
-                                    <span className="mr-4 overflow-visible text-base font-medium whitespace-normal text-gray-900">
+                                    <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900">
                                         {category.name}
                                     </span>
-                                    <div className="flex shrink-0 gap-1">
+                                    <div className="flex shrink-0">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 shrink-0 rounded-full p-0 hover:bg-gray-100"
+                                            className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100"
                                             onClick={() => openEditModal(category)}
                                         >
-                                            <Edit2 className="size-4" />
+                                            <Edit2 className="size-3.5" />
                                             <span className="sr-only">Editar</span>
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                            className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
                                             onClick={() => {
                                                 setCategoryToDelete(category);
                                                 setDeleteModalOpen(true);
                                             }}
                                         >
-                                            <Trash2 className="size-4" />
+                                            <Trash2 className="size-3.5" />
                                             <span className="sr-only">Eliminar</span>
                                         </Button>
                                     </div>
@@ -212,7 +212,9 @@ export default function Categories({
                     <div className="mt-6 border-t border-gray-100 pt-5">
                         <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-500">
-                                Mostrando <span className="font-medium text-gray-700">{categories?.meta?.from || 0}</span> a <span className="font-medium text-gray-700">{categories?.meta?.to || 0}</span> de <span className="font-medium text-gray-700">{categories?.meta?.total || 0}</span> resultados
+                                Mostrando <span className="font-medium text-gray-700">{categories?.meta?.from || 0}</span> a{' '}
+                                <span className="font-medium text-gray-700">{categories?.meta?.to || 0}</span> de{' '}
+                                <span className="font-medium text-gray-700">{categories?.meta?.total || 0}</span> resultados
                             </div>
 
                             {categories?.meta?.last_page > 1 && (
@@ -262,7 +264,7 @@ export default function Categories({
                                                         }}
                                                     >
                                                         <span>1</span>
-                                                    </Button>
+                                                    </Button>,
                                                 );
 
                                                 // Add ellipsis if needed
@@ -270,7 +272,7 @@ export default function Categories({
                                                     pages.push(
                                                         <span key="ellipsis-start" className="mx-1 text-gray-400">
                                                             ...
-                                                        </span>
+                                                        </span>,
                                                     );
                                                 }
                                             }
@@ -284,25 +286,26 @@ export default function Categories({
                                                 pages.push(
                                                     <Button
                                                         key={i}
-                                                        variant={i === currentPage ? "default" : "outline"}
+                                                        variant={i === currentPage ? 'default' : 'outline'}
                                                         size="sm"
                                                         className={`h-8 w-8 rounded-md p-0 ${
-                                                            i === currentPage 
-                                                                ? "bg-black text-white" 
-                                                                : "border-gray-200 text-gray-700"
+                                                            i === currentPage ? 'bg-black text-white' : 'border-gray-200 text-gray-700'
                                                         }`}
                                                         onClick={() => {
                                                             if (i !== currentPage) {
-                                                                router.visit(`/categories?page=${i}&search=${encodeURIComponent(searchQuery || '')}`, {
-                                                                    preserveState: true,
-                                                                    preserveScroll: true,
-                                                                    only: ['categories'],
-                                                                });
+                                                                router.visit(
+                                                                    `/categories?page=${i}&search=${encodeURIComponent(searchQuery || '')}`,
+                                                                    {
+                                                                        preserveState: true,
+                                                                        preserveScroll: true,
+                                                                        only: ['categories'],
+                                                                    },
+                                                                );
                                                             }
                                                         }}
                                                     >
                                                         <span>{i}</span>
-                                                    </Button>
+                                                    </Button>,
                                                 );
                                             }
 
@@ -311,9 +314,9 @@ export default function Categories({
                                                 pages.push(
                                                     <span key="ellipsis-end" className="mx-1 text-gray-400">
                                                         ...
-                                                    </span>
+                                                    </span>,
                                                 );
-                                                
+
                                                 // Always show last page
                                                 pages.push(
                                                     <Button
@@ -322,15 +325,18 @@ export default function Categories({
                                                         size="sm"
                                                         className="h-8 w-8 rounded-md border-gray-200 p-0 text-gray-700"
                                                         onClick={() => {
-                                                            router.visit(`/categories?page=${lastPage}&search=${encodeURIComponent(searchQuery || '')}`, {
-                                                                preserveState: true,
-                                                                preserveScroll: true,
-                                                                only: ['categories'],
-                                                            });
+                                                            router.visit(
+                                                                `/categories?page=${lastPage}&search=${encodeURIComponent(searchQuery || '')}`,
+                                                                {
+                                                                    preserveState: true,
+                                                                    preserveScroll: true,
+                                                                    only: ['categories'],
+                                                                },
+                                                            );
                                                         }}
                                                     >
                                                         <span>{lastPage}</span>
-                                                    </Button>
+                                                    </Button>,
                                                 );
                                             }
 

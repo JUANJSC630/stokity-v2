@@ -33,8 +33,8 @@ class CategoryController extends Controller
             $query->where('status', $request->status === 'active');
         }
 
-        $paginatedCategories = $query->paginate(20)->withQueryString();
-        
+        $paginatedCategories = $query->paginate(30)->withQueryString();
+
         // Restructure pagination data to match frontend expectations
         $categories = [
             'data' => $paginatedCategories->items(),
@@ -73,8 +73,8 @@ class CategoryController extends Controller
             });
         }
 
-        $paginatedCategories = $query->paginate(20)->withQueryString();
-        
+        $paginatedCategories = $query->paginate(30)->withQueryString();
+
         // Restructure pagination data to match frontend expectations
         $categories = [
             'data' => $paginatedCategories->items(),
