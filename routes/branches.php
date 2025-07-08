@@ -9,6 +9,7 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(
     Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
     Route::get('/branches/create', [BranchController::class, 'create'])->name('branches.create');
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
+    Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
     
     // Trash management routes - these need to come before wildcard routes to avoid conflicts
     Route::get('/branches/trashed', [BranchController::class, 'trashed'])->name('branches.trashed');

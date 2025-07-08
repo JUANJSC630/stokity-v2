@@ -35,7 +35,10 @@ export interface User {
     id: number;
     name: string;
     email: string;
+    role: string;
     avatar?: string;
+    branch_id?: number | null;
+    status?: boolean;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
@@ -51,7 +54,19 @@ export interface Branch {
     status: boolean;
     manager_id: number | null;
     manager?: User;
+    employees?: User[];
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+}
+
+export interface PaginatedData<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+    links: { url: string | null; label: string; active: boolean }[];
 }

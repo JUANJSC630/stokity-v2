@@ -19,6 +19,7 @@ class BranchController extends Controller
     {
         $query = Branch::query()
             ->with('manager:id,name,email')
+            ->with('employees:id,name,email,role,branch_id,status')
             ->orderBy('name');
 
         // Aplicar filtros de búsqueda
@@ -78,7 +79,7 @@ class BranchController extends Controller
      */
     public function create(): Response
     {
-        $managers = User::where('role', 'manager')
+        $managers = User::where('role', 'encargado')
             ->orderBy('name')
             ->select('id', 'name', 'email')
             ->get();
@@ -105,7 +106,7 @@ class BranchController extends Controller
     public function edit(Branch $branch): Response
     {
         $branch->load('manager:id,name,email');
-        $managers = User::where('role', 'manager')
+        $managers = User::where('role', 'encargado')
             ->orderBy('name')
             ->select('id', 'name', 'email')
             ->get();
@@ -160,5 +161,17 @@ class BranchController extends Controller
 
         return redirect()->route('branches.trashed')
             ->with('success', 'Sucursal eliminada permanentemente.');
+    }
+
+    /**
+     * Display the specified branch.
+     */
+    public function show(Branch $branch): Response
+    {
+        $branch->load(['manager:id,name,email,role', 'employees:id,name,email,role,branch_id,status']);
+        
+        return Inertia::render('branches/show', [
+            'branch' => $branch,
+        ]);
     }
 }

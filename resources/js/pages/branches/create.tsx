@@ -1,12 +1,12 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type User } from '@/types';
-import { Head, useForm, Link } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem, type User } from '@/types';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft } from 'lucide-react';
 
 interface CreateBranchProps {
@@ -43,15 +43,15 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         // Create form data to send
         const formData = { ...data };
-        
+
         // Process manager_id before submission
         if (formData.manager_id === 'none') {
             formData.manager_id = '';
         }
-        
+
         // Submit form with processed data
         post(route('branches.store'), {
             ...formData,
@@ -78,7 +78,7 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                             <CardTitle>Información de la Sucursal</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="name" className={errors.name ? 'text-destructive' : ''}>
                                         Nombre de la sucursal *
@@ -89,9 +89,7 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                         onChange={(e) => setData('name', e.target.value)}
                                         className={errors.name ? 'border-destructive' : ''}
                                     />
-                                    {errors.name && (
-                                        <p className="text-sm text-destructive">{errors.name}</p>
-                                    )}
+                                    {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -104,9 +102,7 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                         onChange={(e) => setData('phone', e.target.value)}
                                         className={errors.phone ? 'border-destructive' : ''}
                                     />
-                                    {errors.phone && (
-                                        <p className="text-sm text-destructive">{errors.phone}</p>
-                                    )}
+                                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                                 </div>
                             </div>
 
@@ -120,9 +116,7 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                     onChange={(e) => setData('address', e.target.value)}
                                     className={errors.address ? 'border-destructive' : ''}
                                 />
-                                {errors.address && (
-                                    <p className="text-sm text-destructive">{errors.address}</p>
-                                )}
+                                {errors.address && <p className="text-sm text-destructive">{errors.address}</p>}
                             </div>
 
                             <div className="space-y-2">
@@ -136,49 +130,51 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                     onChange={(e) => setData('email', e.target.value)}
                                     className={errors.email ? 'border-destructive' : ''}
                                 />
-                                {errors.email && (
-                                    <p className="text-sm text-destructive">{errors.email}</p>
-                                )}
+                                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="manager_id" className={errors.manager_id ? 'text-destructive' : ''}>
                                         Gerente / Responsable
                                     </Label>
-                                    <Select
-                                        value={data.manager_id}
-                                        onValueChange={(value) => setData('manager_id', value)}
-                                    >
+                                    <Select value={data.manager_id} onValueChange={(value) => setData('manager_id', value)}>
                                         <SelectTrigger className={errors.manager_id ? 'border-destructive' : ''}>
-                                            <SelectValue placeholder="Seleccionar gerente" />
+                                            <SelectValue placeholder="Seleccionar encargado" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Ninguno</SelectItem>
-                                            {managers.map((manager) => (
-                                                <SelectItem key={manager.id} value={manager.id.toString()}>
-                                                    {manager.name}
+                                            {managers.length > 0 ? (
+                                                managers.map((manager) => (
+                                                    <SelectItem key={manager.id} value={manager.id.toString()}>
+                                                        {manager.name}
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="none" disabled>
+                                                    No hay usuarios con rol de encargado disponibles
                                                 </SelectItem>
-                                            ))}
+                                            )}
                                         </SelectContent>
                                     </Select>
-                                    {errors.manager_id && (
-                                        <p className="text-sm text-destructive">{errors.manager_id}</p>
-                                    )}
+                                    <p className="text-xs text-muted-foreground">
+                                        Solo usuarios con rol de "Encargado" pueden ser asignados como responsables de una sucursal
+                                    </p>
+                                    {errors.manager_id && <p className="text-sm text-destructive">{errors.manager_id}</p>}
                                 </div>
 
-                                <div className="flex items-center space-x-2 pt-6">
+                                <div className="pt-6">
+                                    <Label className="mb-3 block">Estado</Label>
                                     <div className="flex items-center space-x-2">
-                                        <Checkbox 
+                                        <Switch
                                             id="status"
                                             checked={data.status}
-                                            onCheckedChange={(checked) => {
-                                                if (typeof checked === 'boolean') {
-                                                    setData('status', checked);
-                                                }
-                                            }}
+                                            onCheckedChange={(checked: boolean) => setData('status', checked)}
+                                            disabled={processing}
                                         />
-                                        <Label htmlFor="status">Sucursal activa</Label>
+                                        <Label htmlFor="status" className="font-normal">
+                                            {data.status ? 'Activa' : 'Inactiva'}
+                                        </Label>
                                     </div>
                                 </div>
                             </div>
