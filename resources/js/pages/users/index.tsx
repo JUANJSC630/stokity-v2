@@ -55,9 +55,10 @@ export default function Users({ users, filters }: Props) {
                 setIsSearching(true);
                 router.get(
                     '/users',
-                    { search },
+                    { search, page: 1 }, // Reset to page 1 when search criteria changes
                     {
                         preserveState: true,
+                        preserveScroll: true,
                         onFinish: () => setIsSearching(false),
                     },
                 );
@@ -166,7 +167,7 @@ export default function Users({ users, filters }: Props) {
                             </div>
                             <div className="flex space-x-1">
                                 {users.current_page > 1 && (
-                                    <Link href={`/users?page=${users.current_page - 1}&search=${search}`} preserveScroll>
+                                    <Link href={`/users?page=${users.current_page - 1}&search=${search}`} preserveScroll preserveState>
                                         <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                                             <ChevronLeft className="size-4" />
                                             <span className="sr-only">Página anterior</span>
@@ -175,7 +176,7 @@ export default function Users({ users, filters }: Props) {
                                 )}
 
                                 {users.current_page < users.last_page && (
-                                    <Link href={`/users?page=${users.current_page + 1}&search=${search}`} preserveScroll>
+                                    <Link href={`/users?page=${users.current_page + 1}&search=${search}`} preserveScroll preserveState>
                                         <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                                             <ChevronRight className="size-4" />
                                             <span className="sr-only">Página siguiente</span>

@@ -47,8 +47,10 @@ export default function Branches({ branches = { data: [], meta: { current_page: 
                 router.get('/branches', {
                     search: searchQuery,
                     status: selectedStatus,
+                    page: 1, // Reset to page 1 when search criteria changes
                 }, {
                     preserveState: true,
+                    preserveScroll: true,
                     replace: true,
                 });
             }
@@ -210,6 +212,7 @@ export default function Branches({ branches = { data: [], meta: { current_page: 
                                         status: selectedStatus,
                                     }, {
                                         preserveState: true,
+                                        preserveScroll: true,
                                     })}
                                 >
                                     {page}
