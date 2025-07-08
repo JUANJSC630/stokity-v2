@@ -127,7 +127,7 @@ export default function Categories({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 p-4" style={{ minHeight: "calc(100vh - 64px)" }}>
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-2xl font-bold text-gray-900">Gestión de Categorías</h1>
 
@@ -164,52 +164,55 @@ export default function Categories({
                     />
                 </div>
 
-                <div className="flex-1">
-                    <div className="flex flex-wrap gap-2">
-                        {categories?.data?.length > 0 ? (
-                            categories.data.map((category: Category) => (
-                                <div
-                                    key={category.id}
-                                    className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
-                                    style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
-                                >
-                                    <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900">
-                                        {category.name}
-                                    </span>
-                                    <div className="flex shrink-0">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100"
-                                            onClick={() => openEditModal(category)}
-                                        >
-                                            <Edit2 className="size-3.5" />
-                                            <span className="sr-only">Editar</span>
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
-                                            onClick={() => {
-                                                setCategoryToDelete(category);
-                                                setDeleteModalOpen(true);
-                                            }}
-                                        >
-                                            <Trash2 className="size-3.5" />
-                                            <span className="sr-only">Eliminar</span>
-                                        </Button>
+                <div className="flex flex-1 flex-col">
+                    {/* Content area with min-height to ensure pagination stays at bottom */}
+                    <div className="flex-grow" style={{ minHeight: "300px" }}>
+                        <div className="flex flex-wrap gap-2">
+                            {categories?.data?.length > 0 ? (
+                                categories.data.map((category: Category) => (
+                                    <div
+                                        key={category.id}
+                                        className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+                                        style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
+                                    >
+                                        <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900">
+                                            {category.name}
+                                        </span>
+                                        <div className="flex shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100"
+                                                onClick={() => openEditModal(category)}
+                                            >
+                                                <Edit2 className="size-3.5" />
+                                                <span className="sr-only">Editar</span>
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                onClick={() => {
+                                                    setCategoryToDelete(category);
+                                                    setDeleteModalOpen(true);
+                                                }}
+                                            >
+                                                <Trash2 className="size-3.5" />
+                                                <span className="sr-only">Eliminar</span>
+                                            </Button>
+                                        </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                                    <p className="text-center text-gray-500">No se encontraron categorías</p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                                <p className="text-center text-gray-500">No se encontraron categorías</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-
-                    {/* Pagination */}
-                    <div className="mt-6 border-t border-gray-100 pt-5">
+                    
+                    {/* Pagination - always at bottom */}
+                    <div className="mt-auto border-t border-gray-100 pt-5">
                         <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-500">
                                 Mostrando <span className="font-medium text-gray-700">{categories?.meta?.from || 0}</span> a{' '}

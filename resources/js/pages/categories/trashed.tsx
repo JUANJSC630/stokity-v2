@@ -53,16 +53,14 @@ export default function TrashedCategories({
             if (searchQuery !== filters?.search) {
                 setIsSearching(true);
                 router.visit(
-                    `/categories/trashed?search=${searchQuery}&page=1`, // Reset to page 1 when search changes
+                    `/categories/trashed?search=${encodeURIComponent(searchQuery)}&page=1`, // Reset to page 1 when search changes
                     {
                         preserveState: true,
                         preserveScroll: true,
-                        replace: false,
                         only: ['categories'],
                         onFinish: () => {
                             setIsSearching(false);
-                            console.log('Búsqueda completada');
-                        }
+                        },
                     }
                 );
             }
@@ -98,7 +96,7 @@ export default function TrashedCategories({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías Eliminadas" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4">
+            <div className="flex h-full flex-1 flex-col gap-6 p-4" style={{ minHeight: "calc(100vh - 64px)" }}>
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-2xl font-bold text-gray-900">Categorías Eliminadas</h1>
                     <div className="flex gap-2">
@@ -122,167 +120,225 @@ export default function TrashedCategories({
                     />
                 </div>
 
-                <div className="flex-1">
-                    <div className="flex flex-wrap gap-3">
-                        {categories?.data?.length > 0 ? (
-                            categories.data.map((category: Category) => (
-                                <div 
-                                    key={category.id}
-                                    className="flex flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
-                                    style={{ width: 'fit-content', minWidth: '220px', maxWidth: '100%' }}
-                                >
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <span className="mr-4 text-base font-medium text-gray-900 overflow-visible whitespace-normal">{category.name}</span>
-                                        <div className="flex shrink-0 gap-1">
+                <div className="flex flex-1 flex-col">
+                    {/* Content area with min-height to ensure pagination stays at bottom */}
+                    <div className="flex-grow" style={{ minHeight: "300px" }}>
+                        <div className="flex flex-wrap gap-2">
+                            {categories?.data?.length > 0 ? (
+                                categories.data.map((category: Category) => (
+                                    <div 
+                                        key={category.id}
+                                        className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+                                        style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900">{category.name}</span>
+                                            <span className="text-xs text-gray-500">
+                                                Eliminado: {new Date(category.deleted_at!).toLocaleDateString('es-ES', {
+                                                    day: 'numeric',
+                                                    month: 'long',
+                                                    year: 'numeric',
+                                                })}
+                                            </span>
+                                        </div>
+                                        <div className="flex shrink-0 ml-2">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 w-8 shrink-0 rounded-full p-0 hover:bg-gray-100"
+                                                className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100"
                                                 onClick={() => {
                                                     setCategoryToRestore(category);
                                                     setRestoreModalOpen(true);
                                                 }}
                                             >
-                                                <ArrowLeft className="size-4" />
+                                                <ArrowLeft className="size-3.5" />
                                                 <span className="sr-only">Restaurar</span>
                                             </Button>
                                             {auth.user.role === 'administrador' && (
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 w-8 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                    className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
                                                     onClick={() => {
                                                         setCategoryToForceDelete(category);
                                                         setForceDeleteModalOpen(true);
                                                     }}
                                                 >
-                                                    <Trash2 className="size-4" />
+                                                    <Trash2 className="size-3.5" />
                                                     <span className="sr-only">Eliminar Permanentemente</span>
                                                 </Button>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="text-xs text-gray-500">
-                                        Eliminado el: {new Date(category.deleted_at!).toLocaleDateString('es-ES', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                        })}
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                                    <p className="text-center text-gray-500">
+                                        No se encontraron categorías eliminadas
+                                    </p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="col-span-full flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                                <p className="text-center text-gray-500">
-                                    No se encontraron categorías eliminadas
-                                </p>
-                            </div>
-                        )}
-                    </div>                    {/* Pagination */}
-                    <div className="mt-6 flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-                        <div className="text-sm text-gray-500">
-                            Mostrando {categories?.meta?.from || 0} a {categories?.meta?.to || 0} de {categories?.meta?.total || 0} resultados
+                            )}
                         </div>
-                        {categories?.meta?.last_page > 1 && (
-                            <div className="flex items-center justify-center space-x-1">
+                    </div>
+                    
+                    {/* Pagination - always at bottom */}
+                    <div className="mt-auto border-t border-gray-100 pt-5">
+                        <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                                Mostrando <span className="font-medium text-gray-700">{categories?.meta?.from || 0}</span> a{' '}
+                                <span className="font-medium text-gray-700">{categories?.meta?.to || 0}</span> de{' '}
+                                <span className="font-medium text-gray-700">{categories?.meta?.total || 0}</span> resultados
+                            </div>
+                            {categories?.meta?.last_page > 1 && (
+                            <nav className="flex items-center gap-x-1">
                                 {/* Previous page button */}
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 min-w-8 rounded-md border-gray-200 px-2 shadow-sm hover:bg-gray-50"
+                                    className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page <= 1 ? 'text-gray-300' : 'text-gray-500'}`}
                                     disabled={categories?.meta?.current_page <= 1}
                                     onClick={() => {
-                                        console.log('Navegando a la página anterior:', categories?.meta?.current_page - 1);
                                         const prevPage = categories?.meta?.current_page - 1;
-                                        router.visit(
-                                            `/categories/trashed?page=${prevPage}&search=${searchQuery}`,
-                                            {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                                replace: false,
-                                                only: ['categories'],
-                                            }
-                                        );
+                                        router.visit(`/categories/trashed?page=${prevPage}&search=${encodeURIComponent(searchQuery || '')}`, {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                            only: ['categories'],
+                                        });
                                     }}
                                 >
-                                    Anterior
+                                    <span className="sr-only">Página anterior</span>
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
                                 </Button>
-                                
+
                                 {/* Page numbers */}
-                                <div className="flex items-center space-x-1">
-                                    {Array.from({ length: Math.min(5, categories?.meta?.last_page || 0) }).map((_, index) => {
-                                        let pageNum;
-                                        
-                                        // Calculate which page numbers to show
-                                        if (categories?.meta?.last_page <= 5) {
-                                            // If we have 5 or fewer pages, show all of them
-                                            pageNum = index + 1;
-                                        } else if (categories?.meta?.current_page <= 3) {
-                                            // If we're near the beginning, show pages 1-5
-                                            pageNum = index + 1;
-                                        } else if (categories?.meta?.current_page >= categories?.meta?.last_page - 2) {
-                                            // If we're near the end, show the last 5 pages
-                                            pageNum = categories?.meta?.last_page - 4 + index;
-                                        } else {
-                                            // Otherwise show 2 pages before and 2 pages after the current page
-                                            pageNum = categories?.meta?.current_page - 2 + index;
+                                <div className="flex items-center">
+                                    {(() => {
+                                        const currentPage = categories?.meta?.current_page || 1;
+                                        const lastPage = categories?.meta?.last_page || 1;
+                                        const pages = [];
+
+                                        // Show first page if we're not at the beginning
+                                        if (currentPage > 3) {
+                                            pages.push(
+                                                <Button
+                                                    key={1}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 w-8 rounded-md border-gray-200 p-0"
+                                                    onClick={() => {
+                                                        router.visit(`/categories/trashed?page=1&search=${encodeURIComponent(searchQuery || '')}`, {
+                                                            preserveState: true,
+                                                            preserveScroll: true,
+                                                            only: ['categories'],
+                                                        });
+                                                    }}
+                                                >
+                                                    <span>1</span>
+                                                </Button>,
+                                            );
+
+                                            // Add ellipsis if needed
+                                            if (currentPage > 4) {
+                                                pages.push(
+                                                    <span key="ellipsis-start" className="mx-1 text-gray-400">
+                                                        ...
+                                                    </span>,
+                                                );
+                                            }
                                         }
-                                        
-                                        return (
-                                            <Button
-                                                key={pageNum}
-                                                variant={pageNum === categories?.meta?.current_page ? "default" : "outline"}
-                                                size="sm"
-                                                className={`h-8 min-w-8 rounded-md px-3 ${
-                                                    pageNum === categories?.meta?.current_page 
-                                                        ? "bg-black text-white" 
-                                                        : "border-gray-200 hover:bg-gray-50"
-                                                }`}
-                                                onClick={() => {
-                                                    if (pageNum !== categories?.meta?.current_page) {
-                                                        console.log('Navegando a la página:', pageNum);
+
+                                        // Calculate range of pages to show
+                                        const startPage = Math.max(1, currentPage - 1);
+                                        const endPage = Math.min(lastPage, currentPage + 1);
+
+                                        // Add page numbers
+                                        for (let i = startPage; i <= endPage; i++) {
+                                            pages.push(
+                                                <Button
+                                                    key={i}
+                                                    variant={i === currentPage ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    className={`h-8 w-8 rounded-md p-0 ${
+                                                        i === currentPage ? 'bg-black text-white' : 'border-gray-200 text-gray-700'
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (i !== currentPage) {
+                                                            router.visit(
+                                                                `/categories/trashed?page=${i}&search=${encodeURIComponent(searchQuery || '')}`,
+                                                                {
+                                                                    preserveState: true,
+                                                                    preserveScroll: true,
+                                                                    only: ['categories'],
+                                                                },
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    <span>{i}</span>
+                                                </Button>,
+                                            );
+                                        }
+
+                                        // Add ellipsis if needed
+                                        if (currentPage < lastPage - 2) {
+                                            pages.push(
+                                                <span key="ellipsis-end" className="mx-1 text-gray-400">
+                                                    ...
+                                                </span>,
+                                            );
+
+                                            // Always show last page
+                                            pages.push(
+                                                <Button
+                                                    key={lastPage}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 w-8 rounded-md border-gray-200 p-0 text-gray-700"
+                                                    onClick={() => {
                                                         router.visit(
-                                                            `/categories/trashed?page=${pageNum}&search=${searchQuery}`,
+                                                            `/categories/trashed?page=${lastPage}&search=${encodeURIComponent(searchQuery || '')}`,
                                                             {
                                                                 preserveState: true,
                                                                 preserveScroll: true,
-                                                                replace: false,
                                                                 only: ['categories'],
-                                                            }
+                                                            },
                                                         );
-                                                    }
-                                                }}
-                                            >
-                                                {pageNum}
-                                            </Button>
-                                        );
-                                    })}
+                                                    }}
+                                                >
+                                                    <span>{lastPage}</span>
+                                                </Button>,
+                                            );
+                                        }
+
+                                        return pages;
+                                    })()}
                                 </div>
-                                
+
                                 {/* Next page button */}
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 min-w-8 rounded-md border-gray-200 px-2 shadow-sm hover:bg-gray-50"
+                                    className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page >= categories?.meta?.last_page ? 'text-gray-300' : 'text-gray-500'}`}
                                     disabled={categories?.meta?.current_page >= categories?.meta?.last_page}
                                     onClick={() => {
-                                        console.log('Navegando a la página siguiente:', categories?.meta?.current_page + 1);
                                         const nextPage = categories?.meta?.current_page + 1;
-                                        router.visit(
-                                            `/categories/trashed?page=${nextPage}&search=${searchQuery}`,
-                                            {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                                replace: false,
-                                                only: ['categories'],
-                                            }
-                                        );
+                                        router.visit(`/categories/trashed?page=${nextPage}&search=${encodeURIComponent(searchQuery || '')}`, {
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                            only: ['categories'],
+                                        });
                                     }}
                                 >
-                                    Siguiente
+                                    <span className="sr-only">Página siguiente</span>
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
                                 </Button>
-                            </div>
+                            </nav>
                         )}
+                        </div>
                     </div>
                 </div>
 
