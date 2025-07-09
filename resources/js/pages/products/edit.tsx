@@ -208,8 +208,9 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             <Tooltip.Portal>
                                                 <Tooltip.Content
                                                     side="top"
-                                                    className="z-50 rounded bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg"
+                                                    className="z-50 max-w-xs sm:max-w-sm rounded bg-neutral-900 px-3 py-2 text-xs sm:text-sm text-white shadow-lg break-words whitespace-pre-line"
                                                     sideOffset={6}
+                                                    style={{ wordBreak: 'break-word', whiteSpace: 'pre-line', fontSize: '0.95rem' }}
                                                 >
                                                     <strong>¿Qué es el SKU?</strong>
                                                     <br />
