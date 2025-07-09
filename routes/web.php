@@ -15,10 +15,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Rutas para las páginas del sidebar - La ruta de usuarios está definida en users.php
     
     // Categories routes are defined in categories.php file
-    
-    Route::get('products', function () {
-        return Inertia::render('products/index');
-    })->name('products');
+    // Products routes are defined in products.php file
     
     Route::get('clients', function () {
         return Inertia::render('clients/index');
@@ -38,3 +35,4 @@ require __DIR__.'/auth.php';
 require __DIR__.'/branches.php';
 require __DIR__.'/users.php';
 require __DIR__.'/categories.php';
+require __DIR__.'/products.php';

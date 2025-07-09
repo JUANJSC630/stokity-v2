@@ -50,4 +50,12 @@ class Branch extends Model
     {
         return $this->hasMany(User::class, 'branch_id');
     }
+    
+    /**
+     * Get the products of the branch.
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
 }

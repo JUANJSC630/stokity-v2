@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -6,10 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowUpRight, Recycle, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface ProductsPageProps {
+interface TrashedProductsPageProps {
     products?: {
         data: Product[];
         meta: {
@@ -30,7 +29,6 @@ interface ProductsPageProps {
     branches: Branch[];
     filters?: {
         search?: string;
-        status?: string;
         category?: string;
         branch?: string;
     };
@@ -41,45 +39,50 @@ const breadcrumbs: BreadcrumbItem[] = [
         title: 'Productos',
         href: '/products',
     },
+    {
+        title: 'Papelera',
+        href: '/products/trashed',
+    },
 ];
 
-export default function Products({
+export default function TrashedProducts({
     products,
     categories = [],
     branches = [],
-    filters = { search: '', status: 'all', category: 'all', branch: 'all' },
-}: ProductsPageProps) {
-    // Asegurar que products y sus propiedades tengan valores válidos
-    // Estructura completa para evitar errores de undefined
+    filters = { search: '', category: 'all', branch: 'all' },
+}: TrashedProductsPageProps) {
+    // Add console log to debug the structure of products
+    console.log('Trashed Products Props:', products);
+    
+    // Ensure products and their properties have valid values
+    // Complete structure to avoid undefined errors
     const productData = {
         data: Array.isArray(products?.data) ? products.data : [],
         links: Array.isArray(products?.links) ? products.links : [],
-        meta: products?.meta
-            ? {
-                  current_page: typeof products.meta.current_page === 'number' ? products.meta.current_page : 1,
-                  last_page: typeof products.meta.last_page === 'number' ? products.meta.last_page : 1,
-                  per_page: typeof products.meta.per_page === 'number' ? products.meta.per_page : 10,
-                  total: typeof products.meta.total === 'number' ? products.meta.total : 0,
-                  from: typeof products.meta.from === 'number' ? products.meta.from : 0,
-                  to: typeof products.meta.to === 'number' ? products.meta.to : 0,
-              }
-            : {
-                  current_page: 1,
-                  last_page: 1,
-                  per_page: 10,
-                  total: 0,
-                  from: 0,
-                  to: 0,
-              },
+        meta: products?.meta ? {
+            current_page: typeof products.meta.current_page === 'number' ? products.meta.current_page : 1,
+            last_page: typeof products.meta.last_page === 'number' ? products.meta.last_page : 1,
+            per_page: typeof products.meta.per_page === 'number' ? products.meta.per_page : 10,
+            total: typeof products.meta.total === 'number' ? products.meta.total : 0,
+            from: typeof products.meta.from === 'number' ? products.meta.from : 0,
+            to: typeof products.meta.to === 'number' ? products.meta.to : 0,
+        } : {
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+            from: 0,
+            to: 0,
+        }
     };
+    
     const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
     const [branchFilter, setBranchFilter] = useState(filters?.branch || 'all');
     const [isSearching, setIsSearching] = useState(false);
-    const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [productToForceDelete, setProductToForceDelete] = useState<Product | null>(null);
+    const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
 
     const isAdmin = auth.user.role === 'administrador';
     const isManager = auth.user.role === 'encargado';
@@ -90,7 +93,6 @@ export default function Products({
         const timeoutId = setTimeout(() => {
             if (
                 searchQuery !== filters?.search ||
-                statusFilter !== filters?.status ||
                 categoryFilter !== filters?.category ||
                 branchFilter !== filters?.branch
             ) {
@@ -99,12 +101,11 @@ export default function Products({
                 // Build query string
                 const params = new URLSearchParams();
                 if (searchQuery) params.append('search', searchQuery);
-                if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
                 if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter);
                 if (branchFilter && branchFilter !== 'all') params.append('branch', branchFilter);
                 params.append('page', '1'); // Reset to page 1 when filters change
 
-                router.visit(`/products?${params.toString()}`, {
+                router.visit(`/products/trashed?${params.toString()}`, {
                     preserveState: true,
                     preserveScroll: true,
                     only: ['products'],
@@ -116,7 +117,7 @@ export default function Products({
         }, 300);
 
         return () => clearTimeout(timeoutId);
-    }, [searchQuery, statusFilter, categoryFilter, branchFilter, filters]);
+    }, [searchQuery, categoryFilter, branchFilter, filters]);
 
     // Handle pagination
     const handlePaginationClick = (url: string | null) => {
@@ -133,13 +134,18 @@ export default function Products({
         }
     };
 
-    // Handle delete confirmation
-    const handleDelete = () => {
-        if (productToDelete) {
-            router.delete(`/products/${productToDelete.id}`, {
+    // Handle restore
+    const handleRestore = (productId: number) => {
+        router.put(`/products/${productId}/restore`);
+    };
+
+    // Handle force delete confirmation
+    const handleForceDelete = () => {
+        if (productToForceDelete) {
+            router.delete(`/products/${productToForceDelete.id}/force-delete`, {
                 onSuccess: () => {
-                    setDeleteModalOpen(false);
-                    setProductToDelete(null);
+                    setForceDeleteModalOpen(false);
+                    setProductToForceDelete(null);
                 },
             });
         }
@@ -147,34 +153,25 @@ export default function Products({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Productos" />
+            <Head title="Productos en Papelera" />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header with title and add button */}
+                {/* Header with title and back button */}
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">Productos</h1>
+                    <h1 className="text-2xl font-semibold">Productos en Papelera</h1>
                     <div className="flex gap-2">
-                        {canManageProducts && (
-                            <>
-                                <Link href="/products/create">
-                                    <Button size="sm" className="flex items-center gap-1">
-                                        <Plus className="h-4 w-4" />
-                                        Nuevo Producto
-                                    </Button>
-                                </Link>
-                                <Link href="/products/trashed">
-                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </Link>
-                            </>
-                        )}
+                        <Link href="/products">
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <ArrowUpRight className="h-4 w-4" />
+                                Volver a Productos
+                            </Button>
+                        </Link>
                     </div>
                 </div>
 
                 {/* Filters */}
                 <div className="space-y-2">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <div className="space-y-1.5">
                             <label htmlFor="product-search" className="text-xs font-medium text-muted-foreground">
                                 Buscar
@@ -184,28 +181,12 @@ export default function Products({
                                 <Input
                                     id="product-search"
                                     type="search"
-                                    placeholder="Buscar productos..."
+                                    placeholder="Buscar productos en papelera..."
                                     className="h-8 pl-8 text-sm"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                            <label htmlFor="status-filter" className="text-xs font-medium text-muted-foreground">
-                                Estado
-                            </label>
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger id="status-filter" className="h-8 text-sm">
-                                    <SelectValue placeholder="Estado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
-                                    <SelectItem value="1">Activos</SelectItem>
-                                    <SelectItem value="0">Inactivos</SelectItem>
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <div className="space-y-1.5">
@@ -266,8 +247,9 @@ export default function Products({
                                     <th className="px-4 py-3 font-medium">Categoría</th>
                                     <th className="px-4 py-3 font-medium">Precio de venta</th>
                                     <th className="px-4 py-3 font-medium">Stock</th>
-                                    <th className="px-4 py-3 font-medium">Estado</th>
-                                    {isAdmin && <th className="px-4 py-3 font-medium">Sucursal</th>}
+                                    {branches.length > 0 && (
+                                        <th className="px-4 py-3 font-medium">Sucursal</th>
+                                    )}
                                     <th className="px-4 py-3 text-right font-medium">Acciones</th>
                                 </tr>
                             </thead>
@@ -300,25 +282,33 @@ export default function Products({
                                                 <span>{product.stock}</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
-                                            {product.status ? (
-                                                <Badge variant="default" className="bg-green-100 text-xs text-green-800">
-                                                    Activo
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    Inactivo
-                                                </Badge>
-                                            )}
-                                        </td>
-                                        {isAdmin && <td className="px-4 py-3">{product.branch?.name}</td>}
+                                        {branches.length > 0 && <td className="px-4 py-3">{product.branch?.name}</td>}
                                         <td className="px-4 py-3 text-right">
-                                            <div className="flex gap-2">
-                                                <Link href={`/products/${product.id}`}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                </Link>
+                                            <div className="flex justify-end gap-2">
+                                                {canManageProducts && (
+                                                    <>
+                                                        <Button
+                                                            onClick={() => handleRestore(product.id)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex items-center gap-1 h-8"
+                                                        >
+                                                            <Recycle className="h-4 w-4" />
+                                                            <span>Restaurar</span>
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => {
+                                                                setProductToForceDelete(product);
+                                                                setForceDeleteModalOpen(true);
+                                                            }}
+                                                            variant="destructive"
+                                                            size="icon"
+                                                            className="h-8 w-8"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -326,8 +316,8 @@ export default function Products({
 
                                 {productData.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={isAdmin ? 8 : 7} className="px-4 py-8 text-center text-gray-500">
-                                            No hay productos que mostrar
+                                        <td colSpan={branches.length > 0 ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                                            No hay productos eliminados que mostrar
                                         </td>
                                     </tr>
                                 )}
@@ -366,27 +356,28 @@ export default function Products({
                     )}
                 </div>
 
-                {/* Delete confirmation modal */}
-                <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+                {/* Force Delete Confirmation Dialog */}
+                <Dialog open={forceDeleteModalOpen} onOpenChange={setForceDeleteModalOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>¿Eliminar producto?</DialogTitle>
+                            <DialogTitle>Eliminar permanentemente</DialogTitle>
                             <DialogDescription>
-                                El producto será enviado a la papelera. Puedes restaurarlo más tarde si lo necesitas.
+                                ¿Estás seguro de que deseas eliminar permanentemente este producto?
+                                Esta acción no se puede deshacer y eliminará todos los datos asociados.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
-                            <AlertTriangle className="h-5 w-5" />
+                        <div className="flex items-center gap-3 rounded-md bg-red-50 p-3 text-red-800">
+                            <Trash2 className="h-5 w-5" />
                             <div className="text-sm">
-                                <strong>¿Estás seguro?</strong> Esta acción no se puede deshacer inmediatamente.
+                                <strong>¡Atención!</strong> El producto <strong>{productToForceDelete?.name}</strong> será eliminado permanentemente.
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+                            <Button variant="outline" onClick={() => setForceDeleteModalOpen(false)}>
                                 Cancelar
                             </Button>
-                            <Button variant="destructive" onClick={handleDelete}>
-                                Eliminar
+                            <Button variant="destructive" onClick={handleForceDelete}>
+                                Eliminar permanentemente
                             </Button>
                         </DialogFooter>
                     </DialogContent>
