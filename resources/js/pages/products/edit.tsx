@@ -45,8 +45,8 @@ export default function EditProduct({ product, categories = [], branches = [], u
         name: product.name,
         code: product.code,
         description: product.description || '',
-        purchase_price: product.purchase_price,
-        sale_price: product.sale_price,
+        purchase_price: Number(product.purchase_price),
+        sale_price: Number(product.sale_price),
         stock: product.stock,
         min_stock: product.min_stock,
         category_id: product.category_id,
@@ -135,50 +135,46 @@ export default function EditProduct({ product, categories = [], branches = [], u
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Imagen */}
-                            <div className="col-span-2 space-y-2">
+                            <div className="w-full flex flex-col items-center space-y-2">
                                 <label htmlFor="image" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     Imagen
                                 </label>
-                                <div className="flex flex-col items-center gap-4">
-                                    <div
-                                        className={`group relative aspect-square w-full overflow-hidden rounded-md border-2 md:w-1/2 ${
-                                            isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
-                                        } bg-muted transition-all duration-200 hover:border-primary`}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                    >
-                                        {imagePreview ? (
-                                            <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
-                                                <UserCircle className="size-12" strokeWidth={1.5} />
-                                                <p className="text-center text-xs">Sin imagen</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <label
-                                            htmlFor="image"
-                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
-                                        >
-                                            <Upload className="size-4" />
-                                            Subir imagen
-                                            <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
-                                        </label>
-                                    </div>
-
-                                    {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                    <p className="text-center text-xs text-muted-foreground">
-                                        Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
-                                    </p>
+                                <div
+                                    className={`group relative aspect-square w-full max-w-xs overflow-hidden rounded-md border-2 ${
+                                        isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
+                                    } bg-muted transition-all duration-200 hover:border-primary`}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                >
+                                    {imagePreview ? (
+                                        <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
+                                            <UserCircle className="size-12" strokeWidth={1.5} />
+                                            <p className="text-center text-xs">Sin imagen</p>
+                                        </div>
+                                    )}
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <label
+                                        htmlFor="image"
+                                        className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
+                                    >
+                                        <Upload className="size-4" />
+                                        Subir imagen
+                                        <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
+                                    </label>
+                                </div>
+                                {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
+                                <p className="text-center text-xs text-muted-foreground">
+                                    Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
+                                </p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 {/* Nombre del producto */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="name" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Nombre *
                                     </label>
@@ -192,7 +188,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Código del producto */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="code" className="text-sm font-medium">
                                         Código *
                                     </label>
@@ -229,16 +225,18 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Precio de compra */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="purchase_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de compra *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none">$</span>
                                         <Input
                                             id="purchase_price"
                                             type="text"
-                                            className="pl-6"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="pl-6 w-full"
                                             value={
                                                 typeof form.data.purchase_price === 'number' && !isNaN(form.data.purchase_price)
                                                     ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
@@ -254,16 +252,18 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Precio de venta */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="sale_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de venta *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none">$</span>
                                         <Input
                                             id="sale_price"
                                             type="text"
-                                            className="pl-6"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="pl-6 w-full"
                                             value={
                                                 typeof form.data.sale_price === 'number' && !isNaN(form.data.sale_price)
                                                     ? Math.round(form.data.sale_price).toLocaleString('es-CO')
@@ -279,7 +279,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Stock actual */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="stock" className="text-sm font-medium">
                                         Stock actual *
                                     </label>
@@ -288,6 +288,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                         type="number"
                                         min="0"
                                         step="1"
+                                        className="w-full"
                                         value={form.data.stock}
                                         onChange={(e) => form.setData('stock', parseInt(e.target.value))}
                                     />
@@ -295,7 +296,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Stock mínimo */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="min_stock" className="text-sm font-medium">
                                         Stock mínimo *
                                     </label>
@@ -304,6 +305,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                         type="number"
                                         min="0"
                                         step="1"
+                                        className="w-full"
                                         value={form.data.min_stock}
                                         onChange={(e) => form.setData('min_stock', parseInt(e.target.value))}
                                     />
@@ -314,7 +316,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Categoría */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="category_id" className="text-sm font-medium">
                                         Categoría *
                                     </label>
@@ -337,7 +339,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Sucursal */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 w-full">
                                     <label htmlFor="branch_id" className="text-sm font-medium">
                                         Sucursal *
                                     </label>
@@ -361,7 +363,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Descripción */}
-                                <div className="col-span-2 space-y-2">
+                                <div className="space-y-2 w-full md:col-span-2">
                                     <label htmlFor="description" className="text-sm font-medium">
                                         Descripción
                                     </label>
@@ -376,7 +378,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Estado */}
-                                <div className="col-span-2 space-y-2">
+                                <div className="space-y-2 w-full md:col-span-2">
                                     <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
                                     <div className="flex items-center space-x-2">
                                         <Switch
@@ -396,16 +398,16 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
                             </div>
 
-                            <div className="flex justify-end gap-2 pt-4">
+                            <div className="flex flex-col gap-2 pt-4 md:flex-row md:justify-end">
                                 <Link href="/products">
-                                    <Button type="button" variant="outline">
+                                    <Button type="button" variant="outline" className="w-full md:w-auto">
                                         Cancelar
                                     </Button>
                                 </Link>
-                                <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)}>
+                                <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)} className="w-full md:w-auto">
                                     Eliminar
                                 </Button>
-                                <Button type="submit" className="gap-1" disabled={form.processing}>
+                                <Button type="submit" className="gap-1 w-full md:w-auto" disabled={form.processing}>
                                     <Save className="h-4 w-4" />
                                     Guardar Cambios
                                 </Button>

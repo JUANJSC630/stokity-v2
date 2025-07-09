@@ -252,13 +252,14 @@ export default function Products({
                 </div>
 
                 {/* Products table */}
-                <div className="relative overflow-hidden rounded-md bg-white shadow dark:bg-neutral-900">
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
                     {isSearching && (
                         <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
                             <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
                         </div>
                     )}
-                    <div className="overflow-x-auto">
+                    {/* Vista tabla en md+ */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-neutral-50 dark:bg-neutral-800">
                                 <tr className="text-left">
@@ -280,7 +281,7 @@ export default function Products({
                                                 <img
                                                     src={product.image_url}
                                                     alt={product.name}
-                                                    className="h-10 w-10 rounded-md border border-neutral-200 object-cover dark:border-neutral-700"
+                                                    className="h-10 w-10 rounded-md border border-neutral-200 object-cover dark:border-neutral-700 bg-muted"
                                                 />
                                                 <span className="text-neutral-900 dark:text-neutral-100">{product.name}</span>
                                             </div>
@@ -342,6 +343,61 @@ export default function Products({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    {/* Vista tarjetas en móvil */}
+                    <div className="block md:hidden">
+                        {productData.data.length === 0 ? (
+                            <div className="p-6 text-center text-muted-foreground">No hay productos que mostrar</div>
+                        ) : (
+                            productData.data.map((product) => (
+                                <div
+                                    key={product.id}
+                                    className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                                >
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <img
+                                            src={product.image_url}
+                                            alt={product.name}
+                                            className="h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-700 bg-muted"
+                                        />
+                                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{product.name}</div>
+                                    </div>
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Código: {product.code}</div>
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Categoría: {product.category?.name}</div>
+                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                                        Precio: $
+                                        {Number(product.sale_price).toLocaleString('es-CO', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0,
+                                        })}
+                                    </div>
+                                    <div className="text-xs mb-1">
+                                        Stock: {product.stock <= product.min_stock ? (
+                                            <span className="font-medium text-red-700 dark:text-red-200">{product.stock}</span>
+                                        ) : (
+                                            <span className="text-neutral-700 dark:text-neutral-200">{product.stock}</span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs mb-1">
+                                        Estado: {product.status ? (
+                                            <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Activo</span>
+                                        ) : (
+                                            <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">Inactivo</span>
+                                        )}
+                                    </div>
+                                    {isAdmin && (
+                                        <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Sucursal: {product.branch?.name}</div>
+                                    )}
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <Link href={`/products/${product.id}`}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
+                                                <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     {/* Pagination */}
