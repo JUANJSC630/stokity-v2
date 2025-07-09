@@ -402,13 +402,13 @@ export default function Products({
 
                     {/* Pagination */}
                     {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900">
-                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                        <div className="flex flex-col gap-2 items-start sm:flex-row sm:items-center sm:justify-between border-t bg-white px-2 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+                            <div className="text-sm text-neutral-500 dark:text-neutral-400 w-full sm:w-auto text-left">
                                 Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
                                 <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
                                 <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span> resultados
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex flex-wrap gap-1 w-full justify-center sm:w-auto sm:justify-end">
                                 {productData.links &&
                                     Array.isArray(productData.links) &&
                                     productData.links.map(
