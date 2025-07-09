@@ -85,9 +85,9 @@ export default function Branches({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Sucursales" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold">Gestión de Sucursales</h1>
-                    <div className="flex gap-2">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h1 className="text-2xl font-bold text-center sm:text-left">Gestión de Sucursales</h1>
+                    <div className="flex flex-row justify-center gap-2">
                         {auth.user.role === 'administrador' && (
                             <Button asChild className="flex gap-1">
                                 <Link href="/branches/create">
@@ -107,8 +107,8 @@ export default function Branches({
                     </div>
                 </div>
 
-                <div className="flex flex-col items-start gap-4 md:flex-row md:items-center">
-                    <div className="relative w-full max-w-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                    <div className="relative w-full max-w-full md:max-w-sm">
                         <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Buscar sucursales..."
@@ -118,8 +118,7 @@ export default function Branches({
                             disabled={isSearching}
                         />
                     </div>
-
-                    <div className="w-full max-w-xs">
+                    <div className="w-full max-w-full md:max-w-xs">
                         <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={isSearching}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Filtrar por estado" />
@@ -134,8 +133,8 @@ export default function Branches({
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    <div className="overflow-x-auto w-full">
+                        <table className="w-full min-w-[700px]">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
                                     <th className="px-4 py-3 text-sm font-medium">Nombre</th>

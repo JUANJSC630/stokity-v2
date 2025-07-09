@@ -125,7 +125,8 @@ export default function TrashedBranches({
                 </div>
 
                 <Card className="overflow-hidden">
-                    <CardHeader className="bg-muted/50 p-4">
+                    {/* Encabezado de tabla solo en md+ */}
+                    <CardHeader className="bg-muted/50 p-4 hidden md:block">
                         <div className="grid grid-cols-12 gap-2 text-sm font-semibold">
                             <div className="col-span-3">Nombre</div>
                             <div className="col-span-3">Dirección</div>
@@ -138,44 +139,92 @@ export default function TrashedBranches({
                         {branches?.data?.length === 0 ? (
                             <div className="p-6 text-center text-muted-foreground">No hay sucursales eliminadas</div>
                         ) : (
-                            branches?.data?.map((branch: Branch) => (
-                                <div
-                                    key={branch.id}
-                                    className="grid grid-cols-12 gap-2 border-b border-border/50 p-4 transition-colors hover:bg-muted/30"
-                                >
-                                    <div className="col-span-3 font-medium">
-                                        {branch.name}
-                                        {branch.manager && <div className="text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>}
-                                    </div>
-                                    <div className="col-span-3 text-sm">{branch.address}</div>
-                                    <div className="col-span-2 text-sm">{branch.phone}</div>
-                                    <div className="col-span-2 text-sm text-muted-foreground">{formattedDate(branch.deleted_at || '')}</div>
-                                    <div className="col-span-2 flex justify-end gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => {
-                                                setBranchToRestore(branch);
-                                                setRestoreModalOpen(true);
-                                            }}
-                                            title="Restaurar"
+                            <>
+                                {/* Vista tipo tabla en md+ */}
+                                <div className="hidden md:block">
+                                    {branches?.data?.map((branch: Branch) => (
+                                        <div
+                                            key={branch.id}
+                                            className="grid grid-cols-12 gap-2 border-b border-border/50 p-4 transition-colors hover:bg-muted/30"
                                         >
-                                            <RefreshCcw className="size-4" />
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            size="icon"
-                                            onClick={() => {
-                                                setBranchToDelete(branch);
-                                                setDeleteModalOpen(true);
-                                            }}
-                                            title="Eliminar permanentemente"
-                                        >
-                                            <Trash2 className="size-4" />
-                                        </Button>
-                                    </div>
+                                            <div className="col-span-3 font-medium">
+                                                {branch.name}
+                                                {branch.manager && <div className="text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>}
+                                            </div>
+                                            <div className="col-span-3 text-sm">{branch.address}</div>
+                                            <div className="col-span-2 text-sm">{branch.phone}</div>
+                                            <div className="col-span-2 text-sm text-muted-foreground">{formattedDate(branch.deleted_at || '')}</div>
+                                            <div className="col-span-2 flex justify-end gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setBranchToRestore(branch);
+                                                        setRestoreModalOpen(true);
+                                                    }}
+                                                    title="Restaurar"
+                                                >
+                                                    <RefreshCcw className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setBranchToDelete(branch);
+                                                        setDeleteModalOpen(true);
+                                                    }}
+                                                    title="Eliminar permanentemente"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))
+                                {/* Vista tipo tarjeta en móvil */}
+                                <div className="block md:hidden">
+                                    {branches?.data?.map((branch: Branch) => (
+                                        <div
+                                            key={branch.id}
+                                            className="mb-4 rounded-lg border border-border/50 p-4 shadow-sm bg-card"
+                                        >
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <div className="font-semibold">{branch.name}</div>
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        onClick={() => {
+                                                            setBranchToRestore(branch);
+                                                            setRestoreModalOpen(true);
+                                                        }}
+                                                        title="Restaurar"
+                                                    >
+                                                        <RefreshCcw className="size-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="icon"
+                                                        onClick={() => {
+                                                            setBranchToDelete(branch);
+                                                            setDeleteModalOpen(true);
+                                                        }}
+                                                        title="Eliminar permanentemente"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            {branch.manager && (
+                                                <div className="text-xs text-muted-foreground mb-1">Gerente: {branch.manager.name}</div>
+                                            )}
+                                            <div className="text-sm text-muted-foreground mb-1">Dirección: {branch.address}</div>
+                                            <div className="text-sm text-muted-foreground mb-1">Teléfono: {branch.phone}</div>
+                                            <div className="text-xs text-muted-foreground">Eliminada: {formattedDate(branch.deleted_at || '')}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>

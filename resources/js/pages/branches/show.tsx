@@ -40,19 +40,19 @@ export default function BranchDetail({ branch }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Sucursal - ${branch.name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
                         <Link href="/branches">
                             <Button variant="outline" size="icon" className="h-8 w-8">
                                 <ArrowLeft className="size-4" />
                             </Button>
                         </Link>
-                        <h1 className="text-2xl font-bold">{branch.name}</h1>
-                        <Badge variant={branch.status ? 'default' : 'destructive'} className="ml-2">
+                        <h1 className="text-2xl font-bold mt-2 sm:mt-0">{branch.name}</h1>
+                        <Badge variant={branch.status ? 'default' : 'destructive'} className="mt-2 sm:mt-0 ml-0 sm:ml-2">
                             {branch.status ? 'Activa' : 'Inactiva'}
                         </Badge>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-row justify-center gap-2">
                         <Link href={`/branches/${branch.id}/edit`}>
                             <Button className="flex gap-1">
                                 <Edit className="size-4" />
@@ -146,7 +146,7 @@ export default function BranchDetail({ branch }: Props) {
                     </CardHeader>
                     <CardContent className="pt-6">
                         {branch.employees && branch.employees.filter((emp) => emp.role === 'vendedor').length > 0 ? (
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 {branch.employees
                                     .filter((employee) => employee.role === 'vendedor')
                                     .map((employee) => (
