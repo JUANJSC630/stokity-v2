@@ -58,13 +58,19 @@ export default function ProductShow({ product }: ProductShowProps) {
 
                             <div className="flex w-full flex-col gap-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Estado:</span>
+                                    <span className="text-sm text-neutral-500 dark:text-neutral-400">Estado:</span>
                                     {product.status ? (
-                                        <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                                        <Badge
+                                            variant="default"
+                                            className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        >
                                             Activo
                                         </Badge>
                                     ) : (
-                                        <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
+                                        <Badge
+                                            variant="secondary"
+                                            className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+                                        >
                                             Inactivo
                                         </Badge>
                                     )}
@@ -97,9 +103,9 @@ export default function ProductShow({ product }: ProductShowProps) {
                         <CardContent className="space-y-6">
                             {/* Precios */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="rounded-md bg-gray-50 p-4">
-                                    <div className="text-sm text-muted-foreground">Precio de compra</div>
-                                    <div className="text-2xl font-semibold">
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de compra</div>
+                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
                                         $
                                         {Number(product.purchase_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -107,9 +113,9 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         })}
                                     </div>
                                 </div>
-                                <div className="rounded-md bg-gray-50 p-4">
-                                    <div className="text-sm text-muted-foreground">Precio de venta</div>
-                                    <div className="text-2xl font-semibold">
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de venta</div>
+                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
                                         $
                                         {Number(product.sale_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -121,36 +127,36 @@ export default function ProductShow({ product }: ProductShowProps) {
 
                             {/* Inventario */}
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="rounded-md bg-gray-50 p-4">
-                                    <div className="text-sm text-muted-foreground">Stock actual</div>
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-semibold">{product.stock}</span>
+                                        <span className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{product.stock}</span>
                                         {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
                                     </div>
                                 </div>
-                                <div className="rounded-md bg-gray-50 p-4">
-                                    <div className="text-sm text-muted-foreground">Stock mínimo</div>
-                                    <div className="text-2xl font-semibold">{product.min_stock}</div>
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
+                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{product.min_stock}</div>
                                 </div>
                             </div>
 
                             {/* Descripción */}
                             <div>
-                                <h3 className="mb-2 text-lg font-medium">Descripción</h3>
-                                <div className="min-h-[100px] rounded-md bg-gray-50 p-4 whitespace-pre-wrap">
+                                <h3 className="mb-2 text-lg font-medium text-neutral-900 dark:text-neutral-100">Descripción</h3>
+                                <div className="min-h-[100px] rounded-md bg-neutral-50 p-4 whitespace-pre-wrap dark:bg-neutral-800 dark:text-neutral-100">
                                     {product.description || 'Sin descripción'}
                                 </div>
                             </div>
 
                             {/* Fechas */}
-                            <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                            <div className="grid grid-cols-2 gap-4 border-t pt-4 dark:border-neutral-700">
                                 <div>
-                                    <div className="text-sm text-muted-foreground">Creado</div>
-                                    <div>{new Date(product.created_at).toLocaleDateString()}</div>
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Creado</div>
+                                    <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.created_at).toLocaleDateString()}</div>
                                 </div>
                                 <div>
-                                    <div className="text-sm text-muted-foreground">Actualizado</div>
-                                    <div>{new Date(product.updated_at).toLocaleDateString()}</div>
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Actualizado</div>
+                                    <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.updated_at).toLocaleDateString()}</div>
                                 </div>
                             </div>
                         </CardContent>

@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -125,10 +127,12 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                     <h1 className="text-2xl font-semibold">Crear Nuevo Producto</h1>
                 </div>
 
-                <Card>
+                <Card className="bg-white border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-700">
                     <CardHeader>
                         <CardTitle>Información del Producto</CardTitle>
-                        <CardDescription>Complete la información necesaria para crear un nuevo producto. Todos los campos marcados con * son obligatorios.</CardDescription>
+                        <CardDescription>
+                            Complete la información necesaria para crear un nuevo producto. Todos los campos marcados con * son obligatorios.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -139,7 +143,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </label>
                                 <div className="flex flex-col items-center gap-4">
                                     <div
-                                        className={`group relative aspect-square w-full md:w-1/2 overflow-hidden rounded-md border-2 ${
+                                        className={`group relative aspect-square w-full overflow-hidden rounded-md border-2 md:w-1/2 ${
                                             isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
                                         } bg-muted transition-all duration-200 hover:border-primary`}
                                         onDragOver={handleDragOver}
@@ -159,7 +163,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <div className="flex items-center gap-2">
                                         <label
                                             htmlFor="image"
-                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white dark:text-black transition-colors hover:bg-primary/90"
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
@@ -186,6 +190,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
                                         required
+                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
@@ -201,6 +206,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.code}
                                         onChange={(e) => form.setData('code', e.target.value)}
                                         required
+                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
                                     <p className="text-xs text-muted-foreground">Código o SKU para identificar el producto.</p>
@@ -212,11 +218,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         Precio de compra *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <Input
                                             id="purchase_price"
                                             type="text"
-                                            className="pl-6"
+                                            className="pl-6 bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={
                                                 typeof form.data.purchase_price === 'number'
                                                     ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
@@ -237,11 +243,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         Precio de venta *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <Input
                                             id="sale_price"
                                             type="text"
-                                            className="pl-6"
+                                            className="pl-6 bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={
                                                 typeof form.data.sale_price === 'number'
                                                     ? Math.round(form.data.sale_price).toLocaleString('es-CO')
@@ -268,6 +274,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         min="0"
                                         value={form.data.stock}
                                         onChange={(e) => form.setData('stock', Number(e.target.value))}
+                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
                                 </div>
@@ -284,6 +291,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         min="0"
                                         value={form.data.min_stock}
                                         onChange={(e) => form.setData('min_stock', Number(e.target.value))}
+                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
                                     <p className="text-xs text-muted-foreground">
@@ -296,9 +304,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <label htmlFor="category_id" className="text-sm font-medium">
                                         Categoría *
                                     </label>
-                                    <Select 
-                                        value={form.data.category_id.toString()} 
-                                        onValueChange={(value) => form.setData('category_id', value)}>
+                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
                                         <SelectTrigger id="category_id">
                                             <SelectValue placeholder="Seleccionar categoría" />
                                         </SelectTrigger>
@@ -318,10 +324,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <label htmlFor="branch_id" className="text-sm font-medium">
                                         Sucursal *
                                     </label>
-                                    <Select
-                                        value={form.data.branch_id.toString()}
-                                        onValueChange={(value) => form.setData('branch_id', value)}
-                                    >
+                                    <Select value={form.data.branch_id.toString()} onValueChange={(value) => form.setData('branch_id', value)}>
                                         <SelectTrigger id="branch_id">
                                             <SelectValue placeholder="Seleccionar sucursal" />
                                         </SelectTrigger>
@@ -336,8 +339,6 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     {form.errors.branch_id && <p className="text-xs text-destructive">{form.errors.branch_id}</p>}
                                 </div>
 
-
-
                                 {/* Descripción */}
                                 <div className="col-span-2 space-y-2">
                                     <label htmlFor="description" className="text-sm font-medium">
@@ -349,25 +350,26 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         rows={5}
                                         value={form.data.description}
                                         onChange={(e) => form.setData('description', e.target.value)}
+                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.description && <p className="text-xs text-destructive">{form.errors.description}</p>}
                                 </div>
 
                                 {/* Estado */}
                                 <div className="col-span-2 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <input
+                                    <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
                                             id="status"
-                                            type="checkbox"
                                             checked={!!form.data.status}
-                                            onChange={(e) => form.setData('status', e.target.checked)}
-                                            className="h-4 w-4 rounded border-gray-300"
+                                            onCheckedChange={(checked) => form.setData('status', checked)}
+                                            disabled={form.processing}
                                         />
-                                        <label htmlFor="status" className="text-sm font-medium">
-                                            Activo
-                                        </label>
+                                        <Label htmlFor="status" className="font-normal text-neutral-900 dark:text-neutral-100">
+                                            {form.data.status ? 'Activo' : 'Inactivo'}
+                                        </Label>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Los productos inactivos no se mostrarán en el sistema</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Los productos inactivos no se mostrarán en el sistema</p>
                                     {form.errors.status && <p className="text-xs text-destructive">{form.errors.status}</p>}
                                 </div>
                             </div>

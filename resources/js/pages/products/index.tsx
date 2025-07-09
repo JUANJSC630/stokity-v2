@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
@@ -176,11 +177,11 @@ export default function Products({
                 <div className="space-y-2">
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                         <div className="space-y-1.5">
-                            <label htmlFor="product-search" className="text-xs font-medium text-muted-foreground">
+                            <Label htmlFor="product-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                 Buscar
-                            </label>
+                            </Label>
                             <div className="relative">
-                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
                                 <Input
                                     id="product-search"
                                     type="search"
@@ -193,9 +194,9 @@ export default function Products({
                         </div>
 
                         <div className="space-y-1.5">
-                            <label htmlFor="status-filter" className="text-xs font-medium text-muted-foreground">
+                            <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                 Estado
-                            </label>
+                            </Label>
                             <Select value={statusFilter} onValueChange={setStatusFilter}>
                                 <SelectTrigger id="status-filter" className="h-8 text-sm">
                                     <SelectValue placeholder="Estado" />
@@ -209,9 +210,9 @@ export default function Products({
                         </div>
 
                         <div className="space-y-1.5">
-                            <label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">
+                            <Label htmlFor="category-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                 Categoría
-                            </label>
+                            </Label>
                             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                                 <SelectTrigger id="category-filter" className="h-8 text-sm">
                                     <SelectValue placeholder="Categoría" />
@@ -229,9 +230,9 @@ export default function Products({
 
                         {isAdmin && branches.length > 0 && (
                             <div className="space-y-1.5">
-                                <label htmlFor="branch-filter" className="text-xs font-medium text-muted-foreground">
+                                <Label htmlFor="branch-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                     Sucursal
-                                </label>
+                                </Label>
                                 <Select value={branchFilter} onValueChange={setBranchFilter}>
                                     <SelectTrigger id="branch-filter" className="h-8 text-sm">
                                         <SelectValue placeholder="Sucursal" />
@@ -251,15 +252,15 @@ export default function Products({
                 </div>
 
                 {/* Products table */}
-                <div className="relative overflow-hidden rounded-md bg-white shadow">
+                <div className="relative overflow-hidden rounded-md bg-white shadow dark:bg-neutral-900">
                     {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-gray-900"></div>
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
                         </div>
                     )}
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-neutral-50 dark:bg-neutral-800">
                                 <tr className="text-left">
                                     <th className="px-4 py-3 font-medium">Producto</th>
                                     <th className="px-4 py-3 font-medium">Código</th>
@@ -271,52 +272,60 @@ export default function Products({
                                     <th className="px-4 py-3 text-right font-medium">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {productData.data.map((product) => (
-                                    <tr key={product.id} className="hover:bg-gray-50">
+                                    <tr key={product.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <img
                                                     src={product.image_url}
                                                     alt={product.name}
-                                                    className="h-10 w-10 rounded-md border object-cover"
+                                                    className="h-10 w-10 rounded-md border border-neutral-200 object-cover dark:border-neutral-700"
                                                 />
-                                                <span>{product.name}</span>
+                                                <span className="text-neutral-900 dark:text-neutral-100">{product.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">{product.code}</td>
-                                        <td className="px-4 py-3">{product.category?.name}</td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.code}</td>
+                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.category?.name}</td>
+                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">
                                             $
                                             {Number(product.sale_price).toLocaleString('es-CO', {
                                                 minimumFractionDigits: 0,
                                                 maximumFractionDigits: 0,
                                             })}
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 text-center">
                                             {product.stock <= product.min_stock ? (
-                                                <span className="font-medium text-destructive">{product.stock}</span>
+                                                <span className="inline-flex items-center justify-center rounded-md bg-red-100 px-2 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+                                                    {product.stock}
+                                                </span>
                                             ) : (
-                                                <span>{product.stock}</span>
+                                                <span className="text-neutral-700 dark:text-neutral-200">{product.stock}</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
                                             {product.status ? (
-                                                <Badge variant="default" className="bg-green-100 text-xs text-green-800">
+                                                <Badge
+                                                    variant="default"
+                                                    className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
+                                                >
                                                     Activo
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="secondary" className="text-xs">
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+                                                >
                                                     Inactivo
                                                 </Badge>
                                             )}
                                         </td>
-                                        {isAdmin && <td className="px-4 py-3">{product.branch?.name}</td>}
+                                        {isAdmin && <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.branch?.name}</td>}
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex gap-2">
                                                 <Link href={`/products/${product.id}`}>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
                                                     </Button>
                                                 </Link>
                                             </div>
@@ -326,7 +335,7 @@ export default function Products({
 
                                 {productData.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={isAdmin ? 8 : 7} className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan={isAdmin ? 8 : 7} className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
                                             No hay productos que mostrar
                                         </td>
                                     </tr>
@@ -337,11 +346,11 @@ export default function Products({
 
                     {/* Pagination */}
                     {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t bg-white px-4 py-3">
-                            <div className="text-sm text-gray-500">
-                                Mostrando <span className="font-medium">{productData.meta?.from || 0}</span> a{' '}
-                                <span className="font-medium">{productData.meta?.to || 0}</span> de{' '}
-                                <span className="font-medium">{productData.meta?.total || 0}</span> resultados
+                        <div className="flex items-center justify-between border-t bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
+                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
+                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span> resultados
                             </div>
                             <div className="flex gap-1">
                                 {productData.links &&
@@ -353,7 +362,7 @@ export default function Products({
                                                     key={i}
                                                     variant={link.active ? 'default' : 'outline'}
                                                     size="sm"
-                                                    className="text-xs"
+                                                    className={`text-xs ${link.active ? 'bg-black text-white dark:bg-neutral-100 dark:text-neutral-900' : 'border-neutral-200 text-neutral-700 dark:border-neutral-700 dark:text-neutral-200'}`}
                                                     disabled={!link.url}
                                                     onClick={() => link.url && handlePaginationClick(link.url)}
                                                 >

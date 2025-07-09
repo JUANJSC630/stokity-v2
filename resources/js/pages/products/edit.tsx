@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -133,7 +135,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Imagen */}
                             <div className="col-span-2 space-y-2">
-                                <label htmlFor="image" className="text-sm font-medium">
+                                <label htmlFor="image" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     Imagen
                                 </label>
                                 <div className="flex flex-col items-center gap-4">
@@ -158,7 +160,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                     <div className="flex items-center gap-2">
                                         <label
                                             htmlFor="image"
-                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white dark:text-black transition-colors hover:bg-primary/90"
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
@@ -176,7 +178,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 {/* Nombre del producto */}
                                 <div className="space-y-2">
-                                    <label htmlFor="name" className="text-sm font-medium">
+                                    <label htmlFor="name" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Nombre *
                                     </label>
                                     <Input
@@ -205,11 +207,11 @@ export default function EditProduct({ product, categories = [], branches = [], u
 
                                 {/* Precio de compra */}
                                 <div className="space-y-2">
-                                    <label htmlFor="purchase_price" className="text-sm font-medium">
+                                    <label htmlFor="purchase_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de compra *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <Input
                                             id="purchase_price"
                                             type="text"
@@ -230,11 +232,11 @@ export default function EditProduct({ product, categories = [], branches = [], u
 
                                 {/* Precio de venta */}
                                 <div className="space-y-2">
-                                    <label htmlFor="sale_price" className="text-sm font-medium">
+                                    <label htmlFor="sale_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de venta *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500">$</span>
+                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <Input
                                             id="sale_price"
                                             type="text"
@@ -352,19 +354,19 @@ export default function EditProduct({ product, categories = [], branches = [], u
 
                                 {/* Estado */}
                                 <div className="col-span-2 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <input
+                                    <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
                                             id="status"
-                                            type="checkbox"
                                             checked={form.data.status}
-                                            onChange={(e) => form.setData('status', e.target.checked)}
-                                            className="h-4 w-4 rounded border-gray-300"
+                                            onCheckedChange={(checked) => form.setData('status', checked)}
+                                            disabled={form.processing}
                                         />
-                                        <label htmlFor="status" className="text-sm font-medium">
-                                            Activo
-                                        </label>
+                                        <Label htmlFor="status" className="font-normal text-neutral-900 dark:text-neutral-100">
+                                            {form.data.status ? 'Activo' : 'Inactivo'}
+                                        </Label>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Los productos inactivos no se mostrarán en el sistema</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Los productos inactivos no se mostrarán en el sistema</p>
                                     {form.errors.status && <p className="text-xs text-destructive">{form.errors.status}</p>}
                                 </div>
                             </div>

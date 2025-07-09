@@ -127,13 +127,13 @@ export default function Categories({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4" style={{ minHeight: 'calc(100vh - 64px)' }}>
+            <div className="flex h-full flex-1 flex-col gap-6 p-4 dark:bg-neutral-900/50" style={{ minHeight: 'calc(100vh - 64px)' }}>
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold text-gray-900">Gestión de Categorías</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Categorías</h1>
 
                     <div className="flex flex-wrap gap-3">
                         {(auth.user.role === 'administrador' || auth.user.role === 'encargado') && (
-                            <Button className="flex gap-2 rounded-lg bg-black font-medium shadow-sm hover:bg-gray-800" onClick={openCreateModal}>
+                            <Button className="flex gap-2 rounded-lg bg-black font-medium shadow-sm hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200" onClick={openCreateModal}>
                                 <Plus className="size-4" />
                                 <span>Nueva Categoría</span>
                             </Button>
@@ -141,7 +141,7 @@ export default function Categories({
                         {auth.user.role === 'administrador' && (
                             <Button
                                 variant="outline"
-                                className="flex gap-2 rounded-lg border-gray-200 font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                                className="flex gap-2 rounded-lg border-gray-200 font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-neutral-800"
                                 asChild
                             >
                                 <Link href="/categories/trashed">
@@ -154,10 +154,10 @@ export default function Categories({
                 </div>
 
                 <div className="relative mb-4 w-full max-w-md">
-                    <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" />
+                    <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         placeholder="Buscar categorías..."
-                        className="w-full rounded-lg border-gray-200 pl-10 shadow-sm focus-visible:ring-1 focus-visible:ring-gray-400"
+                        className="w-full rounded-lg pl-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         disabled={isSearching}
@@ -172,17 +172,17 @@ export default function Categories({
                                 categories.data.map((category: Category) => (
                                     <div
                                         key={category.id}
-                                        className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+                                        className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-gray-500"
                                         style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
                                     >
-                                        <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900">
+                                        <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900 dark:text-gray-100">
                                             {category.name}
                                         </span>
                                         <div className="flex shrink-0">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100"
+                                                className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
                                                 onClick={() => openEditModal(category)}
                                             >
                                                 <Edit2 className="size-3.5" />
@@ -191,7 +191,7 @@ export default function Categories({
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-900 dark:hover:text-red-300"
                                                 onClick={() => {
                                                     setCategoryToDelete(category);
                                                     setDeleteModalOpen(true);
@@ -204,20 +204,20 @@ export default function Categories({
                                     </div>
                                 ))
                             ) : (
-                                <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                                    <p className="text-center text-gray-500">No se encontraron categorías</p>
+                                <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+                                    <p className="text-center text-neutral-500 dark:text-neutral-400">No se encontraron categorías</p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* Pagination - always at bottom */}
-                    <div className="mt-auto border-t border-gray-100 pt-5">
+                    <div className="mt-auto border-t border-neutral-100 pt-5 dark:border-neutral-700">
                         <div className="flex items-center justify-between">
-                            <div className="text-sm text-gray-500">
-                                Mostrando <span className="font-medium text-gray-700">{categories?.meta?.from || 0}</span> a{' '}
-                                <span className="font-medium text-gray-700">{categories?.meta?.to || 0}</span> de{' '}
-                                <span className="font-medium text-gray-700">{categories?.meta?.total || 0}</span> resultados
+                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.from || 0}</span> a{' '}
+                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.to || 0}</span> de{' '}
+                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.total || 0}</span> resultados
                             </div>
 
                             {categories?.meta?.last_page > 1 && (
@@ -226,7 +226,7 @@ export default function Categories({
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page <= 1 ? 'text-gray-300' : 'text-gray-500'}`}
+                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page <= 1 ? 'text-neutral-300 dark:text-neutral-700' : 'text-neutral-500 dark:text-neutral-200'}`}
                                         disabled={categories?.meta?.current_page <= 1}
                                         onClick={() => {
                                             const prevPage = categories?.meta?.current_page - 1;
@@ -257,7 +257,7 @@ export default function Categories({
                                                         key={1}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="h-8 w-8 rounded-md border-gray-200 p-0"
+                                                        className="h-8 w-8 rounded-md border-gray-200 p-0 dark:border-gray-700"
                                                         onClick={() => {
                                                             router.visit(`/categories?page=1&search=${encodeURIComponent(searchQuery || '')}`, {
                                                                 preserveState: true,
@@ -273,7 +273,7 @@ export default function Categories({
                                                 // Add ellipsis if needed
                                                 if (currentPage > 4) {
                                                     pages.push(
-                                                        <span key="ellipsis-start" className="mx-1 text-gray-400">
+                                                        <span key="ellipsis-start" className="mx-1 text-gray-400 dark:text-gray-600">
                                                             ...
                                                         </span>,
                                                     );
@@ -292,7 +292,9 @@ export default function Categories({
                                                         variant={i === currentPage ? 'default' : 'outline'}
                                                         size="sm"
                                                         className={`h-8 w-8 rounded-md p-0 ${
-                                                            i === currentPage ? 'bg-black text-white' : 'border-gray-200 text-gray-700'
+                                                            i === currentPage
+                                                                ? 'bg-black text-white dark:bg-gray-100 dark:text-gray-900'
+                                                                : 'border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-200'
                                                         }`}
                                                         onClick={() => {
                                                             if (i !== currentPage) {
@@ -315,7 +317,7 @@ export default function Categories({
                                             // Add ellipsis if needed
                                             if (currentPage < lastPage - 2) {
                                                 pages.push(
-                                                    <span key="ellipsis-end" className="mx-1 text-gray-400">
+                                                    <span key="ellipsis-end" className="mx-1 text-gray-400 dark:text-gray-600">
                                                         ...
                                                     </span>,
                                                 );
@@ -326,7 +328,7 @@ export default function Categories({
                                                         key={lastPage}
                                                         variant="outline"
                                                         size="sm"
-                                                        className="h-8 w-8 rounded-md border-gray-200 p-0 text-gray-700"
+                                                        className="h-8 w-8 rounded-md border-gray-200 p-0 text-gray-700 dark:border-gray-700 dark:text-gray-200"
                                                         onClick={() => {
                                                             router.visit(
                                                                 `/categories?page=${lastPage}&search=${encodeURIComponent(searchQuery || '')}`,
@@ -351,7 +353,7 @@ export default function Categories({
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page >= categories?.meta?.last_page ? 'text-gray-300' : 'text-gray-500'}`}
+                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page >= categories?.meta?.last_page ? 'text-gray-300 dark:text-gray-700' : 'text-gray-500 dark:text-gray-200'}`}
                                         disabled={categories?.meta?.current_page >= categories?.meta?.last_page}
                                         onClick={() => {
                                             const nextPage = categories?.meta?.current_page + 1;
@@ -375,17 +377,17 @@ export default function Categories({
 
                 {/* Delete Confirmation Dialog */}
                 <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900/50 dark:border-gray-700">
                         <DialogHeader className="pb-2">
-                            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+                            <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-gray-100">
                                 <AlertTriangle className="size-5 text-red-500" />
                                 Confirmar eliminación
                             </DialogTitle>
                         </DialogHeader>
-                        <DialogDescription className="py-4 text-gray-600">
+                        <DialogDescription className="py-4 text-gray-600 dark:text-gray-300">
                             {categoryToDelete && (
                                 <p>
-                                    ¿Está seguro de eliminar la categoría <strong className="text-gray-900">{categoryToDelete.name}</strong>? Esta
+                                    ¿Está seguro de eliminar la categoría <strong className="text-gray-900 dark:text-gray-100">{categoryToDelete.name}</strong>? Esta
                                     acción puede ser revertida posteriormente.
                                 </p>
                             )}
@@ -393,12 +395,12 @@ export default function Categories({
                         <DialogFooter className="flex gap-3 pt-2">
                             <Button
                                 variant="ghost"
-                                className="rounded-lg border border-gray-200 hover:bg-gray-50"
+                                className="rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                                 onClick={() => setDeleteModalOpen(false)}
                             >
                                 Cancelar
                             </Button>
-                            <Button variant="destructive" className="rounded-lg bg-red-500 hover:bg-red-600" onClick={handleDelete}>
+                            <Button variant="destructive" className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800" onClick={handleDelete}>
                                 Eliminar
                             </Button>
                         </DialogFooter>
@@ -407,16 +409,16 @@ export default function Categories({
 
                 {/* Edit Category Dialog */}
                 <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-gray-700">
                         <DialogHeader className="pb-2">
-                            <DialogTitle className="text-lg font-semibold text-gray-900">Editar Categoría</DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500">
+                            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Editar Categoría</DialogTitle>
+                            <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
                                 Actualiza el nombre de la categoría y haz clic en guardar cuando termines.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
-                            <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-medium text-gray-700">
+                            <div className="space-y-4">
+                                <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     Nombre
                                 </label>
                                 <Input
@@ -424,7 +426,7 @@ export default function Categories({
                                     placeholder="Nombre de la categoría"
                                     value={form.data.name}
                                     onChange={(e) => form.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400"
+                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
                                 />
                                 {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
                             </div>
@@ -432,12 +434,12 @@ export default function Categories({
                                 <Button
                                     variant="ghost"
                                     type="button"
-                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                                     onClick={() => setEditModalOpen(false)}
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800">
+                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200">
                                     Guardar cambios
                                 </Button>
                             </DialogFooter>
@@ -447,16 +449,16 @@ export default function Categories({
 
                 {/* Create Category Dialog */}
                 <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-gray-700">
                         <DialogHeader className="pb-2">
-                            <DialogTitle className="text-lg font-semibold text-gray-900">Crear Nueva Categoría</DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500">
+                            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Crear Nueva Categoría</DialogTitle>
+                            <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
                                 Ingresa el nombre de la nueva categoría y haz clic en guardar.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
-                            <div className="space-y-2">
-                                <label htmlFor="create-name" className="text-sm font-medium text-gray-700">
+                            <div className="space-y-4">
+                                <label htmlFor="create-name" className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                     Nombre
                                 </label>
                                 <Input
@@ -464,7 +466,7 @@ export default function Categories({
                                     placeholder="Nombre de la categoría"
                                     value={form.data.name}
                                     onChange={(e) => form.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400"
+                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
                                     autoFocus
                                 />
                                 {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
@@ -473,12 +475,12 @@ export default function Categories({
                                 <Button
                                     variant="ghost"
                                     type="button"
-                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                                     onClick={() => setCreateModalOpen(false)}
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800">
+                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200">
                                     Crear Categoría
                                 </Button>
                             </DialogFooter>
