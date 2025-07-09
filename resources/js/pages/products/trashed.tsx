@@ -53,29 +53,31 @@ export default function TrashedProducts({
 }: TrashedProductsPageProps) {
     // Add console log to debug the structure of products
     console.log('Trashed Products Props:', products);
-    
+
     // Ensure products and their properties have valid values
     // Complete structure to avoid undefined errors
     const productData = {
         data: Array.isArray(products?.data) ? products.data : [],
         links: Array.isArray(products?.links) ? products.links : [],
-        meta: products?.meta ? {
-            current_page: typeof products.meta.current_page === 'number' ? products.meta.current_page : 1,
-            last_page: typeof products.meta.last_page === 'number' ? products.meta.last_page : 1,
-            per_page: typeof products.meta.per_page === 'number' ? products.meta.per_page : 10,
-            total: typeof products.meta.total === 'number' ? products.meta.total : 0,
-            from: typeof products.meta.from === 'number' ? products.meta.from : 0,
-            to: typeof products.meta.to === 'number' ? products.meta.to : 0,
-        } : {
-            current_page: 1,
-            last_page: 1,
-            per_page: 10,
-            total: 0,
-            from: 0,
-            to: 0,
-        }
+        meta: products?.meta
+            ? {
+                  current_page: typeof products.meta.current_page === 'number' ? products.meta.current_page : 1,
+                  last_page: typeof products.meta.last_page === 'number' ? products.meta.last_page : 1,
+                  per_page: typeof products.meta.per_page === 'number' ? products.meta.per_page : 10,
+                  total: typeof products.meta.total === 'number' ? products.meta.total : 0,
+                  from: typeof products.meta.from === 'number' ? products.meta.from : 0,
+                  to: typeof products.meta.to === 'number' ? products.meta.to : 0,
+              }
+            : {
+                  current_page: 1,
+                  last_page: 1,
+                  per_page: 10,
+                  total: 0,
+                  from: 0,
+                  to: 0,
+              },
     };
-    
+
     const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
@@ -91,11 +93,7 @@ export default function TrashedProducts({
     // Update search results when filters change
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            if (
-                searchQuery !== filters?.search ||
-                categoryFilter !== filters?.category ||
-                branchFilter !== filters?.branch
-            ) {
+            if (searchQuery !== filters?.search || categoryFilter !== filters?.category || branchFilter !== filters?.branch) {
                 setIsSearching(true);
 
                 // Build query string
@@ -232,36 +230,35 @@ export default function TrashedProducts({
                 </div>
 
                 {/* Products table */}
-                <div className="relative overflow-hidden rounded-md bg-white shadow">
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
                     {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-gray-900"></div>
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black/60">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-gray-900 dark:border-gray-100"></div>
                         </div>
                     )}
-                    <div className="overflow-x-auto">
+                    {/* Vista tabla en md+ */}
+                    <div className="hidden overflow-x-auto md:block">
                         <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-muted/50 dark:bg-muted/70">
                                 <tr className="text-left">
                                     <th className="px-4 py-3 font-medium">Producto</th>
                                     <th className="px-4 py-3 font-medium">Código</th>
                                     <th className="px-4 py-3 font-medium">Categoría</th>
                                     <th className="px-4 py-3 font-medium">Precio de venta</th>
                                     <th className="px-4 py-3 font-medium">Stock</th>
-                                    {branches.length > 0 && (
-                                        <th className="px-4 py-3 font-medium">Sucursal</th>
-                                    )}
+                                    {branches.length > 0 && <th className="px-4 py-3 font-medium">Sucursal</th>}
                                     <th className="px-4 py-3 text-right font-medium">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y divide-border dark:divide-border/40">
                                 {productData.data.map((product) => (
-                                    <tr key={product.id} className="hover:bg-gray-50">
+                                    <tr key={product.id} className="hover:bg-muted/30 dark:hover:bg-muted/40">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <img
                                                     src={product.image_url}
                                                     alt={product.name}
-                                                    className="h-10 w-10 rounded-md border object-cover"
+                                                    className="h-10 w-10 rounded-md border bg-muted object-cover"
                                                 />
                                                 <span>{product.name}</span>
                                             </div>
@@ -291,7 +288,7 @@ export default function TrashedProducts({
                                                             onClick={() => handleRestore(product.id)}
                                                             variant="outline"
                                                             size="sm"
-                                                            className="flex items-center gap-1 h-8"
+                                                            className="flex h-8 items-center gap-1"
                                                         >
                                                             <Recycle className="h-4 w-4" />
                                                             <span>Restaurar</span>
@@ -316,7 +313,7 @@ export default function TrashedProducts({
 
                                 {productData.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={branches.length > 0 ? 7 : 6} className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan={branches.length > 0 ? 7 : 6} className="px-4 py-8 text-center text-muted-foreground">
                                             No hay productos eliminados que mostrar
                                         </td>
                                     </tr>
@@ -324,65 +321,130 @@ export default function TrashedProducts({
                             </tbody>
                         </table>
                     </div>
-
-                    {/* Pagination */}
-                    {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t bg-white px-4 py-3">
-                            <div className="text-sm text-gray-500">
-                                Mostrando <span className="font-medium">{productData.meta?.from || 0}</span> a{' '}
-                                <span className="font-medium">{productData.meta?.to || 0}</span> de{' '}
-                                <span className="font-medium">{productData.meta?.total || 0}</span> resultados
-                            </div>
-                            <div className="flex gap-1">
-                                {productData.links &&
-                                    Array.isArray(productData.links) &&
-                                    productData.links.map(
-                                        (link, i) =>
-                                            link && (
-                                                <Button
-                                                    key={i}
-                                                    variant={link.active ? 'default' : 'outline'}
-                                                    size="sm"
-                                                    className="text-xs"
-                                                    disabled={!link.url}
-                                                    onClick={() => link.url && handlePaginationClick(link.url)}
-                                                >
-                                                    <span dangerouslySetInnerHTML={{ __html: link.label || '' }} />
-                                                </Button>
-                                            ),
+                    {/* Vista tarjetas en móvil */}
+                    <div className="block md:hidden">
+                        {productData.data.length === 0 ? (
+                            <div className="p-6 text-center text-muted-foreground">No hay productos eliminados que mostrar</div>
+                        ) : (
+                            productData.data.map((product) => (
+                                <div key={product.id} className="mb-4 rounded-lg border border-border/50 bg-card p-4 shadow-sm dark:bg-muted">
+                                    <div className="mb-2 flex items-center gap-3">
+                                        <img
+                                            src={product.image_url}
+                                            alt={product.name}
+                                            className="h-12 w-12 rounded-md border bg-muted object-cover"
+                                        />
+                                        <div className="font-medium">{product.name}</div>
+                                    </div>
+                                    <div className="mb-1 text-xs text-muted-foreground">Código: {product.code}</div>
+                                    <div className="mb-1 text-xs text-muted-foreground">Categoría: {product.category?.name}</div>
+                                    <div className="mb-1 text-xs text-muted-foreground">
+                                        Precio: $
+                                        {Number(product.sale_price).toLocaleString('es-CO', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0,
+                                        })}
+                                    </div>
+                                    <div className="mb-1 text-xs">
+                                        Stock:{' '}
+                                        {product.stock <= product.min_stock ? (
+                                            <span className="font-medium text-destructive">{product.stock}</span>
+                                        ) : (
+                                            <span>{product.stock}</span>
+                                        )}
+                                    </div>
+                                    {branches.length > 0 && (
+                                        <div className="mb-1 text-xs text-muted-foreground">Sucursal: {product.branch?.name}</div>
                                     )}
-                            </div>
-                        </div>
-                    )}
+                                    <div className="mt-2 flex justify-end gap-2">
+                                        {canManageProducts && (
+                                            <>
+                                                <Button
+                                                    onClick={() => handleRestore(product.id)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex h-8 items-center gap-1"
+                                                >
+                                                    <Recycle className="h-4 w-4" />
+                                                    <span>Restaurar</span>
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        setProductToForceDelete(product);
+                                                        setForceDeleteModalOpen(true);
+                                                    }}
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
 
-                {/* Force Delete Confirmation Dialog */}
-                <Dialog open={forceDeleteModalOpen} onOpenChange={setForceDeleteModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Eliminar permanentemente</DialogTitle>
-                            <DialogDescription>
-                                ¿Estás seguro de que deseas eliminar permanentemente este producto?
-                                Esta acción no se puede deshacer y eliminará todos los datos asociados.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex items-center gap-3 rounded-md bg-red-50 p-3 text-red-800">
-                            <Trash2 className="h-5 w-5" />
-                            <div className="text-sm">
-                                <strong>¡Atención!</strong> El producto <strong>{productToForceDelete?.name}</strong> será eliminado permanentemente.
-                            </div>
+                {/* Pagination */}
+                {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && (
+                    <div className="flex items-center justify-between border-t bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900">
+                        <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                            Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
+                            <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
+                            <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span> resultados
                         </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setForceDeleteModalOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button variant="destructive" onClick={handleForceDelete}>
-                                Eliminar permanentemente
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        <div className="flex gap-1">
+                            {productData.links &&
+                                Array.isArray(productData.links) &&
+                                productData.links.map(
+                                    (link, i) =>
+                                        link && (
+                                            <Button
+                                                key={i}
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                className={`text-xs ${link.active ? 'bg-black text-white dark:bg-neutral-100 dark:text-neutral-900' : 'border-neutral-200 text-neutral-700 dark:border-neutral-700 dark:text-neutral-200'}`}
+                                                disabled={!link.url}
+                                                onClick={() => link.url && handlePaginationClick(link.url)}
+                                            >
+                                                <span dangerouslySetInnerHTML={{ __html: link.label || '' }} />
+                                            </Button>
+                                        ),
+                                )}
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* Force Delete Confirmation Dialog */}
+            <Dialog open={forceDeleteModalOpen} onOpenChange={setForceDeleteModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Eliminar permanentemente</DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de que deseas eliminar permanentemente este producto? Esta acción no se puede deshacer y eliminará todos los
+                            datos asociados.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex items-center gap-3 rounded-md bg-red-50 p-3 text-red-800">
+                        <Trash2 className="h-5 w-5" />
+                        <div className="text-sm">
+                            <strong>¡Atención!</strong> El producto <strong>{productToForceDelete?.name}</strong> será eliminado permanentemente.
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setForceDeleteModalOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={handleForceDelete}>
+                            Eliminar permanentemente
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
