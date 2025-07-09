@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Client;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +139,11 @@ class DatabaseSeeder extends Seeder
                     }
                 }
             }
+        }
+        
+        // Seed clients if table is empty
+        if (Client::count() === 0) {
+            $this->call(ClientSeeder::class);
         }
     }
 }
