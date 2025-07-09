@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import axios from 'axios';
 import { ArrowLeft, Save, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
 
@@ -32,6 +35,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     // Estado para la previsualización de la imagen
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Estado para el diálogo de error
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogMsg, setDialogMsg] = useState('');
 
     // Configurar formulario con Inertia
     const form = useForm<{
@@ -99,6 +106,29 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         }
     };
 
+    // Generar código automáticamente usando axios
+    const handleGenerateCode = async () => {
+        if (!form.data.category_id) {
+            setDialogMsg('Seleccione una categoría primero');
+            setDialogOpen(true);
+            return;
+        }
+        form.setData('code', '');
+        try {
+            const response = await axios.post('/products/generate-code', {
+                category_id: form.data.category_id,
+            });
+            form.setData('code', response.data.code);
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                setDialogMsg(error.response?.data?.error || 'No se pudo generar el código');
+            } else {
+                setDialogMsg('No se pudo generar el código');
+            }
+            setDialogOpen(true);
+        }
+    };
+
     // Manejar envío del formulario
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,17 +144,33 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Crear Producto" />
+            {/* Diálogo de error */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Error</DialogTitle>
+                        <DialogDescription>{dialogMsg}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button onClick={() => setDialogOpen(false)} autoFocus>
+                                Aceptar
+                            </Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+            <div className="flex h-full flex-1 flex-col gap-4 p-2 sm:p-4">
                 {/* Header with back button */}
-                <div className="flex items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                     <Link href="/products">
-                        <Button variant="ghost" size="sm" className="mr-4 flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="mr-0 sm:mr-4 flex items-center gap-1">
                             <ArrowLeft className="h-4 w-4" />
                             Volver
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-semibold">Crear Nuevo Producto</h1>
+                    <h1 className="text-xl sm:text-2xl font-semibold">Crear Nuevo Producto</h1>
                 </div>
 
                 <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
@@ -143,7 +189,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </label>
                                 <div className="flex flex-col items-center gap-4">
                                     <div
-                                        className={`group relative aspect-square w-full overflow-hidden rounded-md border-2 md:w-1/2 ${
+                                        className={`group relative aspect-square w-full max-w-xs sm:max-w-md overflow-hidden rounded-md border-2 ${
                                             isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
                                         } bg-muted transition-all duration-200 hover:border-primary`}
                                         onDragOver={handleDragOver}
@@ -160,7 +206,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full justify-center">
                                         <label
                                             htmlFor="image"
                                             className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
@@ -178,7 +224,75 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Categoría */}
+                                <div className="space-y-2">
+                                    <label htmlFor="category_id" className="text-sm font-medium">
+                                        Categoría *
+                                    </label>
+                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
+                                        <SelectTrigger
+                                            id="category_id"
+                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                        >
+                                            <SelectValue placeholder="Seleccionar categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories.map((category) => (
+                                                <SelectItem key={category.id} value={category.id.toString()}>
+                                                    {category.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {form.errors.category_id && <p className="text-xs text-destructive">{form.errors.category_id}</p>}
+                                </div>
+
+                                {/* Código del producto */}
+                                <div className="space-y-2">
+                                    <label htmlFor="code" className="text-sm font-medium">
+                                        Código *
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="code"
+                                            placeholder="Código único del producto"
+                                            value={form.data.code}
+                                            onChange={(e) => form.setData('code', e.target.value)}
+                                            required
+                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                        />
+                                        <Button type="button" variant="outline" onClick={handleGenerateCode} className="w-full sm:w-auto">
+                                            Generar código
+                                        </Button>
+                                    </div>
+                                    {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
+                                    <p className="text-xs text-muted-foreground">
+                                        Código o{' '}
+                                        <Tooltip.Root>
+                                            <Tooltip.Trigger asChild>
+                                                <span className="cursor-pointer font-semibold text-primary underline decoration-dotted">SKU</span>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Portal>
+                                                <Tooltip.Content
+                                                    side="top"
+                                                    className="z-50 max-w-xs rounded bg-neutral-900 px-3 py-2 text-xs break-words whitespace-pre-line text-white shadow-lg sm:max-w-sm sm:text-sm"
+                                                    sideOffset={6}
+                                                    style={{ wordBreak: 'break-word', whiteSpace: 'pre-line', fontSize: '0.95rem' }}
+                                                >
+                                                    <strong>¿Qué es el SKU?</strong>
+                                                    <br />
+                                                    El SKU (Stock Keeping Unit) es un código único para identificar productos en inventario.
+                                                    <br />
+                                                    <strong>Ejemplo:</strong> <span className="font-mono">CAMISA-ROJA-M</span>
+                                                    <Tooltip.Arrow className="fill-neutral-900" />
+                                                </Tooltip.Content>
+                                            </Tooltip.Portal>
+                                        </Tooltip.Root>{' '}
+                                        para identificar el producto.
+                                    </p>
+                                </div>
+
                                 {/* Nombre del producto */}
                                 <div className="space-y-2">
                                     <label htmlFor="name" className="text-sm font-medium">
@@ -190,26 +304,32 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
                                         required
-                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
                                     />
                                     {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
 
-                                {/* Código del producto */}
+                                {/* Sucursal */}
                                 <div className="space-y-2">
-                                    <label htmlFor="code" className="text-sm font-medium">
-                                        Código *
+                                    <label htmlFor="branch_id" className="text-sm font-medium">
+                                        Sucursal *
                                     </label>
-                                    <Input
-                                        id="code"
-                                        placeholder="Código único del producto"
-                                        value={form.data.code}
-                                        onChange={(e) => form.setData('code', e.target.value)}
-                                        required
-                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                    />
-                                    {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
-                                    <p className="text-xs text-muted-foreground">Código o SKU para identificar el producto.</p>
+                                    <Select value={form.data.branch_id.toString()} onValueChange={(value) => form.setData('branch_id', value)}>
+                                        <SelectTrigger
+                                            id="branch_id"
+                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                        >
+                                            <SelectValue placeholder="Seleccionar sucursal" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {branches.map((branch) => (
+                                                <SelectItem key={branch.id} value={branch.id.toString()}>
+                                                    {branch.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {form.errors.branch_id && <p className="text-xs text-destructive">{form.errors.branch_id}</p>}
                                 </div>
 
                                 {/* Precio de compra */}
@@ -299,48 +419,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </p>
                                 </div>
 
-                                {/* Categoría */}
-                                <div className="space-y-2">
-                                    <label htmlFor="category_id" className="text-sm font-medium">
-                                        Categoría *
-                                    </label>
-                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
-                                        <SelectTrigger id="category_id">
-                                            <SelectValue placeholder="Seleccionar categoría" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {form.errors.category_id && <p className="text-xs text-destructive">{form.errors.category_id}</p>}
-                                </div>
-
-                                {/* Sucursal */}
-                                <div className="space-y-2">
-                                    <label htmlFor="branch_id" className="text-sm font-medium">
-                                        Sucursal *
-                                    </label>
-                                    <Select value={form.data.branch_id.toString()} onValueChange={(value) => form.setData('branch_id', value)}>
-                                        <SelectTrigger id="branch_id">
-                                            <SelectValue placeholder="Seleccionar sucursal" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {branches.map((branch) => (
-                                                <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                    {branch.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {form.errors.branch_id && <p className="text-xs text-destructive">{form.errors.branch_id}</p>}
-                                </div>
-
                                 {/* Descripción */}
-                                <div className="col-span-2 space-y-2">
+                                <div className="col-span-1 sm:col-span-2 space-y-2">
                                     <label htmlFor="description" className="text-sm font-medium">
                                         Descripción
                                     </label>
@@ -356,7 +436,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </div>
 
                                 {/* Estado */}
-                                <div className="col-span-2 space-y-2">
+                                <div className="col-span-1 sm:col-span-2 space-y-2">
                                     <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
                                     <div className="flex items-center space-x-2">
                                         <Switch

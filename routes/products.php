@@ -28,5 +28,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Stock management routes
         Route::post('/products/{product}/update-stock', [ProductController::class, 'updateStock'])->name('products.update-stock');
+        // Endpoint para autogenerar código de producto
+        Route::post('/products/generate-code', [ProductController::class, 'generateCode'])->name('products.generate-code');
     });
 });

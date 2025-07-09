@@ -327,4 +327,38 @@ class ProductController extends Controller
         return redirect()->back()
             ->with('success', 'Stock actualizado correctamente');
     }
+
+    /**
+     * Genera un código de producto basado en la categoría, asegurando unicidad
+     */
+    public function generateCode(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+        ]);
+        $category = Category::find($request->category_id);
+        $words = preg_split('/\s+/', trim($category->name));
+        $parts = [];
+        foreach ($words as $word) {
+            $clean = preg_replace('/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/u', '', $word);
+            if (mb_strlen($clean) <= 3) {
+                $parts[] = mb_strtoupper($clean);
+            } else {
+                $parts[] = mb_strtoupper(mb_substr($clean, 0, 6));
+            }
+        }
+        $prefix = implode('-', $parts);
+        $nextNumber = 1;
+        $maxAttempts = 1000;
+        do {
+            $code = $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $exists = Product::where('code', $code)->exists();
+            $nextNumber++;
+            $maxAttempts--;
+        } while ($exists && $maxAttempts > 0);
+        if ($maxAttempts <= 0) {
+            return response()->json(['error' => 'No se pudo generar un código único.'], 500);
+        }
+        return response()->json(['code' => $code]);
+    }
 }
