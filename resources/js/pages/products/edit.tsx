@@ -1,16 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { ArrowLeft, Save, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface EditProductProps {
     product: Product;
@@ -140,7 +141,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </label>
                                 <div className="flex flex-col items-center gap-4">
                                     <div
-                                        className={`group relative aspect-square w-full md:w-1/2 overflow-hidden rounded-md border-2 ${
+                                        className={`group relative aspect-square w-full overflow-hidden rounded-md border-2 md:w-1/2 ${
                                             isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
                                         } bg-muted transition-all duration-200 hover:border-primary`}
                                         onDragOver={handleDragOver}
@@ -160,7 +161,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                     <div className="flex items-center gap-2">
                                         <label
                                             htmlFor="image"
-                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white dark:text-black transition-colors hover:bg-primary/90"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
@@ -202,7 +203,29 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                         onChange={(e) => form.setData('code', e.target.value)}
                                     />
                                     {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
-                                    <p className="text-xs text-muted-foreground">Código o SKU para identificar el producto.</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Código o{' '}
+                                        <Tooltip.Root>
+                                            <Tooltip.Trigger asChild>
+                                                <span className="cursor-pointer font-semibold text-primary underline decoration-dotted">SKU</span>
+                                            </Tooltip.Trigger>
+                                            <Tooltip.Portal>
+                                                <Tooltip.Content
+                                                    side="top"
+                                                    className="z-50 rounded bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg"
+                                                    sideOffset={6}
+                                                >
+                                                    <strong>¿Qué es el SKU?</strong>
+                                                    <br />
+                                                    El SKU (Stock Keeping Unit) es un código único para identificar productos en inventario.
+                                                    <br />
+                                                    <strong>Ejemplo:</strong> <span className="font-mono">CAMISA-ROJA-M</span>
+                                                    <Tooltip.Arrow className="fill-neutral-900" />
+                                                </Tooltip.Content>
+                                            </Tooltip.Portal>
+                                        </Tooltip.Root>{' '}
+                                        para identificar el producto.
+                                    </p>
                                 </div>
 
                                 {/* Precio de compra */}
@@ -217,9 +240,9 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             type="text"
                                             className="pl-6"
                                             value={
-                                                typeof form.data.purchase_price === 'number'
+                                                typeof form.data.purchase_price === 'number' && !isNaN(form.data.purchase_price)
                                                     ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
-                                                    : ''
+                                                    : '0'
                                             }
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/\D/g, '');
@@ -242,9 +265,9 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             type="text"
                                             className="pl-6"
                                             value={
-                                                typeof form.data.sale_price === 'number'
+                                                typeof form.data.sale_price === 'number' && !isNaN(form.data.sale_price)
                                                     ? Math.round(form.data.sale_price).toLocaleString('es-CO')
-                                                    : ''
+                                                    : '0'
                                             }
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/\D/g, '');
@@ -366,7 +389,9 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             {form.data.status ? 'Activo' : 'Inactivo'}
                                         </Label>
                                     </div>
-                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Los productos inactivos no se mostrarán en el sistema</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                        Los productos inactivos no se mostrarán en el sistema
+                                    </p>
                                     {form.errors.status && <p className="text-xs text-destructive">{form.errors.status}</p>}
                                 </div>
                             </div>
@@ -393,9 +418,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar producto?</DialogTitle>
-                            <DialogDescription>
-                                Esta acción enviará el producto a la papelera. ¿Deseas continuar?
-                            </DialogDescription>
+                            <DialogDescription>Esta acción enviará el producto a la papelera. ¿Deseas continuar?</DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowDeleteModal(false)}>

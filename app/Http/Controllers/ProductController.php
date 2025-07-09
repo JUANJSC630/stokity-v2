@@ -59,7 +59,7 @@ class ProductController extends Controller
         $paginatedProducts = $query->paginate(10)->withQueryString();
         $categories = Category::where('status', true)->get();
         $branches = Auth::user()->isAdmin() ? Branch::where('status', true)->get() : [];
-        
+
         $products = [
             'data' => $paginatedProducts->items(),
             'meta' => [
@@ -181,6 +181,9 @@ class ProductController extends Controller
             $filename = time() . '_' . Str::slug($request->name) . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('uploads/products'), $filename);
             $validated['image'] = $filename;
+        } else {
+            // Si no se sube nueva imagen, evitar que el campo image se actualice a null o vacio
+            unset($validated['image']);
         }
 
         // Actualizar el producto
