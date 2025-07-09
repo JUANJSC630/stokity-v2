@@ -29,14 +29,51 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        // Log para depuración
+        \Log::info('ProfileController@update - Request data:', [
+            'has_file' => $request->hasFile('photo'),
+            'all' => $request->all(),
+            'files' => $request->allFiles(),
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user = $request->user();
+        $validated = $request->validated();
+        
+        // Procesar la foto si se ha subido una nueva
+        if ($request->hasFile('photo')) {
+            // Eliminar la foto anterior si existe
+            if ($user->photo && file_exists(public_path('uploads/users/' . $user->photo))) {
+                unlink(public_path('uploads/users/' . $user->photo));
+            }
+            
+            // Guardar la nueva foto
+            $photo = $request->file('photo');
+            $filename = time() . '_' . $user->id . '.' . $photo->getClientOriginalExtension();
+            
+            // Asegurar que el directorio existe
+            if (!file_exists(public_path('uploads/users'))) {
+                mkdir(public_path('uploads/users'), 0755, true);
+            }
+            
+            // Mover el archivo al directorio público
+            $photo->move(public_path('uploads/users'), $filename);
+            
+            // Actualizar el nombre de la foto en el modelo
+            $validated['photo'] = $filename;
+        } else {
+            // Si no se sube una nueva foto, mantener la anterior
+            unset($validated['photo']);
         }
-
-        $request->user()->save();
-
+        
+        // Actualizar los datos del usuario
+        $user->fill($validated);
+        
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        
+        $user->save();
+        
         return to_route('profile.edit');
     }
 

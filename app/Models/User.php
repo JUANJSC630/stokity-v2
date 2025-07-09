@@ -124,7 +124,8 @@ class User extends Authenticatable
             
             // Verificar si el archivo existe
             if (file_exists(public_path($path))) {
-                return asset($path);
+                // Agregamos un timestamp para evitar problemas de caché
+                return asset($path) . '?v=' . filemtime(public_path($path));
             }
         }
         

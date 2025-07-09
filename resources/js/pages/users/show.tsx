@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ChevronLeft, Edit, Trash } from 'lucide-react';
 import { useState } from 'react';
 
@@ -29,12 +29,22 @@ interface Props {
     user: User;
 }
 
+interface PageProps {
+    auth: {
+        user: {
+            id: number;
+        };
+    };
+    [key: string]: unknown;
+}
+
 export default function ShowUser({ user }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
     const form = useForm({
         reason: '',
     });
+    const pageProps = usePage<PageProps>().props;
+    const authUserId = pageProps.auth?.user?.id;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -90,7 +100,7 @@ export default function ShowUser({ user }: Props) {
             <Head title={`Usuario: ${user.name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-center sm:text-left">
+                    <div className="flex flex-col gap-2 text-center sm:flex-row sm:items-center sm:gap-4 sm:text-left">
                         <Link href="/users">
                             <Button variant="outline" size="sm" className="flex gap-1">
                                 <ChevronLeft className="size-4" />
@@ -106,11 +116,13 @@ export default function ShowUser({ user }: Props) {
                                 <span>Editar</span>
                             </Button>
                         </Link>
-
-                        <Button variant="destructive" className="flex gap-1" onClick={() => setIsDeleteDialogOpen(true)}>
-                            <Trash className="size-4" />
-                            <span>Eliminar</span>
-                        </Button>
+                        {/* Botón de eliminar solo si el usuario mostrado NO es el auth */}
+                        {user.id !== authUserId && (
+                            <Button variant="destructive" className="flex gap-1" onClick={() => setIsDeleteDialogOpen(true)}>
+                                <Trash className="size-4" />
+                                <span>Eliminar</span>
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -127,18 +139,18 @@ export default function ShowUser({ user }: Props) {
                                         <img
                                             src={user.photo_url}
                                             alt={user.name}
-                                            className="h-full w-full object-cover rounded-full"
+                                            className="h-full w-full rounded-full object-cover"
                                             onError={(e) => {
                                                 console.error('Error al cargar imagen:', user.photo_url);
                                                 (e.target as HTMLImageElement).src = '/stokity-icon.png';
                                             }}
                                         />
                                     ) : (
-                                        <img src="/stokity-icon.png" alt={user.name} className="h-full w-full object-cover rounded-full" />
+                                        <img src="/stokity-icon.png" alt={user.name} className="h-full w-full rounded-full object-cover" />
                                     )}
                                 </Avatar>
-                                <h2 className="text-xl font-medium text-center break-words max-w-xs sm:max-w-sm">{user.name}</h2>
-                                <p className="text-muted-foreground text-center break-all max-w-xs sm:max-w-sm">{user.email}</p>
+                                <h2 className="max-w-xs text-center text-xl font-medium break-words sm:max-w-sm">{user.name}</h2>
+                                <p className="max-w-xs text-center break-all text-muted-foreground sm:max-w-sm">{user.email}</p>
                             </div>
 
                             <div className="space-y-4">
