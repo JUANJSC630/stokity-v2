@@ -100,7 +100,7 @@ export default function TrashedCategories({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías Eliminadas" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 dark:bg-neutral-900" style={{ minHeight: 'calc(100vh - 64px)' }}>
+            <div className="flex h-full flex-1 flex-col gap-6 p-4 dark:bg-neutral-900/50" style={{ minHeight: 'calc(100vh - 64px)' }}>
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Categorías Eliminadas</h1>
                     <div className="flex gap-2">

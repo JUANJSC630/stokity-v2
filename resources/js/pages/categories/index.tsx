@@ -133,7 +133,10 @@ export default function Categories({
 
                     <div className="flex flex-wrap gap-3">
                         {(auth.user.role === 'administrador' || auth.user.role === 'encargado') && (
-                            <Button className="flex gap-2 rounded-lg bg-black font-medium shadow-sm hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200" onClick={openCreateModal}>
+                            <Button
+                                className="flex gap-2 rounded-lg bg-black font-medium shadow-sm hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                                onClick={openCreateModal}
+                            >
                                 <Plus className="size-4" />
                                 <span>Nueva Categoría</span>
                             </Button>
@@ -164,7 +167,7 @@ export default function Categories({
                     />
                 </div>
 
-                <div className="flex flex-1 flex-col">
+                <div className="flex flex-1 flex-col gap-4">
                     {/* Content area with min-height to ensure pagination stays at bottom */}
                     <div className="flex-grow" style={{ minHeight: '300px' }}>
                         <div className="flex flex-wrap gap-2">
@@ -377,7 +380,7 @@ export default function Categories({
 
                 {/* Delete Confirmation Dialog */}
                 <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900/50 dark:border-gray-700">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900/50">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-gray-100">
                                 <AlertTriangle className="size-5 text-red-500" />
@@ -387,8 +390,9 @@ export default function Categories({
                         <DialogDescription className="py-4 text-gray-600 dark:text-gray-300">
                             {categoryToDelete && (
                                 <p>
-                                    ¿Está seguro de eliminar la categoría <strong className="text-gray-900 dark:text-gray-100">{categoryToDelete.name}</strong>? Esta
-                                    acción puede ser revertida posteriormente.
+                                    ¿Está seguro de eliminar la categoría{' '}
+                                    <strong className="text-gray-900 dark:text-gray-100">{categoryToDelete.name}</strong>? Esta acción puede ser
+                                    revertida posteriormente.
                                 </p>
                             )}
                         </DialogDescription>
@@ -400,7 +404,11 @@ export default function Categories({
                             >
                                 Cancelar
                             </Button>
-                            <Button variant="destructive" className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800" onClick={handleDelete}>
+                            <Button
+                                variant="destructive"
+                                className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
+                                onClick={handleDelete}
+                            >
                                 Eliminar
                             </Button>
                         </DialogFooter>
@@ -409,7 +417,7 @@ export default function Categories({
 
                 {/* Edit Category Dialog */}
                 <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-gray-700">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Editar Categoría</DialogTitle>
                             <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
@@ -426,7 +434,7 @@ export default function Categories({
                                     placeholder="Nombre de la categoría"
                                     value={form.data.name}
                                     onChange={(e) => form.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
+                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
                                 />
                                 {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
                             </div>
@@ -439,7 +447,11 @@ export default function Categories({
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200">
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                    className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                                >
                                     Guardar cambios
                                 </Button>
                             </DialogFooter>
@@ -449,7 +461,7 @@ export default function Categories({
 
                 {/* Create Category Dialog */}
                 <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-gray-700">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Crear Nueva Categoría</DialogTitle>
                             <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
@@ -466,7 +478,7 @@ export default function Categories({
                                     placeholder="Nombre de la categoría"
                                     value={form.data.name}
                                     onChange={(e) => form.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
+                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
                                     autoFocus
                                 />
                                 {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
@@ -480,7 +492,11 @@ export default function Categories({
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={form.processing} className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200">
+                                <Button
+                                    type="submit"
+                                    disabled={form.processing}
+                                    className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                                >
                                     Crear Categoría
                                 </Button>
                             </DialogFooter>
