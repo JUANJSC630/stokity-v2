@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -127,7 +127,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                     <h1 className="text-2xl font-semibold">Crear Nuevo Producto</h1>
                 </div>
 
-                <Card className="bg-white border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-700">
+                <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
                     <CardHeader>
                         <CardTitle>Información del Producto</CardTitle>
                         <CardDescription>
@@ -163,7 +163,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <div className="flex items-center gap-2">
                                         <label
                                             htmlFor="image"
-                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white dark:text-black transition-colors hover:bg-primary/90"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
@@ -190,7 +190,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
                                         required
-                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
@@ -206,7 +206,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.code}
                                         onChange={(e) => form.setData('code', e.target.value)}
                                         required
-                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
                                     <p className="text-xs text-muted-foreground">Código o SKU para identificar el producto.</p>
@@ -222,7 +222,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         <Input
                                             id="purchase_price"
                                             type="text"
-                                            className="pl-6 bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                            className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={
                                                 typeof form.data.purchase_price === 'number'
                                                     ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
@@ -247,7 +247,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         <Input
                                             id="sale_price"
                                             type="text"
-                                            className="pl-6 bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                            className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={
                                                 typeof form.data.sale_price === 'number'
                                                     ? Math.round(form.data.sale_price).toLocaleString('es-CO')
@@ -274,7 +274,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         min="0"
                                         value={form.data.stock}
                                         onChange={(e) => form.setData('stock', Number(e.target.value))}
-                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
                                 </div>
@@ -291,7 +291,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         min="0"
                                         value={form.data.min_stock}
                                         onChange={(e) => form.setData('min_stock', Number(e.target.value))}
-                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
                                     <p className="text-xs text-muted-foreground">
@@ -350,7 +350,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         rows={5}
                                         value={form.data.description}
                                         onChange={(e) => form.setData('description', e.target.value)}
-                                        className="bg-white border-neutral-200 text-neutral-900 placeholder-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.description && <p className="text-xs text-destructive">{form.errors.description}</p>}
                                 </div>
@@ -369,7 +369,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             {form.data.status ? 'Activo' : 'Inactivo'}
                                         </Label>
                                     </div>
-                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Los productos inactivos no se mostrarán en el sistema</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                        Los productos inactivos no se mostrarán en el sistema
+                                    </p>
                                     {form.errors.status && <p className="text-xs text-destructive">{form.errors.status}</p>}
                                 </div>
                             </div>

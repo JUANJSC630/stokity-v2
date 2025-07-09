@@ -259,7 +259,7 @@ export default function Products({
                         </div>
                     )}
                     {/* Vista tabla en md+ */}
-                    <div className="hidden md:block overflow-x-auto">
+                    <div className="hidden overflow-x-auto md:block">
                         <table className="w-full text-sm">
                             <thead className="bg-neutral-50 dark:bg-neutral-800">
                                 <tr className="text-left">
@@ -281,7 +281,7 @@ export default function Products({
                                                 <img
                                                     src={product.image_url}
                                                     alt={product.name}
-                                                    className="h-10 w-10 rounded-md border border-neutral-200 object-cover dark:border-neutral-700 bg-muted"
+                                                    className="h-10 w-10 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
                                                 />
                                                 <span className="text-neutral-900 dark:text-neutral-100">{product.name}</span>
                                             </div>
@@ -354,41 +354,47 @@ export default function Products({
                                     key={product.id}
                                     className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
                                 >
-                                    <div className="flex items-center gap-3 mb-2">
+                                    <div className="mb-2 flex items-center gap-3">
                                         <img
                                             src={product.image_url}
                                             alt={product.name}
-                                            className="h-12 w-12 rounded-md border border-neutral-200 object-cover dark:border-neutral-700 bg-muted"
+                                            className="h-12 w-12 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
                                         />
                                         <div className="font-medium text-neutral-900 dark:text-neutral-100">{product.name}</div>
                                     </div>
-                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Código: {product.code}</div>
-                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Categoría: {product.category?.name}</div>
-                                    <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Código: {product.code}</div>
+                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Categoría: {product.category?.name}</div>
+                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">
                                         Precio: $
                                         {Number(product.sale_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
                                             maximumFractionDigits: 0,
                                         })}
                                     </div>
-                                    <div className="text-xs mb-1">
-                                        Stock: {product.stock <= product.min_stock ? (
+                                    <div className="mb-1 text-xs">
+                                        Stock:{' '}
+                                        {product.stock <= product.min_stock ? (
                                             <span className="font-medium text-red-700 dark:text-red-200">{product.stock}</span>
                                         ) : (
                                             <span className="text-neutral-700 dark:text-neutral-200">{product.stock}</span>
                                         )}
                                     </div>
-                                    <div className="text-xs mb-1">
-                                        Estado: {product.status ? (
-                                            <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Activo</span>
+                                    <div className="mb-1 text-xs">
+                                        Estado:{' '}
+                                        {product.status ? (
+                                            <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                Activo
+                                            </span>
                                         ) : (
-                                            <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">Inactivo</span>
+                                            <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                                                Inactivo
+                                            </span>
                                         )}
                                     </div>
                                     {isAdmin && (
-                                        <div className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Sucursal: {product.branch?.name}</div>
+                                        <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Sucursal: {product.branch?.name}</div>
                                     )}
-                                    <div className="flex justify-end gap-2 mt-2">
+                                    <div className="mt-2 flex justify-end gap-2">
                                         <Link href={`/products/${product.id}`}>
                                             <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
                                                 <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
@@ -402,13 +408,13 @@ export default function Products({
 
                     {/* Pagination */}
                     {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && (
-                        <div className="flex flex-col gap-2 items-start sm:flex-row sm:items-center sm:justify-between border-t bg-white px-2 py-3 dark:border-neutral-800 dark:bg-neutral-900">
-                            <div className="text-sm text-neutral-500 dark:text-neutral-400 w-full sm:w-auto text-left">
+                        <div className="flex flex-col items-start gap-2 border-t bg-white px-2 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800 dark:bg-neutral-900">
+                            <div className="w-full text-left text-sm text-neutral-500 sm:w-auto dark:text-neutral-400">
                                 Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
                                 <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
                                 <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span> resultados
                             </div>
-                            <div className="flex flex-wrap gap-1 w-full justify-center sm:w-auto sm:justify-end">
+                            <div className="flex w-full flex-wrap justify-center gap-1 sm:w-auto sm:justify-end">
                                 {productData.links &&
                                     Array.isArray(productData.links) &&
                                     productData.links.map(

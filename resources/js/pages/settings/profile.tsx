@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
 import { Camera } from 'lucide-react';
+import { FormEventHandler, useEffect, useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -42,20 +41,21 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         if (file) {
             // Limpiar error previo
             form.clearErrors('photo');
-            
+
             // Validar tamaño antes de continuar
-            if (file.size > 2 * 1024 * 1024) { // 2MB en bytes
+            if (file.size > 2 * 1024 * 1024) {
+                // 2MB en bytes
                 form.setError('photo', 'El archivo no debe pesar más de 2MB');
             }
-            
+
             form.setData('photo', file);
-            
+
             const reader = new FileReader();
             reader.onload = (e) => setImagePreview(e.target?.result as string);
             reader.readAsDataURL(file);
         }
     };
-    
+
     // Función para formatear el tamaño del archivo
     const formatFileSize = (bytes: number): string => {
         if (bytes < 1024) return bytes + ' B';
@@ -65,14 +65,15 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        
+
         // Validación previa de tamaño de imagen
-        if (form.data.photo && form.data.photo.size > 2 * 1024 * 1024) { // 2MB en bytes
+        if (form.data.photo && form.data.photo.size > 2 * 1024 * 1024) {
+            // 2MB en bytes
             // Mostrar error de tamaño manualmente
             form.setError('photo', 'El archivo no debe pesar más de 2MB');
             return;
         }
-        
+
         // Usar el método post de Inertia con forceFormData para subir archivos
         form.post(route('profile.update'), {
             forceFormData: true, // Forzar el uso de FormData para manejar archivos correctamente
@@ -97,9 +98,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
             // Actualizar la previsualización solo si la foto cambió
             const currentTime = new Date().getTime();
             const userPhotoUrl = auth.user.photo_url || '';
-            const photoUrl = userPhotoUrl.includes('?')
-                ? userPhotoUrl.split('?')[0] + '?t=' + currentTime
-                : userPhotoUrl + '?t=' + currentTime;
+            const photoUrl = userPhotoUrl.includes('?') ? userPhotoUrl.split('?')[0] + '?t=' + currentTime : userPhotoUrl + '?t=' + currentTime;
             setImagePreview(photoUrl);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +108,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Profile settings" />
             <SettingsLayout>
-                <div className="space-y-8 max-w-lg mx-auto">
+                <div className="mx-auto max-w-lg space-y-8">
                     <HeadingSmall title="Profile information" description="Update your name, email and profile photo" />
 
                     {/* Avatar y cambio de imagen */}
@@ -118,9 +117,13 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             <img
                                 src={imagePreview || '/stokity-icon.png'}
                                 alt={form.data.name}
-                                className={`h-28 w-28 rounded-full object-cover border-2 ${form.errors.photo ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'} bg-muted shadow`}
+                                className={`h-28 w-28 rounded-full border-2 object-cover ${form.errors.photo ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'} bg-muted shadow`}
                             />
-                            <label htmlFor="photo" className="absolute bottom-1 right-1 flex items-center justify-center cursor-pointer rounded-full bg-primary p-2 text-white dark:text-black shadow-lg border-2 border-white dark:border-neutral-900 hover:bg-primary/90 transition-colors" style={{ width: 38, height: 38 }}>
+                            <label
+                                htmlFor="photo"
+                                className="absolute right-1 bottom-1 flex cursor-pointer items-center justify-center rounded-full border-2 border-white bg-primary p-2 text-white shadow-lg transition-colors hover:bg-primary/90 dark:border-neutral-900 dark:text-black"
+                                style={{ width: 38, height: 38 }}
+                            >
                                 <Camera className="h-5 w-5" />
                                 <input id="photo" type="file" accept="image/*" className="sr-only" onChange={handleImageChange} />
                             </label>
@@ -132,9 +135,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                     {formatFileSize(form.data.photo.size)}
                                 </span>
                             )}
-                            {form.errors.photo && (
-                                <span className="mt-1 text-xs font-medium text-red-500">{form.errors.photo}</span>
-                            )}
+                            {form.errors.photo && <span className="mt-1 text-xs font-medium text-red-500">{form.errors.photo}</span>}
                         </div>
                     </div>
 

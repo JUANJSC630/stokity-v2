@@ -135,7 +135,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Imagen */}
-                            <div className="w-full flex flex-col items-center space-y-2">
+                            <div className="flex w-full flex-col items-center space-y-2">
                                 <label htmlFor="image" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     Imagen
                                 </label>
@@ -167,14 +167,12 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                     </label>
                                 </div>
                                 {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                <p className="text-center text-xs text-muted-foreground">
-                                    Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
-                                </p>
+                                <p className="text-center text-xs text-muted-foreground">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 {/* Nombre del producto */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="name" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Nombre *
                                     </label>
@@ -188,7 +186,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Código del producto */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="code" className="text-sm font-medium">
                                         Código *
                                     </label>
@@ -208,7 +206,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             <Tooltip.Portal>
                                                 <Tooltip.Content
                                                     side="top"
-                                                    className="z-50 max-w-xs sm:max-w-sm rounded bg-neutral-900 px-3 py-2 text-xs sm:text-sm text-white shadow-lg break-words whitespace-pre-line"
+                                                    className="z-50 max-w-xs rounded bg-neutral-900 px-3 py-2 text-xs break-words whitespace-pre-line text-white shadow-lg sm:max-w-sm sm:text-sm"
                                                     sideOffset={6}
                                                     style={{ wordBreak: 'break-word', whiteSpace: 'pre-line', fontSize: '0.95rem' }}
                                                 >
@@ -226,18 +224,20 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Precio de compra */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="purchase_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de compra *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none">$</span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                            $
+                                        </span>
                                         <Input
                                             id="purchase_price"
                                             type="text"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
-                                            className="pl-6 w-full"
+                                            className="w-full pl-6"
                                             value={
                                                 typeof form.data.purchase_price === 'number' && !isNaN(form.data.purchase_price)
                                                     ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
@@ -253,18 +253,20 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Precio de venta */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="sale_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Precio de venta *
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none">$</span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                            $
+                                        </span>
                                         <Input
                                             id="sale_price"
                                             type="text"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
-                                            className="pl-6 w-full"
+                                            className="w-full pl-6"
                                             value={
                                                 typeof form.data.sale_price === 'number' && !isNaN(form.data.sale_price)
                                                     ? Math.round(form.data.sale_price).toLocaleString('es-CO')
@@ -280,7 +282,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Stock actual */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="stock" className="text-sm font-medium">
                                         Stock actual *
                                     </label>
@@ -297,7 +299,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Stock mínimo */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="min_stock" className="text-sm font-medium">
                                         Stock mínimo *
                                     </label>
@@ -317,7 +319,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Categoría */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="category_id" className="text-sm font-medium">
                                         Categoría *
                                     </label>
@@ -340,7 +342,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Sucursal */}
-                                <div className="space-y-2 w-full">
+                                <div className="w-full space-y-2">
                                     <label htmlFor="branch_id" className="text-sm font-medium">
                                         Sucursal *
                                     </label>
@@ -364,7 +366,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Descripción */}
-                                <div className="space-y-2 w-full md:col-span-2">
+                                <div className="w-full space-y-2 md:col-span-2">
                                     <label htmlFor="description" className="text-sm font-medium">
                                         Descripción
                                     </label>
@@ -379,7 +381,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 </div>
 
                                 {/* Estado */}
-                                <div className="space-y-2 w-full md:col-span-2">
+                                <div className="w-full space-y-2 md:col-span-2">
                                     <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
                                     <div className="flex items-center space-x-2">
                                         <Switch
@@ -408,7 +410,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                 <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)} className="w-full md:w-auto">
                                     Eliminar
                                 </Button>
-                                <Button type="submit" className="gap-1 w-full md:w-auto" disabled={form.processing}>
+                                <Button type="submit" className="w-full gap-1 md:w-auto" disabled={form.processing}>
                                     <Save className="h-4 w-4" />
                                     Guardar Cambios
                                 </Button>

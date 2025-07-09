@@ -104,7 +104,11 @@ export default function TrashedCategories({
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Categorías Eliminadas</h1>
                     <div className="flex gap-2">
-                        <Button variant="outline" className="flex gap-2 rounded-lg border-neutral-200 font-medium shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800" asChild>
+                        <Button
+                            variant="outline"
+                            className="flex gap-2 rounded-lg border-neutral-200 font-medium shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                            asChild
+                        >
                             <Link href="/categories">
                                 <ArrowLeft className="size-4" />
                                 <span>Volver a Categorías</span>
@@ -117,7 +121,7 @@ export default function TrashedCategories({
                     <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
                     <Input
                         placeholder="Buscar categorías eliminadas..."
-                        className="w-full rounded-lg border-neutral-200 pl-10 shadow-sm focus-visible:ring-1 focus-visible:ring-neutral-400 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-600"
+                        className="w-full rounded-lg border-neutral-200 pl-10 shadow-sm focus-visible:ring-1 focus-visible:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-600"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         disabled={isSearching}
@@ -354,7 +358,7 @@ export default function TrashedCategories({
 
                 {/* Force Delete Confirmation Dialog */}
                 <Dialog open={forceDeleteModalOpen} onOpenChange={setForceDeleteModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-neutral-700">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-neutral-700 dark:bg-neutral-900">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-neutral-100">
                                 <AlertTriangle className="size-5 text-red-500" />
@@ -365,7 +369,8 @@ export default function TrashedCategories({
                             {categoryToForceDelete && (
                                 <p>
                                     ¿Está seguro de eliminar permanentemente la categoría{' '}
-                                    <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción no se puede deshacer.
+                                    <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción no
+                                    se puede deshacer.
                                 </p>
                             )}
                         </DialogDescription>
@@ -377,7 +382,11 @@ export default function TrashedCategories({
                             >
                                 Cancelar
                             </Button>
-                            <Button variant="destructive" className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800" onClick={handleForceDelete}>
+                            <Button
+                                variant="destructive"
+                                className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
+                                onClick={handleForceDelete}
+                            >
                                 Eliminar Permanentemente
                             </Button>
                         </DialogFooter>
@@ -386,14 +395,15 @@ export default function TrashedCategories({
 
                 {/* Restore Confirmation Dialog */}
                 <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:bg-neutral-900 dark:border-neutral-700">
+                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-neutral-700 dark:bg-neutral-900">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Restaurar Categoría</DialogTitle>
                         </DialogHeader>
                         <DialogDescription className="py-4 text-neutral-600 dark:text-neutral-300">
                             {categoryToRestore && (
                                 <p>
-                                    ¿Desea restaurar la categoría <strong className="text-neutral-900 dark:text-neutral-100">{categoryToRestore.name}</strong>?
+                                    ¿Desea restaurar la categoría{' '}
+                                    <strong className="text-neutral-900 dark:text-neutral-100">{categoryToRestore.name}</strong>?
                                 </p>
                             )}
                         </DialogDescription>
@@ -405,7 +415,10 @@ export default function TrashedCategories({
                             >
                                 Cancelar
                             </Button>
-                            <Button className="rounded-lg bg-black font-medium hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200" onClick={handleRestore}>
+                            <Button
+                                className="rounded-lg bg-black font-medium hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                                onClick={handleRestore}
+                            >
                                 Restaurar
                             </Button>
                         </DialogFooter>

@@ -67,10 +67,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                             Activo
                                         </Badge>
                                     ) : (
-                                        <Badge
-                                            variant="secondary"
-                                            className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
-                                        >
+                                        <Badge variant="secondary" className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
                                             Inactivo
                                         </Badge>
                                     )}

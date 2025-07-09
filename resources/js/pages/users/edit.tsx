@@ -188,7 +188,7 @@ export default function EditUser({ user, branches, roles }: Props) {
                                             <div className="flex items-center gap-2">
                                                 <label
                                                     htmlFor="photo"
-                                                    className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white dark:text-black transition-colors hover:bg-primary/90"
+                                                    className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
                                                 >
                                                     <Upload className="size-4" />
                                                     Subir foto

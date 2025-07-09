@@ -47,8 +47,8 @@ export default function BranchDetail({ branch }: Props) {
                                 <ArrowLeft className="size-4" />
                             </Button>
                         </Link>
-                        <h1 className="text-2xl font-bold mt-2 sm:mt-0">{branch.name}</h1>
-                        <Badge variant={branch.status ? 'default' : 'destructive'} className="mt-2 sm:mt-0 ml-0 sm:ml-2">
+                        <h1 className="mt-2 text-2xl font-bold sm:mt-0">{branch.name}</h1>
+                        <Badge variant={branch.status ? 'default' : 'destructive'} className="mt-2 ml-0 sm:mt-0 sm:ml-2">
                             {branch.status ? 'Activa' : 'Inactiva'}
                         </Badge>
                     </div>

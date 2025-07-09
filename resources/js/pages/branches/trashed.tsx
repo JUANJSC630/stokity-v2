@@ -126,7 +126,7 @@ export default function TrashedBranches({
 
                 <Card className="overflow-hidden">
                     {/* Encabezado de tabla solo en md+ */}
-                    <CardHeader className="bg-muted/50 p-4 hidden md:block">
+                    <CardHeader className="hidden bg-muted/50 p-4 md:block">
                         <div className="grid grid-cols-12 gap-2 text-sm font-semibold">
                             <div className="col-span-3">Nombre</div>
                             <div className="col-span-3">Dirección</div>
@@ -149,7 +149,9 @@ export default function TrashedBranches({
                                         >
                                             <div className="col-span-3 font-medium">
                                                 {branch.name}
-                                                {branch.manager && <div className="text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>}
+                                                {branch.manager && (
+                                                    <div className="text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>
+                                                )}
                                             </div>
                                             <div className="col-span-3 text-sm">{branch.address}</div>
                                             <div className="col-span-2 text-sm">{branch.phone}</div>
@@ -184,10 +186,7 @@ export default function TrashedBranches({
                                 {/* Vista tipo tarjeta en móvil */}
                                 <div className="block md:hidden">
                                     {branches?.data?.map((branch: Branch) => (
-                                        <div
-                                            key={branch.id}
-                                            className="mb-4 rounded-lg border border-border/50 p-4 shadow-sm bg-card"
-                                        >
+                                        <div key={branch.id} className="mb-4 rounded-lg border border-border/50 bg-card p-4 shadow-sm">
                                             <div className="mb-2 flex items-center justify-between">
                                                 <div className="font-semibold">{branch.name}</div>
                                                 <div className="flex gap-2">
@@ -216,10 +215,10 @@ export default function TrashedBranches({
                                                 </div>
                                             </div>
                                             {branch.manager && (
-                                                <div className="text-xs text-muted-foreground mb-1">Gerente: {branch.manager.name}</div>
+                                                <div className="mb-1 text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>
                                             )}
-                                            <div className="text-sm text-muted-foreground mb-1">Dirección: {branch.address}</div>
-                                            <div className="text-sm text-muted-foreground mb-1">Teléfono: {branch.phone}</div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Dirección: {branch.address}</div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Teléfono: {branch.phone}</div>
                                             <div className="text-xs text-muted-foreground">Eliminada: {formattedDate(branch.deleted_at || '')}</div>
                                         </div>
                                     ))}

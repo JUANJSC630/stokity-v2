@@ -86,7 +86,7 @@ export default function Branches({
             <Head title="Gestión de Sucursales" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold text-center sm:text-left">Gestión de Sucursales</h1>
+                    <h1 className="text-center text-2xl font-bold sm:text-left">Gestión de Sucursales</h1>
                     <div className="flex flex-row justify-center gap-2">
                         {auth.user.role === 'administrador' && (
                             <Button asChild className="flex gap-1">
@@ -133,7 +133,7 @@ export default function Branches({
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="overflow-x-auto w-full">
+                    <div className="w-full overflow-x-auto">
                         <table className="w-full min-w-[700px]">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
