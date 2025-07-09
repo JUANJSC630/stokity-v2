@@ -89,8 +89,8 @@ export default function ShowUser({ user }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Usuario: ${user.name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-center sm:text-left">
                         <Link href="/users">
                             <Button variant="outline" size="sm" className="flex gap-1">
                                 <ChevronLeft className="size-4" />
@@ -99,8 +99,7 @@ export default function ShowUser({ user }: Props) {
                         </Link>
                         <h1 className="text-2xl font-bold">Detalle del Usuario</h1>
                     </div>
-
-                    <div className="flex gap-2">
+                    <div className="flex flex-row justify-center gap-2">
                         <Link href={`/users/${user.id}/edit`}>
                             <Button variant="outline" className="flex gap-1">
                                 <Edit className="size-4" />
@@ -123,23 +122,23 @@ export default function ShowUser({ user }: Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="mb-6 flex flex-col items-center">
-                                <Avatar className="mb-2 h-48 w-48">
+                                <Avatar className="mb-2 h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48">
                                     {user.photo_url ? (
                                         <img
                                             src={user.photo_url}
                                             alt={user.name}
-                                            className="h-full w-full object-cover"
+                                            className="h-full w-full object-cover rounded-full"
                                             onError={(e) => {
                                                 console.error('Error al cargar imagen:', user.photo_url);
                                                 (e.target as HTMLImageElement).src = '/stokity-icon.png';
                                             }}
                                         />
                                     ) : (
-                                        <img src="/stokity-icon.png" alt={user.name} className="h-full w-full object-cover" />
+                                        <img src="/stokity-icon.png" alt={user.name} className="h-full w-full object-cover rounded-full" />
                                     )}
                                 </Avatar>
-                                <h2 className="text-xl font-medium">{user.name}</h2>
-                                <p className="text-muted-foreground">{user.email}</p>
+                                <h2 className="text-xl font-medium text-center break-words max-w-xs sm:max-w-sm">{user.name}</h2>
+                                <p className="text-muted-foreground text-center break-all max-w-xs sm:max-w-sm">{user.email}</p>
                             </div>
 
                             <div className="space-y-4">
