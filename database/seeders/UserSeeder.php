@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Branch;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
@@ -13,9 +14,8 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // Crear solo un usuario por cada rol principal, asignando sucursal Zarzal
-        $branch = \App\Models\Branch::where('name', 'Zarzal')->first();
+        $branch = Branch::where('name', 'Zarzal')->first();
 
-        dump($branch);
         $branchId = $branch ? $branch->id : null;
         $roles = [
             'administrador',
