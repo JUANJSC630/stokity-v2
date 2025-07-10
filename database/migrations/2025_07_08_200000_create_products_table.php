@@ -14,7 +14,11 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique()->collation('utf8mb4_unicode_ci');
+            if (Schema::getConnection()->getDriverName() === 'mysql') {
+                $table->string('code')->unique()->collation('utf8mb4_unicode_ci');
+            } else {
+                $table->string('code')->unique();
+            }
             $table->text('description')->nullable();
             $table->decimal('purchase_price', 10, 2);
             $table->decimal('sale_price', 10, 2);
