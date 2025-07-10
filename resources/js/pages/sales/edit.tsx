@@ -59,7 +59,10 @@ function formatCOP(value: string | number) {
 
 // Utilidad para limpiar formato COP a número string
 function unformatCOP(value: string) {
-    return value.replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
+    return value
+        .replace(/[^\d.,-]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
 }
 
 export default function Edit({ sale, branches, clients, sellers }: Props) {

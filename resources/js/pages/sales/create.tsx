@@ -180,11 +180,11 @@ export default function Create({ clients, products = [] }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
-            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row ">
+            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row">
                 {/* Sección derecha: Productos disponibles */}
-                <div className="w-full md:w-1/3 order-1 md:order-2 flex flex-col">
+                <div className="order-1 flex w-full flex-col md:order-2 md:w-1/3">
                     {/* Buscador arriba en móvil */}
-                    <div className="block md:hidden mb-2">
+                    <div className="mb-2 block md:hidden">
                         <Input
                             type="search"
                             placeholder="Buscar producto..."
@@ -194,14 +194,14 @@ export default function Create({ clients, products = [] }: Props) {
                         />
                         {searching && <div className="text-xs text-orange-500">Buscando...</div>}
                     </div>
-                    <Card className="border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900 flex-1">
+                    <Card className="flex-1 border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900">
                         <CardHeader>
                             <CardTitle>Productos</CardTitle>
                             <CardDescription>Busca y agrega productos a la venta</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {/* Buscador solo visible en escritorio */}
-                            <div className="hidden md:block mb-2">
+                            <div className="mb-2 hidden md:block">
                                 <Input
                                     type="search"
                                     placeholder="Buscar producto..."
@@ -229,7 +229,11 @@ export default function Create({ clients, products = [] }: Props) {
                                                     <td className="text-center font-mono text-xs text-neutral-500">{idx + 1}</td>
                                                     <td className="text-center">
                                                         {p.image_url && (
-                                                            <img src={p.image_url} alt={p.name} className="mx-auto h-8 w-8 rounded-full border border-neutral-200 object-cover shadow-sm" />
+                                                            <img
+                                                                src={p.image_url}
+                                                                alt={p.name}
+                                                                className="mx-auto h-8 w-8 rounded-full border border-neutral-200 object-cover shadow-sm"
+                                                            />
                                                         )}
                                                     </td>
                                                     <td className="font-medium text-neutral-800 dark:text-neutral-100">{p.name}</td>
@@ -278,7 +282,7 @@ export default function Create({ clients, products = [] }: Props) {
                     </Card>
                 </div>
                 {/* Sección izquierda: Venta/factura */}
-                <div className="flex-1 order-2 md:order-1">
+                <div className="order-2 flex-1 md:order-1">
                     <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
                         <CardHeader>
                             <CardTitle>Información de la Venta</CardTitle>
@@ -288,28 +292,23 @@ export default function Create({ clients, products = [] }: Props) {
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     {/* <div className="space-y-2">
-                    <Label htmlFor="branch_id">
-                      Sucursal <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={form.data.branch_id}
-                      onValueChange={(value) => form.setData("branch_id", value)}
-                    >
-                      <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                        <SelectValue placeholder="Seleccione sucursal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.map((branch) => (
-                          <SelectItem key={branch.id} value={branch.id.toString()}>
-                            {branch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {form.errors.branch_id && (
-                      <p className="text-sm text-red-500">{form.errors.branch_id}</p>
-                    )}
-                  </div> */}
+                                        <Label htmlFor="branch_id">
+                                            Sucursal <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
+                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                                <SelectValue placeholder="Seleccione sucursal" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {branches.map((branch) => (
+                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
+                                                        {branch.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {form.errors.branch_id && <p className="text-sm text-red-500">{form.errors.branch_id}</p>}
+                                    </div> */}
 
                                     <div className="space-y-2">
                                         <Label htmlFor="client_id">

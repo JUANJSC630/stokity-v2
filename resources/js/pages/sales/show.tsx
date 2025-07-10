@@ -64,7 +64,7 @@ export default function Show({ sale }: Props) {
     // Depuración en el cliente
     console.log('Sale data received:', sale);
     console.log('Sale products:', sale.saleProducts);
-    
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Ventas',
@@ -160,7 +160,9 @@ export default function Show({ sale }: Props) {
                                     </div>
                                     <div>
                                         <dt className="text-sm font-medium text-muted-foreground">Sucursal</dt>
-                                        <dd className="mt-1 text-lg">{sale.branch ? sale.branch.name : <span className="text-neutral-400">N/A</span>}</dd>
+                                        <dd className="mt-1 text-lg">
+                                            {sale.branch ? sale.branch.name : <span className="text-neutral-400">N/A</span>}
+                                        </dd>
                                     </div>
                                     <div>
                                         <dt className="text-sm font-medium text-muted-foreground">Método de Pago</dt>
@@ -189,7 +191,9 @@ export default function Show({ sale }: Props) {
                                     </div>
                                     <div>
                                         <dt className="text-sm font-medium text-muted-foreground">Vendedor</dt>
-                                        <dd className="mt-1 text-lg">{sale.seller ? sale.seller.name : <span className="text-neutral-400">N/A</span>}</dd>
+                                        <dd className="mt-1 text-lg">
+                                            {sale.seller ? sale.seller.name : <span className="text-neutral-400">N/A</span>}
+                                        </dd>
                                     </div>
                                 </dl>
                             </div>
@@ -227,21 +231,21 @@ export default function Show({ sale }: Props) {
                                 <table className="w-full text-sm">
                                     <thead className="bg-muted/50">
                                         <tr>
-                                            <th className="whitespace-nowrap px-4 py-2 text-left font-semibold">Producto</th>
-                                            <th className="whitespace-nowrap px-4 py-2 text-center font-semibold">Cantidad</th>
-                                            <th className="whitespace-nowrap px-4 py-2 text-right font-semibold">Precio</th>
-                                            <th className="whitespace-nowrap px-4 py-2 text-right font-semibold">Subtotal</th>
+                                            <th className="px-4 py-2 text-left font-semibold whitespace-nowrap">Producto</th>
+                                            <th className="px-4 py-2 text-center font-semibold whitespace-nowrap">Cantidad</th>
+                                            <th className="px-4 py-2 text-right font-semibold whitespace-nowrap">Precio</th>
+                                            <th className="px-4 py-2 text-right font-semibold whitespace-nowrap">Subtotal</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y">
                                         {(() => {
                                             // Verificación detallada de la estructura de datos
-                                            console.log('Renderizando productos:', { 
+                                            console.log('Renderizando productos:', {
                                                 saleProductsExists: Boolean(sale.saleProducts),
                                                 isArray: Array.isArray(sale.saleProducts),
-                                                length: sale.saleProducts ? sale.saleProducts.length : 0
+                                                length: sale.saleProducts ? sale.saleProducts.length : 0,
                                             });
-                                            
+
                                             if (sale.saleProducts && Array.isArray(sale.saleProducts) && sale.saleProducts.length > 0) {
                                                 return sale.saleProducts.map((sp) => (
                                                     <tr key={sp.id}>
@@ -264,7 +268,9 @@ export default function Show({ sale }: Props) {
                                     </tbody>
                                     <tfoot className="bg-muted/20">
                                         <tr>
-                                            <td className="px-4 py-2 font-semibold" colSpan={3}>Total</td>
+                                            <td className="px-4 py-2 font-semibold" colSpan={3}>
+                                                Total
+                                            </td>
                                             <td className="px-4 py-2 text-right font-semibold">{formatCurrency(sale.total)}</td>
                                         </tr>
                                     </tfoot>
