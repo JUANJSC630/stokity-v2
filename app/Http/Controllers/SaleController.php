@@ -39,6 +39,8 @@ class SaleController extends Controller
                         ->orWhere('sellers.name', 'like', "%{$search}%");
                   })
                   ->select('sales.*');
+            // Asegura que la relación client esté disponible en los resultados filtrados
+            $query->with(['client']);
         }
 
         if ($request->status) {

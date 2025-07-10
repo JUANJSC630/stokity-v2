@@ -11,6 +11,8 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import Cookies from 'js-cookie';
 import { Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+
 
 interface Branch {
     id: number;
@@ -44,7 +46,14 @@ function formatCOP(value: string | number) {
     }).format(num);
 }
 
-export default function Create({ clients, products = [] }: Props) {
+export default function Create({ branches, clients, products = [] }: Props) {
+    // Busca el id real del cliente Anónimo si existe, si no, usa el primero
+    const anonymous = clients.find(c => c.name.toLowerCase() === 'anónimo');
+    const anonymousClient = anonymous || clients[0];
+    const clientsWithAnonymous = anonymous
+        ? clients
+        : [ { id: 0, name: 'Anónimo' }, ...clients ];
+
     const { auth } = usePage<{ auth: { user: User } }>().props;
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -57,10 +66,13 @@ export default function Create({ clients, products = [] }: Props) {
         },
     ];
 
+    // Selecciona la sucursal por defecto según la asignada al usuario auth
+    const defaultBranchId = auth.user.branch_id ? String(auth.user.branch_id) : (branches[0] ? String(branches[0].id) : '');
+
     // Usa el tipado correcto para products y valores string
     const form = useForm({
-        branch_id: auth.user.branch_id ? String(auth.user.branch_id) : '',
-        client_id: '',
+        branch_id: defaultBranchId,
+        client_id: anonymousClient ? String(anonymousClient.id) : '',
         seller_id: String(auth.user.id),
         tax: '0',
         net: '0',
@@ -73,16 +85,31 @@ export default function Create({ clients, products = [] }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        form.setData(
-            'products',
-            saleProducts.map((sp) => ({
+        if (saleProducts.length === 0) {
+            toast.error('Debes agregar al menos un producto a la venta.');
+            return;
+        }
+        const data = {
+            ...form.data,
+            products: saleProducts.map((sp) => ({
                 id: sp.product.id,
                 quantity: sp.quantity,
                 price: sp.product.sale_price,
                 subtotal: sp.subtotal,
             })),
-        );
-        form.post(route('sales.store'));
+        };
+        router.post(route('sales.store'), data, {
+            onSuccess: () => {
+                toast.success('Venta registrada correctamente');
+            },
+            onError: (errors) => {
+                if (errors && typeof errors === 'object') {
+                    Object.values(errors).forEach((msg) => {
+                        if (msg) toast.error(String(msg));
+                    });
+                }
+            },
+        });
     }
 
     const [saleProducts, setSaleProducts] = useState<
@@ -132,18 +159,25 @@ export default function Create({ clients, products = [] }: Props) {
                 const updated = [...prev];
                 updated[idx].quantity += productQuantity;
                 updated[idx].subtotal = updated[idx].quantity * prod.sale_price;
-                return updated;
+                // Mover el producto actualizado al inicio
+                const [item] = updated.splice(idx, 1);
+                return [item, ...updated];
             }
+            // Agregar nuevo producto al inicio
             return [
-                ...prev,
                 {
                     product: prod,
                     quantity: productQuantity,
                     subtotal: productQuantity * prod.sale_price,
                 },
+                ...prev,
             ];
         });
         setProductQuantity(1);
+        // Enfocar el input de búsqueda después de agregar
+        setTimeout(() => {
+            productSearchRef.current?.focus();
+        }, 0);
     }
 
     function handleRemoveProduct(id: number) {
@@ -177,12 +211,15 @@ export default function Create({ clients, products = [] }: Props) {
         // eslint-disable-next-line
     }, [saleProducts, taxPercent]);
 
+    // Referencia para el input de búsqueda de productos
+    const productSearchRef = React.useRef<HTMLInputElement>(null);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
-            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row">
+            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row h-[calc(100dvh-64px)] min-h-0">
                 {/* Sección derecha: Productos disponibles */}
-                <div className="order-1 flex w-full flex-col md:order-2 md:w-1/3">
+                <div className="order-1 flex flex-col md:order-2 md:w-[40%] w-full flex-shrink-0 min-h-0 h-full">
                     {/* Buscador arriba en móvil */}
                     <div className="mb-2 block md:hidden">
                         <Input
@@ -191,15 +228,16 @@ export default function Create({ clients, products = [] }: Props) {
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
                             className="mb-2"
+                            ref={productSearchRef}
                         />
                         {searching && <div className="text-xs text-orange-500">Buscando...</div>}
                     </div>
-                    <Card className="flex-1 border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900">
+                    <Card className="flex-1 border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900 overflow-hidden flex flex-col min-h-0">
                         <CardHeader>
                             <CardTitle>Productos</CardTitle>
                             <CardDescription>Busca y agrega productos a la venta</CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
                             {/* Buscador solo visible en escritorio */}
                             <div className="mb-2 hidden md:block">
                                 <Input
@@ -208,10 +246,11 @@ export default function Create({ clients, products = [] }: Props) {
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
                                     className="mb-2"
+                                    ref={productSearchRef}
                                 />
                                 {searching && <div className="text-xs text-orange-500">Buscando...</div>}
                             </div>
-                            <div className="overflow-x-auto">
+                            <div className="overflow-y-auto flex-1 min-h-0">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr>
@@ -282,20 +321,23 @@ export default function Create({ clients, products = [] }: Props) {
                     </Card>
                 </div>
                 {/* Sección izquierda: Venta/factura */}
-                <div className="order-2 flex-1 md:order-1">
-                    <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="order-2 flex-1 md:order-1 flex flex-col min-h-0 h-full md:w-[60%]">
+                    <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 flex-1 flex flex-col overflow-hidden min-h-0">
                         <CardHeader>
                             <CardTitle>Información de la Venta</CardTitle>
                             <CardDescription>Complete los detalles de la venta. Todos los campos marcados con * son obligatorios.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-6">
+                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            <form onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full min-h-0">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    {/* <div className="space-y-2">
+                                    <div className="space-y-2 hidden">
                                         <Label htmlFor="branch_id">
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
+                                        <Select
+                                            value={form.data.branch_id}
+                                            onValueChange={(value) => form.setData('branch_id', value)}
+                                        >
                                             <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                                 <SelectValue placeholder="Seleccione sucursal" />
                                             </SelectTrigger>
@@ -308,7 +350,7 @@ export default function Create({ clients, products = [] }: Props) {
                                             </SelectContent>
                                         </Select>
                                         {form.errors.branch_id && <p className="text-sm text-red-500">{form.errors.branch_id}</p>}
-                                    </div> */}
+                                    </div>
 
                                     <div className="space-y-2">
                                         <Label htmlFor="client_id">
@@ -319,7 +361,7 @@ export default function Create({ clients, products = [] }: Props) {
                                                 <SelectValue placeholder="Seleccione cliente" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {clients.map((client) => (
+                                                {clientsWithAnonymous.map((client) => (
                                                     <SelectItem key={client.id} value={client.id.toString()}>
                                                         {client.name}
                                                     </SelectItem>
@@ -362,7 +404,6 @@ export default function Create({ clients, products = [] }: Props) {
                                             <SelectContent>
                                                 <SelectItem value="cash">Efectivo</SelectItem>
                                                 <SelectItem value="transfer">Transferencia</SelectItem>
-                                                <SelectItem value="other">Otro</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         {form.errors.payment_method && <p className="text-sm text-red-500">{form.errors.payment_method}</p>}
@@ -402,10 +443,10 @@ export default function Create({ clients, products = [] }: Props) {
                                 </div>
 
                                 {/* Productos agregados a la venta */}
-                                <div className="mt-4 space-y-4">
+                                <div className="mt-4 space-y-4 flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <Label>Productos en la venta</Label>
                                     {saleProducts.length > 0 ? (
-                                        <div className="overflow-x-auto">
+                                        <div className="overflow-y-auto flex-1 min-h-0">
                                             <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
                                                 <thead>
                                                     <tr className="bg-neutral-50 dark:bg-neutral-800">
@@ -542,9 +583,16 @@ export default function Create({ clients, products = [] }: Props) {
                                             Cancelar
                                         </Button>
                                     </Link>
-                                    <Button type="submit" disabled={form.processing} className="w-full gap-1 sm:w-auto">
-                                        <span>Registrar Venta</span>
-                                    </Button>
+                                    <div className="w-full sm:w-auto" style={{ position: 'relative' }}>
+                                        <Button
+                                            type="submit"
+
+                                            className="w-full gap-1 sm:w-auto"
+                                            title={saleProducts.length === 0 ? 'Agrega al menos un producto para registrar la venta' : ''}
+                                        >
+                                            <span>Registrar Venta</span>
+                                        </Button>
+                                    </div>
                                 </div>
                             </form>
                         </CardContent>

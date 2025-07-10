@@ -144,7 +144,6 @@ export default function Index({ sales, filters }: PageProps) {
     const datePickerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Focus en el input de búsqueda al cargar la página
         if (searchRef.current) {
             searchRef.current.focus();
         }
@@ -161,6 +160,18 @@ export default function Index({ sales, filters }: PageProps) {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Nuevo efecto: si el buscador queda vacío por más de 2 segundos, recarga los registros normales
+    useEffect(() => {
+        if (search.trim() === '') {
+            const timeout = setTimeout(() => {
+                if (search.trim() === '') {
+                    window.location.href = '/sales';
+                }
+            }, 1000);
+            return () => clearTimeout(timeout);
+        }
+    }, [search]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -295,7 +306,7 @@ export default function Index({ sales, filters }: PageProps) {
                     <Card>
                         <CardHeader>
                             <CardTitle>Filtrar Ventas</CardTitle>
-                            <CardDescription>Busca ventas por código, cliente, vendedor, estado o rango de fechas</CardDescription>
+                            <CardDescription>Busca ventas por código, cliente o vendedor, estado o rango de fechas</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="grid gap-4 md:grid-cols-4">
@@ -306,7 +317,7 @@ export default function Index({ sales, filters }: PageProps) {
                                             <Input
                                                 ref={searchRef}
                                                 type="search"
-                                                placeholder="Buscar por código, cliente o vendedor..."
+                                                placeholder="Buscar por código, cliente o vendedor"
                                                 className="w-full bg-white pl-8 text-black dark:bg-neutral-800 dark:text-neutral-100"
                                                 value={search}
                                                 onChange={(e) => setSearch(e.target.value)}
@@ -390,8 +401,6 @@ export default function Index({ sales, filters }: PageProps) {
                                         <tr className="border-b text-left font-medium">
                                             <th className="px-4 py-2">Código</th>
                                             <th className="px-4 py-2">Cliente</th>
-                                            <th className="px-4 py-2">Vendedor</th>
-                                            <th className="px-4 py-2">Sucursal</th>
                                             <th className="px-4 py-2">Total</th>
                                             <th className="px-4 py-2">Método de pago</th>
                                             <th className="px-4 py-2">Fecha</th>
@@ -402,7 +411,7 @@ export default function Index({ sales, filters }: PageProps) {
                                     <tbody>
                                         {sales.data.length === 0 ? (
                                             <tr>
-                                                <td colSpan={9} className="py-6 text-center">
+                                                <td colSpan={7} className="py-6 text-center">
                                                     No se encontraron ventas con los filtros seleccionados
                                                 </td>
                                             </tr>
@@ -411,8 +420,6 @@ export default function Index({ sales, filters }: PageProps) {
                                                 <tr key={sale.id} className="border-b">
                                                     <td className="px-4 py-4">{sale.code}</td>
                                                     <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                                    <td className="px-4 py-4">{sale.seller?.name || 'N/A'}</td>
-                                                    <td className="px-4 py-4">{sale.branch?.name || 'N/A'}</td>
                                                     <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
                                                     <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
                                                     <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
