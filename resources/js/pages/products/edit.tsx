@@ -234,21 +234,21 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                         </span>
                                         <Input
                                             id="purchase_price"
-                                            type="text"
+                                            type="number"
                                             inputMode="numeric"
-                                            pattern="[0-9]*"
+                                            min="0"
+                                            step="1"
                                             className="w-full pl-6"
-                                            value={
-                                                typeof form.data.purchase_price === 'number' && !isNaN(form.data.purchase_price)
-                                                    ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
-                                                    : '0'
-                                            }
+                                            value={form.data.purchase_price}
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/\D/g, '');
                                                 form.setData('purchase_price', value ? Number(value) : 0);
                                             }}
                                         />
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {Number(form.data.purchase_price).toLocaleString('es-CO')}
+                                    </p>
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
                                 </div>
 
@@ -263,21 +263,21 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                         </span>
                                         <Input
                                             id="sale_price"
-                                            type="text"
+                                            type="number"
                                             inputMode="numeric"
-                                            pattern="[0-9]*"
+                                            min="0"
+                                            step="1"
                                             className="w-full pl-6"
-                                            value={
-                                                typeof form.data.sale_price === 'number' && !isNaN(form.data.sale_price)
-                                                    ? Math.round(form.data.sale_price).toLocaleString('es-CO')
-                                                    : '0'
-                                            }
+                                            value={form.data.sale_price}
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/\D/g, '');
                                                 form.setData('sale_price', value ? Number(value) : 0);
                                             }}
                                         />
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {Number(form.data.sale_price).toLocaleString('es-CO')}
+                                    </p>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
                                 </div>
 

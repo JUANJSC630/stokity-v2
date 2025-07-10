@@ -2629,6 +2629,11 @@ js-yaml@^4.1.0:
   dependencies:
     argparse "^2.0.1"
 
+jsbarcode@^3.11.5:
+  version "3.12.1"
+  resolved "https://registry.npmjs.org/jsbarcode/-/jsbarcode-3.12.1.tgz#9ee84826efd8112e017aaf00f72217eae81823b9"
+  integrity sha512-QZQSqIknC2Rr/YOUyOkCBqsoiBAOTYK+7yNN3JsqfoUtJtkazxNw1dmPpxuv7VVvqW13kA3/mKiLq+s/e3o9hQ==
+
 jsesc@^3.0.2:
   version "3.1.0"
   resolved "https://registry.npmjs.org/jsesc/-/jsesc-3.1.0.tgz"
@@ -3041,6 +3046,11 @@ punycode@^2.1.0:
   resolved "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz"
   integrity sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==
 
+qr.js@0.0.0:
+  version "0.0.0"
+  resolved "https://registry.npmjs.org/qr.js/-/qr.js-0.0.0.tgz#cace86386f59a0db8050fa90d9b6b0e88a1e364f"
+  integrity sha512-c4iYnWb+k2E+vYpRimHqSu575b1/wKl4XFeJGpFmrJQz5I88v9aY2czh7s0w36srfCM1sXgC/xpoJz5dJfq+OQ==
+
 qs@^6.9.0:
   version "6.14.0"
   resolved "https://registry.npmjs.org/qs/-/qs-6.14.0.tgz"
@@ -3083,10 +3093,25 @@ react-is@^16.13.1:
   resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
+react-jsbarcode@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.npmjs.org/react-jsbarcode/-/react-jsbarcode-1.0.1.tgz#16f2c9df3fcd1bf7f0f73c37237fcf1ee425ed13"
+  integrity sha512-M6Z8M2y3/re4dE8FUhWUO/DWk4Mmo4CfOu34JnncYR0NHS8Q9kJQwzHCyEXJ8HnK2EwR5NWayG7n7bWhHXB2tA==
+  dependencies:
+    jsbarcode "^3.11.5"
+
 react-list@^0.8.13:
   version "0.8.18"
   resolved "https://registry.npmjs.org/react-list/-/react-list-0.8.18.tgz"
   integrity sha512-1OSdDvzuKuwDJvQNuhXxxL+jTmmdtKg1i6KtYgxI9XR98kbOql1FcSGP+Lcvo91fk3cYng+Z6YkC6X9HRJwxfw==
+
+react-qr-code@^2.0.18:
+  version "2.0.18"
+  resolved "https://registry.npmjs.org/react-qr-code/-/react-qr-code-2.0.18.tgz#237de8fbab537885d6b2b10f4fd5318b371e3b17"
+  integrity sha512-v1Jqz7urLMhkO6jkgJuBYhnqvXagzceg3qJUWayuCK/c6LTIonpWbwxR1f1APGd4xrW/QcQEovNrAojbUz65Tg==
+  dependencies:
+    prop-types "^15.8.1"
+    qr.js "0.0.0"
 
 react-refresh@^0.14.2:
   version "0.14.2"

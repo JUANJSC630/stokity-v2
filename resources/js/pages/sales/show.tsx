@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, Edit, XCircle } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 interface Branch {
     id: number;
@@ -150,9 +151,20 @@ export default function Show({ sale }: Props) {
                             <div>
                                 <h3 className="text-lg font-medium">Información General</h3>
                                 <dl className="mt-3 grid grid-cols-1 gap-4">
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Código</dt>
-                                        <dd className="mt-1 text-lg">{sale.code}</dd>
+                                    <div className="flex flex-col items-start gap-4">
+                                        {/* QR del código de la venta */}
+                                        <div style={{ height: 'auto', maxWidth: 120, width: 120 }}>
+                                            <QRCode
+                                                size={220}
+                                                style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                                                value={sale.code}
+                                                viewBox={`0 0 256 256`}
+                                            />
+                                        </div>
+                                        <div>
+                                            <dt className="text-sm font-medium text-muted-foreground">Código</dt>
+                                            <dd className="mt-1 text-lg">{sale.code}</dd>
+                                        </div>
                                     </div>
                                     <div>
                                         <dt className="text-sm font-medium text-muted-foreground">Fecha</dt>

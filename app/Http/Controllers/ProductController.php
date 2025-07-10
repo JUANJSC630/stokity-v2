@@ -329,15 +329,14 @@ class ProductController extends Controller
     }
 
     /**
-     * Genera un código de producto basado en la categoría, asegurando unicidad
+     * Genera un código de producto basado en el nombre, asegurando unicidad
      */
     public function generateCode(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
+            'name' => 'required|string|max:255',
         ]);
-        $category = Category::find($request->category_id);
-        $words = preg_split('/\s+/', trim($category->name));
+        $words = preg_split('/\s+/', trim($request->name));
         $parts = [];
         foreach ($words as $word) {
             $clean = preg_replace('/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/u', '', $word);

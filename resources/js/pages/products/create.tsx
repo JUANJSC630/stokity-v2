@@ -108,15 +108,15 @@ export default function Create({ categories = [], branches = [], userBranchId = 
 
     // Generar código automáticamente usando axios
     const handleGenerateCode = async () => {
-        if (!form.data.category_id) {
-            setDialogMsg('Seleccione una categoría primero');
+        if (!form.data.name) {
+            setDialogMsg('Ingrese el nombre del producto primero');
             setDialogOpen(true);
             return;
         }
         form.setData('code', '');
         try {
             const response = await axios.post('/products/generate-code', {
-                category_id: form.data.category_id,
+                name: form.data.name,
             });
             form.setData('code', response.data.code);
         } catch (error: unknown) {
@@ -225,27 +225,20 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                {/* Categoría */}
+                                {/* Nombre del producto */}
                                 <div className="space-y-2">
-                                    <label htmlFor="category_id" className="text-sm font-medium">
-                                        Categoría *
+                                    <label htmlFor="name" className="text-sm font-medium">
+                                        Nombre *
                                     </label>
-                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
-                                        <SelectTrigger
-                                            id="category_id"
-                                            className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                        >
-                                            <SelectValue placeholder="Seleccionar categoría" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {form.errors.category_id && <p className="text-xs text-destructive">{form.errors.category_id}</p>}
+                                    <Input
+                                        id="name"
+                                        placeholder="Nombre del producto"
+                                        value={form.data.name}
+                                        onChange={(e) => form.setData('name', e.target.value)}
+                                        required
+                                        className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                    />
+                                    {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
 
                                 {/* Código del producto */}
@@ -293,20 +286,27 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </p>
                                 </div>
 
-                                {/* Nombre del producto */}
+                                {/* Categoría */}
                                 <div className="space-y-2">
-                                    <label htmlFor="name" className="text-sm font-medium">
-                                        Nombre *
+                                    <label htmlFor="category_id" className="text-sm font-medium">
+                                        Categoría *
                                     </label>
-                                    <Input
-                                        id="name"
-                                        placeholder="Nombre del producto"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        required
-                                        className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                    />
-                                    {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
+                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
+                                        <SelectTrigger
+                                            id="category_id"
+                                            className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                        >
+                                            <SelectValue placeholder="Seleccionar categoría" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories.map((category) => (
+                                                <SelectItem key={category.id} value={category.id.toString()}>
+                                                    {category.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {form.errors.category_id && <p className="text-xs text-destructive">{form.errors.category_id}</p>}
                                 </div>
 
                                 {/* Sucursal */}

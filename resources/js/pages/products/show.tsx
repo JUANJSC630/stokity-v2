@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Edit2 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 interface ProductShowProps {
     product: Product;
@@ -72,10 +73,19 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         </Badge>
                                     )}
                                 </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Código:</span>
-                                    <span className="font-medium">{product.code}</span>
+                                <div className="flex flex-col justify-start py-2">
+                                    <div className="flex flex-col items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Código:</span>
+                                        <span className="font-medium">{product.code}</span>
+                                    </div>
+                                    <div className="flex justify-center py-2">
+                                        <QRCode
+                                            value={product.code}
+                                            size={100}
+                                            style={{ height: 'auto', maxWidth: 80, width: '100%' }}
+                                            viewBox={`0 0 256 256`}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center justify-between">
