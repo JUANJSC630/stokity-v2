@@ -423,23 +423,25 @@ export default function Index({ sales, filters }: PageProps) {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            sales.data.map((sale) => (
-                                                <tr key={sale.id} className="border-b">
-                                                    <td className="px-4 py-4">{sale.code}</td>
-                                                    <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                                    <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
-                                                    <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
-                                                    <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
-                                                    <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
-                                                    <td className="px-4 py-4">
-                                                        <Link href={route('sales.show', sale.id)}>
-                                                            <Button variant="ghost" size="icon">
-                                                                <Eye className="size-4" />
-                                                            </Button>
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            [...sales.data]
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map((sale) => (
+                                                    <tr key={sale.id} className="border-b">
+                                                        <td className="px-4 py-4">{sale.code}</td>
+                                                        <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
+                                                        <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
+                                                        <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
+                                                        <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
+                                                        <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
+                                                        <td className="px-4 py-4">
+                                                            <Link href={route('sales.show', sale.id)}>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <Eye className="size-4" />
+                                                                </Button>
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                ))
                                         )}
                                     </tbody>
                                 </table>
