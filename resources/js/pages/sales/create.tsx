@@ -217,9 +217,9 @@ export default function Create({ branches, clients, products = [] }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
-            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row h-[calc(100dvh-64px)] min-h-0">
+            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row md:h-[calc(100dvh-64px)] md:min-h-0">
                 {/* Sección derecha: Productos disponibles */}
-                <div className="order-1 flex flex-col md:order-2 md:w-[40%] w-full flex-shrink-0 min-h-0 h-full">
+                <div className="order-1 flex flex-col md:order-2 md:w-[40%] w-full flex-shrink-0 md:min-h-0 md:h-full">
                     {/* Buscador arriba en móvil */}
                     <div className="mb-2 block md:hidden">
                         <Input
@@ -321,7 +321,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                     </Card>
                 </div>
                 {/* Sección izquierda: Venta/factura */}
-                <div className="order-2 flex-1 md:order-1 flex flex-col min-h-0 h-full md:w-[60%]">
+                <div className="order-2 flex-1 md:order-1 flex flex-col md:min-h-0 md:h-full md:w-[60%]">
                     <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 flex-1 flex flex-col overflow-hidden min-h-0">
                         <CardHeader>
                             <CardTitle>Información de la Venta</CardTitle>
@@ -446,64 +446,109 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                 <div className="mt-4 space-y-4 flex-1 flex flex-col min-h-0 overflow-hidden">
                                     <Label>Productos en la venta</Label>
                                     {saleProducts.length > 0 ? (
-                                        <div className="overflow-y-auto flex-1 min-h-0">
-                                            <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
-                                                <thead>
-                                                    <tr className="bg-neutral-50 dark:bg-neutral-800">
-                                                        <th className="text-left font-semibold">Producto</th>
-                                                        <th className="text-center font-semibold">Cantidad</th>
-                                                        <th className="text-center font-semibold">Precio</th>
-                                                        <th className="text-center font-semibold">Subtotal</th>
-                                                        <th></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {saleProducts.map((sp) => (
-                                                        <tr key={sp.product.id} className="rounded bg-white shadow-sm dark:bg-neutral-900">
-                                                            <td className="px-2 py-1 text-left font-medium text-neutral-800 dark:text-neutral-100">
-                                                                {sp.product.name}
-                                                            </td>
-                                                            <td className="px-2 py-1 text-center align-middle">
-                                                                <div className="flex h-full items-center justify-center">
-                                                                    <Input
-                                                                        type="number"
-                                                                        min={1}
-                                                                        max={sp.product.stock}
-                                                                        value={sp.quantity}
-                                                                        onChange={(e) =>
-                                                                            handleChangeQuantity(
-                                                                                sp.product.id,
-                                                                                Math.min(Number(e.target.value), sp.product.stock),
-                                                                            )
-                                                                        }
-                                                                        className="m-0 h-7 w-14 border-0 bg-transparent p-0 text-center align-middle text-sm font-semibold shadow-none focus:border-0 focus:ring-0"
-                                                                        style={{ verticalAlign: 'middle' }}
-                                                                    />
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">
-                                                                {formatCOP(sp.product.sale_price)}
-                                                            </td>
-                                                            <td className="px-2 py-1 text-center font-semibold text-green-900 dark:text-green-200">
-                                                                {formatCOP(sp.subtotal)}
-                                                            </td>
-                                                            <td className="px-2 py-1 text-center">
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => handleRemoveProduct(sp.product.id)}
-                                                                    className="hover:bg-red-100 dark:hover:bg-red-900/30"
-                                                                    title="Quitar producto"
-                                                                >
-                                                                    <X className="h-4 w-4 text-red-500" />
-                                                                </Button>
-                                                            </td>
+                                        <>
+                                            {/* Vista tabla en escritorio */}
+                                            <div className="overflow-y-auto flex-1 min-h-0 hidden md:block">
+                                                <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
+                                                    <thead>
+                                                        <tr className="bg-neutral-50 dark:bg-neutral-800">
+                                                            <th className="text-left font-semibold">Producto</th>
+                                                            <th className="text-center font-semibold">Cantidad</th>
+                                                            <th className="text-center font-semibold">Precio</th>
+                                                            <th className="text-center font-semibold">Subtotal</th>
+                                                            <th></th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                    </thead>
+                                                    <tbody>
+                                                        {saleProducts.map((sp) => (
+                                                            <tr key={sp.product.id} className="rounded bg-white shadow-sm dark:bg-neutral-900">
+                                                                <td className="px-2 py-1 text-left font-medium text-neutral-800 dark:text-neutral-100">
+                                                                    {sp.product.name}
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center align-middle">
+                                                                    <div className="flex h-full items-center justify-center">
+                                                                        <Input
+                                                                            type="number"
+                                                                            min={1}
+                                                                            max={sp.product.stock}
+                                                                            value={sp.quantity}
+                                                                            onChange={(e) =>
+                                                                                handleChangeQuantity(
+                                                                                    sp.product.id,
+                                                                                    Math.min(Number(e.target.value), sp.product.stock),
+                                                                                )
+                                                                            }
+                                                                            className="m-0 h-7 w-14 border-0 bg-transparent p-0 text-center align-middle text-sm font-semibold shadow-none focus:border-0 focus:ring-0"
+                                                                            style={{ verticalAlign: 'middle' }}
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">
+                                                                    {formatCOP(sp.product.sale_price)}
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center font-semibold text-green-900 dark:text-green-200">
+                                                                    {formatCOP(sp.subtotal)}
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => handleRemoveProduct(sp.product.id)}
+                                                                        className="hover:bg-red-100 dark:hover:bg-red-900/30"
+                                                                        title="Quitar producto"
+                                                                    >
+                                                                        <X className="h-4 w-4 text-red-500" />
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {/* Vista tarjetas en móvil */}
+                                            <div className="flex flex-col gap-2 md:hidden">
+                                                {saleProducts.map((sp) => (
+                                                    <div key={sp.product.id} className="rounded bg-white shadow-sm dark:bg-neutral-900 p-3 flex flex-col gap-1 border border-neutral-100 dark:border-neutral-800">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">{sp.product.name}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => handleRemoveProduct(sp.product.id)}
+                                                                className="hover:bg-red-100 dark:hover:bg-red-900/30"
+                                                                title="Quitar producto"
+                                                            >
+                                                                <X className="h-4 w-4 text-red-500" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2 text-xs mt-1">
+                                                            <div>
+                                                                <span className="font-medium text-neutral-500">Cantidad: </span>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    max={sp.product.stock}
+                                                                    value={sp.quantity}
+                                                                    onChange={(e) => handleChangeQuantity(sp.product.id, Math.min(Number(e.target.value), sp.product.stock))}
+                                                                    className="inline-block w-14 h-7 text-center text-sm font-semibold border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-1 py-0"
+                                                                    style={{ verticalAlign: 'middle' }}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium text-neutral-500">Precio: </span>
+                                                                <span className="font-semibold text-blue-900 dark:text-blue-200">{formatCOP(sp.product.sale_price)}</span>
+                                                            </div>
+                                                            <div>
+                                                                <span className="font-medium text-neutral-500">Subtotal: </span>
+                                                                <span className="font-semibold text-green-900 dark:text-green-200">{formatCOP(sp.subtotal)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
                                     ) : (
                                         <div className="text-neutral-500">No hay productos agregados</div>
                                     )}
