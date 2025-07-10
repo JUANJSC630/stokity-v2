@@ -114,7 +114,7 @@ class UserController extends Controller
         }
 
         // Create user
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
@@ -123,6 +123,11 @@ class UserController extends Controller
             'status' => $validated['status'] ?? true,
             'photo' => $validated['photo'] ?? null,
         ]);
+        
+        // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
+        if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
+            Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'Usuario creado exitosamente');
@@ -246,6 +251,20 @@ class UserController extends Controller
         }
         
         $user->update($userData);
+        
+        // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
+        if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
+            // Si el usuario ya era encargado de otra sucursal, quitarlo como encargado
+            Branch::where('manager_id', $user->id)
+                  ->where('id', '!=', $validated['branch_id'])
+                  ->update(['manager_id' => null]);
+                  
+            // Asignar al usuario como encargado de la nueva sucursal
+            Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
+        } elseif ($validated['role'] !== 'encargado') {
+            // Si el usuario ha dejado de ser encargado, quitarlo como manager de cualquier sucursal
+            Branch::where('manager_id', $user->id)->update(['manager_id' => null]);
+        }
 
         return redirect()->route('users.show', $user)
             ->with('success', 'Usuario actualizado exitosamente');
@@ -281,5 +300,29 @@ class UserController extends Controller
 
         return redirect()->route('users.index')
             ->with('success', 'Usuario eliminado exitosamente');
+    }
+
+    /**
+     * Show user-branch relationships in a definitive way.
+     * Returns a manager user, the branches they manage, a branch, and its manager.
+     */
+    public function userBranchRelationships()
+    {
+        // Get a manager user
+        $user = User::where('role', 'encargado')->first();
+        // Branches where the user is manager
+        $branches = $user ? $user->managedBranches : collect();
+
+        // Get a branch
+        $branch = Branch::first();
+        // Manager of the branch
+        $manager = $branch ? $branch->manager : null;
+
+        return response()->json([
+            'manager_user' => $user,
+            'branches_managed' => $branches,
+            'branch' => $branch,
+            'branch_manager' => $manager,
+        ]);
     }
 }

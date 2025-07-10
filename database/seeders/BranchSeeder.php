@@ -13,6 +13,9 @@ class BranchSeeder extends Seeder
      */
     public function run(): void
     {
+        // Buscar el primer usuario encargado para asignar como gerente
+        $manager = User::where('role', 'encargado')->first();
+        $managerId = $manager ? $manager->id : null;
         $branches = [
             ['name' => 'Zarzal', 'address' => 'Cra 10 #5-20', 'phone' => '3123456789', 'email' => 'zarzal@sucursal.com'],
             ['name' => 'Cartago', 'address' => 'Calle 12 #8-15', 'phone' => '3123456790', 'email' => 'cartago@sucursal.com'],
@@ -21,6 +24,7 @@ class BranchSeeder extends Seeder
             ['name' => 'La Unión', 'address' => 'Cra 7 #4-50', 'phone' => '3123456793', 'email' => 'launion@sucursal.com'],
         ];
         foreach ($branches as $data) {
+            $data['manager_id'] = $managerId;
             Branch::firstOrCreate(['name' => $data['name']], $data);
         }
     }

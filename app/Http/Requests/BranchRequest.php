@@ -27,11 +27,7 @@ class BranchRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['boolean'],
-            'manager_id' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== null && !app(\App\Models\User::class)->where('id', $value)->exists()) {
-                    $fail('El gerente seleccionado no existe.');
-                }
-            }],
+            // El manager_id ahora se maneja exclusivamente desde UserController
         ];
     }
     
@@ -42,10 +38,7 @@ class BranchRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        // Convert empty string or 'none' manager_id to null
-        if (empty($this->manager_id) || $this->manager_id === 'none') {
-            $this->merge(['manager_id' => null]);
-        }
+        // Ya no necesitamos procesar el manager_id aquí
     }
 
     /**
@@ -64,7 +57,6 @@ class BranchRequest extends FormRequest
             'phone.max' => 'El teléfono de la sucursal no puede superar los 20 caracteres.',
             'email.email' => 'El correo electrónico debe ser una dirección de correo válida.',
             'email.max' => 'El correo electrónico no puede superar los 255 caracteres.',
-            'manager_id.exists' => 'El gerente seleccionado no existe.',
         ];
     }
 }

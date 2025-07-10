@@ -79,14 +79,7 @@ class BranchController extends Controller
      */
     public function create(): Response
     {
-        $managers = User::where('role', 'encargado')
-            ->orderBy('name')
-            ->select('id', 'name', 'email')
-            ->get();
-
-        return Inertia::render('branches/create', [
-            'managers' => $managers,
-        ]);
+        return Inertia::render('branches/create');
     }
 
     /**
@@ -106,14 +99,9 @@ class BranchController extends Controller
     public function edit(Branch $branch): Response
     {
         $branch->load('manager:id,name,email');
-        $managers = User::where('role', 'encargado')
-            ->orderBy('name')
-            ->select('id', 'name', 'email')
-            ->get();
 
         return Inertia::render('branches/edit', [
             'branch' => $branch,
-            'managers' => $managers,
         ]);
     }
 

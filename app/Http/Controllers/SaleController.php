@@ -113,6 +113,16 @@ class SaleController extends Controller
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
         
+        // Verificar stock disponible
+        foreach ($request->products as $index => $prod) {
+            $product = Product::find($prod['id']);
+            if (!$product || $product->stock < $prod['quantity']) {
+                return back()->withErrors([
+                    "products.{$index}.quantity" => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
+                ])->withInput();
+            }
+        }
+        
         // Generar código único para la venta
         $validated['code'] = 'SALE-' . now()->format('YmdHis') . rand(100, 999);
 
@@ -121,7 +131,7 @@ class SaleController extends Controller
 
         $sale = Sale::create($validated);
 
-        // Guardar productos vendidos
+        // Guardar productos vendidos y actualizar el stock
         foreach ($products as $prod) {
             $sale->saleProducts()->create([
                 'product_id' => $prod['id'],
@@ -129,6 +139,13 @@ class SaleController extends Controller
                 'price' => $prod['price'],
                 'subtotal' => $prod['subtotal'],
             ]);
+            
+            // Actualizar el stock del producto
+            $product = Product::find($prod['id']);
+            if ($product) {
+                $product->stock -= $prod['quantity'];
+                $product->save();
+            }
         }
 
         return redirect()->route('sales.index')->with('success', 'Venta creada exitosamente.');
@@ -234,6 +251,15 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
+        // Restaurar el stock de los productos antes de eliminar la venta
+        foreach ($sale->saleProducts as $saleProduct) {
+            $product = Product::find($saleProduct->product_id);
+            if ($product) {
+                $product->stock += $saleProduct->quantity;
+                $product->save();
+            }
+        }
+
         $sale->delete();
 
         return redirect()->route('sales.index')->with('success', 'Venta eliminada exitosamente.');

@@ -12,36 +12,15 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crear usuario administrador
-        if (!User::where('email', 'admin@example.com')->exists()) {
-            User::factory()->create([
-                'name' => 'Admin User',
-                'email' => 'admin@example.com',
-                'role' => 'administrador',
-            ]);
-        }
+        // Crear solo un usuario por cada rol principal, asignando sucursal Zarzal
+        $branch = \App\Models\Branch::where('name', 'Zarzal')->first();
 
-        // Crear usuario de prueba
-        if (!User::where('email', 'test@example.com')->exists()) {
-            User::factory()->create([
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-            ]);
-        }
-
-        // Crear encargados (mínimo 3)
-        $managerCount = User::where('role', 'encargado')->count();
-        if ($managerCount < 3) {
-            $managersToCreate = 3 - $managerCount;
-            User::factory($managersToCreate)->create(['role' => 'encargado']);
-        }
-
-        // Crear un usuario para cada rol principal si no existe
+        dump($branch);
+        $branchId = $branch ? $branch->id : null;
         $roles = [
             'administrador',
             'encargado',
             'vendedor',
-            'cajero',
         ];
         foreach ($roles as $role) {
             $email = $role . '@example.com';
@@ -50,6 +29,7 @@ class UserSeeder extends Seeder
                     'name' => ucfirst($role) . ' User',
                     'email' => $email,
                     'role' => $role,
+                    'branch_id' => $branchId,
                 ]);
             }
         }

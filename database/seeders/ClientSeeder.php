@@ -12,7 +12,6 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
-        // Cliente anónimo
         Client::firstOrCreate([
             'name' => 'Anónimo',
         ], [
@@ -23,7 +22,6 @@ class ClientSeeder extends Seeder
             'birthdate' => '1990-01-01',
         ]);
 
-        // Clientes típicos colombianos
         $clientes = [
             ['name' => 'Juan Pérez', 'document' => '1122334455', 'phone' => '3123456781', 'address' => 'Calle 10 #5-20, Zarzal', 'email' => 'juan.perez@gmail.com', 'birthdate' => '1985-03-15'],
             ['name' => 'María Rodríguez', 'document' => '2233445566', 'phone' => '3123456782', 'address' => 'Cra 8 #12-34, Cartago', 'email' => 'maria.rodriguez@gmail.com', 'birthdate' => '1992-07-22'],

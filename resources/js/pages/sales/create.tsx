@@ -13,7 +13,6 @@ import { Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
-
 interface Branch {
     id: number;
     name: string;
@@ -48,11 +47,9 @@ function formatCOP(value: string | number) {
 
 export default function Create({ branches, clients, products = [] }: Props) {
     // Busca el id real del cliente Anónimo si existe, si no, usa el primero
-    const anonymous = clients.find(c => c.name.toLowerCase() === 'anónimo');
+    const anonymous = clients.find((c) => c.name.toLowerCase() === 'anónimo');
     const anonymousClient = anonymous || clients[0];
-    const clientsWithAnonymous = anonymous
-        ? clients
-        : [ { id: 0, name: 'Anónimo' }, ...clients ];
+    const clientsWithAnonymous = anonymous ? clients : [{ id: 0, name: 'Anónimo' }, ...clients];
 
     const { auth } = usePage<{ auth: { user: User } }>().props;
     const breadcrumbs: BreadcrumbItem[] = [
@@ -67,7 +64,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
     ];
 
     // Selecciona la sucursal por defecto según la asignada al usuario auth
-    const defaultBranchId = auth.user.branch_id ? String(auth.user.branch_id) : (branches[0] ? String(branches[0].id) : '');
+    const defaultBranchId = auth.user.branch_id ? String(auth.user.branch_id) : branches[0] ? String(branches[0].id) : '';
 
     // Usa el tipado correcto para products y valores string
     const form = useForm({
@@ -217,9 +214,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
-            <div className="flex flex-col gap-4 p-2 sm:p-4 md:flex-row md:h-[calc(100dvh-64px)] md:min-h-0">
+
+            <div className="flex flex-col gap-4 p-2 sm:p-4 md:h-[calc(100dvh-64px)] md:min-h-0 md:flex-row">
                 {/* Sección derecha: Productos disponibles */}
-                <div className="order-1 flex flex-col md:order-2 md:w-[40%] w-full flex-shrink-0 md:min-h-0 md:h-full">
+                <div className="order-1 flex w-full flex-shrink-0 flex-col md:order-2 md:h-full md:min-h-0 md:w-[40%]">
                     {/* Buscador arriba en móvil */}
                     <div className="mb-2 block md:hidden">
                         <Input
@@ -230,14 +228,14 @@ export default function Create({ branches, clients, products = [] }: Props) {
                             className="mb-2"
                             ref={productSearchRef}
                         />
-                        {searching && <div className="text-xs text-orange-500">Buscando...</div>}
+                        {searching && <span className="text-xs text-orange-500">Buscando...</span>}
                     </div>
-                    <Card className="flex-1 border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900 overflow-hidden flex flex-col min-h-0">
+                    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900">
                         <CardHeader>
                             <CardTitle>Productos</CardTitle>
                             <CardDescription>Busca y agrega productos a la venta</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
                             {/* Buscador solo visible en escritorio */}
                             <div className="mb-2 hidden md:block">
                                 <Input
@@ -250,7 +248,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                 />
                                 {searching && <div className="text-xs text-orange-500">Buscando...</div>}
                             </div>
-                            <div className="overflow-y-auto flex-1 min-h-0">
+                            <div className="min-h-0 flex-1 overflow-y-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr>
@@ -321,23 +319,20 @@ export default function Create({ branches, clients, products = [] }: Props) {
                     </Card>
                 </div>
                 {/* Sección izquierda: Venta/factura */}
-                <div className="order-2 flex-1 md:order-1 flex flex-col md:min-h-0 md:h-full md:w-[60%]">
-                    <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900 flex-1 flex flex-col overflow-hidden min-h-0">
+                <div className="order-2 flex flex-1 flex-col md:order-1 md:h-full md:min-h-0 md:w-[60%]">
+                    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
                         <CardHeader>
                             <CardTitle>Información de la Venta</CardTitle>
                             <CardDescription>Complete los detalles de la venta. Todos los campos marcados con * son obligatorios.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                            <form onSubmit={handleSubmit} className="space-y-6 flex flex-col h-full min-h-0">
+                        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                            <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col space-y-6">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2 hidden">
+                                    <div className="hidden space-y-2">
                                         <Label htmlFor="branch_id">
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select
-                                            value={form.data.branch_id}
-                                            onValueChange={(value) => form.setData('branch_id', value)}
-                                        >
+                                        <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
                                             <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                                 <SelectValue placeholder="Seleccione sucursal" />
                                             </SelectTrigger>
@@ -443,12 +438,12 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                 </div>
 
                                 {/* Productos agregados a la venta */}
-                                <div className="mt-4 space-y-4 flex-1 flex flex-col min-h-0 overflow-hidden">
+                                <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
                                     <Label>Productos en la venta</Label>
                                     {saleProducts.length > 0 ? (
                                         <>
                                             {/* Vista tabla en escritorio */}
-                                            <div className="overflow-y-auto flex-1 min-h-0 hidden md:block">
+                                            <div className="hidden min-h-0 flex-1 overflow-y-auto md:block">
                                                 <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
                                                     <thead>
                                                         <tr className="bg-neutral-50 dark:bg-neutral-800">
@@ -509,9 +504,14 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                             {/* Vista tarjetas en móvil */}
                                             <div className="flex flex-col gap-2 md:hidden">
                                                 {saleProducts.map((sp) => (
-                                                    <div key={sp.product.id} className="rounded bg-white shadow-sm dark:bg-neutral-900 p-3 flex flex-col gap-1 border border-neutral-100 dark:border-neutral-800">
+                                                    <div
+                                                        key={sp.product.id}
+                                                        className="flex flex-col gap-1 rounded border border-neutral-100 bg-white p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                                                    >
                                                         <div className="flex items-center justify-between">
-                                                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">{sp.product.name}</span>
+                                                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+                                                                {sp.product.name}
+                                                            </span>
                                                             <Button
                                                                 type="button"
                                                                 variant="ghost"
@@ -523,7 +523,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                 <X className="h-4 w-4 text-red-500" />
                                                             </Button>
                                                         </div>
-                                                        <div className="flex flex-wrap gap-2 text-xs mt-1">
+                                                        <div className="mt-1 flex flex-wrap gap-2 text-xs">
                                                             <div>
                                                                 <span className="font-medium text-neutral-500">Cantidad: </span>
                                                                 <Input
@@ -531,18 +531,27 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                     min={1}
                                                                     max={sp.product.stock}
                                                                     value={sp.quantity}
-                                                                    onChange={(e) => handleChangeQuantity(sp.product.id, Math.min(Number(e.target.value), sp.product.stock))}
-                                                                    className="inline-block w-14 h-7 text-center text-sm font-semibold border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-1 py-0"
+                                                                    onChange={(e) =>
+                                                                        handleChangeQuantity(
+                                                                            sp.product.id,
+                                                                            Math.min(Number(e.target.value), sp.product.stock),
+                                                                        )
+                                                                    }
+                                                                    className="inline-block h-7 w-14 border border-neutral-200 bg-neutral-50 px-1 py-0 text-center text-sm font-semibold dark:border-neutral-700 dark:bg-neutral-800"
                                                                     style={{ verticalAlign: 'middle' }}
                                                                 />
                                                             </div>
                                                             <div>
                                                                 <span className="font-medium text-neutral-500">Precio: </span>
-                                                                <span className="font-semibold text-blue-900 dark:text-blue-200">{formatCOP(sp.product.sale_price)}</span>
+                                                                <span className="font-semibold text-blue-900 dark:text-blue-200">
+                                                                    {formatCOP(sp.product.sale_price)}
+                                                                </span>
                                                             </div>
                                                             <div>
                                                                 <span className="font-medium text-neutral-500">Subtotal: </span>
-                                                                <span className="font-semibold text-green-900 dark:text-green-200">{formatCOP(sp.subtotal)}</span>
+                                                                <span className="font-semibold text-green-900 dark:text-green-200">
+                                                                    {formatCOP(sp.subtotal)}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -631,7 +640,6 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                     <div className="w-full sm:w-auto" style={{ position: 'relative' }}>
                                         <Button
                                             type="submit"
-
                                             className="w-full gap-1 sm:w-auto"
                                             title={saleProducts.length === 0 ? 'Agrega al menos un producto para registrar la venta' : ''}
                                         >
