@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -15,60 +14,43 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
-        // Obtener todas las sucursales y categorías activas
-        $branches = Branch::where('status', true)->get();
-        $categories = Category::where('status', true)->get();
-        
-        // Verificar si hay suficientes datos para continuar
-        if ($branches->isEmpty() || $categories->isEmpty()) {
-            $this->command->info('No hay sucursales o categorías activas. Ejecuta primero los seeders correspondientes.');
-            return;
-        }
-
-        // Eliminar productos existentes para evitar duplicados
-        Product::truncate();
-        $this->command->info('Se han eliminado todos los productos existentes.');
-        
-        // Para cada sucursal
-        foreach ($branches as $branch) {
-            // Para cada categoría
-            foreach ($categories as $category) {
-                // Crear entre 5-10 productos activos por categoría y sucursal
-                $productsCount = rand(5, 10);
-                for ($i = 0; $i < $productsCount; $i++) {
-                    Product::factory()
-                        ->state([
-                            'category_id' => $category->id,
-                            'branch_id' => $branch->id,
-                            'status' => true,
-                        ])
-                        ->create();
-                }
-                
-                // Crear 1-2 productos con stock bajo
-                $lowStockCount = rand(1, 2);
-                for ($i = 0; $i < $lowStockCount; $i++) {
-                    Product::factory()
-                        ->state([
-                            'category_id' => $category->id,
-                            'branch_id' => $branch->id,
-                            'status' => true,
-                        ])
-                        ->lowStock()
-                        ->create();
-                }
-                
-                // Crear 1 producto inactivo
-                Product::factory()
-                    ->state([
-                        'category_id' => $category->id,
+        $productosPorCategoria = [
+            'Bebidas' => ['Agua Cristal', 'Colombiana', 'Postobón', 'Aguila', 'Poker', 'Manzana', 'Hit Naranja', 'Hit Mango', 'Coca-Cola', 'Pepsi'],
+            'Lácteos' => ['Alpina Yogurt', 'Colanta Leche', 'Alquería Kumis', 'Colanta Queso', 'Alpina Kumis', 'Colanta Yogurt', 'Alquería Leche', 'Alpina Queso', 'Colanta Mantequilla', 'Alpina Arequipe'],
+            'Carnes' => ['Res Bandeja', 'Pollo Entero', 'Costilla Cerdo', 'Chorizo Santarrosano', 'Morcilla', 'Pechuga Pollo', 'Carne Molida', 'Lomo Cerdo', 'Chicharrón', 'Salchicha Ranchera'],
+            'Frutas' => ['Banano', 'Mango Tommy', 'Papaya', 'Piña', 'Sandía', 'Guanábana', 'Lulo', 'Maracuyá', 'Guayaba', 'Uva Isabela'],
+            'Verduras' => ['Papa Pastusa', 'Cebolla Larga', 'Tomate Chonto', 'Zanahoria', 'Lechuga Batavia', 'Aguacate Hass', 'Repollo', 'Cilantro', 'Ajo', 'Remolacha'],
+            'Aseo' => ['Jabón Rey', 'Detergente Fab', 'Suavitel', 'Clorox', 'Lysol', 'Ariel', 'Axion', 'Escoba', 'Trapeador', 'Esponja'],
+            'Panadería' => ['Pan Aliñado', 'Pan Blandito', 'Pan Queso', 'Pan Coco', 'Pan Integral', 'Pan Tajado', 'Pan Rollo', 'Pan Croissant', 'Pan Baguette', 'Pan Pandebono'],
+            'Dulces' => ['Chocoramo', 'Bon Bon Bum', 'Jet', 'Nucita', 'Bianchi', 'Trululu', 'Gomitas', 'Supercoco', 'Cocosette', 'Chocman'],
+            'Electrodomésticos' => ['Licuadora Oster', 'Sanduchera Imusa', 'Plancha Universal', 'Ventilador Kalley', 'Microondas Haceb', 'Nevera Challenger', 'Estufa Haceb', 'Freidora de Aire', 'Cafetera Oster', 'Aspiradora Electrolux'],
+            'Ropa' => ['Camiseta Polo', 'Jean Levantacola', 'Sudadera Deportiva', 'Pantaloneta', 'Blusa Manga Larga', 'Vestido de Baño', 'Chaqueta Impermeable', 'Medias Tobilleras', 'Camiseta Selección', 'Gorra Trucker'],
+        ];
+        $branches = Branch::all();
+        $categorias = Category::all();
+        foreach ($categorias as $categoria) {
+            $nombres = $productosPorCategoria[$categoria->name] ?? [];
+            foreach ($nombres as $nombre) {
+                foreach ($branches as $branch) {
+                    // Generar código único por producto, sucursal y categoría
+                    $asciiName = iconv('UTF-8', 'ASCII//TRANSLIT', $nombre);
+                    $asciiName = preg_replace('/[^A-Za-z0-9]/', '', $asciiName);
+                    $code = strtoupper(substr($asciiName,0,3)) . $branch->id . $categoria->id . rand(100,999);
+                    Product::firstOrCreate([
+                        'name' => $nombre,
+                        'category_id' => $categoria->id,
                         'branch_id' => $branch->id,
-                    ])
-                    ->inactive()
-                    ->create();
+                    ], [
+                        'code' => $code,
+                        'description' => 'Producto colombiano: ' . $nombre,
+                        'purchase_price' => rand(1000, 50000),
+                        'sale_price' => rand(2000, 70000),
+                        'stock' => rand(10, 100),
+                        'min_stock' => rand(2, 10),
+                        'status' => true,
+                    ]);
+                }
             }
         }
-        
-        $this->command->info('Se han creado ' . Product::count() . ' productos en total.');
     }
 }
