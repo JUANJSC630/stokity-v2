@@ -4,7 +4,6 @@ import { type User } from '@/types';
 
 export function UserInfo({ user, showEmail = false }: { user: User; showEmail?: boolean }) {
     const getInitials = useInitials();
-    console.log('UserInfo component rendered with user:', user);
 
     return (
         <>

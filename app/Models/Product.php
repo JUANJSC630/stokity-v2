@@ -98,4 +98,12 @@ class Product extends Model
     {
         return $this->stock <= $this->min_stock;
     }
+
+    /**
+     * Get all of the sales for the product.
+     */
+    public function saleProducts()
+    {
+        return $this->hasMany(SaleProduct::class);
+    }
 }

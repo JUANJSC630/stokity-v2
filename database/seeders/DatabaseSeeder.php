@@ -4,9 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Category;
-use App\Models\Product;
-use App\Models\User;
 use App\Models\Client;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,11 @@ class DatabaseSeeder extends Seeder
         // Seed clients if table is empty
         if (Client::count() === 0) {
             $this->call(ClientSeeder::class);
+        }
+        
+        // Seed sales if table is empty
+        if (Sale::count() === 0) {
+            $this->call(SaleSeeder::class);
         }
     }
 }

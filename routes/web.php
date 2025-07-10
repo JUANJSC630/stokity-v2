@@ -19,10 +19,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Clients routes are defined in clients.php file
     
-    Route::get('sales', function () {
-        return Inertia::render('sales/index');
-    })->name('sales');
-    
     Route::get('report-sales', function () {
         return Inertia::render('report-sales/index');
     })->name('report-sales');
@@ -35,3 +31,4 @@ require __DIR__.'/users.php';
 require __DIR__.'/categories.php';
 require __DIR__.'/products.php';
 require __DIR__.'/clients.php';
+require __DIR__.'/sales.php';

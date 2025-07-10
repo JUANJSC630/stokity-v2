@@ -163,14 +163,14 @@ export default function Create({ categories = [], branches = [], userBranchId = 
 
             <div className="flex h-full flex-1 flex-col gap-4 p-2 sm:p-4">
                 {/* Header with back button */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0">
                     <Link href="/products">
-                        <Button variant="ghost" size="sm" className="mr-0 sm:mr-4 flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="mr-0 flex items-center gap-1 sm:mr-4">
                             <ArrowLeft className="h-4 w-4" />
                             Volver
                         </Button>
                     </Link>
-                    <h1 className="text-xl sm:text-2xl font-semibold">Crear Nuevo Producto</h1>
+                    <h1 className="text-xl font-semibold sm:text-2xl">Crear Nuevo Producto</h1>
                 </div>
 
                 <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
@@ -189,7 +189,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </label>
                                 <div className="flex flex-col items-center gap-4">
                                     <div
-                                        className={`group relative aspect-square w-full max-w-xs sm:max-w-md overflow-hidden rounded-md border-2 ${
+                                        className={`group relative aspect-square w-full max-w-xs overflow-hidden rounded-md border-2 sm:max-w-md ${
                                             isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
                                         } bg-muted transition-all duration-200 hover:border-primary`}
                                         onDragOver={handleDragOver}
@@ -206,7 +206,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full justify-center">
+                                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row">
                                         <label
                                             htmlFor="image"
                                             className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
@@ -224,7 +224,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {/* Categoría */}
                                 <div className="space-y-2">
                                     <label htmlFor="category_id" className="text-sm font-medium">
@@ -233,7 +233,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
                                         <SelectTrigger
                                             id="category_id"
-                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                            className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                         >
                                             <SelectValue placeholder="Seleccionar categoría" />
                                         </SelectTrigger>
@@ -260,7 +260,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             value={form.data.code}
                                             onChange={(e) => form.setData('code', e.target.value)}
                                             required
-                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                            className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                         />
                                         <Button type="button" variant="outline" onClick={handleGenerateCode} className="w-full sm:w-auto">
                                             Generar código
@@ -304,7 +304,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
                                         required
-                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                        className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
@@ -317,7 +317,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <Select value={form.data.branch_id.toString()} onValueChange={(value) => form.setData('branch_id', value)}>
                                         <SelectTrigger
                                             id="branch_id"
-                                            className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500 min-h-[42px]"
+                                            className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                         >
                                             <SelectValue placeholder="Seleccionar sucursal" />
                                         </SelectTrigger>
@@ -420,7 +420,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </div>
 
                                 {/* Descripción */}
-                                <div className="col-span-1 sm:col-span-2 space-y-2">
+                                <div className="col-span-1 space-y-2 sm:col-span-2">
                                     <label htmlFor="description" className="text-sm font-medium">
                                         Descripción
                                     </label>
@@ -436,7 +436,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 </div>
 
                                 {/* Estado */}
-                                <div className="col-span-1 sm:col-span-2 space-y-2">
+                                <div className="col-span-1 space-y-2 sm:col-span-2">
                                     <Label className="mb-3 block text-sm font-medium text-neutral-900 dark:text-neutral-100">Estado</Label>
                                     <div className="flex items-center space-x-2">
                                         <Switch
