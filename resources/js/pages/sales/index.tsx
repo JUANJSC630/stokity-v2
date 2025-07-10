@@ -144,10 +144,6 @@ export default function Index({ sales, filters }: PageProps) {
     const datePickerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (searchRef.current) {
-            searchRef.current.focus();
-        }
-
         // Cerrar el date picker al hacer clic fuera de él
         const handleClickOutside = (event: MouseEvent) => {
             if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
@@ -161,16 +157,27 @@ export default function Index({ sales, filters }: PageProps) {
         };
     }, []);
 
-    // Nuevo efecto: si el buscador queda vacío por más de 2 segundos, recarga los registros normales
+    // Nuevo efecto: si el buscador queda vacío, limpia los filtros y aplica el estado inicial sin recargar la página
+    const hasResetRef = useRef(false);
     useEffect(() => {
         if (search.trim() === '') {
-            const timeout = setTimeout(() => {
-                if (search.trim() === '') {
-                    window.location.href = '/sales';
-                }
-            }, 1000);
-            return () => clearTimeout(timeout);
+            // Solo limpiar si no se ha hecho ya y si hay filtros activos
+            const url = new URL(window.location.href);
+            const hasFilters = url.searchParams.get('search') || url.searchParams.get('status') || url.searchParams.get('date_from') || url.searchParams.get('date_to');
+            if (!hasResetRef.current && hasFilters) {
+                hasResetRef.current = true;
+                setStatus('all');
+                setDateRange({
+                    startDate: undefined,
+                    endDate: undefined,
+                    key: 'selection',
+                });
+                applyFilters('', 'all', undefined, undefined);
+            }
+        } else {
+            hasResetRef.current = false;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
     const breadcrumbs: BreadcrumbItem[] = [
