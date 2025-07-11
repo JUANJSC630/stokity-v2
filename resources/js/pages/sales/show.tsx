@@ -129,69 +129,59 @@ export default function Show({ sale }: Props) {
         return date.toLocaleString();
     };
 
-    // Imprimir solo el ticket en popup usando HTML puro
+    // Imprimir solo el ticket en popup como texto plano para impresora térmica
     const handlePrintTicket = () => {
         const printWindow = window.open('', '', 'width=400,height=600');
         if (printWindow) {
-            // Genera el HTML del ticket
-            const ticketHtml = `
-                <div class="ticket">
-                    <div style="text-align:center;margin-bottom:4px;">
-                        <img src='/logo-stockity.png' alt='Stokity Logo' style='max-width:80px;margin:0 auto;' />
-                        <div style='font-weight:bold;font-size:16px;'>Stokity</div>
-                        <div style='font-size:12px;'>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
-                    </div>
-                    <hr />
-                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
-                        <div style='font-weight:bold;font-size:12px;'>FACTURA DE VENTA # ${sale.code}</div>
-                        <div style='font-size:11px;'>SUCURSAL: ${sale.branch?.name || 'N/A'}</div>
-                        <div style='font-size:11px;'>FECHA: ${formatDateToLocal(sale.date)}</div>
-                    </div>
-                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
-                        <div style='font-weight:bold;font-size:11px;'>DATOS CLIENTE</div>
-                        <div style='font-size:11px;'>NOMBRE: ${sale.client?.name || 'Consumidor Final'}</div>
-                    </div>
-                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
-                        <div style='font-weight:bold;font-size:11px;'>VENDEDOR: ${sale.seller?.name || 'N/A'}</div>
-                    </div>
-                    <table style='width:100%;font-size:12px;'>
-                        <thead>
-                            <tr>
-                                <th style='text-align:left;'>Producto</th>
-                                <th style='text-align:center;'>Cant</th>
-                                <th style='text-align:right;'>Precio</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sale.saleProducts.map(sp => `
-                                <tr>
-                                    <td>${sp.product?.name || 'Eliminado'}</td>
-                                    <td style='text-align:center;'>${sp.quantity}</td>
-                                    <td style='text-align:right;'>${formatCurrency(sp.price)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <hr />
-                    <p><b>Neto:</b> ${formatCurrency(sale.net)}</p>
-                    <p><b>Impuesto:</b> ${formatCurrency(sale.tax)}</p>
-                    <p><b>Total:</b> ${formatCurrency(sale.total)}</p>
-                    <hr />
-                    <p style='text-align:center;font-size:10px;'>¡Gracias por su compra!</p>
-                </div>
-            `;
+            // Genera el ticket como texto plano
+            let ticketText = '';
+            ticketText += 'Stokity\n';
+            ticketText += 'GRACIAS POR PREFERIRNOS WhatsApp: 3148279405\n';
+            ticketText += '-----------------------------\n';
+            ticketText += `FACTURA DE VENTA # ${sale.code}\n`;
+            ticketText += `SUCURSAL: ${sale.branch?.name || 'N/A'}\n`;
+            ticketText += `FECHA: ${formatDateToLocal(sale.date)}\n`;
+            ticketText += '-----------------------------\n';
+            ticketText += 'DATOS CLIENTE\n';
+            ticketText += `NOMBRE: ${sale.client?.name || 'Consumidor Final'}\n`;
+            ticketText += '-----------------------------\n';
+            ticketText += `VENDEDOR: ${sale.seller?.name || 'N/A'}\n`;
+            ticketText += '-----------------------------\n';
+            ticketText += 'Producto        Cant   Precio\n';
+            sale.saleProducts.forEach(sp => {
+                ticketText += `${(sp.product?.name || 'Eliminado').padEnd(14)} ${String(sp.quantity).padEnd(5)} ${formatCurrency(sp.price)}\n`;
+            });
+            ticketText += '-----------------------------\n';
+            ticketText += `Neto: ${formatCurrency(sale.net)}\n`;
+            ticketText += `Impuesto: ${formatCurrency(sale.tax)}\n`;
+            ticketText += `Total: ${formatCurrency(sale.total)}\n`;
+            ticketText += '-----------------------------\n';
+            ticketText += '¡Gracias por su compra!\n';
+
             printWindow.document.write(`
                 <html>
                 <head>
                     <title>Ticket Venta ${sale.code}</title>
                     <style>
                         @media print {
-                            body, html { background: white !important; margin: 0 !important; padding: 0 !important; width: 58mm; }
-                            .ticket { width: 58mm; max-width: 58mm; min-width: 58mm; margin: 0 auto; font-size: 12px; background: white; color: black; padding: 0; page-break-inside: avoid; break-inside: avoid; }
+                            body, html {
+                                background: white !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                width: 58mm !important;
+                                min-width: 58mm !important;
+                                max-width: 58mm !important;
+                                font-family: monospace !important;
+                                font-size: 12px !important;
+                            }
+                            @page {
+                                size: 58mm auto;
+                                margin: 0;
+                            }
                         }
                     </style>
                 </head>
-                <body onload="window.print();window.close();">${ticketHtml}</body>
+                <body onload="window.print();window.close();"><pre>${ticketText}</pre></body>
                 </html>
             `);
             printWindow.document.close();
