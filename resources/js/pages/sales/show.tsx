@@ -6,6 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, Edit, XCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import SaleTicket from '@/components/SaleTicket';
 
 interface Branch {
     id: number;
@@ -128,10 +129,89 @@ export default function Show({ sale }: Props) {
         return date.toLocaleString();
     };
 
+    // Imprimir solo el ticket en popup usando HTML puro
+    const handlePrintTicket = () => {
+        const printWindow = window.open('', '', 'width=400,height=600');
+        if (printWindow) {
+            // Genera el HTML del ticket
+            const ticketHtml = `
+                <div class="ticket">
+                    <div style="text-align:center;margin-bottom:4px;">
+                        <img src='/logo-stockity.png' alt='Stokity Logo' style='max-width:80px;margin:0 auto;' />
+                        <div style='font-weight:bold;font-size:16px;'>Stokity</div>
+                        <div style='font-size:12px;'>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
+                    </div>
+                    <hr />
+                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
+                        <div style='font-weight:bold;font-size:12px;'>FACTURA DE VENTA # ${sale.code}</div>
+                        <div style='font-size:11px;'>SUCURSAL: ${sale.branch?.name || 'N/A'}</div>
+                        <div style='font-size:11px;'>FECHA: ${formatDateToLocal(sale.date)}</div>
+                    </div>
+                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
+                        <div style='font-weight:bold;font-size:11px;'>DATOS CLIENTE</div>
+                        <div style='font-size:11px;'>NOMBRE: ${sale.client?.name || 'Consumidor Final'}</div>
+                    </div>
+                    <div style='border:1px solid #000;padding:4px;margin-bottom:4px;'>
+                        <div style='font-weight:bold;font-size:11px;'>VENDEDOR: ${sale.seller?.name || 'N/A'}</div>
+                    </div>
+                    <table style='width:100%;font-size:12px;'>
+                        <thead>
+                            <tr>
+                                <th style='text-align:left;'>Producto</th>
+                                <th style='text-align:center;'>Cant</th>
+                                <th style='text-align:right;'>Precio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sale.saleProducts.map(sp => `
+                                <tr>
+                                    <td>${sp.product?.name || 'Eliminado'}</td>
+                                    <td style='text-align:center;'>${sp.quantity}</td>
+                                    <td style='text-align:right;'>${formatCurrency(sp.price)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <hr />
+                    <p><b>Neto:</b> ${formatCurrency(sale.net)}</p>
+                    <p><b>Impuesto:</b> ${formatCurrency(sale.tax)}</p>
+                    <p><b>Total:</b> ${formatCurrency(sale.total)}</p>
+                    <hr />
+                    <p style='text-align:center;font-size:10px;'>¡Gracias por su compra!</p>
+                </div>
+            `;
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Ticket Venta ${sale.code}</title>
+                    <style>
+                        @media print {
+                            body, html { background: white !important; margin: 0 !important; padding: 0 !important; width: 58mm; }
+                            .ticket { width: 58mm; max-width: 58mm; min-width: 58mm; margin: 0 auto; font-size: 12px; background: white; color: black; padding: 0; page-break-inside: avoid; break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body onload="window.print();window.close();">${ticketHtml}</body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Venta: ${sale.code}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
+                <div className="no-print mb-4 flex gap-2">
+                    <Button onClick={handlePrintTicket} variant="default">
+                        Imprimir Ticket
+                    </Button>
+                </div>
+                {/* Ticket para impresión térmica, solo visible al imprimir */}
+                <div className="print:block hidden">
+                    <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
+                </div>
+
                 <div className="flex items-center gap-2">
                     <Link href={route('sales.index')}>
                         <Button variant="outline" size="icon" className="h-8 w-8">
