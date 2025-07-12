@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Plus, Search, XCircle } from 'lucide-react';
@@ -194,8 +194,17 @@ export default function Index({ sales, filters }: PageProps) {
 
     const handleStatusChange = (newStatus: string) => {
         setStatus(newStatus);
-        // Aplicar filtros inmediatamente al cambiar el estado
-        applyFilters(search, newStatus, dateRange.startDate, dateRange.endDate);
+        // Aplica el filtro usando router.visit para mantener los filtros y evitar recarga completa
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (newStatus && newStatus !== 'all') params.append('status', newStatus);
+        if (dateRange.startDate) params.append('date_from', formatDate(dateRange.startDate));
+        if (dateRange.endDate) params.append('date_to', formatDate(dateRange.endDate));
+        router.visit(`/sales?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['sales'],
+        });
     };
 
     const handleDateChange = (ranges: RangeKeyDict) => {
@@ -226,7 +235,11 @@ export default function Index({ sales, filters }: PageProps) {
             params.append('date_to', formatDate(endDate));
         }
 
-        window.location.href = `/sales?${params.toString()}`;
+        router.visit(`/sales?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['sales'],
+        });
     };
 
     const clearFilters = () => {
@@ -299,7 +312,7 @@ export default function Index({ sales, filters }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ventas" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4 md:gap-8">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
                     <h1 className="text-3xl font-bold">Administración de Ventas</h1>
                     <Link href={route('sales.create')}>
                         <Button>
@@ -347,11 +360,11 @@ export default function Index({ sales, filters }: PageProps) {
                                     </Select>
                                 </div>
 
-                                <div className="relative" ref={datePickerRef}>
+                                <div className="relative w-full md:w-auto" ref={datePickerRef}>
                                     <Input
                                         type="text"
                                         placeholder="Seleccionar rango de fechas"
-                                        className="w-full cursor-pointer bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        className="w-full cursor-pointer bg-white text-black dark:bg-neutral-800 dark:text-neutral-100 text-sm md:text-base"
                                         value={
                                             dateRange.startDate && dateRange.endDate
                                                 ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
@@ -362,30 +375,36 @@ export default function Index({ sales, filters }: PageProps) {
                                     />
 
                                     {showDatePicker && (
-                                        <div className="absolute right-0 z-10 mt-2 origin-top-right rounded-md bg-white shadow-lg dark:bg-neutral-800">
-                                            <DateRangePicker
-                                                ranges={[dateRange]}
-                                                onChange={handleDateChange}
-                                                months={1}
-                                                direction="horizontal"
-                                                rangeColors={['#3b82f6']}
-                                                locale={es}
-                                                staticRanges={customStaticRanges}
-                                                inputRanges={customInputRanges}
-                                            />
-                                            <div className="flex justify-end p-2">
-                                                <Button size="sm" variant="outline" className="mr-2" onClick={() => setShowDatePicker(false)}>
-                                                    Cancelar
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setShowDatePicker(false);
-                                                        applyFilters();
-                                                    }}
-                                                >
-                                                    Aplicar
-                                                </Button>
+                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:mt-2 md:z-10 md:origin-top-right">
+                                            <div className="absolute inset-0 bg-black/30 md:hidden" onClick={() => setShowDatePicker(false)}></div>
+                                            <div
+                                                className="relative rounded-md bg-white shadow-lg dark:bg-neutral-800 w-[95vw] max-w-xs md:max-w-md p-4 md:p-0 mx-2 overflow-auto"
+                                                style={{ maxHeight: '90vh' }}
+                                            >
+                                                <DateRangePicker
+                                                    ranges={[dateRange]}
+                                                    onChange={handleDateChange}
+                                                    months={1}
+                                                    direction="horizontal"
+                                                    rangeColors={['#3b82f6']}
+                                                    locale={es}
+                                                    staticRanges={customStaticRanges}
+                                                    inputRanges={customInputRanges}
+                                                />
+                                                <div className="flex justify-end gap-2 pt-4">
+                                                    <Button size="sm" variant="outline" className="mr-2" onClick={() => setShowDatePicker(false)}>
+                                                        Cancelar
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setShowDatePicker(false);
+                                                            applyFilters();
+                                                        }}
+                                                    >
+                                                        Aplicar
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -401,101 +420,136 @@ export default function Index({ sales, filters }: PageProps) {
                     </Card>
 
                     <Card>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm whitespace-nowrap">
-                                    <thead>
-                                        <tr className="border-b text-left font-medium">
-                                            <th className="px-4 py-2">Código</th>
-                                            <th className="px-4 py-2">Cliente</th>
-                                            <th className="px-4 py-2">Total</th>
-                                            <th className="px-4 py-2">Método de pago</th>
-                                            <th className="px-4 py-2">Fecha</th>
-                                            <th className="px-4 py-2">Estado</th>
-                                            <th className="px-4 py-2">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sales.data.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="py-6 text-center">
-                                                    No se encontraron ventas con los filtros seleccionados
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            [...sales.data]
-                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                                .map((sale) => (
-                                                    <tr key={sale.id} className="border-b">
-                                                        <td className="px-4 py-4">{sale.code}</td>
-                                                        <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                                        <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
-                                                        <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
-                                                        <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
-                                                        <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
-                                                        <td className="px-4 py-4">
-                                                            <Link href={route('sales.show', sale.id)}>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <Eye className="size-4" />
-                                                                </Button>
-                                                            </Link>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Paginación */}
-                            {sales.data.length > 0 && (
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-sm text-muted-foreground">
-                                        Mostrando {sales.from} a {sales.to} de {sales.total} ventas
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        {sales.links.map((link, i) => {
-                                            if (link.url === null) {
-                                                return (
-                                                    <Button key={i} variant="ghost" size="icon" disabled className="size-8">
-                                                        {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-                                                    </Button>
-                                                );
-                                            }
-
-                                            // Removing "Previous" and "Next" from labels
-                                            let label = link.label;
-                                            if (i === 0 || i === sales.links.length - 1) {
-                                                label = '';
-                                            }
-
-                                            return (
-                                                <Button
-                                                    key={i}
-                                                    variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
-                                                    size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
-                                                    className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
-                                                    onClick={() => {
-                                                        if (link.url) {
-                                                            window.location.href = link.url;
-                                                        }
-                                                    }}
-                                                >
-                                                    {i === 0 ? (
-                                                        <ChevronLeft className="size-4" />
-                                                    ) : i === sales.links.length - 1 ? (
-                                                        <ChevronRight className="size-4" />
-                                                    ) : (
-                                                        label
-                                                    )}
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
+    <CardContent>
+        {/* Tabla solo visible en escritorio */}
+        <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm whitespace-nowrap">
+                <thead>
+                    <tr className="border-b text-left font-medium">
+                        <th className="px-4 py-2">Código</th>
+                        <th className="px-4 py-2">Cliente</th>
+                        <th className="px-4 py-2">Total</th>
+                        <th className="px-4 py-2">Método de pago</th>
+                        <th className="px-4 py-2">Fecha</th>
+                        <th className="px-4 py-2">Estado</th>
+                        <th className="px-4 py-2">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sales.data.length === 0 ? (
+                        <tr>
+                            <td colSpan={7} className="py-6 text-center">
+                                No se encontraron ventas con los filtros seleccionados
+                            </td>
+                        </tr>
+                    ) : (
+                        [...sales.data]
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .map((sale) => (
+                                <tr key={sale.id} className="border-b">
+                                    <td className="px-4 py-4">{sale.code}</td>
+                                    <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
+                                    <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
+                                    <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
+                                    <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
+                                    <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
+                                    <td className="px-4 py-4">
+                                        <Link href={route('sales.show', sale.id)}>
+                                            <Button variant="ghost" size="icon">
+                                                <Eye className="size-4" />
+                                            </Button>
+                                        </Link>
+                                    </td>
+                                </tr>
+                            ))
+                    )}
+                </tbody>
+            </table>
+        </div>
+        {/* Tarjetas para móvil */}
+        <div className="block md:hidden">
+            {sales.data.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
+            ) : (
+                <div className="flex flex-col gap-4 p-2">
+                    {[...sales.data]
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((sale) => (
+                            <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <div className="text-base font-semibold">{sale.code}</div>
+                                    <Link href={route('sales.show', sale.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                            <Eye className="size-4" />
+                                        </Button>
+                                    </Link>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <div className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
+                                </div>
+                                <div className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
+                                </div>
+                                <div className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
+                                </div>
+                                <div className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                </div>
+                                <div className="mb-1 text-sm text-muted-foreground">
+                                    <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
+                                </div>
+                            </div>
+                        ))}
+                </div>
+            )}
+        </div>
+        {/* Paginación */}
+        {sales.data.length > 0 && (
+            <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                    Mostrando {sales.from} a {sales.to} de {sales.total} ventas
+                </div>
+                <div className="flex items-center gap-1">
+                    {sales.links.map((link, i) => {
+                        if (link.url === null) {
+                            return (
+                                <Button key={i} variant="ghost" size="icon" disabled className="size-8">
+                                    {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+                                </Button>
+                            );
+                        }
+                        let label = link.label;
+                        if (i === 0 || i === sales.links.length - 1) {
+                            label = '';
+                        }
+                        return (
+                            <Button
+                                key={i}
+                                variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
+                                size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
+                                className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
+                                onClick={() => {
+                                    if (link.url) {
+                                        window.location.href = link.url;
+                                    }
+                                }}
+                            >
+                                {i === 0 ? (
+                                    <ChevronLeft className="size-4" />
+                                ) : i === sales.links.length - 1 ? (
+                                    <ChevronRight className="size-4" />
+                                ) : (
+                                    label
+                                )}
+                            </Button>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+    </CardContent>
+</Card>
                 </div>
             </div>
 

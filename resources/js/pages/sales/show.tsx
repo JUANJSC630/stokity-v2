@@ -202,14 +202,16 @@ export default function Show({ sale }: Props) {
                     <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Link href={route('sales.index')}>
-                        <Button variant="outline" size="icon" className="h-8 w-8">
-                            <ChevronLeft className="size-4" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold">Venta: {sale.code}</h1>
-                    <div className="ml-2">{getStatusBadge(sale.status)}</div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                        <Link href={route('sales.index')}>
+                            <Button variant="outline" size="icon" className="h-8 w-8">
+                                <ChevronLeft className="size-4" />
+                            </Button>
+                        </Link>
+                        <h1 className="text-xl md:text-2xl font-bold break-all">Venta: {sale.code}</h1>
+                    </div>
+                    <div className="mt-2 sm:mt-0 sm:ml-2 w-fit">{getStatusBadge(sale.status)}</div>
                 </div>
 
                 <Card>
@@ -223,7 +225,7 @@ export default function Show({ sale }: Props) {
                                 <dl className="mt-3 grid grid-cols-1 gap-4">
                                     <div className="flex flex-col items-start gap-4">
                                         {/* QR del código de la venta */}
-                                        <div style={{ height: 'auto', maxWidth: 120, width: 120 }}>
+                                        <div className="mx-auto mb-2 w-24 max-w-full md:w-32">
                                             <QRCode
                                                 size={220}
                                                 style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
@@ -233,7 +235,7 @@ export default function Show({ sale }: Props) {
                                         </div>
                                         <div>
                                             <dt className="text-sm font-medium text-muted-foreground">Código</dt>
-                                            <dd className="mt-1 text-lg">{sale.code}</dd>
+                                            <dd className="mt-1 text-lg break-all">{sale.code}</dd>
                                         </div>
                                     </div>
                                     <div>
@@ -252,7 +254,6 @@ export default function Show({ sale }: Props) {
                                     </div>
                                 </dl>
                             </div>
-
                             <div>
                                 <h3 className="text-lg font-medium">Personas</h3>
                                 <dl className="mt-3 grid grid-cols-1 gap-4">
@@ -283,23 +284,23 @@ export default function Show({ sale }: Props) {
 
                         <div className="mt-8">
                             <h3 className="text-lg font-medium">Valores</h3>
-                            <div className="mt-3 overflow-hidden rounded-md border">
-                                <div className="bg-muted/50 px-4 py-3">
+                            <div className="mt-3 overflow-x-auto rounded-md border">
+                                <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
                                     <div className="grid grid-cols-2 font-semibold">
                                         <div>Concepto</div>
                                         <div className="text-right">Monto</div>
                                     </div>
                                 </div>
                                 <div className="divide-y">
-                                    <div className="grid grid-cols-2 px-4 py-3">
+                                    <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Valor Neto</div>
                                         <div className="text-right">{formatCurrency(sale.net)}</div>
                                     </div>
-                                    <div className="grid grid-cols-2 px-4 py-3">
+                                    <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Impuesto (19%)</div>
                                         <div className="text-right">{formatCurrency(sale.tax)}</div>
                                     </div>
-                                    <div className="grid grid-cols-2 bg-muted/20 px-4 py-3 font-semibold">
+                                    <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                         <div>Total</div>
                                         <div className="text-right">{formatCurrency(sale.total)}</div>
                                     </div>
@@ -309,58 +310,77 @@ export default function Show({ sale }: Props) {
 
                         <div className="mt-8">
                             <h3 className="text-lg font-medium">Productos Vendidos</h3>
-                            <div className="mt-3 overflow-x-auto rounded-md border">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50">
-                                        <tr>
-                                            <th className="px-4 py-2 text-left font-semibold whitespace-nowrap">Producto</th>
-                                            <th className="px-4 py-2 text-center font-semibold whitespace-nowrap">Cantidad</th>
-                                            <th className="px-4 py-2 text-right font-semibold whitespace-nowrap">Precio</th>
-                                            <th className="px-4 py-2 text-right font-semibold whitespace-nowrap">Subtotal</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {(() => {
-                                            // Verificación detallada de la estructura de datos
-                                            console.log('Renderizando productos:', {
-                                                saleProductsExists: Boolean(sale.saleProducts),
-                                                isArray: Array.isArray(sale.saleProducts),
-                                                length: sale.saleProducts ? sale.saleProducts.length : 0,
-                                            });
-
-                                            if (sale.saleProducts && Array.isArray(sale.saleProducts) && sale.saleProducts.length > 0) {
-                                                return sale.saleProducts.map((sp) => (
-                                                    <tr key={sp.id}>
-                                                        <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
-                                                        <td className="px-4 py-3 text-center">{sp.quantity}</td>
-                                                        <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
-                                                        <td className="px-4 py-3 text-right">{formatCurrency(sp.subtotal)}</td>
-                                                    </tr>
-                                                ));
-                                            } else {
-                                                return (
+                            <div className="mt-3 flex flex-col gap-3 md:gap-0">
+                                {/* Vista tipo cards en móvil */}
+                                <div className="block md:hidden">
+                                    {sale.saleProducts && sale.saleProducts.length > 0 ? (
+                                        <div className="flex flex-col gap-3">
+                                            {sale.saleProducts.map((sp) => (
+                                                <div key={sp.id} className="rounded-lg border bg-card p-3 shadow-sm">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="font-semibold text-base">{sp.product?.name || 'Producto eliminado'}</div>
+                                                        <div className="text-xs text-muted-foreground">x{sp.quantity}</div>
+                                                    </div>
+                                                    <div className="flex justify-between mt-2 text-sm">
+                                                        <span className="text-muted-foreground">Precio:</span>
+                                                        <span>{formatCurrency(sp.price)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-muted-foreground">Subtotal:</span>
+                                                        <span className="font-semibold">{formatCurrency(sp.subtotal)}</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 text-center text-neutral-400">No hay productos registrados en esta venta</div>
+                                    )}
+                                </div>
+                                {/* Tabla en escritorio */}
+                                <div className="hidden md:block">
+                                    <div className="overflow-x-auto rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                                <tr>
+                                                    <th className="px-2 py-2 text-left font-semibold whitespace-nowrap md:px-4 md:py-2">Producto</th>
+                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">Cantidad</th>
+                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Precio</th>
+                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y">
+                                                {sale.saleProducts && sale.saleProducts.length > 0 ? (
+                                                    sale.saleProducts.map((sp) => (
+                                                        <tr key={sp.id}>
+                                                            <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
+                                                            <td className="px-4 py-3 text-center">{sp.quantity}</td>
+                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
+                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.subtotal)}</td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
                                                     <tr>
                                                         <td colSpan={4} className="p-4 text-center text-neutral-400">
                                                             No hay productos registrados en esta venta
                                                         </td>
                                                     </tr>
-                                                );
-                                            }
-                                        })()}
-                                    </tbody>
-                                    <tfoot className="bg-muted/20">
-                                        <tr>
-                                            <td className="px-4 py-2 font-semibold" colSpan={3}>
-                                                Total
-                                            </td>
-                                            <td className="px-4 py-2 text-right font-semibold">{formatCurrency(sale.total)}</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                                )}
+                                            </tbody>
+                                            <tfoot className="bg-muted/20">
+                                                <tr>
+                                                    <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={3}>
+                                                        Total
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">{formatCurrency(sale.total)}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-4 border-t px-6 py-4 md:flex-row md:justify-between md:gap-0">
+                    <CardFooter className="flex flex-col gap-4 border-t px-4 py-4 md:flex-row md:justify-between md:gap-0 md:px-6">
                         <div className="text-sm text-muted-foreground">
                             <p>Creado: {new Date(sale.created_at).toLocaleDateString()}</p>
                             <p>Última actualización: {new Date(sale.updated_at).toLocaleDateString()}</p>

@@ -25,7 +25,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditBranch({ branch, managers }: EditBranchProps) {
+export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
     const { data, setData, put, processing, errors } = useForm({
         name: branch.name || '',
         address: branch.address || '',

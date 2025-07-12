@@ -115,7 +115,7 @@ export default function Users({ users, filters }: Props) {
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden md:block">
                         <table className="w-full">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
@@ -157,6 +157,43 @@ export default function Users({ users, filters }: Props) {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Tarjetas para móvil */}
+                    <div className="block md:hidden">
+                        {users.data.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">No se encontraron usuarios</div>
+                        ) : (
+                            <div className="flex flex-col gap-4 p-2">
+                                {users.data.map((user) => (
+                                    <div key={user.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <div className="text-base font-semibold">{user.name}</div>
+                                            <Link href={`/users/${user.id}`}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                    <Eye className="size-4" />
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">ID:</span> {user.id}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Email:</span> {user.email}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Rol:</span> {getRoleBadge(user.role)}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Estado:</span> {getStatusBadge(user.status)}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Sucursal:</span> {user.branch?.name || '-'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Pagination */}

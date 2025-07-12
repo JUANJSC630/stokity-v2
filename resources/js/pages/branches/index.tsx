@@ -133,7 +133,7 @@ export default function Branches({
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="w-full overflow-x-auto">
+                    <div className="w-full overflow-x-auto hidden md:block">
                         <table className="w-full min-w-[700px]">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
@@ -210,6 +210,55 @@ export default function Branches({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Tarjetas para móvil */}
+                    <div className="block md:hidden">
+                        {branches?.data?.length > 0 ? (
+                            <div className="flex flex-col gap-4 p-2">
+                                {branches.data.map((branch: Branch) => (
+                                    <div key={branch.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <div className="text-base font-semibold">{branch.name}</div>
+                                            <Link href={`/branches/${branch.id}`}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                    <Eye className="size-4" />
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Dirección:</span> {branch.address}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Teléfono:</span> {branch.phone}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Estado:</span>{' '}
+                                            <Badge variant={branch.status ? 'default' : 'destructive'}>
+                                                {branch.status ? 'Activa' : 'Inactiva'}
+                                            </Badge>
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Gerente:</span> {branch.manager ? branch.manager.name : '-'}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Empleados:</span>{' '}
+                                            {branch.employees
+                                                ? (() => {
+                                                      const managerId = branch.manager?.id;
+                                                      const employeesCount = branch.employees.filter(
+                                                          (emp) => emp.id !== managerId && emp.role === 'vendedor',
+                                                      ).length;
+                                                      return employeesCount > 0 ? `${employeesCount} vendedor(es)` : 'Sin vendedores';
+                                                  })()
+                                                : 'Sin vendedores'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground">No se encontraron sucursales</div>
+                        )}
                     </div>
 
                     {/* Pagination */}

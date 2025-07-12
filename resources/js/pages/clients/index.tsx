@@ -78,7 +78,7 @@ export default function Clients({ clients, filters }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Clientes" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
                     <h1 className="text-2xl font-bold">Gestión de Clientes</h1>
                     <Link href={route('clients.create')}>
                         <Button className="flex gap-1">

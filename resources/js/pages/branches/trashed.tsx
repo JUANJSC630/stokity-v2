@@ -184,42 +184,47 @@ export default function TrashedBranches({
                                     ))}
                                 </div>
                                 {/* Vista tipo tarjeta en móvil */}
-                                <div className="block md:hidden">
+                                <div className="block md:hidden p-2">
                                     {branches?.data?.map((branch: Branch) => (
-                                        <div key={branch.id} className="mb-4 rounded-lg border border-border/50 bg-card p-4 shadow-sm">
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <div className="font-semibold">{branch.name}</div>
+                                        <div key={branch.id} className="mb-6 rounded-xl border border-border/50 bg-card p-5 shadow-md">
+                                            <div className="mb-3 flex items-center justify-between gap-2">
+                                                <div className="font-semibold text-base">{branch.name}</div>
                                                 <div className="flex gap-2">
                                                     <Button
                                                         variant="outline"
                                                         size="icon"
+                                                        className="h-9 w-9"
                                                         onClick={() => {
                                                             setBranchToRestore(branch);
                                                             setRestoreModalOpen(true);
                                                         }}
                                                         title="Restaurar"
                                                     >
-                                                        <RefreshCcw className="size-4" />
+                                                        <RefreshCcw className="size-5" />
                                                     </Button>
                                                     <Button
                                                         variant="destructive"
                                                         size="icon"
+                                                        className="h-9 w-9"
                                                         onClick={() => {
                                                             setBranchToDelete(branch);
                                                             setDeleteModalOpen(true);
                                                         }}
                                                         title="Eliminar permanentemente"
                                                     >
-                                                        <Trash2 className="size-4" />
+                                                        <Trash2 className="size-5" />
                                                     </Button>
                                                 </div>
                                             </div>
                                             {branch.manager && (
-                                                <div className="mb-1 text-xs text-muted-foreground">Gerente: {branch.manager.name}</div>
+                                                <div className="mb-1 text-xs text-muted-foreground">Gerente: <span className="font-medium">{branch.manager.name}</span></div>
                                             )}
-                                            <div className="mb-1 text-sm text-muted-foreground">Dirección: {branch.address}</div>
-                                            <div className="mb-1 text-sm text-muted-foreground">Teléfono: {branch.phone}</div>
-                                            <div className="text-xs text-muted-foreground">Eliminada: {formattedDate(branch.deleted_at || '')}</div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Dirección: <span className="font-medium">{branch.address}</span></div>
+                                            <div className="mb-1 text-sm text-muted-foreground">Teléfono: <span className="font-medium">{branch.phone}</span></div>
+                                            <div className="mb-1 text-xs">
+                                                <span className="inline-block rounded bg-red-100 px-2 py-0.5 text-red-700 font-semibold">Eliminada</span>
+                                                <span className="ml-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
