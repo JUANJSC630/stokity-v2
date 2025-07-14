@@ -24,7 +24,7 @@ const allNavItems: NavItem[] = [
         title: 'Sucursales',
         href: '/branches',
         icon: Building2,
-        roles: ['administrador', 'encargado'], // Admin and manager
+        roles: ['administrador'], // Only admin
     },
     {
         title: 'Categorías',

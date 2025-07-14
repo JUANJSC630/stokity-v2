@@ -32,13 +32,13 @@ class SaleController extends Controller
         if ($request->search) {
             $search = $request->search;
             $query->leftJoin('clients', 'sales.client_id', '=', 'clients.id')
-                  ->leftJoin('users as sellers', 'sales.seller_id', '=', 'sellers.id')
-                  ->where(function ($q) use ($search) {
-                      $q->where('sales.code', 'like', "%{$search}%")
+                ->leftJoin('users as sellers', 'sales.seller_id', '=', 'sellers.id')
+                ->where(function ($q) use ($search) {
+                    $q->where('sales.code', 'like', "%{$search}%")
                         ->orWhere('clients.name', 'like', "%{$search}%")
                         ->orWhere('sellers.name', 'like', "%{$search}%");
-                  })
-                  ->select('sales.*');
+                })
+                ->select('sales.*');
             // Asegura que la relación client esté disponible en los resultados filtrados
             $query->with(['client']);
         }
@@ -75,9 +75,9 @@ class SaleController extends Controller
         if ($request->filled('product_search')) {
             $search = $request->input('product_search');
             $products = Product::where('status', true)
-                ->where(function($q) use ($search) {
+                ->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('code', 'like', "%{$search}%");
+                        ->orWhere('code', 'like', "%{$search}%");
                 })
                 ->orderBy('name')
                 ->limit(30)
@@ -112,7 +112,7 @@ class SaleController extends Controller
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
-        
+
         // Verificar stock disponible
         foreach ($request->products as $index => $prod) {
             $product = Product::find($prod['id']);
@@ -122,7 +122,7 @@ class SaleController extends Controller
                 ])->withInput();
             }
         }
-        
+
         // Generar código único para la venta
         $validated['code'] = 'SALE-' . now()->format('YmdHis') . rand(100, 999);
 
@@ -139,7 +139,7 @@ class SaleController extends Controller
                 'price' => $prod['price'],
                 'subtotal' => $prod['subtotal'],
             ]);
-            
+
             // Actualizar el stock del producto
             $product = Product::find($prod['id']);
             if ($product) {
@@ -158,7 +158,7 @@ class SaleController extends Controller
     {
         // Forzar carga de relaciones incluyendo saleProducts.product
         $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
-        
+
         // En lugar de usar el Resource, vamos a crear manualmente la estructura de datos
         // para asegurarnos de que todo está exactamente como necesitamos
         $saleData = [
@@ -178,7 +178,7 @@ class SaleController extends Controller
             'branch' => $sale->branch,
             'client' => $sale->client,
             'seller' => $sale->seller,
-            'saleProducts' => $sale->saleProducts->map(function($saleProduct) {
+            'saleProducts' => $sale->saleProducts->map(function ($saleProduct) {
                 return [
                     'id' => $saleProduct->id,
                     'sale_id' => $saleProduct->sale_id,
@@ -194,14 +194,14 @@ class SaleController extends Controller
                 ];
             })->toArray(),
         ];
-        
+
         // Depuración: verificar la estructura de datos
         \Illuminate\Support\Facades\Log::debug('Sale data structure manual', [
             'sale_id' => $sale->id,
             'has_sale_products' => $sale->saleProducts->count(),
             'sale_products_count' => count($saleData['saleProducts']),
         ]);
-        
+
         return Inertia::render('sales/show', [
             'sale' => $saleData,
         ]);
@@ -215,7 +215,7 @@ class SaleController extends Controller
         $branches = Branch::all();
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
-        
+
         return Inertia::render('sales/edit', [
             'sale' => $sale,
             'branches' => $branches,
