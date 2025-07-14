@@ -45,7 +45,7 @@ const allNavItems: NavItem[] = [
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
     },
     {
-        title: 'Administrar Ventas',
+        title: 'Ventas',
         href: '/sales',
         icon: Banknote,
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
