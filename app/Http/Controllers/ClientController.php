@@ -93,7 +93,7 @@ class ClientController extends Controller
 
         $client->update($validated);
 
-        return redirect()->route('clients.index')->with('success', 'Cliente actualizado exitosamente.');
+        return redirect()->route('clients.show', $client)->with('success', 'Cliente actualizado exitosamente.');
     }
 
     /**

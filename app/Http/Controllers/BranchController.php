@@ -112,7 +112,7 @@ class BranchController extends Controller
     {
         $branch->update($request->validated());
 
-        return redirect()->route('branches.index')
+        return redirect()->route('branches.show', $branch)
             ->with('success', 'Sucursal actualizada correctamente.');
     }
 

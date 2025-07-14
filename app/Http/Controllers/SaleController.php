@@ -243,7 +243,7 @@ class SaleController extends Controller
 
         $sale->update($validated);
 
-        return redirect()->route('sales.index')->with('success', 'Venta actualizada exitosamente.');
+        return redirect()->route('sales.show', $sale)->with('success', 'Venta actualizada exitosamente.');
     }
 
     /**

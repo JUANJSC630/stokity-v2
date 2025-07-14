@@ -190,7 +190,7 @@ class ProductController extends Controller
         $product->update($validated);
 
         // Redireccionar con mensaje de éxito
-        return redirect()->route('products.index')
+        return redirect()->route('products.show', $product)
             ->with('success', 'Producto actualizado exitosamente');
     }
 
