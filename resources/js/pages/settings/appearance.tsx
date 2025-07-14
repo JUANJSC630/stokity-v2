@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Appearance settings',
+        title: 'Configuración de apariencia',
         href: '/settings/appearance',
     },
 ];
@@ -77,11 +77,11 @@ export default function Appearance() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Appearance settings" />
+            <Head title="Configuración de apariencia" />
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall title="Appearance settings" description="Update your account's appearance settings" />
+                    <HeadingSmall title="Configuración de apariencia" description="Actualiza la apariencia de tu cuenta" />
                     <AppearanceTabs />
 
                     <div>
@@ -92,7 +92,7 @@ export default function Appearance() {
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="flex flex-col items-center gap-4">
-                                        <div className="group relative aspect-square w-full max-w-xs overflow-hidden rounded-md border-2 bg-muted border-sidebar-border transition-all duration-200 hover:border-primary">
+                                        <div className="group relative aspect-square w-full max-w-[160px] overflow-hidden rounded-md border-2 bg-muted border-sidebar-border transition-all duration-200 hover:border-primary">
                                             {imagePreview ? (
                                                 <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
                                             ) : defaultImageExists ? (
@@ -111,7 +111,11 @@ export default function Appearance() {
                                         {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
                                         <p className="text-center text-xs text-muted-foreground">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</p>
                                     </div>
-                                    <button type="submit" className="w-full rounded-md bg-primary px-4 py-2 text-white font-semibold hover:bg-primary/90 disabled:opacity-60" disabled={isUploading || !form.data.image}>
+                                    <button
+                                        type="submit"
+                                        className="w-full rounded-md bg-primary px-4 py-2 font-semibold hover:bg-primary/90 disabled:opacity-60 text-white dark:text-black"
+                                        disabled={isUploading || !form.data.image}
+                                    >
                                         {isUploading ? 'Cambiando...' : 'Cambiar imagen por defecto'}
                                     </button>
                                     {/* Los toasts ahora se muestran con react-hot-toast */}
