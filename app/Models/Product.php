@@ -75,17 +75,29 @@ class Product extends Model
      */
     public function getImageUrlAttribute(): string
     {
-        // Hay una imagen guardada
+        // Si la imagen es default-product.png, mostrar la imagen por defecto global
+        if ($this->image === 'default-product.png') {
+            $defaultPath = 'uploads/default-product.png';
+            if (file_exists(public_path($defaultPath))) {
+                return asset($defaultPath);
+            }
+            return asset('stokity-icon.png');
+        }
+
+        // Hay una imagen guardada personalizada
         if ($this->image) {
             $path = 'uploads/products/' . $this->image;
-            
-            // Verificar si el archivo existe
             if (file_exists(public_path($path))) {
                 return asset($path);
             }
         }
-        
-        // Devolver imagen por defecto
+
+        // Si no hay imagen, usar la imagen por defecto global si existe
+        $defaultPath = 'uploads/default-product.png';
+        if (file_exists(public_path($defaultPath))) {
+            return asset($defaultPath);
+        }
+        // Si no existe, usar el icono base
         return asset('stokity-icon.png');
     }
 
