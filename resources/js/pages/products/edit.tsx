@@ -10,7 +10,8 @@ import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { ArrowLeft, Save, Upload, UserCircle } from 'lucide-react';
+import { ArrowLeft, Save, Upload, UserCircle, Sparkles } from 'lucide-react';
+import axios from 'axios';
 import { useState } from 'react';
 
 interface EditProductProps {
@@ -39,6 +40,9 @@ export default function EditProduct({ product, categories = [], branches = [], u
     const [imagePreview, setImagePreview] = useState<string | null>(product.image_url || null);
     const [isDragging, setIsDragging] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    // Estado para el diálogo de error
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogMsg, setDialogMsg] = useState('');
 
     // Configurar formulario con Inertia
     const form = useForm({
@@ -55,6 +59,29 @@ export default function EditProduct({ product, categories = [], branches = [], u
         image: null as File | null,
         _method: 'PUT', // Para simular PUT request con FormData
     });
+
+    // Generar código automáticamente usando axios (igual que en create)
+    const handleGenerateCode = async () => {
+        if (!form.data.name) {
+            setDialogMsg('Ingrese el nombre del producto primero');
+            setDialogOpen(true);
+            return;
+        }
+        form.setData('code', '');
+        try {
+            const response = await axios.post('/products/generate-code', {
+                name: form.data.name,
+            });
+            form.setData('code', response.data.code);
+        } catch (error) {
+            if (axios.isAxiosError && axios.isAxiosError(error)) {
+                setDialogMsg(error.response?.data?.error || 'No se pudo generar el código');
+            } else {
+                setDialogMsg('No se pudo generar el código');
+            }
+            setDialogOpen(true);
+        }
+    };
 
     // Manejar cambio de imagen
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +143,20 @@ export default function EditProduct({ product, categories = [], branches = [], u
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Editar Producto" />
+            {/* Diálogo de error */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Error</DialogTitle>
+                        <DialogDescription>{dialogMsg}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={() => setDialogOpen(false)} autoFocus>
+                            Aceptar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header with back button */}
                 <div className="flex items-center">
@@ -190,12 +231,17 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                     <label htmlFor="code" className="text-sm font-medium">
                                         Código *
                                     </label>
-                                    <Input
-                                        id="code"
-                                        placeholder="Código único del producto"
-                                        value={form.data.code}
-                                        onChange={(e) => form.setData('code', e.target.value)}
-                                    />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="code"
+                                            placeholder="Código único del producto"
+                                            value={form.data.code}
+                                            onChange={(e) => form.setData('code', e.target.value)}
+                                        />
+                                        <Button type="button" variant="secondary" size="icon" title="Generar código automáticamente" onClick={handleGenerateCode}>
+                                            <Sparkles className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                     {form.errors.code && <p className="text-xs text-destructive">{form.errors.code}</p>}
                                     <p className="text-xs text-muted-foreground">
                                         Código o{' '}
