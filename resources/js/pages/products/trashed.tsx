@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+
+import {Table, type Column} from '@/components/common/Table';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpRight, Recycle, Search, Trash2 } from 'lucide-react';
@@ -149,6 +151,96 @@ export default function TrashedProducts({
         }
     };
 
+    const columns: Column<Product & { actions: null }>[] = [
+        {
+            key: 'name',
+            title: 'Nombre',
+            render: (_: unknown, row: Product) => (
+                <div className="flex items-center gap-3">
+                    <img
+                        src={row.image_url}
+                        alt={row.name}
+                        className="h-10 w-10 rounded-md border bg-muted object-cover"
+                    />
+                    <span>{row.name}</span>
+                </div>
+            ),
+        },
+        {
+            key: 'code',
+            title: 'Código',
+            render: (_: unknown, row: Product) => row.code,
+        },
+        {
+            key: 'category',
+            title: 'Categoría',
+            render: (_: unknown, row: Product) => row.category?.name || 'N/A',
+        },
+        {
+            key: 'sale_price',
+            title: 'Precio de venta',
+            render: (_: unknown, row: Product) => (
+                <span>
+                    $
+                    {Number(row.sale_price).toLocaleString('es-CO', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    })}
+                </span>
+            ),
+        },
+        {
+            key: 'stock',
+            title: 'Stock',
+            render: (_: unknown, row: Product) => (
+                row.stock <= row.min_stock ? (
+                    <span className="font-medium text-destructive">{row.stock}</span>
+                ) : (
+                    <span>{row.stock}</span>
+                )
+            ),
+        },
+        ...((branches.length > 0)
+            ? [{
+                key: 'branch' as keyof (Product & { actions: null }),
+                title: 'Sucursal',
+                render: (_: unknown, row: Product) => row.branch?.name || 'N/A',
+            }]
+            : []),
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Product) => (
+                <div className="flex gap-1">
+                    {canManageProducts && (
+                        <>
+                            <Button
+                                onClick={() => handleRestore(row.id)}
+                                variant="outline"
+                                size="sm"
+                                className="flex h-8 items-center gap-1"
+                            >
+                                <Recycle className="h-4 w-4" />
+                                <span>Restaurar</span>
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setProductToForceDelete(row);
+                                    setForceDeleteModalOpen(true);
+                                }}
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 w-8"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </>
+                    )}
+                </div>
+            ),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Productos en Papelera" />
@@ -236,91 +328,12 @@ export default function TrashedProducts({
                             <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-gray-900 dark:border-gray-100"></div>
                         </div>
                     )}
+
                     {/* Vista tabla en md+ */}
                     <div className="hidden overflow-x-auto md:block">
-                        <table className="w-full text-sm">
-                            <thead className="bg-muted/50 dark:bg-muted/70">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-medium">Producto</th>
-                                    <th className="px-4 py-3 font-medium">Código</th>
-                                    <th className="px-4 py-3 font-medium">Categoría</th>
-                                    <th className="px-4 py-3 font-medium">Precio de venta</th>
-                                    <th className="px-4 py-3 font-medium">Stock</th>
-                                    {branches.length > 0 && <th className="px-4 py-3 font-medium">Sucursal</th>}
-                                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border dark:divide-border/40">
-                                {productData.data.map((product) => (
-                                    <tr key={product.id} className="hover:bg-muted/30 dark:hover:bg-muted/40">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={product.image_url}
-                                                    alt={product.name}
-                                                    className="h-10 w-10 rounded-md border bg-muted object-cover"
-                                                />
-                                                <span>{product.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">{product.code}</td>
-                                        <td className="px-4 py-3">{product.category?.name}</td>
-                                        <td className="px-4 py-3">
-                                            $
-                                            {Number(product.sale_price).toLocaleString('es-CO', {
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 0,
-                                            })}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {product.stock <= product.min_stock ? (
-                                                <span className="font-medium text-destructive">{product.stock}</span>
-                                            ) : (
-                                                <span>{product.stock}</span>
-                                            )}
-                                        </td>
-                                        {branches.length > 0 && <td className="px-4 py-3">{product.branch?.name}</td>}
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                {canManageProducts && (
-                                                    <>
-                                                        <Button
-                                                            onClick={() => handleRestore(product.id)}
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="flex h-8 items-center gap-1"
-                                                        >
-                                                            <Recycle className="h-4 w-4" />
-                                                            <span>Restaurar</span>
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => {
-                                                                setProductToForceDelete(product);
-                                                                setForceDeleteModalOpen(true);
-                                                            }}
-                                                            variant="destructive"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {productData.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={branches.length > 0 ? 7 : 6} className="px-4 py-8 text-center text-muted-foreground">
-                                            No hay productos eliminados que mostrar
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table columns={columns} data={productData.data.map((product) => ({ ...product, actions: null }))} />
                     </div>
+
                     {/* Vista tarjetas en móvil */}
                     <div className="block md:hidden">
                         {productData.data.length === 0 ? (
