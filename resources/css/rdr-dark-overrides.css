@@ -1,0 +1,91 @@
+/* Dark theme overrides for react-date-range */
+.dark .rdrCalendarWrapper {
+  background-color: #262626 !important;
+  color: #f3f4f6 !important;
+}
+.dark .rdrMonthAndYearPickers,
+.dark .rdrMonthAndYearWrapper,
+.dark .rdrWeekDays {
+  background: #262626 !important;
+  color: #f3f4f6 !important;
+}
+.dark .rdrDayNumber span {
+  color: #f3f4f6 !important;
+}
+.dark .rdrDayDisabled {
+  background: #262626 !important;
+  color: #737373 !important;
+}
+.dark .rdrDayToday .rdrDayNumber span {
+  border-color: #3b82f6 !important;
+}
+.dark .rdrDayHovered, .dark .rdrDayActive, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
+  background: #1e293b !important;
+  color: #f3f4f6 !important;
+}
+.dark .rdrSelected, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
+  background: #3b82f6 !important;
+  color: #fff !important;
+}
+.dark .rdrDateDisplayWrapper {
+  background: #262626 !important;
+  border-color: #444 !important;
+}
+.dark .rdrDateDisplayItem {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #444 !important;
+}
+.dark .rdrDateDisplayItem input {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+  border: none !important;
+}
+.dark .rdrDefinedRangesWrapper {
+  background: #18181b !important;
+  border-right: 1px solid #444 !important;
+}
+.dark .rdrStaticRangeLabel, .dark .rdrInputRangeInput {
+  color: #f3f4f6 !important;
+}
+.dark .rdrStaticRange:hover .rdrStaticRangeLabel, .dark .rdrStaticRange:focus .rdrStaticRangeLabel {
+  background: #27272a !important;
+  color: #fff !important;
+}
+.dark .rdrStaticRange,
+.dark .rdrStaticRangeLabel {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+}
+.dark .rdrStaticRange:focus .rdrStaticRangeLabel,
+.dark .rdrStaticRange:hover .rdrStaticRangeLabel {
+  background: #27272a !important;
+  color: #fff !important;
+}
+.dark .rdrStaticRange.rdrStaticRangeSelected .rdrStaticRangeLabel {
+  background: #3b82f6 !important;
+  color: #fff !important;
+}
+.dark .rdrStaticRange.rdrStaticRangeDisabled .rdrStaticRangeLabel {
+  background: #18181b !important;
+  color: #737373 !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+.dark .rdrInputRangeInput {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+  border: 1px solid #444 !important;
+}
+.dark .rdrNextPrevButton {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+  border-radius: 6px !important;
+}
+.dark .rdrNextPrevButton:focus {
+  outline: 2px solid #3b82f6 !important;
+}
+.dark .rdrMonthAndYearPickers select {
+  background: #18181b !important;
+  color: #f3f4f6 !important;
+}

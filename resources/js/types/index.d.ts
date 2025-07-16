@@ -39,6 +39,7 @@ export interface User {
     role: string;
     avatar?: string;
     branch_id?: number | null;
+    branch?: Branch | null;
     status?: boolean;
     email_verified_at: string | null;
     created_at: string;

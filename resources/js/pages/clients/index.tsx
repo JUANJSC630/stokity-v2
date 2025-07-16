@@ -6,6 +6,8 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Eye, Plus, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Table, type Column } from '@/components/common/Table';
+import EyeButton from '@/components/common/EyeButton';
 
 interface Client {
     id: number;
@@ -74,6 +76,25 @@ export default function Clients({ clients, filters }: Props) {
         return () => clearTimeout(timeout);
     }, [search, filters.search]);
 
+    const columns: Column<Client & { actions: null }>[] = [
+        { key: 'name', title: 'Nombre', render: (_: unknown, row: Client) => <span className="font-medium">{row.name}</span> },
+        { key: 'document', title: 'Documento' },
+        { key: 'phone', title: 'Teléfono', render: (_: unknown, row: Client) => row.phone || '-' },
+        { key: 'email', title: 'Correo', render: (_: unknown, row: Client) => row.email || '-' },
+        { key: 'address', title: 'Dirección', render: (_: unknown, row: Client) => row.address || '-' },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Client) => (
+                <div className="flex items-center gap-2">
+                    <Link href={route('clients.show', row.id)}>
+                        <EyeButton text="Ver Cliente" />
+                    </Link>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Clientes" />
@@ -103,47 +124,10 @@ export default function Clients({ clients, filters }: Props) {
                 <Card className="flex-1 overflow-hidden">
                     {/* Desktop table */}
                     <div className="hidden overflow-x-auto md:block">
-                        <table className="w-full">
-                            <thead className="bg-muted/50">
-                                <tr className="border-b text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">Nombre</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Documento</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Teléfono</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Correo</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Dirección</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {clients.data.map((client) => (
-                                    <tr key={client.id} className="border-b hover:bg-muted/20">
-                                        <td className="px-4 py-3 text-sm font-medium">{client.name}</td>
-                                        <td className="px-4 py-3 text-sm">{client.document}</td>
-                                        <td className="px-4 py-3 text-sm">{client.phone || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">{client.email || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">{client.address || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <Link href={route('clients.show', client.id)}>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <Eye className="size-4" />
-                                                        <span className="sr-only">Ver Cliente</span>
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {clients.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center">
-                                            <p className="text-muted-foreground">No se encontraron clientes</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table
+                            columns={columns}
+                            data={clients.data.map((client) => ({ ...client, actions: null }))}
+                        />
                     </div>
 
                     {/* Mobile cards */}

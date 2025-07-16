@@ -1,3 +1,5 @@
+import EyeButton from '@/components/common/EyeButton';
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -81,6 +83,50 @@ export default function Branches({
         }
     };
 
+    const columns: Column<Branch & { actions: null }>[] = [
+        { key: 'name', title: 'Nombre', render: (_: unknown, row: Branch) => <span className="font-medium">{row.name}</span> },
+        { key: 'address', title: 'Dirección' },
+        { key: 'phone', title: 'Teléfono' },
+        {
+            key: 'status',
+            title: 'Estado',
+            render: (_: unknown, row: Branch) => (
+                <Badge variant={row.status ? 'default' : 'destructive'}>{row.status ? 'Activa' : 'Inactiva'}</Badge>
+            ),
+        },
+        {
+            key: 'manager',
+            title: 'Gerente',
+            render: (_: unknown, row: Branch) => (row.manager ? <span>{row.manager.name}</span> : '-'),
+        },
+        {
+            key: 'employees',
+            title: 'Empleados',
+            render: (_: unknown, row: Branch) => {
+                const managerId = row.manager?.id;
+                const employeesCount = row.employees
+                    ? row.employees.filter((emp) => emp.id !== managerId && emp.role === 'vendedor').length
+                    : 0;
+                return employeesCount > 0 ? (
+                    <span className="text-xs text-muted-foreground">{employeesCount} vendedor(es)</span>
+                ) : (
+                    <span className="text-xs text-muted-foreground">Sin vendedores</span>
+                );
+            },
+        },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Branch) => (
+                <div className="flex gap-1">
+                    <Link href={`/branches/${row.id}`}>
+                        <EyeButton text="Ver Sucursal" />
+                    </Link>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Sucursales" />
@@ -134,82 +180,10 @@ export default function Branches({
 
                 <Card className="flex-1 overflow-hidden">
                     <div className="hidden w-full overflow-x-auto md:block">
-                        <table className="w-full min-w-[700px]">
-                            <thead className="bg-muted/50">
-                                <tr className="border-b text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">Nombre</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Dirección</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Teléfono</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Estado</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Gerente</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Empleados</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {branches?.data?.length > 0 ? (
-                                    branches?.data?.map((branch: Branch) => (
-                                        <tr key={branch.id} className="border-b hover:bg-muted/20">
-                                            <td className="px-4 py-3 text-sm font-medium">{branch.name}</td>
-                                            <td className="px-4 py-3 text-sm">{branch.address}</td>
-                                            <td className="px-4 py-3 text-sm">{branch.phone}</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <Badge variant={branch.status ? 'default' : 'destructive'}>
-                                                    {branch.status ? 'Activa' : 'Inactiva'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {branch.manager ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{branch.manager.name}</span>
-                                                    </div>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {branch.employees ? (
-                                                    (() => {
-                                                        // Filter out the branch manager from the employees count
-                                                        const managerId = branch.manager?.id;
-                                                        const employeesCount = branch.employees.filter(
-                                                            // Only count employees that are not the manager
-                                                            (emp) => emp.id !== managerId && emp.role === 'vendedor',
-                                                        ).length;
-
-                                                        return employeesCount > 0 ? (
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-xs text-muted-foreground">{employeesCount} vendedor(es)</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground">Sin vendedores</span>
-                                                        );
-                                                    })()
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">Sin vendedores</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="flex gap-1">
-                                                    <Link href={`/branches/${branch.id}`}>
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                            <Eye className="size-4" />
-                                                            <span className="sr-only">Ver Sucursal</span>
-                                                        </Button>
-                                                    </Link>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={7} className="px-4 py-6 text-center">
-                                            <p className="text-muted-foreground">No se encontraron sucursales</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table
+                            columns={columns}
+                            data={branches.data.map((branch) => ({ ...branch, actions: null }))}
+                        />
                     </div>
 
                     {/* Tarjetas para móvil */}

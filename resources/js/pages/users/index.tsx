@@ -1,9 +1,11 @@
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import EyeButton from '@/components/common/EyeButton';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Eye, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -14,18 +16,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/users',
     },
 ];
-
-type User = {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    status: boolean;
-    branch: {
-        id: number;
-        name: string;
-    } | null;
-};
 
 type PaginatedData<T> = {
     data: T[];
@@ -81,13 +71,31 @@ export default function Users({ users, filters }: Props) {
         }
     };
 
-    const getStatusBadge = (status: boolean) => {
+    const getStatusBadge = (status: User['status']) => {
         return status ? (
             <Badge className="bg-green-500 hover:bg-green-600">Activo</Badge>
         ) : (
             <Badge className="bg-red-500 hover:bg-red-600">Inactivo</Badge>
         );
     };
+
+    const columns: Column<User & { actions: null }>[] = [
+        { key: 'id', title: 'ID' },
+        { key: 'name', title: 'Usuario' },
+        { key: 'email', title: 'Email' },
+        { key: 'role', title: 'Rol', render: (_: unknown, row: User) => getRoleBadge(row.role) },
+        { key: 'status', title: 'Estado', render: (_: unknown, row: User) => getStatusBadge(row.status) },
+        { key: 'branch', title: 'Sucursal', render: (_: unknown, row: User) => row.branch?.name || '-' },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: User) => (
+                <Link href={`/users/${row.id}`}>
+                    <EyeButton text="Ver Usuario" />
+                </Link>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -116,47 +124,18 @@ export default function Users({ users, filters }: Props) {
 
                 <Card className="flex-1 overflow-hidden">
                     <div className="hidden overflow-x-auto md:block">
-                        <table className="w-full">
-                            <thead className="bg-muted/50">
-                                <tr className="border-b text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">ID</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Usuario</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Email</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Rol</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Estado</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Sucursal</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.data.map((user) => (
-                                    <tr key={user.id} className="border-b hover:bg-muted/20">
-                                        <td className="px-4 py-3 text-sm">{user.id}</td>
-                                        <td className="px-4 py-3 text-sm font-medium">{user.name}</td>
-                                        <td className="px-4 py-3 text-sm">{user.email}</td>
-                                        <td className="px-4 py-3 text-sm">{getRoleBadge(user.role)}</td>
-                                        <td className="px-4 py-3 text-sm">{getStatusBadge(user.status)}</td>
-                                        <td className="px-4 py-3 text-sm">{user.branch?.name || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <Link href={`/users/${user.id}`}>
-                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                    <Eye className="size-4" />
-                                                    <span className="sr-only">Ver Usuario</span>
-                                                </Button>
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {users.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} className="px-4 py-6 text-center">
-                                            <p className="text-muted-foreground">No se encontraron usuarios</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table
+                            columns={columns}
+                            data={users.data.map((user) => ({
+                                ...user,
+                                actions: null,
+                            }))}
+                        />
+                        {users.data.length === 0 && (
+                            <div className="px-4 py-6 text-center">
+                                <p className="text-muted-foreground">No se encontraron usuarios</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Tarjetas para móvil */}

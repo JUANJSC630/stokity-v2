@@ -1,10 +1,12 @@
+import EyeButton from '@/components/common/EyeButton';
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type Sale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -14,6 +16,12 @@ import type { RangeKeyDict } from 'react-date-range';
 import { DateRangePicker, createStaticRanges } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+
+function addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(date.getDate() + days);
+    return result;
+}
 
 const customStaticRanges = createStaticRanges([
     {
@@ -81,38 +89,6 @@ const customInputRanges = [
     },
 ];
 
-interface Branch {
-    id: number;
-    name: string;
-}
-
-interface Client {
-    id: number;
-    name: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-}
-
-interface Sale {
-    id: number;
-    branch_id: number;
-    code: string;
-    client_id: number;
-    seller_id: number;
-    tax: number;
-    net: number;
-    total: number;
-    payment_method: string;
-    date: string;
-    status: string;
-    branch: Branch;
-    client: Client;
-    seller: User;
-}
-
 interface PageProps {
     sales: {
         data: Sale[];
@@ -144,7 +120,6 @@ export default function Index({ sales, filters }: PageProps) {
     const datePickerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Cerrar el date picker al hacer clic fuera de él
         const handleClickOutside = (event: MouseEvent) => {
             if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
                 setShowDatePicker(false);
@@ -312,6 +287,24 @@ export default function Index({ sales, filters }: PageProps) {
         return date.toLocaleString();
     };
 
+    const columns: Column<Sale & { actions: null }>[] = [
+        { key: 'code', title: 'Código' },
+        { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'N/A' },
+        { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
+        { key: 'payment_method', title: 'Método de pago', render: (_: unknown, row: Sale) => getPaymentMethodText(row.payment_method) },
+        { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateToLocal(row.date) },
+        { key: 'status', title: 'Estado', render: (_: unknown, row: Sale) => getStatusBadge(row.status) },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Sale) => (
+                <Link href={route('sales.show', row.id)}>
+                    <EyeButton text="Ver Venta" />
+                </Link>
+            ),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ventas" />
@@ -423,242 +416,98 @@ export default function Index({ sales, filters }: PageProps) {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardContent>
-                            {/* Tabla solo visible en escritorio */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full text-sm whitespace-nowrap">
-                                    <thead>
-                                        <tr className="border-b text-left font-medium">
-                                            <th className="px-4 py-2">Código</th>
-                                            <th className="px-4 py-2">Cliente</th>
-                                            <th className="px-4 py-2">Total</th>
-                                            <th className="px-4 py-2">Método de pago</th>
-                                            <th className="px-4 py-2">Fecha</th>
-                                            <th className="px-4 py-2">Estado</th>
-                                            <th className="px-4 py-2">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sales.data.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="py-6 text-center">
-                                                    No se encontraron ventas con los filtros seleccionados
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            [...sales.data]
-                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                                .map((sale) => (
-                                                    <tr key={sale.id} className="border-b">
-                                                        <td className="px-4 py-4">{sale.code}</td>
-                                                        <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                                        <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
-                                                        <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
-                                                        <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
-                                                        <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
-                                                        <td className="px-4 py-4">
-                                                            <Link href={route('sales.show', sale.id)}>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <Eye className="size-4" />
-                                                                </Button>
-                                                            </Link>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {/* Tarjetas para móvil */}
-                            <div className="block md:hidden">
-                                {sales.data.length === 0 ? (
-                                    <div className="p-4 text-center text-muted-foreground">
-                                        No se encontraron ventas con los filtros seleccionados
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-4 p-2">
-                                        {[...sales.data]
-                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                            .map((sale) => (
-                                                <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                                    <div className="mb-2 flex items-center justify-between">
-                                                        <div className="text-base font-semibold">{sale.code}</div>
-                                                        <Link href={route('sales.show', sale.id)}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                                                <Eye className="size-4" />
-                                                            </Button>
-                                                        </Link>
-                                                    </div>
-                                                    <div className="mb-1 text-sm text-muted-foreground">
-                                                        <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
-                                                    </div>
-                                                    <div className="mb-1 text-sm text-muted-foreground">
-                                                        <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
-                                                    </div>
-                                                    <div className="mb-1 text-sm text-muted-foreground">
-                                                        <span className="font-medium">Método de pago:</span>{' '}
-                                                        {getPaymentMethodText(sale.payment_method)}
-                                                    </div>
-                                                    <div className="mb-1 text-sm text-muted-foreground">
-                                                        <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
-                                                    </div>
-                                                    <div className="mb-1 text-sm text-muted-foreground">
-                                                        <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
-                                                    </div>
+                    <Card className="flex-1 overflow-hidden">
+                        {/* Tabla solo visible en escritorio */}
+                        <div className="hidden overflow-x-auto md:block">
+                            <Table columns={columns} data={sales.data.map((sale) => ({ ...sale, actions: null }))} />
+                        </div>
+
+                        {/* Tarjetas para móvil */}
+                        <div className="block md:hidden">
+                            {sales.data.length === 0 ? (
+                                <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
+                            ) : (
+                                <div className="flex flex-col gap-4 p-2">
+                                    {[...sales.data]
+                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map((sale) => (
+                                            <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                                <div className="mb-2 flex items-center justify-between">
+                                                    <div className="text-base font-semibold">{sale.code}</div>
+                                                    <Link href={route('sales.show', sale.id)}>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                            <Eye className="size-4" />
+                                                        </Button>
+                                                    </Link>
                                                 </div>
-                                            ))}
-                                    </div>
-                                )}
-                            </div>
-                            {/* Paginación */}
-                            {sales.data.length > 0 && (
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="text-sm text-muted-foreground">
-                                        Mostrando {sales.from} a {sales.to} de {sales.total} ventas
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        {sales.links.map((link, i) => {
-                                            if (link.url === null) {
-                                                return (
-                                                    <Button key={i} variant="ghost" size="icon" disabled className="size-8">
-                                                        {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-                                                    </Button>
-                                                );
-                                            }
-                                            let label = link.label;
-                                            if (i === 0 || i === sales.links.length - 1) {
-                                                label = '';
-                                            }
-                                            return (
-                                                <Button
-                                                    key={i}
-                                                    variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
-                                                    size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
-                                                    className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
-                                                    onClick={() => {
-                                                        if (link.url) {
-                                                            window.location.href = link.url;
-                                                        }
-                                                    }}
-                                                >
-                                                    {i === 0 ? (
-                                                        <ChevronLeft className="size-4" />
-                                                    ) : i === sales.links.length - 1 ? (
-                                                        <ChevronRight className="size-4" />
-                                                    ) : (
-                                                        label
-                                                    )}
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
+                                                </div>
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
+                                                </div>
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
+                                                </div>
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                                </div>
+                                                <div className="mb-1 text-sm text-muted-foreground">
+                                                    <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
+                                                </div>
+                                            </div>
+                                        ))}
                                 </div>
                             )}
-                        </CardContent>
+                        </div>
+
+                        {/* Paginación */}
+                        {sales.data.length > 0 && (
+                            <div className="mt-4 flex items-center justify-between">
+                                <div className="text-sm text-muted-foreground">
+                                    Mostrando {sales.from} a {sales.to} de {sales.total} ventas
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    {sales.links.map((link, i) => {
+                                        if (link.url === null) {
+                                            return (
+                                                <Button key={i} variant="ghost" size="icon" disabled className="size-8">
+                                                    {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+                                                </Button>
+                                            );
+                                        }
+                                        let label = link.label;
+                                        if (i === 0 || i === sales.links.length - 1) {
+                                            label = '';
+                                        }
+                                        return (
+                                            <Button
+                                                key={i}
+                                                variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
+                                                size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
+                                                className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
+                                                onClick={() => {
+                                                    if (link.url) {
+                                                        window.location.href = link.url;
+                                                    }
+                                                }}
+                                            >
+                                                {i === 0 ? (
+                                                    <ChevronLeft className="size-4" />
+                                                ) : i === sales.links.length - 1 ? (
+                                                    <ChevronRight className="size-4" />
+                                                ) : (
+                                                    label
+                                                )}
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </Card>
                 </div>
             </div>
-
-            <style>
-                {`
-              .dark .rdrCalendarWrapper {
-                background-color: #262626 !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrMonthAndYearPickers,
-              .dark .rdrMonthAndYearWrapper,
-              .dark .rdrWeekDays {
-                background: #262626 !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrDayNumber span {
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrDayDisabled {
-                background: #262626 !important;
-                color: #737373 !important;
-              }
-              .dark .rdrDayToday .rdrDayNumber span {
-                border-color: #3b82f6 !important;
-              }
-              .dark .rdrDayHovered, .dark .rdrDayActive, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
-                background: #1e293b !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrSelected, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
-                background: #3b82f6 !important;
-                color: #fff !important;
-              }
-              .dark .rdrDateDisplayWrapper {
-                background: #262626 !important;
-                border-color: #444 !important;
-              }
-              .dark .rdrDateDisplayItem {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: 1px solid #444 !important;
-              }
-              .dark .rdrDateDisplayItem input {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: none !important;
-              }
-              .dark .rdrDefinedRangesWrapper {
-                background: #18181b !important;
-                border-right: 1px solid #444 !important;
-              }
-              .dark .rdrStaticRangeLabel, .dark .rdrInputRangeInput {
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrStaticRange:hover .rdrStaticRangeLabel, .dark .rdrStaticRange:focus .rdrStaticRangeLabel {
-                background: #27272a !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange,
-              .dark .rdrStaticRangeLabel {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrStaticRange:focus .rdrStaticRangeLabel,
-              .dark .rdrStaticRange:hover .rdrStaticRangeLabel {
-                background: #27272a !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange.rdrStaticRangeSelected .rdrStaticRangeLabel {
-                background: #3b82f6 !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange.rdrStaticRangeDisabled .rdrStaticRangeLabel {
-                background: #18181b !important;
-                color: #737373 !important;
-                opacity: 0.6 !important;
-                cursor: not-allowed !important;
-              }
-              .dark .rdrInputRangeInput {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: 1px solid #444 !important;
-              }
-              .dark .rdrNextPrevButton {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border-radius: 6px !important;
-              }
-              .dark .rdrNextPrevButton:focus {
-                outline: 2px solid #3b82f6 !important;
-              }
-              .dark .rdrMonthAndYearPickers select {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-              }
-            `}
-            </style>
         </AppLayout>
     );
-}
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(date.getDate() + days);
-    return result;
 }

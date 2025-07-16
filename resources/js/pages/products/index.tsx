@@ -1,3 +1,5 @@
+import EyeButton from '@/components/common/EyeButton';
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -50,8 +52,6 @@ export default function Products({
     branches = [],
     filters = { search: '', status: 'all', category: 'all', branch: 'all' },
 }: ProductsPageProps) {
-    // Asegurar que products y sus propiedades tengan valores válidos
-    // Estructura completa para evitar errores de undefined
     const productData = {
         data: Array.isArray(products?.data) ? products.data : [],
         links: Array.isArray(products?.links) ? products.links : [],
@@ -86,7 +86,6 @@ export default function Products({
     const isManager = auth.user.role === 'encargado';
     const canManageProducts = isAdmin || isManager;
 
-    // Update search results when filters change
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (
@@ -145,6 +144,80 @@ export default function Products({
             });
         }
     };
+
+    const columns: Column<Product & { actions: null }>[] = [
+        {
+            key: 'name',
+            title: 'Producto',
+            render: (_: unknown, row: Product) => (
+                <div className="flex items-center gap-3">
+                    <img
+                        src={row.image_url}
+                        alt={row.name}
+                        className="h-10 w-10 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
+                    />
+                    <span className="text-neutral-900 dark:text-neutral-100">{row.name}</span>
+                </div>
+            ),
+        },
+        { key: 'code', title: 'Código' },
+        { key: 'category', title: 'Categoría', render: (_: unknown, row: Product) => row.category?.name },
+        {
+            key: 'sale_price',
+            title: 'Precio de venta',
+            render: (_: unknown, row: Product) => (
+                <span className="text-neutral-700 dark:text-neutral-200">
+                    ${Number(row.sale_price).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+            ),
+        },
+        {
+            key: 'stock',
+            title: 'Stock',
+            render: (_: unknown, row: Product) =>
+                row.stock <= row.min_stock ? (
+                    <span className="inline-flex items-center justify-center rounded-md bg-red-100 px-2 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+                        {row.stock}
+                    </span>
+                ) : (
+                    <span className="text-neutral-700 dark:text-neutral-200">{row.stock}</span>
+                ),
+        },
+        {
+            key: 'status',
+            title: 'Estado',
+            render: (_: unknown, row: Product) =>
+                row.status ? (
+                    <Badge variant="default" className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Activo
+                    </Badge>
+                ) : (
+                    <Badge variant="secondary" className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                        Inactivo
+                    </Badge>
+                ),
+        },
+        ...(isAdmin
+            ? [
+                  {
+                      key: 'branch' as keyof (Product & { actions: null }),
+                      title: 'Sucursal',
+                      render: (_: unknown, row: Product) => row.branch?.name,
+                  },
+              ]
+            : []),
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Product) => (
+                <div className="flex gap-1">
+                    <Link href={`/products/${row.id}`}>
+                        <EyeButton text="Ver Producto" />
+                    </Link>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -258,92 +331,12 @@ export default function Products({
                             <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
                         </div>
                     )}
+
                     {/* Vista tabla en md+ */}
                     <div className="hidden overflow-x-auto md:block">
-                        <table className="w-full text-sm">
-                            <thead className="bg-neutral-50 dark:bg-neutral-800">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-medium">Producto</th>
-                                    <th className="px-4 py-3 font-medium">Código</th>
-                                    <th className="px-4 py-3 font-medium">Categoría</th>
-                                    <th className="px-4 py-3 font-medium">Precio de venta</th>
-                                    <th className="px-4 py-3 font-medium">Stock</th>
-                                    <th className="px-4 py-3 font-medium">Estado</th>
-                                    {isAdmin && <th className="px-4 py-3 font-medium">Sucursal</th>}
-                                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {productData.data.map((product) => (
-                                    <tr key={product.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={product.image_url}
-                                                    alt={product.name}
-                                                    className="h-10 w-10 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
-                                                />
-                                                <span className="text-neutral-900 dark:text-neutral-100">{product.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.code}</td>
-                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.category?.name}</td>
-                                        <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">
-                                            $
-                                            {Number(product.sale_price).toLocaleString('es-CO', {
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 0,
-                                            })}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {product.stock <= product.min_stock ? (
-                                                <span className="inline-flex items-center justify-center rounded-md bg-red-100 px-2 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
-                                                    {product.stock}
-                                                </span>
-                                            ) : (
-                                                <span className="text-neutral-700 dark:text-neutral-200">{product.stock}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {product.status ? (
-                                                <Badge
-                                                    variant="default"
-                                                    className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
-                                                >
-                                                    Activo
-                                                </Badge>
-                                            ) : (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
-                                                >
-                                                    Inactivo
-                                                </Badge>
-                                            )}
-                                        </td>
-                                        {isAdmin && <td className="px-4 py-3 text-neutral-700 dark:text-neutral-200">{product.branch?.name}</td>}
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex gap-2">
-                                                <Link href={`/products/${product.id}`}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
-                                                        <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {productData.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={isAdmin ? 8 : 7} className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
-                                            No hay productos que mostrar
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table columns={columns} data={productData.data.map((product) => ({ ...product, actions: null }))} />
                     </div>
+
                     {/* Vista tarjetas en móvil */}
                     <div className="block md:hidden">
                         {productData.data.length === 0 ? (
