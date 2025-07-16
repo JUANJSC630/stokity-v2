@@ -3,11 +3,11 @@
         display: none !important;
     }
     .ticket {
-        width: 58mm;
-        max-width: 58mm;
-        min-width: 58mm;
-        margin: 0 auto;
-        font-size: 12px;
+        width: 43mm;
+        max-width: 43mm;
+        min-width: 43mm;
+        font-size: 16px;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
         background: white;
         color: black;
         padding: 0;

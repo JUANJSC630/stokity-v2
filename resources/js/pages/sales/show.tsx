@@ -1,5 +1,4 @@
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
-import SaleReturnReceipt from '@/components/sales/SaleReturnReceipt';
 import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
+import SaleReturnTicket from '@/components/SaleReturnTicket';
 
 interface Props {
     sale: Sale;
@@ -171,27 +171,108 @@ export default function Show({ sale }: Props) {
         }
     };
 
-    // Imprimir el recibo de devolución en texto plano ESC/POS desde el frontend
+    // Imprimir el recibo de devolución visualmente usando SaleReturnTicket
     const handlePrintReturnReceipt = (saleReturnId: number) => {
-        // Llamar al backend para imprimir el recibo
-        fetch(`/sale-returns/${saleReturnId}/print`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-            },
-        })
-            .then(async (res) => {
-                if (res.ok) {
-                    toast.success('Recibo de devolución enviado a la impresora.');
-                } else {
-                    const data = await res.json().catch(() => ({}));
-                    toast.error(data.error || 'Error al imprimir el recibo.');
+        const ret = (sale.saleReturns ?? []).find((r) => r.id === saleReturnId);
+        if (!ret) {
+            toast.error('No se encontró la devolución.');
+            return;
+        }
+        // Enriquecer productos igual que en el modal
+        const enrichedProducts = Array.isArray(ret.products)
+            ? ret.products.map((rp) => {
+                  const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
+                  return {
+                      code: saleProd?.product?.code ?? '',
+                      description: saleProd?.product?.description ?? '',
+                      purchase_price: saleProd?.product?.purchase_price ?? 0,
+                      sale_price: saleProd?.product?.sale_price ?? 0,
+                      stock: saleProd?.product?.stock ?? 0,
+                      min_stock: saleProd?.product?.min_stock ?? 0,
+                      category_id: saleProd?.product?.category_id ?? 0,
+                      branch_id: saleProd?.product?.branch_id ?? 0,
+                      created_at: saleProd?.product?.created_at ?? '',
+                      updated_at: saleProd?.product?.updated_at ?? '',
+                      image: saleProd?.product?.image ?? '',
+                      image_url: saleProd?.product?.image_url ?? '',
+                      status: Boolean(saleProd?.product?.status),
+                      deleted_at: saleProd?.product?.deleted_at ?? null,
+                      // Additional fields from SaleReturnProduct
+                      ...rp,
+                      id: rp.id,
+                      name: saleProd?.product?.name ?? 'Producto eliminado',
+                      price: saleProd?.price ?? 0,
+                      quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
+                  };
+              })
+            : [];
+        const printWindow = window.open('', '', 'width=400,height=600');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Recibo Devolución #${ret.id}</title>
+                    ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+                        .map((el) => el.outerHTML)
+                        .join('\n')}
+                    <style>
+                        @media print {
+                            html, body {
+                                background: #fff !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                width: 58mm !important;
+                                min-width: 58mm !important;
+                                max-width: 58mm !important;
+                                box-sizing: border-box !important;
+                                display: block !important;
+                            }
+                            #ticket-root {
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                width: 58mm !important;
+                                min-width: 58mm !important;
+                                max-width: 58mm !important;
+                                box-sizing: border-box !important;
+                                display: block !important;
+                            }
+                            @page {
+                                size: 58mm auto;
+                                margin: 0;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div id="ticket-root"></div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            const interval = setInterval(() => {
+                const rootDiv = printWindow.document.getElementById('ticket-root');
+                if (rootDiv) {
+                    clearInterval(interval);
+                    ReactDOM.createRoot(rootDiv).render(
+                        <SaleReturnTicket
+                            saleReturn={{
+                                ...ret,
+                                reason: ret.reason ?? undefined,
+                                products: enrichedProducts,
+                            }}
+                            sale={sale}
+                            formatCurrency={formatCurrency}
+                            formatDateToLocal={formatDateToLocal}
+                        />
+                    );
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                    }, 500);
                 }
-            })
-            .catch(() => {
-                toast.error('Error de red al imprimir el recibo.');
-            });
+            }, 50);
+        }
     };
 
     return (
@@ -525,14 +606,20 @@ export default function Show({ sale }: Props) {
                                                               id: rp.id,
                                                               name: saleProd?.product?.name ?? 'Producto eliminado',
                                                               price: saleProd?.price ?? 0,
+                                                              quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
                                                           };
                                                       })
                                                     : [];
                                                 return (
-                                                    <SaleReturnReceipt
-                                                        saleReturn={{ ...ret, products: enrichedProducts }}
+                                                    <SaleReturnTicket
+                                                        saleReturn={{
+                                                            ...ret,
+                                                            reason: ret.reason ?? undefined,
+                                                            products: enrichedProducts,
+                                                        }}
                                                         sale={sale}
                                                         formatCurrency={formatCurrency}
+                                                        formatDateToLocal={formatDateToLocal}
                                                     />
                                                 );
                                             })()}
