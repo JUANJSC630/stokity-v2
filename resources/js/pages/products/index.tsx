@@ -152,7 +152,7 @@ export default function Products({
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header with title and add button */}
-                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-2xl font-semibold">Productos</h1>
                     <div className="flex gap-2">
                         {canManageProducts && (

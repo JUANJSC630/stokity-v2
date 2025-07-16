@@ -25,6 +25,9 @@ interface Props {
 
 export default function Show({ client }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    // Detectar si viene de una venta
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const fromSale = searchParams ? searchParams.get('fromSale') : null;
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -47,11 +50,17 @@ export default function Show({ client }: Props) {
             <Head title={`Cliente: ${client.name}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex items-center gap-2">
-                    <Link href={route('clients.index')}>
-                        <Button variant="outline" size="icon" className="h-8 w-8">
+                    {fromSale ? (
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => (window.location.href = `/sales/${fromSale}`)}>
                             <ChevronLeft className="size-4" />
                         </Button>
-                    </Link>
+                    ) : (
+                        <Link href={route('clients.index')}>
+                            <Button variant="outline" size="icon" className="h-8 w-8">
+                                <ChevronLeft className="size-4" />
+                            </Button>
+                        </Link>
+                    )}
                     <h1 className="text-2xl font-bold">{client.name}</h1>
                 </div>
 

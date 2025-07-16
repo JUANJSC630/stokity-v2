@@ -163,7 +163,11 @@ export default function Index({ sales, filters }: PageProps) {
         if (search.trim() === '') {
             // Solo limpiar si no se ha hecho ya y si hay filtros activos
             const url = new URL(window.location.href);
-            const hasFilters = url.searchParams.get('search') || url.searchParams.get('status') || url.searchParams.get('date_from') || url.searchParams.get('date_to');
+            const hasFilters =
+                url.searchParams.get('search') ||
+                url.searchParams.get('status') ||
+                url.searchParams.get('date_from') ||
+                url.searchParams.get('date_to');
             if (!hasResetRef.current && hasFilters) {
                 hasResetRef.current = true;
                 setStatus('all');
@@ -312,7 +316,7 @@ export default function Index({ sales, filters }: PageProps) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ventas" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4 md:gap-8">
-                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Administración de Ventas</h1>
                     <Link href={route('sales.create')}>
                         <Button>
@@ -364,7 +368,7 @@ export default function Index({ sales, filters }: PageProps) {
                                     <Input
                                         type="text"
                                         placeholder="Seleccionar rango de fechas"
-                                        className="w-full cursor-pointer bg-white text-black dark:bg-neutral-800 dark:text-neutral-100 text-sm md:text-base"
+                                        className="w-full cursor-pointer bg-white text-sm text-black md:text-base dark:bg-neutral-800 dark:text-neutral-100"
                                         value={
                                             dateRange.startDate && dateRange.endDate
                                                 ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
@@ -375,10 +379,10 @@ export default function Index({ sales, filters }: PageProps) {
                                     />
 
                                     {showDatePicker && (
-                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:mt-2 md:z-10 md:origin-top-right">
+                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:z-10 md:mt-2 md:origin-top-right">
                                             <div className="absolute inset-0 bg-black/30 md:hidden" onClick={() => setShowDatePicker(false)}></div>
                                             <div
-                                                className="relative rounded-md bg-white shadow-lg dark:bg-neutral-800 w-[95vw] max-w-xs md:max-w-md p-4 md:p-0 mx-2 overflow-auto"
+                                                className="relative mx-2 w-[95vw] max-w-xs overflow-auto rounded-md bg-white p-4 shadow-lg md:max-w-md md:p-0 dark:bg-neutral-800"
                                                 style={{ maxHeight: '90vh' }}
                                             >
                                                 <DateRangePicker
@@ -420,136 +424,139 @@ export default function Index({ sales, filters }: PageProps) {
                     </Card>
 
                     <Card>
-    <CardContent>
-        {/* Tabla solo visible en escritorio */}
-        <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                    <tr className="border-b text-left font-medium">
-                        <th className="px-4 py-2">Código</th>
-                        <th className="px-4 py-2">Cliente</th>
-                        <th className="px-4 py-2">Total</th>
-                        <th className="px-4 py-2">Método de pago</th>
-                        <th className="px-4 py-2">Fecha</th>
-                        <th className="px-4 py-2">Estado</th>
-                        <th className="px-4 py-2">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sales.data.length === 0 ? (
-                        <tr>
-                            <td colSpan={7} className="py-6 text-center">
-                                No se encontraron ventas con los filtros seleccionados
-                            </td>
-                        </tr>
-                    ) : (
-                        [...sales.data]
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map((sale) => (
-                                <tr key={sale.id} className="border-b">
-                                    <td className="px-4 py-4">{sale.code}</td>
-                                    <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                    <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
-                                    <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
-                                    <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
-                                    <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
-                                    <td className="px-4 py-4">
-                                        <Link href={route('sales.show', sale.id)}>
-                                            <Button variant="ghost" size="icon">
-                                                <Eye className="size-4" />
-                                            </Button>
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))
-                    )}
-                </tbody>
-            </table>
-        </div>
-        {/* Tarjetas para móvil */}
-        <div className="block md:hidden">
-            {sales.data.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
-            ) : (
-                <div className="flex flex-col gap-4 p-2">
-                    {[...sales.data]
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((sale) => (
-                            <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                <div className="mb-2 flex items-center justify-between">
-                                    <div className="text-base font-semibold">{sale.code}</div>
-                                    <Link href={route('sales.show', sale.id)}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                            <Eye className="size-4" />
-                                        </Button>
-                                    </Link>
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
-                                </div>
+                        <CardContent>
+                            {/* Tabla solo visible en escritorio */}
+                            <div className="hidden overflow-x-auto md:block">
+                                <table className="w-full text-sm whitespace-nowrap">
+                                    <thead>
+                                        <tr className="border-b text-left font-medium">
+                                            <th className="px-4 py-2">Código</th>
+                                            <th className="px-4 py-2">Cliente</th>
+                                            <th className="px-4 py-2">Total</th>
+                                            <th className="px-4 py-2">Método de pago</th>
+                                            <th className="px-4 py-2">Fecha</th>
+                                            <th className="px-4 py-2">Estado</th>
+                                            <th className="px-4 py-2">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sales.data.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="py-6 text-center">
+                                                    No se encontraron ventas con los filtros seleccionados
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            [...sales.data]
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map((sale) => (
+                                                    <tr key={sale.id} className="border-b">
+                                                        <td className="px-4 py-4">{sale.code}</td>
+                                                        <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
+                                                        <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
+                                                        <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
+                                                        <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
+                                                        <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
+                                                        <td className="px-4 py-4">
+                                                            <Link href={route('sales.show', sale.id)}>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <Eye className="size-4" />
+                                                                </Button>
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                        ))}
-                </div>
-            )}
-        </div>
-        {/* Paginación */}
-        {sales.data.length > 0 && (
-            <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                    Mostrando {sales.from} a {sales.to} de {sales.total} ventas
-                </div>
-                <div className="flex items-center gap-1">
-                    {sales.links.map((link, i) => {
-                        if (link.url === null) {
-                            return (
-                                <Button key={i} variant="ghost" size="icon" disabled className="size-8">
-                                    {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-                                </Button>
-                            );
-                        }
-                        let label = link.label;
-                        if (i === 0 || i === sales.links.length - 1) {
-                            label = '';
-                        }
-                        return (
-                            <Button
-                                key={i}
-                                variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
-                                size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
-                                className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
-                                onClick={() => {
-                                    if (link.url) {
-                                        window.location.href = link.url;
-                                    }
-                                }}
-                            >
-                                {i === 0 ? (
-                                    <ChevronLeft className="size-4" />
-                                ) : i === sales.links.length - 1 ? (
-                                    <ChevronRight className="size-4" />
+                            {/* Tarjetas para móvil */}
+                            <div className="block md:hidden">
+                                {sales.data.length === 0 ? (
+                                    <div className="p-4 text-center text-muted-foreground">
+                                        No se encontraron ventas con los filtros seleccionados
+                                    </div>
                                 ) : (
-                                    label
+                                    <div className="flex flex-col gap-4 p-2">
+                                        {[...sales.data]
+                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                            .map((sale) => (
+                                                <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                                    <div className="mb-2 flex items-center justify-between">
+                                                        <div className="text-base font-semibold">{sale.code}</div>
+                                                        <Link href={route('sales.show', sale.id)}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                                <Eye className="size-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    </div>
+                                                    <div className="mb-1 text-sm text-muted-foreground">
+                                                        <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
+                                                    </div>
+                                                    <div className="mb-1 text-sm text-muted-foreground">
+                                                        <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
+                                                    </div>
+                                                    <div className="mb-1 text-sm text-muted-foreground">
+                                                        <span className="font-medium">Método de pago:</span>{' '}
+                                                        {getPaymentMethodText(sale.payment_method)}
+                                                    </div>
+                                                    <div className="mb-1 text-sm text-muted-foreground">
+                                                        <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                                    </div>
+                                                    <div className="mb-1 text-sm text-muted-foreground">
+                                                        <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                    </div>
                                 )}
-                            </Button>
-                        );
-                    })}
-                </div>
-            </div>
-        )}
-    </CardContent>
-</Card>
+                            </div>
+                            {/* Paginación */}
+                            {sales.data.length > 0 && (
+                                <div className="mt-4 flex items-center justify-between">
+                                    <div className="text-sm text-muted-foreground">
+                                        Mostrando {sales.from} a {sales.to} de {sales.total} ventas
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {sales.links.map((link, i) => {
+                                            if (link.url === null) {
+                                                return (
+                                                    <Button key={i} variant="ghost" size="icon" disabled className="size-8">
+                                                        {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
+                                                    </Button>
+                                                );
+                                            }
+                                            let label = link.label;
+                                            if (i === 0 || i === sales.links.length - 1) {
+                                                label = '';
+                                            }
+                                            return (
+                                                <Button
+                                                    key={i}
+                                                    variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
+                                                    size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
+                                                    className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
+                                                    onClick={() => {
+                                                        if (link.url) {
+                                                            window.location.href = link.url;
+                                                        }
+                                                    }}
+                                                >
+                                                    {i === 0 ? (
+                                                        <ChevronLeft className="size-4" />
+                                                    ) : i === sales.links.length - 1 ? (
+                                                        <ChevronRight className="size-4" />
+                                                    ) : (
+                                                        label
+                                                    )}
+                                                </Button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 

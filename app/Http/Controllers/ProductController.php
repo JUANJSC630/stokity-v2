@@ -333,26 +333,18 @@ class ProductController extends Controller
      */
     public function generateCode(Request $request)
     {
+        // No es necesario el nombre, pero se valida por compatibilidad
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
-        $words = preg_split('/\s+/', trim($request->name));
-        $parts = [];
-        foreach ($words as $word) {
-            $clean = preg_replace('/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/u', '', $word);
-            if (mb_strlen($clean) <= 3) {
-                $parts[] = mb_strtoupper($clean);
-            } else {
-                $parts[] = mb_strtoupper(mb_substr($clean, 0, 6));
-            }
-        }
-        $prefix = implode('-', $parts);
-        $nextNumber = 1;
-        $maxAttempts = 1000;
+
+        $maxAttempts = 10;
         do {
-            $code = $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            // Tomar los últimos 6 dígitos del timestamp y 2 random
+            $timePart = substr(now()->format('His'), -6); // Ej: 235907
+            $randPart = str_pad(strval(rand(0, 99)), 2, '0', STR_PAD_LEFT); // Ej: 07
+            $code = $timePart . $randPart; // Ej: 235907
             $exists = Product::where('code', $code)->exists();
-            $nextNumber++;
             $maxAttempts--;
         } while ($exists && $maxAttempts > 0);
         if ($maxAttempts <= 0) {

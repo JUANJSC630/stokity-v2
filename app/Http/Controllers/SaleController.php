@@ -156,11 +156,16 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
-        // Forzar carga de relaciones incluyendo saleProducts.product
-        $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
+        // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
+        $sale->load([
+            'branch.manager',
+            'branch',
+            'client',
+            'seller',
+            'saleProducts.product',
+            'saleReturns.products',
+        ]);
 
-        // En lugar de usar el Resource, vamos a crear manualmente la estructura de datos
-        // para asegurarnos de que todo está exactamente como necesitamos
         $saleData = [
             'id' => $sale->id,
             'branch_id' => $sale->branch_id,
@@ -175,7 +180,16 @@ class SaleController extends Controller
             'status' => $sale->status,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
-            'branch' => $sale->branch,
+            'branch' => $sale->branch ? [
+                'id' => $sale->branch->id,
+                'name' => $sale->branch->name,
+                'manager' => $sale->branch->manager ? $sale->branch->manager->name : null,
+                'address' => $sale->branch->address,
+                'phone' => $sale->branch->phone,
+                'email' => $sale->branch->email,
+                'status' => $sale->branch->status,
+                'business_name' => $sale->branch->business_name ?? null,
+            ] : null,
             'client' => $sale->client,
             'seller' => $sale->seller,
             'saleProducts' => $sale->saleProducts->map(function ($saleProduct) {
@@ -193,14 +207,24 @@ class SaleController extends Controller
                     ] : null,
                 ];
             })->toArray(),
+            // Agregar historial de devoluciones
+            'saleReturns' => $sale->saleReturns->map(function ($saleReturn) {
+                return [
+                    'id' => $saleReturn->id,
+                    'reason' => $saleReturn->reason,
+                    'created_at' => $saleReturn->created_at,
+                    'products' => $saleReturn->products->map(function ($product) {
+                        return [
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'pivot' => [
+                                'quantity' => $product->pivot->quantity,
+                            ],
+                        ];
+                    })->toArray(),
+                ];
+            })->toArray(),
         ];
-
-        // Depuración: verificar la estructura de datos
-        \Illuminate\Support\Facades\Log::debug('Sale data structure manual', [
-            'sale_id' => $sale->id,
-            'has_sale_products' => $sale->saleProducts->count(),
-            'sale_products_count' => count($saleData['saleProducts']),
-        ]);
 
         return Inertia::render('sales/show', [
             'sale' => $saleData,

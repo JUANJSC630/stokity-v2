@@ -133,7 +133,7 @@ export default function Branches({
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="w-full overflow-x-auto hidden md:block">
+                    <div className="hidden w-full overflow-x-auto md:block">
                         <table className="w-full min-w-[700px]">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
@@ -234,9 +234,7 @@ export default function Branches({
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
                                             <span className="font-medium">Estado:</span>{' '}
-                                            <Badge variant={branch.status ? 'default' : 'destructive'}>
-                                                {branch.status ? 'Activa' : 'Inactiva'}
-                                            </Badge>
+                                            <Badge variant={branch.status ? 'default' : 'destructive'}>{branch.status ? 'Activa' : 'Inactiva'}</Badge>
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
                                             <span className="font-medium">Gerente:</span> {branch.manager ? branch.manager.name : '-'}

@@ -118,4 +118,12 @@ class Product extends Model
     {
         return $this->hasMany(SaleProduct::class);
     }
+
+    /**
+     * Get all of the sale returns for the product.
+     */
+    public function saleReturnProducts()
+    {
+        return $this->hasMany(SaleReturnProduct::class);
+    }
 }

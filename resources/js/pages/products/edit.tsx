@@ -10,8 +10,8 @@ import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { ArrowLeft, Save, Upload, UserCircle, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { ArrowLeft, Save, Sparkles, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface EditProductProps {
@@ -238,7 +238,13 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             value={form.data.code}
                                             onChange={(e) => form.setData('code', e.target.value)}
                                         />
-                                        <Button type="button" variant="secondary" size="icon" title="Generar código automáticamente" onClick={handleGenerateCode}>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="icon"
+                                            title="Generar código automáticamente"
+                                            onClick={handleGenerateCode}
+                                        >
                                             <Sparkles className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -292,9 +298,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             }}
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        {Number(form.data.purchase_price).toLocaleString('es-CO')}
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">{Number(form.data.purchase_price).toLocaleString('es-CO')}</p>
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
                                 </div>
 
@@ -321,9 +325,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                             }}
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        {Number(form.data.sale_price).toLocaleString('es-CO')}
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">{Number(form.data.sale_price).toLocaleString('es-CO')}</p>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
                                 </div>
 

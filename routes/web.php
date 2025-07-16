@@ -22,6 +22,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('report-sales', function () {
         return Inertia::render('report-sales/index');
     })->name('report-sales');
+
+    // Ruta para imprimir recibo de devolución en ESC/POS
+    Route::get('sale-returns/{id}/print', [\App\Http\Controllers\SaleReturnController::class, 'printReturnReceipt'])->name('sale-returns.print');
 });
 
 require __DIR__.'/settings.php';

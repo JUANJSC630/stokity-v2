@@ -49,12 +49,21 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
+export interface Client {
+    id: number;
+    name: string;
+    document?: string;
+    phone?: string;
+    address?: string;
+}
+
 export interface Branch {
     id: number;
     name: string;
     address: string;
     phone: string;
     email: string | null;
+    business_name?: string;
     status: boolean;
     manager_id: number | null;
     manager?: User;
@@ -105,4 +114,51 @@ export interface Product {
     // Relations
     category?: Category;
     branch?: Branch;
+}
+
+export interface Sale {
+    id: number;
+    branch_id: number;
+    code: string;
+    client_id: number;
+    seller_id: number;
+    tax: number;
+    net: number;
+    total: number;
+    payment_method: string;
+    date: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    branch?: Branch | null;
+    client?: Client | null;
+    seller?: User | null;
+    saleProducts: SaleProduct[]; // La propiedad saleProducts siempre debe ser un array
+    saleReturns?: SaleReturn[];
+}
+
+export interface SaleProduct {
+    id: number;
+    sale_id: number;
+    product_id: number;
+    quantity: number;
+    price: number;
+    subtotal: number;
+    product?: Product | null; // Producto puede ser opcional o nulo
+}
+
+export interface SaleReturn {
+    id: number;
+    reason: string | null;
+    created_at: string;
+    products: SaleReturnProduct[];
+    total: number;
+}
+export interface SaleReturnProduct {
+    id: number;
+    name: string;
+    pivot: {
+        quantity: number;
+    };
+    price: number;
 }

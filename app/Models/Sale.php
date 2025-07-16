@@ -56,4 +56,13 @@ class Sale extends Model
             ->withPivot(['quantity', 'price', 'subtotal'])
             ->withTimestamps();
     }
+
+    /**
+     * Get all of the sale returns for the sale.
+     */
+    public function saleReturns()
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
 }

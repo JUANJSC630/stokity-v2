@@ -1,71 +1,61 @@
+import SaleReturnForm from '@/components/sales/SaleReturnForm';
+import SaleReturnReceipt from '@/components/sales/SaleReturnReceipt';
+import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, ChevronLeft, Clock, Edit, XCircle } from 'lucide-react';
+import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
+import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, RotateCcw, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import ReactDOM from 'react-dom/client';
+import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
-import SaleTicket from '@/components/SaleTicket';
-
-interface Branch {
-    id: number;
-    name: string;
-}
-
-interface Client {
-    id: number;
-    name: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-}
-
-interface Product {
-    id: number;
-    name: string;
-}
-
-interface SaleProduct {
-    id: number;
-    sale_id: number;
-    product_id: number;
-    quantity: number;
-    price: number;
-    subtotal: number;
-    product?: Product | null; // Producto puede ser opcional o nulo
-}
-
-interface Sale {
-    id: number;
-    branch_id: number;
-    code: string;
-    client_id: number;
-    seller_id: number;
-    tax: number;
-    net: number;
-    total: number;
-    payment_method: string;
-    date: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    branch?: Branch | null;
-    client?: Client | null;
-    seller?: User | null;
-    saleProducts: SaleProduct[]; // La propiedad saleProducts siempre debe ser un array
-}
 
 interface Props {
     sale: Sale;
 }
 
 export default function Show({ sale }: Props) {
-    // Depuración en el cliente
-    console.log('Sale data received:', sale);
-    console.log('Sale products:', sale.saleProducts);
+    const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
+    // ...existing code...
+    // Calcular cantidad devuelta por producto
+    // Tipos para productos y devoluciones
+    type SaleProductWithRemaining = SaleProduct & { remaining: number };
+    type SaleReturnWithProducts = SaleReturn & { products: Array<ProductType & { pivot: { quantity: number } }> };
+
+    const getReturnedQuantity = (productId: number): number => {
+        if (!Array.isArray(sale.saleReturns)) return 0;
+        return (sale.saleReturns as SaleReturnWithProducts[]).reduce((acc, ret) => {
+            if (Array.isArray(ret.products)) {
+                const found = ret.products.find((p) => p.id === productId);
+                if (found && found.pivot && typeof found.pivot.quantity === 'number') {
+                    return acc + found.pivot.quantity;
+                }
+            }
+            return acc;
+        }, 0);
+    };
+
+    // Filtrar productos vendidos con cantidad restante
+    const remainingSaleProducts: SaleProductWithRemaining[] = (sale.saleProducts ?? [])
+        .map((sp) => {
+            const returned = getReturnedQuantity(sp.product_id);
+            return {
+                ...sp,
+                remaining: sp.quantity - returned,
+            };
+        })
+        .filter((sp) => sp.remaining > 0);
+
+    // Calcular valores actualizados según productos restantes
+    const netValue = remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0);
+    const taxValue = netValue * 0.19;
+    const totalValue = netValue + taxValue;
+    const [showReturnForm, setShowReturnForm] = useState(false);
+    const [showTicketPreview, setShowTicketPreview] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -129,39 +119,17 @@ export default function Show({ sale }: Props) {
         return date.toLocaleString();
     };
 
-    // Imprimir solo el ticket en popup como texto plano para impresora térmica
+    // Imprimir el ticket usando el componente SaleTicket en una nueva ventana
     const handlePrintTicket = () => {
         const printWindow = window.open('', '', 'width=400,height=600');
         if (printWindow) {
-            // Genera el ticket como texto plano
-            let ticketText = '';
-            ticketText += 'Stokity\n';
-            ticketText += 'GRACIAS POR PREFERIRNOS WhatsApp: 3148279405\n';
-            ticketText += '-----------------------------\n';
-            ticketText += `FACTURA DE VENTA # ${sale.code}\n`;
-            ticketText += `SUCURSAL: ${sale.branch?.name || 'N/A'}\n`;
-            ticketText += `FECHA: ${formatDateToLocal(sale.date)}\n`;
-            ticketText += '-----------------------------\n';
-            ticketText += 'DATOS CLIENTE\n';
-            ticketText += `NOMBRE: ${sale.client?.name || 'Consumidor Final'}\n`;
-            ticketText += '-----------------------------\n';
-            ticketText += `VENDEDOR: ${sale.seller?.name || 'N/A'}\n`;
-            ticketText += '-----------------------------\n';
-            ticketText += 'Producto        Cant   Precio\n';
-            sale.saleProducts.forEach(sp => {
-                ticketText += `${(sp.product?.name || 'Eliminado').padEnd(14)} ${String(sp.quantity).padEnd(5)} ${formatCurrency(sp.price)}\n`;
-            });
-            ticketText += '-----------------------------\n';
-            ticketText += `Neto: ${formatCurrency(sale.net)}\n`;
-            ticketText += `Impuesto: ${formatCurrency(sale.tax)}\n`;
-            ticketText += `Total: ${formatCurrency(sale.total)}\n`;
-            ticketText += '-----------------------------\n';
-            ticketText += '¡Gracias por su compra!\n';
-
             printWindow.document.write(`
                 <html>
                 <head>
                     <title>Ticket Venta ${sale.code}</title>
+                    ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+                        .map((el) => el.outerHTML)
+                        .join('\n')}
                     <style>
                         @media print {
                             body, html {
@@ -171,8 +139,6 @@ export default function Show({ sale }: Props) {
                                 width: 58mm !important;
                                 min-width: 58mm !important;
                                 max-width: 58mm !important;
-                                font-family: monospace !important;
-                                font-size: 12px !important;
                             }
                             @page {
                                 size: 58mm auto;
@@ -181,11 +147,51 @@ export default function Show({ sale }: Props) {
                         }
                     </style>
                 </head>
-                <body onload="window.print();window.close();"><pre>${ticketText}</pre></body>
+                <body>
+                    <div id="ticket-root"></div>
+                </body>
                 </html>
             `);
             printWindow.document.close();
+            // Espera a que el documento esté listo y renderiza el componente
+            const interval = setInterval(() => {
+                const rootDiv = printWindow.document.getElementById('ticket-root');
+                if (rootDiv) {
+                    clearInterval(interval);
+                    ReactDOM.createRoot(rootDiv).render(
+                        <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />,
+                    );
+                    setTimeout(() => {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                    }, 500);
+                }
+            }, 50);
         }
+    };
+
+    // Imprimir el recibo de devolución en texto plano ESC/POS desde el frontend
+    const handlePrintReturnReceipt = (saleReturnId: number) => {
+        // Llamar al backend para imprimir el recibo
+        fetch(`/sale-returns/${saleReturnId}/print`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+        })
+            .then(async (res) => {
+                if (res.ok) {
+                    toast.success('Recibo de devolución enviado a la impresora.');
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    toast.error(data.error || 'Error al imprimir el recibo.');
+                }
+            })
+            .catch(() => {
+                toast.error('Error de red al imprimir el recibo.');
+            });
     };
 
     return (
@@ -196,22 +202,62 @@ export default function Show({ sale }: Props) {
                     <Button onClick={handlePrintTicket} variant="default">
                         Imprimir Ticket
                     </Button>
+                    <Button onClick={() => setShowTicketPreview(true)} variant="outline" className="flex gap-1" title="Visualizar factura">
+                        <Eye className="size-4" />
+                        Ver factura
+                    </Button>
+                    <Button
+                        onClick={() => setShowReturnForm(true)}
+                        variant="outline"
+                        className="flex gap-1"
+                        disabled={remainingSaleProducts.length === 0}
+                    >
+                        <RotateCcw className="size-4" />
+                        Hacer devolución
+                    </Button>
                 </div>
+
+                <Dialog open={showTicketPreview} onOpenChange={setShowTicketPreview}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Vista previa de la factura</DialogTitle>
+                        </DialogHeader>
+                        <div
+                            className="flex justify-center bg-white p-4 dark:bg-neutral-900"
+                            style={{
+                                maxWidth: '58mm',
+                                width: '58mm',
+                                margin: '0 auto',
+                                boxShadow: '0 0 8px #ccc',
+                                borderRadius: 8,
+                                maxHeight: '80vh',
+                                overflow: 'auto',
+                            }}
+                        >
+                            <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
+                        </div>
+                        <DialogClose asChild>
+                            <Button variant="outline" className="mt-4 w-full">
+                                Cerrar
+                            </Button>
+                        </DialogClose>
+                    </DialogContent>
+                </Dialog>
                 {/* Ticket para impresión térmica, solo visible al imprimir */}
-                <div className="print:block hidden">
+                <div className="hidden print:block">
                     <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
                 </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 mb-2">
+                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
                     <div className="flex items-center gap-2">
                         <Link href={route('sales.index')}>
                             <Button variant="outline" size="icon" className="h-8 w-8">
                                 <ChevronLeft className="size-4" />
                             </Button>
                         </Link>
-                        <h1 className="text-xl md:text-2xl font-bold break-all">Venta: {sale.code}</h1>
+                        <h1 className="text-xl font-bold break-all md:text-2xl">Venta: {sale.code}</h1>
                     </div>
-                    <div className="mt-2 sm:mt-0 sm:ml-2 w-fit">{getStatusBadge(sale.status)}</div>
+                    <div className="mt-2 w-fit sm:mt-0 sm:ml-2">{getStatusBadge(sale.status)}</div>
                 </div>
 
                 <Card>
@@ -262,7 +308,7 @@ export default function Show({ sale }: Props) {
                                         <dd className="mt-1 text-lg">
                                             {sale.client ? (
                                                 <Link
-                                                    href={route('clients.show', sale.client_id)}
+                                                    href={route('clients.show', sale.client_id) + `?fromSale=${sale.id}`}
                                                     className="text-blue-600 hover:underline dark:text-blue-400"
                                                 >
                                                     {sale.client.name}
@@ -294,15 +340,15 @@ export default function Show({ sale }: Props) {
                                 <div className="divide-y">
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Valor Neto</div>
-                                        <div className="text-right">{formatCurrency(sale.net)}</div>
+                                        <div className="text-right">{formatCurrency(netValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Impuesto (19%)</div>
-                                        <div className="text-right">{formatCurrency(sale.tax)}</div>
+                                        <div className="text-right">{formatCurrency(taxValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                         <div>Total</div>
-                                        <div className="text-right">{formatCurrency(sale.total)}</div>
+                                        <div className="text-right">{formatCurrency(totalValue)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -313,21 +359,21 @@ export default function Show({ sale }: Props) {
                             <div className="mt-3 flex flex-col gap-3 md:gap-0">
                                 {/* Vista tipo cards en móvil */}
                                 <div className="block md:hidden">
-                                    {sale.saleProducts && sale.saleProducts.length > 0 ? (
+                                    {remainingSaleProducts.length > 0 ? (
                                         <div className="flex flex-col gap-3">
-                                            {sale.saleProducts.map((sp) => (
+                                            {remainingSaleProducts.map((sp) => (
                                                 <div key={sp.id} className="rounded-lg border bg-card p-3 shadow-sm">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="font-semibold text-base">{sp.product?.name || 'Producto eliminado'}</div>
-                                                        <div className="text-xs text-muted-foreground">x{sp.quantity}</div>
+                                                        <div className="text-base font-semibold">{sp.product?.name || 'Producto eliminado'}</div>
+                                                        <div className="text-xs text-muted-foreground">x{sp.remaining}</div>
                                                     </div>
-                                                    <div className="flex justify-between mt-2 text-sm">
+                                                    <div className="mt-2 flex justify-between text-sm">
                                                         <span className="text-muted-foreground">Precio:</span>
                                                         <span>{formatCurrency(sp.price)}</span>
                                                     </div>
                                                     <div className="flex justify-between text-sm">
                                                         <span className="text-muted-foreground">Subtotal:</span>
-                                                        <span className="font-semibold">{formatCurrency(sp.subtotal)}</span>
+                                                        <span className="font-semibold">{formatCurrency(sp.price * sp.remaining)}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -343,19 +389,21 @@ export default function Show({ sale }: Props) {
                                             <thead className="bg-muted/50">
                                                 <tr>
                                                     <th className="px-2 py-2 text-left font-semibold whitespace-nowrap md:px-4 md:py-2">Producto</th>
-                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">Cantidad</th>
+                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">
+                                                        Cantidad
+                                                    </th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Precio</th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Subtotal</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
-                                                {sale.saleProducts && sale.saleProducts.length > 0 ? (
-                                                    sale.saleProducts.map((sp) => (
+                                                {remainingSaleProducts.length > 0 ? (
+                                                    remainingSaleProducts.map((sp) => (
                                                         <tr key={sp.id}>
                                                             <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
-                                                            <td className="px-4 py-3 text-center">{sp.quantity}</td>
+                                                            <td className="px-4 py-3 text-center">{sp.remaining}</td>
                                                             <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
-                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.subtotal)}</td>
+                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.remaining)}</td>
                                                         </tr>
                                                     ))
                                                 ) : (
@@ -371,7 +419,9 @@ export default function Show({ sale }: Props) {
                                                     <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={3}>
                                                         Total
                                                     </td>
-                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">{formatCurrency(sale.total)}</td>
+                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
+                                                        {formatCurrency(remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0))}
+                                                    </td>
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -397,6 +447,131 @@ export default function Show({ sale }: Props) {
                         </div>
                     </CardFooter>
                 </Card>
+                {/* Historial de devoluciones */}
+                {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
+                    <div className="mt-8">
+                        <h3 className="text-lg font-medium">Devoluciones</h3>
+                        <div className="mt-3 flex flex-col gap-3">
+                            {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).map((ret) => (
+                                <div key={ret.id} className="rounded-lg border bg-card p-3 shadow-sm">
+                                    <div className="font-semibold">Fecha: {new Date(ret.created_at).toLocaleString()}</div>
+                                    <div>Motivo: {ret.reason || 'Sin motivo'}</div>
+                                    <div>
+                                        Productos devueltos:
+                                        <ul className="ml-4 list-disc">
+                                            {Array.isArray(ret.products) && ret.products.length > 0
+                                                ? ret.products.map((p) => (
+                                                      <li key={p.id}>
+                                                          {p.name} - Cantidad: {p.pivot.quantity}
+                                                      </li>
+                                                  ))
+                                                : null}
+                                        </ul>
+                                    </div>
+                                    <div className="mt-2 flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => setShowReturnReceipt({ open: true, returnId: ret.id })}>
+                                            Ver recibo de devolución
+                                        </Button>
+                                        <Button variant="default" size="sm" onClick={() => handlePrintReturnReceipt(ret.id)}>
+                                            Imprimir recibo
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                            {/* Modal para recibo de devolución */}
+                            <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt({ open })}>
+                                <DialogContent className="max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle>Recibo de devolución</DialogTitle>
+                                    </DialogHeader>
+                                    <div
+                                        className="flex justify-center bg-white p-4 dark:bg-neutral-900"
+                                        style={{
+                                            maxWidth: '58mm',
+                                            width: '58mm',
+                                            margin: '0 auto',
+                                            boxShadow: '0 0 8px #ccc',
+                                            borderRadius: 8,
+                                            maxHeight: '80vh',
+                                            overflow: 'auto',
+                                        }}
+                                    >
+                                        {showReturnReceipt.open &&
+                                            showReturnReceipt.returnId &&
+                                            (() => {
+                                                const ret = (sale.saleReturns ?? []).find((r) => r.id === showReturnReceipt.returnId);
+                                                if (!ret) return null;
+                                                // Enrich products for receipt
+                                                const enrichedProducts = Array.isArray(ret.products)
+                                                    ? ret.products.map((rp) => {
+                                                          const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
+                                                          return {
+                                                              code: saleProd?.product?.code ?? '',
+                                                              description: saleProd?.product?.description ?? '',
+                                                              purchase_price: saleProd?.product?.purchase_price ?? 0,
+                                                              sale_price: saleProd?.product?.sale_price ?? 0,
+                                                              stock: saleProd?.product?.stock ?? 0,
+                                                              min_stock: saleProd?.product?.min_stock ?? 0,
+                                                              category_id: saleProd?.product?.category_id ?? 0,
+                                                              branch_id: saleProd?.product?.branch_id ?? 0,
+                                                              created_at: saleProd?.product?.created_at ?? '',
+                                                              updated_at: saleProd?.product?.updated_at ?? '',
+                                                              image: saleProd?.product?.image ?? '',
+                                                              image_url: saleProd?.product?.image_url ?? '',
+                                                              status: Boolean(saleProd?.product?.status),
+                                                              deleted_at: saleProd?.product?.deleted_at ?? null,
+                                                              // Additional fields from SaleReturnProduct
+                                                              ...rp,
+                                                              id: rp.id,
+                                                              name: saleProd?.product?.name ?? 'Producto eliminado',
+                                                              price: saleProd?.price ?? 0,
+                                                          };
+                                                      })
+                                                    : [];
+                                                return (
+                                                    <SaleReturnReceipt
+                                                        saleReturn={{ ...ret, products: enrichedProducts }}
+                                                        sale={sale}
+                                                        formatCurrency={formatCurrency}
+                                                    />
+                                                );
+                                            })()}
+                                    </div>
+
+                                    <DialogClose asChild>
+                                        <Button variant="outline" className="mt-4 w-full">
+                                            Cerrar
+                                        </Button>
+                                    </DialogClose>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
+                )}
+
+                {/* Formulario de devolución */}
+                <SaleReturnForm
+                    saleId={sale.id}
+                    products={(sale.saleProducts ?? [])
+                        .map((sp) => {
+                            const returned = getReturnedQuantity(sp.product_id);
+                            return {
+                                id: sp.product_id,
+                                name: sp.product?.name || 'Producto eliminado',
+                                quantity: sp.quantity,
+                                alreadyReturned: returned,
+                                remaining: sp.quantity - returned,
+                            };
+                        })
+                        .filter((sp) => sp.remaining > 0)}
+                    open={showReturnForm}
+                    onClose={() => setShowReturnForm(false)}
+                    onSuccess={() => {
+                        // Recargar la venta para actualizar productos, totales y estado
+                        router.reload();
+                        setShowReturnForm(false);
+                    }}
+                />
             </div>
         </AppLayout>
     );

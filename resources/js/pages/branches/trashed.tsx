@@ -184,11 +184,11 @@ export default function TrashedBranches({
                                     ))}
                                 </div>
                                 {/* Vista tipo tarjeta en móvil */}
-                                <div className="block md:hidden p-2">
+                                <div className="block p-2 md:hidden">
                                     {branches?.data?.map((branch: Branch) => (
                                         <div key={branch.id} className="mb-6 rounded-xl border border-border/50 bg-card p-5 shadow-md">
                                             <div className="mb-3 flex items-center justify-between gap-2">
-                                                <div className="font-semibold text-base">{branch.name}</div>
+                                                <div className="text-base font-semibold">{branch.name}</div>
                                                 <div className="flex gap-2">
                                                     <Button
                                                         variant="outline"
@@ -217,12 +217,20 @@ export default function TrashedBranches({
                                                 </div>
                                             </div>
                                             {branch.manager && (
-                                                <div className="mb-1 text-xs text-muted-foreground">Gerente: <span className="font-medium">{branch.manager.name}</span></div>
+                                                <div className="mb-1 text-xs text-muted-foreground">
+                                                    Gerente: <span className="font-medium">{branch.manager.name}</span>
+                                                </div>
                                             )}
-                                            <div className="mb-1 text-sm text-muted-foreground">Dirección: <span className="font-medium">{branch.address}</span></div>
-                                            <div className="mb-1 text-sm text-muted-foreground">Teléfono: <span className="font-medium">{branch.phone}</span></div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                Dirección: <span className="font-medium">{branch.address}</span>
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                Teléfono: <span className="font-medium">{branch.phone}</span>
+                                            </div>
                                             <div className="mb-1 text-xs">
-                                                <span className="inline-block rounded bg-red-100 px-2 py-0.5 text-red-700 font-semibold">Eliminada</span>
+                                                <span className="inline-block rounded bg-red-100 px-2 py-0.5 font-semibold text-red-700">
+                                                    Eliminada
+                                                </span>
                                                 <span className="ml-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</span>
                                             </div>
                                         </div>

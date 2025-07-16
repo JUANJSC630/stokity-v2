@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleReturnController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -11,4 +12,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('sales/{sale}/edit', [SaleController::class, 'edit'])->name('sales.edit');
     Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
     Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
+    Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
 });

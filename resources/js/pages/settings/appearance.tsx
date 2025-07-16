@@ -1,6 +1,5 @@
-
+import { Head, router, useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
@@ -9,7 +8,7 @@ import { type BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { Upload, UserCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -92,7 +91,7 @@ export default function Appearance() {
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="flex flex-col items-center gap-4">
-                                        <div className="group relative aspect-square w-full max-w-[160px] overflow-hidden rounded-md border-2 bg-muted border-sidebar-border transition-all duration-200 hover:border-primary">
+                                        <div className="group relative aspect-square w-full max-w-[160px] overflow-hidden rounded-md border-2 border-sidebar-border bg-muted transition-all duration-200 hover:border-primary">
                                             {imagePreview ? (
                                                 <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
                                             ) : defaultImageExists ? (
@@ -103,17 +102,22 @@ export default function Appearance() {
                                                 </div>
                                             )}
                                         </div>
-                                        <label htmlFor="image" className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black">
+                                        <label
+                                            htmlFor="image"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
+                                        >
                                             <Upload className="size-4" />
                                             Subir imagen
                                             <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
                                         </label>
                                         {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                        <p className="text-center text-xs text-muted-foreground">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</p>
+                                        <p className="text-center text-xs text-muted-foreground">
+                                            Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
+                                        </p>
                                     </div>
                                     <button
                                         type="submit"
-                                        className="w-full rounded-md bg-primary px-4 py-2 font-semibold hover:bg-primary/90 disabled:opacity-60 text-white dark:text-black"
+                                        className="w-full rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/90 disabled:opacity-60 dark:text-black"
                                         disabled={isUploading || !form.data.image}
                                     >
                                         {isUploading ? 'Cambiando...' : 'Cambiar imagen por defecto'}

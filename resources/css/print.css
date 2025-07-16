@@ -1,24 +1,24 @@
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  .ticket {
-    width: 58mm;
-    max-width: 58mm;
-    min-width: 58mm;
-    margin: 0 auto;
-    font-size: 12px;
-    background: white;
-    color: black;
-    padding: 0;
-  }
-  body {
-    background: white !important;
-  }
-  .print\:block {
-    display: block !important;
-  }
-  .hidden {
-    display: none !important;
-  }
+    .no-print {
+        display: none !important;
+    }
+    .ticket {
+        width: 58mm;
+        max-width: 58mm;
+        min-width: 58mm;
+        margin: 0 auto;
+        font-size: 12px;
+        background: white;
+        color: black;
+        padding: 0;
+    }
+    body {
+        background: white !important;
+    }
+    .print\:block {
+        display: block !important;
+    }
+    .hidden {
+        display: none !important;
+    }
 }

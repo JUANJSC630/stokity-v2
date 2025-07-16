@@ -31,6 +31,7 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
         address: branch.address || '',
         phone: branch.phone || '',
         email: branch.email || '',
+        business_name: branch.business_name || '',
         status: branch.status,
         manager_id: branch.manager_id ? branch.manager_id.toString() : 'none',
     });
@@ -98,6 +99,19 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
                                     />
                                     {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="business_name" className={errors.business_name ? 'text-destructive' : ''}>
+                                    Nombre comercial
+                                </Label>
+                                <Input
+                                    id="business_name"
+                                    value={data.business_name}
+                                    onChange={(e) => setData('business_name', e.target.value)}
+                                    className={errors.business_name ? 'border-destructive' : ''}
+                                />
+                                {errors.business_name && <p className="text-sm text-destructive">{errors.business_name}</p>}
                             </div>
 
                             <div className="space-y-2">

@@ -1,11 +1,12 @@
+import { CardCreateClient } from '@/components/clients';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import type { User as BaseUser } from '@/types';
-import { type BreadcrumbItem } from '@/types';
+import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import Cookies from 'js-cookie';
@@ -13,25 +14,11 @@ import { Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
-interface Branch {
-    id: number;
-    name: string;
-}
-
-interface Client {
-    id: number;
-    name: string;
-}
-
-interface User extends BaseUser {
-    branch_id?: number | null;
-}
-
 interface Props {
     branches: Branch[];
     clients: Client[];
     sellers: User[];
-    products: Product[]; // <-- Agrega esto a tus props reales
+    products: Product[];
 }
 
 // Utilidad para formatear a COP
@@ -46,10 +33,12 @@ function formatCOP(value: string | number) {
 }
 
 export default function Create({ branches, clients, products = [] }: Props) {
+    // Ordenar clientes por id descendente (más reciente arriba)
+    const sortedClients = [...clients].sort((a, b) => b.id - a.id);
     // Busca el id real del cliente Anónimo si existe, si no, usa el primero
-    const anonymous = clients.find((c) => c.name.toLowerCase() === 'anónimo');
-    const anonymousClient = anonymous || clients[0];
-    const clientsWithAnonymous = anonymous ? clients : [{ id: 0, name: 'Anónimo' }, ...clients];
+    const anonymous = sortedClients.find((c) => c.name.toLowerCase() === 'consumidor final');
+    const anonymousClient = anonymous || sortedClients[0];
+    const clientsWithAnonymous = anonymous ? sortedClients : [{ id: 0, name: 'Consumidor Final' }, ...sortedClients];
 
     const { auth } = usePage<{ auth: { user: User } }>().props;
     const breadcrumbs: BreadcrumbItem[] = [
@@ -148,6 +137,24 @@ export default function Create({ branches, clients, products = [] }: Props) {
         // eslint-disable-next-line
     }, [productSearch]);
 
+    // Handler para Enter en el input de búsqueda
+    function handleProductSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Buscar producto exacto por código o nombre
+            const search = productSearch.trim().toLowerCase();
+            const found = products.find((p) => p.code?.toLowerCase() === search || p.name?.toLowerCase() === search);
+            if (found) {
+                handleAddProduct(found);
+                setProductSearch('');
+            } else if (products.length === 1) {
+                // Si solo hay un resultado, agregarlo
+                handleAddProduct(products[0]);
+                setProductSearch('');
+            }
+        }
+    }
+
     function handleAddProduct(prod: Product) {
         if (!prod) return;
         setSaleProducts((prev) => {
@@ -211,9 +218,33 @@ export default function Create({ branches, clients, products = [] }: Props) {
     // Referencia para el input de búsqueda de productos
     const productSearchRef = React.useRef<HTMLInputElement>(null);
 
+    // Estado para mostrar el modal de crear cliente
+    const [showCreateClient, setShowCreateClient] = useState(false);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
+
+            {/* Modal para crear cliente */}
+            <Dialog open={showCreateClient} onOpenChange={setShowCreateClient}>
+                <DialogContent className="max-w-lg md:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Crear Nuevo Cliente</DialogTitle>
+                    </DialogHeader>
+                    <CardCreateClient
+                        onSuccess={() => {
+                            setShowCreateClient(false);
+                            toast.success('Cliente creado correctamente');
+                            router.reload({ only: ['clients'] });
+                        }}
+                    />
+                    <DialogClose asChild>
+                        <Button variant="outline" className="mt-4 w-full">
+                            Cerrar
+                        </Button>
+                    </DialogClose>
+                </DialogContent>
+            </Dialog>
 
             <div className="flex flex-col gap-4 p-2 sm:p-4 md:h-[calc(100dvh-64px)] md:min-h-0 md:flex-row">
                 {/* Sección derecha: Productos disponibles */}
@@ -225,6 +256,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                             placeholder="Buscar producto..."
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
+                            onKeyDown={handleProductSearchKeyDown}
                             className="mb-2"
                             ref={productSearchRef}
                         />
@@ -243,6 +275,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                     placeholder="Buscar producto..."
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
+                                    onKeyDown={handleProductSearchKeyDown}
                                     className="mb-2"
                                     ref={productSearchRef}
                                 />
@@ -351,18 +384,32 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         <Label htmlFor="client_id">
                                             Cliente <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione cliente" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {clientsWithAnonymous.map((client) => (
-                                                    <SelectItem key={client.id} value={client.id.toString()}>
-                                                        {client.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="flex flex-row items-center gap-2">
+                                            <div className="flex-1">
+                                                <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
+                                                    <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                                        <SelectValue placeholder="Seleccione cliente" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {clientsWithAnonymous.map((client) => (
+                                                            <SelectItem key={client.id} value={client.id.toString()}>
+                                                                {client.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="outline"
+                                                onClick={() => setShowCreateClient(true)}
+                                                title="Crear cliente"
+                                                className="p-2"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                         {form.errors.client_id && <p className="text-sm text-red-500">{form.errors.client_id}</p>}
                                     </div>
 

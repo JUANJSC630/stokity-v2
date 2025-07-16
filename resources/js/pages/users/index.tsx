@@ -115,7 +115,7 @@ export default function Users({ users, filters }: Props) {
                 </div>
 
                 <Card className="flex-1 overflow-hidden">
-                    <div className="overflow-x-auto hidden md:block">
+                    <div className="hidden overflow-x-auto md:block">
                         <table className="w-full">
                             <thead className="bg-muted/50">
                                 <tr className="border-b text-left">
