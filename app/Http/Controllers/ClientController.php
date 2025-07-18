@@ -13,14 +13,19 @@ class ClientController extends Controller
      */
     public function index(Request $request)
     {
-        $clients = Client::query()
-            ->when($request->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
+        $query = Client::query();
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
                     ->orWhere('document', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
-            })
-            ->orderBy('name')
+            });
+        }
+
+        $clients = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
