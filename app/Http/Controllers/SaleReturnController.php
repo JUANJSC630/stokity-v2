@@ -42,7 +42,8 @@ class SaleReturnController extends Controller
           throw new \Exception('Producto no pertenece a la venta.');
         }
         // Validar que no se devuelva más de lo vendido
-        $totalReturned = SaleReturnProduct::where('sale_return_id', $saleReturn->id)
+        // Sumar todas las devoluciones previas para este producto en esta venta
+        $totalReturned = SaleReturnProduct::whereIn('sale_return_id', $sale->saleReturns()->pluck('id'))
           ->where('product_id', $item['product_id'])
           ->sum('quantity');
         $maxReturn = $saleProduct->quantity - $totalReturned;
@@ -63,11 +64,8 @@ class SaleReturnController extends Controller
       $allReturned = true;
       foreach ($sale->saleProducts as $sp) {
         // Sumar todas las cantidades devueltas para este producto en todas las devoluciones de la venta
+        // Incluyendo la devolución actual que acabamos de crear
         $returnedQty = SaleReturnProduct::whereIn('sale_return_id', $sale->saleReturns()->pluck('id'))
-          ->where('product_id', $sp->product_id)
-          ->sum('quantity');
-        // Sumar también la devolución actual
-        $returnedQty += SaleReturnProduct::where('sale_return_id', $saleReturn->id)
           ->where('product_id', $sp->product_id)
           ->sum('quantity');
         if ($returnedQty < $sp->quantity) {

@@ -20,7 +20,7 @@ interface Props {
 
 export default function Show({ sale }: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
-    // ...existing code...
+
     // Calcular cantidad devuelta por producto
     // Tipos para productos y devoluciones
     type SaleProductWithRemaining = SaleProduct & { remaining: number };
@@ -117,6 +117,12 @@ export default function Show({ sale }: Props) {
     const formatDateToLocal = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleString();
+    };
+
+    // Función para actualizar los datos de la venta después de una devolución
+    const updateSaleData = () => {
+        // Recargar la página para obtener los datos actualizados
+        router.reload();
     };
 
     // Imprimir el ticket usando el componente SaleTicket en una nueva ventana
@@ -689,8 +695,8 @@ export default function Show({ sale }: Props) {
                     open={showReturnForm}
                     onClose={() => setShowReturnForm(false)}
                     onSuccess={() => {
-                        // Recargar la venta para actualizar productos, totales y estado
-                        router.reload();
+                        // Actualizar los datos de la venta después de la devolución
+                        updateSaleData();
                         setShowReturnForm(false);
                     }}
                 />

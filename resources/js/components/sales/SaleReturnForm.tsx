@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { router } from '@inertiajs/react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface Product {
@@ -28,8 +28,34 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    // Actualizar formProducts cuando cambien los productos o cuando se abra el modal
+    React.useEffect(() => {
+        if (open) {
+            setFormProducts(products.map((p) => ({ ...p, returnQuantity: 0 })));
+            setReason('');
+            setError(null);
+            setSuccess(null);
+        }
+    }, [products, open]);
+
     const handleQuantityChange = (id: number, value: number) => {
         setFormProducts(formProducts.map((p) => (p.id === id ? { ...p, returnQuantity: value } : p)));
+    };
+
+    const handleReturnAll = () => {
+        setFormProducts(formProducts.map((p) => ({
+            ...p,
+            returnQuantity: p.quantity - p.alreadyReturned
+        })));
+        toast.success('Todos los productos han sido seleccionados para devolución');
+    };
+
+    const handleClearAll = () => {
+        setFormProducts(formProducts.map((p) => ({
+            ...p,
+            returnQuantity: 0
+        })));
+        toast.success('Todas las cantidades han sido limpiadas');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -56,8 +82,8 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                         toast.success('Devolución registrada correctamente.');
                         setLoading(false);
                         if (onSuccess) onSuccess();
-                        formProducts.forEach((p) => (p.returnQuantity = 0)); // Reset form
-                        onClose();
+                        // No cerrar automáticamente, dejar que el usuario vea el mensaje
+                        // y cierre manualmente para ver los productos actualizados
                     },
                     onError: (errors: unknown) => {
                         setError('Error al registrar la devolución.');
@@ -75,8 +101,17 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
         }
     };
 
+    const handleClose = () => {
+        // Limpiar el estado cuando se cierre el modal
+        setReason('');
+        setError(null);
+        setSuccess(null);
+        setFormProducts(products.map((p) => ({ ...p, returnQuantity: 0 })));
+        onClose();
+    };
+
     return (
-        <Dialog open={open} onOpenChange={onClose}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Registrar devolución</DialogTitle>
@@ -106,6 +141,30 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                                 );
                             })}
                         </div>
+                        {formProducts.some(p => (p.quantity - p.alreadyReturned) > 0) && (
+                            <div className="flex justify-end gap-2">
+                                {formProducts.some(p => p.returnQuantity > 0) && (
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={handleClearAll}
+                                        disabled={loading}
+                                    >
+                                        Limpiar todo
+                                    </Button>
+                                )}
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleReturnAll}
+                                    disabled={loading}
+                                >
+                                    Devolver todo
+                                </Button>
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label className="mb-2 block font-medium">Motivo (opcional)</label>
@@ -114,12 +173,20 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                     {error && <div className="text-sm text-red-600">{error}</div>}
                     {success && <div className="text-sm text-green-600">{success}</div>}
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            Registrar devolución
-                        </Button>
+                        {success ? (
+                            <Button type="button" variant="outline" onClick={handleClose}>
+                                Cerrar
+                            </Button>
+                        ) : (
+                            <>
+                                <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" disabled={loading}>
+                                    Registrar devolución
+                                </Button>
+                            </>
+                        )}
                     </DialogFooter>
                 </form>
             </DialogContent>
