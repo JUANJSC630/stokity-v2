@@ -18,6 +18,8 @@ class Sale extends Model
         'tax',
         'net',
         'total',
+        'amount_paid',
+        'change_amount',
         'payment_method',
         'date',
         'status',
@@ -28,6 +30,8 @@ class Sale extends Model
         'tax' => 'decimal:2',
         'net' => 'decimal:2',
         'total' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'change_amount' => 'decimal:2',
     ];
 
     public function branch()

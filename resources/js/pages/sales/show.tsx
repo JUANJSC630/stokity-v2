@@ -435,6 +435,41 @@ export default function Show({ sale }: Props) {
                             </div>
                         </div>
 
+                        {/* Sección de Pago y Cambio */}
+                        {sale.payment_method === 'cash' && sale.amount_paid && sale.change_amount !== undefined && (
+                            <div className="mt-8">
+                                <h3 className="text-lg font-medium">Información de Pago</h3>
+                                <div className="mt-3 overflow-x-auto rounded-md border">
+                                    <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
+                                        <div className="grid grid-cols-2 font-semibold">
+                                            <div>Concepto</div>
+                                            <div className="text-right">Monto</div>
+                                        </div>
+                                    </div>
+                                    <div className="divide-y">
+                                        <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
+                                            <div>Total a Pagar</div>
+                                            <div className="text-right">{formatCurrency(totalValue)}</div>
+                                        </div>
+                                        <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
+                                            <div>Con Cuánto Pagó</div>
+                                            <div className="text-right">{formatCurrency(sale.amount_paid)}</div>
+                                        </div>
+                                        <div className={`grid grid-cols-2 px-2 py-2 font-semibold md:px-4 md:py-3 ${
+                                            sale.change_amount >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
+                                        }`}>
+                                            <div>Cambio</div>
+                                            <div className={`text-right ${
+                                                sale.change_amount >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+                                            }`}>
+                                                {formatCurrency(sale.change_amount)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="mt-8">
                             <h3 className="text-lg font-medium">Productos Vendidos</h3>
                             <div className="mt-3 flex flex-col gap-3 md:gap-0">

@@ -18,6 +18,9 @@ interface SaleTicketProps {
         net: number;
         tax: number;
         total: number;
+        payment_method?: string;
+        amount_paid?: number;
+        change_amount?: number;
     };
     formatCurrency: (value: number) => string;
     formatDateToLocal: (date: string) => string;
@@ -134,6 +137,35 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
                 </tbody>
             </table>
             <hr />
+
+            {/* Información de Pago y Cambio */}
+            {sale.payment_method === 'cash' && sale.amount_paid && sale.change_amount !== undefined && (
+                <>
+                    <table style={{ width: '100%', fontSize: 10, marginTop: 4, marginBottom: 4, textAlign: 'center' }}>
+                        <tbody>
+                            <tr>
+                                <td style={{ fontWeight: 'bold' }}>Total a Pagar:</td>
+                                <td>{formatCurrency(sale.total)}</td>
+                            </tr>
+                            <tr>
+                                <td style={{ fontWeight: 'bold' }}>Con Cuánto Pagó:</td>
+                                <td>{formatCurrency(sale.amount_paid)}</td>
+                            </tr>
+                            <tr>
+                                <td style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}>Cambio:</td>
+                                <td style={{ 
+                                    borderTop: '1px solid #000',
+                                    color: sale.change_amount >= 0 ? '#059669' : '#dc2626',
+                                    fontWeight: 'bold'
+                                }}>
+                                    {formatCurrency(sale.change_amount)}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <hr />
+                </>
+            )}
 
             <p style={{ fontSize: 10, marginTop: 2 }}>¡Gracias por su compra!</p>
         </div>

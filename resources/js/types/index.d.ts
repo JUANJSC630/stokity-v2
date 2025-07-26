@@ -127,6 +127,8 @@ export interface Sale {
     tax: number;
     net: number;
     total: number;
+    amount_paid: number;
+    change_amount: number;
     payment_method: string;
     date: string;
     status: string;

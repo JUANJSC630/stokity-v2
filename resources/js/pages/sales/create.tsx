@@ -32,6 +32,16 @@ function formatCOP(value: string | number) {
     }).format(num);
 }
 
+// Utilidad para formatear números sin símbolo de moneda
+function formatNumber(value: string | number) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '';
+    return new Intl.NumberFormat('es-CO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(num);
+}
+
 export default function Create({ branches, clients, products = [] }: Props) {
     // Ordenar clientes por id descendente (más reciente arriba)
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
@@ -63,6 +73,8 @@ export default function Create({ branches, clients, products = [] }: Props) {
         tax: '0',
         net: '0',
         total: '0',
+        amount_paid: '0',
+        change_amount: '0',
         payment_method: 'cash',
         date: new Date().toISOString().slice(0, 16), // Formato: YYYY-MM-DDThh:mm
         status: 'completed',
@@ -75,6 +87,18 @@ export default function Create({ branches, clients, products = [] }: Props) {
             toast.error('Debes agregar al menos un producto a la venta.');
             return;
         }
+        
+        // Validar que el monto pagado sea suficiente si es efectivo
+        if (form.data.payment_method === 'cash') {
+            const total = parseFloat(form.data.total) || 0;
+            const amountPaid = parseFloat(form.data.amount_paid) || 0;
+            
+            if (amountPaid < total) {
+                toast.error(`El monto pagado (${formatCOP(amountPaid)}) debe ser al menos igual al total (${formatCOP(total)})`);
+                return;
+            }
+        }
+        
         const data = {
             ...form.data,
             products: saleProducts.map((sp) => ({
@@ -205,21 +229,66 @@ export default function Create({ branches, clients, products = [] }: Props) {
     function recalculateTotals() {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
         const tax = net * (taxPercent / 100);
+        const total = net + tax;
         form.setData('net', net.toFixed(2));
         form.setData('tax', tax.toFixed(2));
-        form.setData('total', (net + tax).toFixed(2));
+        form.setData('total', total.toFixed(2));
+        
+        // Si el método de pago es efectivo, calcular la devuelta automáticamente
+        if (form.data.payment_method === 'cash') {
+            const amountPaid = parseFloat(form.data.amount_paid) || 0;
+            const change = amountPaid - total;
+            form.setData('change_amount', change.toFixed(2));
+        }
+    }
+
+
+
+
+
+    // Función para formatear el input mientras el usuario escribe
+    function formatAmountPaidInput(value: string) {
+        // Remover todo excepto números
+        const numbersOnly = value.replace(/[^\d]/g, '');
+        
+        if (numbersOnly === '') return '';
+        
+        // Convertir a número y formatear
+        const numericValue = parseInt(numbersOnly, 10);
+        return new Intl.NumberFormat('es-CO', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(numericValue);
+    }
+
+    // Función para parsear el valor formateado de vuelta a número
+    function parseFormattedAmount(formattedValue: string): number {
+        // Remover todos los caracteres no numéricos
+        const numbersOnly = formattedValue.replace(/[^\d]/g, '');
+        return parseInt(numbersOnly, 10) || 0;
     }
 
     React.useEffect(() => {
         recalculateTotals();
         // eslint-disable-next-line
-    }, [saleProducts, taxPercent]);
+    }, [saleProducts, taxPercent, form.data.payment_method]);
+
+    // Inicializar el display del monto pagado cuando cambie el total
+    React.useEffect(() => {
+        const numericValue = parseFloat(form.data.amount_paid) || 0;
+        if (numericValue > 0) {
+            setAmountPaidDisplay(formatNumber(numericValue));
+        }
+    }, [form.data.amount_paid]);
 
     // Referencia para el input de búsqueda de productos
     const productSearchRef = React.useRef<HTMLInputElement>(null);
 
     // Estado para mostrar el modal de crear cliente
     const [showCreateClient, setShowCreateClient] = useState(false);
+    
+    // Estado para el input de monto pagado (formato visual)
+    const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -676,6 +745,129 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         {form.errors.total && <p className="text-sm text-red-500">{form.errors.total}</p>}
                                     </div>
                                 </div>
+
+                                {/* Sección de Pago y Cambio */}
+                                {form.data.payment_method === 'cash' && (
+                                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="amount_paid">
+                                                Con Cuánto Paga <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="amount_paid"
+                                                type="text"
+                                                placeholder="0"
+                                                className="w-full border-purple-200 bg-purple-50 text-purple-900 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-200"
+                                                value={amountPaidDisplay}
+                                                onChange={(e) => {
+                                                    const formattedValue = formatAmountPaidInput(e.target.value);
+                                                    setAmountPaidDisplay(formattedValue);
+                                                    const numericValue = parseFormattedAmount(formattedValue);
+                                                    form.setData('amount_paid', numericValue.toString());
+                                                    // Calcular cambio inmediatamente con el nuevo valor
+                                                    const total = parseFloat(form.data.total) || 0;
+                                                    const change = numericValue - total;
+                                                    form.setData('change_amount', change.toFixed(2));
+                                                }}
+                                                onBlur={() => {
+                                                    const numericValue = parseFloat(form.data.amount_paid) || 0;
+                                                    setAmountPaidDisplay(formatNumber(numericValue));
+                                                }}
+                                                required
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            form.setData('amount_paid', total.toString());
+                                                            setAmountPaidDisplay(formatNumber(total));
+                                                            form.setData('change_amount', '0.00');
+                                                        }}
+                                                        className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800"
+                                                        title="Pagar exacto"
+                                                    >
+                                                        Exacto
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 1000) * 1000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-green-300 bg-green-100 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-200 dark:border-green-600 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800"
+                                                        title="Redondear al mil"
+                                                    >
+                                                        Mil
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 5000) * 5000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-purple-300 bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200 dark:border-purple-600 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-800"
+                                                        title="Redondear a 5 mil"
+                                                    >
+                                                        5 Mil
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 10000) * 10000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 hover:bg-yellow-200 dark:border-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-800"
+                                                        title="Redondear a 10 mil"
+                                                    >
+                                                        10 Mil
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        form.setData('amount_paid', '0');
+                                                        setAmountPaidDisplay('');
+                                                        form.setData('change_amount', '0.00');
+                                                    }}
+                                                    className="rounded border border-gray-300 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                    title="Limpiar campo"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            {form.errors.amount_paid && <p className="text-sm text-red-500">{form.errors.amount_paid}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="change_amount">Cambio</Label>
+                                            <Input
+                                                id="change_amount"
+                                                type="text"
+                                                value={formatCOP(form.data.change_amount || 0)}
+                                                readOnly
+                                                className={`w-full font-semibold ${
+                                                    parseFloat(form.data.change_amount) >= 0
+                                                        ? 'border-green-200 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200'
+                                                        : 'border-red-200 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200'
+                                                }`}
+                                            />
+                                            {form.errors.change_amount && <p className="text-sm text-red-500">{form.errors.change_amount}</p>}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Botones */}
                                 <div className="mt-4 flex flex-col justify-end gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
