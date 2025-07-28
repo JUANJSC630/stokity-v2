@@ -1,3 +1,4 @@
+import SaleReturnTicket from '@/components/SaleReturnTicket';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,6 @@ import { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
-import SaleReturnTicket from '@/components/SaleReturnTicket';
 
 interface Props {
     sale: Sale;
@@ -50,10 +50,15 @@ export default function Show({ sale }: Props) {
         })
         .filter((sp) => sp.remaining > 0);
 
-    // Calcular valores actualizados según productos restantes
-    const netValue = remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0);
-    const taxValue = netValue * 0.19;
-    const totalValue = netValue + taxValue;
+    // Calcular valores originales de la venta (sin afectar por devoluciones)
+    const originalNetValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0);
+    const originalTaxValue = originalNetValue * 0.19;
+    const originalTotalValue = originalNetValue + originalTaxValue;
+
+    // Calcular valores actualizados según productos restantes (solo para mostrar productos disponibles)
+    // const netValue = remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0);
+    // const taxValue = netValue * 0.19;
+    // const totalValue = netValue + taxValue;
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [showTicketPreview, setShowTicketPreview] = useState(false);
 
@@ -269,7 +274,7 @@ export default function Show({ sale }: Props) {
                             sale={sale}
                             formatCurrency={formatCurrency}
                             formatDateToLocal={formatDateToLocal}
-                        />
+                        />,
                     );
                     setTimeout(() => {
                         printWindow.focus();
@@ -416,7 +421,7 @@ export default function Show({ sale }: Props) {
                         </div>
 
                         <div className="mt-8">
-                            <h3 className="text-lg font-medium">Valores</h3>
+                            <h3 className="text-lg font-medium">Valores Originales de la Venta</h3>
                             <div className="mt-3 overflow-x-auto rounded-md border">
                                 <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
                                     <div className="grid grid-cols-2 font-semibold">
@@ -427,15 +432,15 @@ export default function Show({ sale }: Props) {
                                 <div className="divide-y">
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Valor Neto</div>
-                                        <div className="text-right">{formatCurrency(netValue)}</div>
+                                        <div className="text-right">{formatCurrency(originalNetValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Impuesto (19%)</div>
-                                        <div className="text-right">{formatCurrency(taxValue)}</div>
+                                        <div className="text-right">{formatCurrency(originalTaxValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                         <div>Total</div>
-                                        <div className="text-right">{formatCurrency(totalValue)}</div>
+                                        <div className="text-right">{formatCurrency(originalTotalValue)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -455,19 +460,23 @@ export default function Show({ sale }: Props) {
                                     <div className="divide-y">
                                         <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                             <div>Total a Pagar</div>
-                                            <div className="text-right">{formatCurrency(totalValue)}</div>
+                                            <div className="text-right">{formatCurrency(originalTotalValue)}</div>
                                         </div>
                                         <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                             <div>Con Cuánto Pagó</div>
                                             <div className="text-right">{formatCurrency(sale.amount_paid)}</div>
                                         </div>
-                                        <div className={`grid grid-cols-2 px-2 py-2 font-semibold md:px-4 md:py-3 ${
-                                            sale.change_amount >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
-                                        }`}>
+                                        <div
+                                            className={`grid grid-cols-2 px-2 py-2 font-semibold md:px-4 md:py-3 ${
+                                                sale.change_amount >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
+                                            }`}
+                                        >
                                             <div>Cambio</div>
-                                            <div className={`text-right ${
-                                                sale.change_amount >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                                            }`}>
+                                            <div
+                                                className={`text-right ${
+                                                    sale.change_amount >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
+                                                }`}
+                                            >
                                                 {formatCurrency(sale.change_amount)}
                                             </div>
                                         </div>
@@ -477,28 +486,40 @@ export default function Show({ sale }: Props) {
                         )}
 
                         <div className="mt-8">
-                            <h3 className="text-lg font-medium">Productos Vendidos</h3>
+                            <h3 className="text-lg font-medium">Productos Vendidos (Originales)</h3>
                             <div className="mt-3 flex flex-col gap-3 md:gap-0">
                                 {/* Vista tipo cards en móvil */}
                                 <div className="block md:hidden">
-                                    {remainingSaleProducts.length > 0 ? (
+                                    {(sale.saleProducts ?? []).length > 0 ? (
                                         <div className="flex flex-col gap-3">
-                                            {remainingSaleProducts.map((sp) => (
-                                                <div key={sp.id} className="rounded-lg border bg-card p-3 shadow-sm">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="text-base font-semibold">{sp.product?.name || 'Producto eliminado'}</div>
-                                                        <div className="text-xs text-muted-foreground">x{sp.remaining}</div>
+                                            {(sale.saleProducts ?? []).map((sp) => {
+                                                const returned = getReturnedQuantity(sp.product_id);
+                                                const isReturned = returned > 0;
+                                                return (
+                                                    <div
+                                                        key={sp.id}
+                                                        className={`rounded-lg border bg-card p-3 shadow-sm ${isReturned ? 'opacity-60' : ''}`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-base font-semibold">{sp.product?.name || 'Producto eliminado'}</div>
+                                                            <div className="text-xs text-muted-foreground">x{sp.quantity}</div>
+                                                        </div>
+                                                        <div className="mt-2 flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">Precio:</span>
+                                                            <span>{formatCurrency(sp.price)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">Subtotal:</span>
+                                                            <span className="font-semibold">{formatCurrency(sp.price * sp.quantity)}</span>
+                                                        </div>
+                                                        {isReturned && (
+                                                            <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                                                                Devuelto: {returned} unidades
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="mt-2 flex justify-between text-sm">
-                                                        <span className="text-muted-foreground">Precio:</span>
-                                                        <span>{formatCurrency(sp.price)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-sm">
-                                                        <span className="text-muted-foreground">Subtotal:</span>
-                                                        <span className="font-semibold">{formatCurrency(sp.price * sp.remaining)}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     ) : (
                                         <div className="p-4 text-center text-neutral-400">No hay productos registrados en esta venta</div>
@@ -512,25 +533,39 @@ export default function Show({ sale }: Props) {
                                                 <tr>
                                                     <th className="px-2 py-2 text-left font-semibold whitespace-nowrap md:px-4 md:py-2">Producto</th>
                                                     <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">
-                                                        Cantidad
+                                                        Cantidad Original
+                                                    </th>
+                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">
+                                                        Devuelto
                                                     </th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Precio</th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Subtotal</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
-                                                {remainingSaleProducts.length > 0 ? (
-                                                    remainingSaleProducts.map((sp) => (
-                                                        <tr key={sp.id}>
-                                                            <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
-                                                            <td className="px-4 py-3 text-center">{sp.remaining}</td>
-                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
-                                                            <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.remaining)}</td>
-                                                        </tr>
-                                                    ))
+                                                {(sale.saleProducts ?? []).length > 0 ? (
+                                                    (sale.saleProducts ?? []).map((sp) => {
+                                                        const returned = getReturnedQuantity(sp.product_id);
+                                                        const isReturned = returned > 0;
+                                                        return (
+                                                            <tr key={sp.id} className={isReturned ? 'opacity-60' : ''}>
+                                                                <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
+                                                                <td className="px-4 py-3 text-center">{sp.quantity}</td>
+                                                                <td className="px-4 py-3 text-center">
+                                                                    {returned > 0 ? (
+                                                                        <span className="text-orange-600 dark:text-orange-400">{returned}</span>
+                                                                    ) : (
+                                                                        <span className="text-muted-foreground">-</span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
+                                                                <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.quantity)}</td>
+                                                            </tr>
+                                                        );
+                                                    })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan={4} className="p-4 text-center text-neutral-400">
+                                                        <td colSpan={5} className="p-4 text-center text-neutral-400">
                                                             No hay productos registrados en esta venta
                                                         </td>
                                                     </tr>
@@ -538,11 +573,13 @@ export default function Show({ sale }: Props) {
                                             </tbody>
                                             <tfoot className="bg-muted/20">
                                                 <tr>
-                                                    <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={3}>
+                                                    <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={4}>
                                                         Total
                                                     </td>
                                                     <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
-                                                        {formatCurrency(remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0))}
+                                                        {formatCurrency(
+                                                            (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0),
+                                                        )}
                                                     </td>
                                                 </tr>
                                             </tfoot>
@@ -569,10 +606,57 @@ export default function Show({ sale }: Props) {
                         </div>
                     </CardFooter>
                 </Card>
+                {/* Resumen de devoluciones */}
+                {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
+                    <div className="mt-8">
+                        <h3 className="text-lg font-medium">Resumen de Devoluciones</h3>
+                        <div className="mt-3 overflow-x-auto rounded-md border">
+                            <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
+                                <div className="grid grid-cols-2 font-semibold">
+                                    <div>Concepto</div>
+                                    <div className="text-right">Monto</div>
+                                </div>
+                            </div>
+                            <div className="divide-y">
+                                <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
+                                    <div>Total Original de la Venta</div>
+                                    <div className="text-right">{formatCurrency(originalTotalValue)}</div>
+                                </div>
+                                <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
+                                    <div>Total Devuelto</div>
+                                    <div className="text-right text-red-600 dark:text-red-400">
+                                        -
+                                        {formatCurrency(
+                                            (Array.isArray(sale.saleReturns) ? sale.saleReturns : []).reduce((acc, ret) => {
+                                                if (Array.isArray(ret.products)) {
+                                                    return (
+                                                        acc +
+                                                        ret.products.reduce((sum, p) => {
+                                                            const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === p.id);
+                                                            return sum + (saleProd?.price ?? 0) * (p.pivot?.quantity ?? 0);
+                                                        }, 0)
+                                                    );
+                                                }
+                                                return acc;
+                                            }, 0),
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
+                                    <div>Valor Neto Restante</div>
+                                    <div className="text-right">
+                                        {formatCurrency(remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Historial de devoluciones */}
                 {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
                     <div className="mt-8">
-                        <h3 className="text-lg font-medium">Devoluciones</h3>
+                        <h3 className="text-lg font-medium">Historial de Devoluciones</h3>
                         <div className="mt-3 flex flex-col gap-3">
                             {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).map((ret) => (
                                 <div key={ret.id} className="rounded-lg border bg-card p-3 shadow-sm">
