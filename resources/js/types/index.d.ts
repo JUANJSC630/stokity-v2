@@ -104,6 +104,7 @@ export interface Product {
     description: string | null;
     purchase_price: number;
     sale_price: number;
+    tax: number;
     stock: number;
     min_stock: number;
     image: string | null;

@@ -44,6 +44,8 @@ export default function EditProduct({ product, categories = [], branches = [], u
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMsg, setDialogMsg] = useState('');
 
+
+
     // Configurar formulario con Inertia
     const form = useForm({
         name: product.name,
@@ -51,6 +53,7 @@ export default function EditProduct({ product, categories = [], branches = [], u
         description: product.description || '',
         purchase_price: Number(product.purchase_price),
         sale_price: Number(product.sale_price),
+        tax: Number(product.tax || 19),
         stock: product.stock,
         min_stock: product.min_stock,
         category_id: product.category_id,
@@ -327,6 +330,44 @@ export default function EditProduct({ product, categories = [], branches = [], u
                                     </div>
                                     <p className="text-xs text-muted-foreground">{Number(form.data.sale_price).toLocaleString('es-CO')}</p>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
+                                </div>
+
+                                {/* Impuesto */}
+                                <div className="w-full space-y-2">
+                                    <label htmlFor="tax" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                                        Impuesto (%) *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex-1">
+                                            <Input
+                                                id="tax"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                max="100"
+                                                className="w-full pr-8"
+                                                value={form.data.tax}
+                                                onChange={(e) => form.setData('tax', Number(e.target.value))}
+                                            />
+                                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">%</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`rounded border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${
+                                                form.data.tax === 19 
+                                                    ? 'border-yellow-400 bg-yellow-200 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200' 
+                                                    : 'border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                                            }`}
+                                            onClick={() => form.setData('tax', form.data.tax === 19 ? 0 : 19)}
+                                            title={form.data.tax === 19 ? 'Poner IVA en 0%' : 'Poner IVA en 19%'}
+                                        >
+                                            {form.data.tax === 19 ? 'Sin IVA (0%)' : 'IVA 19%'}
+                                        </button>
+                                    </div>
+                                    {form.errors.tax && <p className="text-xs text-destructive">{form.errors.tax}</p>}
+                                    <p className="text-xs text-muted-foreground">
+                                        Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).
+                                    </p>
                                 </div>
 
                                 {/* Stock actual */}

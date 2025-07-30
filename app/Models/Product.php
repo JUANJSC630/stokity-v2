@@ -22,6 +22,7 @@ class Product extends Model
         'description',
         'purchase_price',
         'sale_price',
+        'tax',
         'stock',
         'min_stock',
         'image',
@@ -38,6 +39,7 @@ class Product extends Model
     protected $casts = [
         'purchase_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
+        'tax' => 'decimal:2',
         'status' => 'boolean',
         'stock' => 'integer',
         'min_stock' => 'integer',

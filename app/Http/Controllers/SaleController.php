@@ -81,7 +81,7 @@ class SaleController extends Controller
                 })
                 ->orderBy('name')
                 ->limit(30)
-                ->get();
+                ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
         }
         return Inertia::render('sales/create', [
             'branches' => $branches,
@@ -100,7 +100,6 @@ class SaleController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
             'seller_id' => 'required|exists:users,id',
-            'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
@@ -115,7 +114,8 @@ class SaleController extends Controller
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
 
-        // Verificar stock disponible
+        // Verificar stock disponible y calcular impuesto por producto
+        $totalTax = 0;
         foreach ($request->products as $index => $prod) {
             $product = Product::find($prod['id']);
             if (!$product || $product->stock < $prod['quantity']) {
@@ -123,10 +123,16 @@ class SaleController extends Controller
                     "products.{$index}.quantity" => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
                 ])->withInput();
             }
+            
+            // Calcular impuesto por producto
+            $productTax = $product->tax ?? 0;
+            $productTaxAmount = $prod['subtotal'] * ($productTax / 100);
+            $totalTax += $productTaxAmount;
         }
 
         // Generar código único para la venta
         $validated['code'] = 'SALE-' . now()->format('YmdHis') . rand(100, 999);
+        $validated['tax'] = $totalTax;
 
         $products = $validated['products'];
         unset($validated['products']);
@@ -208,6 +214,7 @@ class SaleController extends Controller
                         'id' => $saleProduct->product->id,
                         'name' => $saleProduct->product->name,
                         'code' => $saleProduct->product->code,
+                        'tax' => $saleProduct->product->tax,
                     ] : null,
                 ];
             })->toArray(),

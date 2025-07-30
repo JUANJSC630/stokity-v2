@@ -109,7 +109,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Precios */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de compra</div>
                                     <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
@@ -128,6 +128,12 @@ export default function ProductShow({ product }: ProductShowProps) {
                                             minimumFractionDigits: 0,
                                             maximumFractionDigits: 0,
                                         })}
+                                    </div>
+                                </div>
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Impuesto</div>
+                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+                                        {product.tax || 0}%
                                     </div>
                                 </div>
                             </div>

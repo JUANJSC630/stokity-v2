@@ -13,7 +13,7 @@ interface SaleTicketProps {
             id: number;
             quantity: number;
             price: number;
-            product?: { name: string } | null;
+            product?: { name: string; tax?: number } | null;
         }>;
         net: number;
         tax: number;
@@ -102,9 +102,10 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
             <table style={{ width: '100%', fontSize: 10, textAlign: 'center' }}>
                 <thead>
                     <tr>
-                        <th style={{ width: '60%' }}>Producto</th>
-                        <th style={{ width: '20%' }}>Cant</th>
+                        <th style={{ width: '50%' }}>Producto</th>
+                        <th style={{ width: '15%' }}>Cant</th>
                         <th style={{ width: '20%' }}>Precio</th>
+                        <th style={{ width: '15%' }}>IVA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -113,6 +114,7 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
                             <td>{sp.product?.name || 'Eliminado'}</td>
                             <td>{sp.quantity}</td>
                             <td>{formatCurrency(sp.price)}</td>
+                            <td>{sp.product?.tax || 0}%</td>
                         </tr>
                     ))}
                 </tbody>

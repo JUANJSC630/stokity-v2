@@ -9,7 +9,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import Cookies from 'js-cookie';
 import { Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -104,7 +103,16 @@ export default function Create({ branches, clients, products = [] }: Props) {
         }
         
         const data = {
-            ...form.data,
+            branch_id: form.data.branch_id,
+            client_id: form.data.client_id,
+            seller_id: form.data.seller_id,
+            net: form.data.net,
+            total: form.data.total,
+            amount_paid: form.data.amount_paid,
+            change_amount: form.data.change_amount,
+            payment_method: form.data.payment_method,
+            date: form.data.date,
+            status: form.data.status,
             products: saleProducts.map((sp) => ({
                 id: sp.product.id,
                 quantity: sp.quantity,
@@ -220,19 +228,17 @@ export default function Create({ branches, clients, products = [] }: Props) {
         setSaleProducts((prev) => prev.map((sp) => (sp.product.id === id ? { ...sp, quantity: qty, subtotal: qty * sp.product.sale_price } : sp)));
     }
 
-    const [taxPercent, setTaxPercentState] = useState<number>(() => {
-        const cookieValue = Cookies.get('stokity_tax_percent');
-        return cookieValue !== undefined ? Number(cookieValue) : 19;
-    });
 
-    function setTaxPercentAndCookie(value: number) {
-        setTaxPercentState(value);
-        Cookies.set('stokity_tax_percent', String(value), { expires: 365 });
-    }
 
     function recalculateTotals() {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
-        const tax = net * (taxPercent / 100);
+        
+        // Calcular impuesto por producto
+        const tax = saleProducts.reduce((sum, sp) => {
+            const productTax = sp.product.tax || 0;
+            return sum + (sp.subtotal * (productTax / 100));
+        }, 0);
+        
         const total = net + tax;
         form.setData('net', net.toFixed(2));
         form.setData('tax', tax.toFixed(2));
@@ -275,7 +281,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
     React.useEffect(() => {
         recalculateTotals();
         // eslint-disable-next-line
-    }, [saleProducts, taxPercent, form.data.payment_method]);
+    }, [saleProducts, form.data.payment_method]);
 
     // Inicializar el display del monto pagado cuando cambie el total
     React.useEffect(() => {
@@ -570,6 +576,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                             <th className="text-left font-semibold">Producto</th>
                                                             <th className="text-center font-semibold">Cantidad</th>
                                                             <th className="text-center font-semibold">Precio</th>
+                                                            <th className="text-center font-semibold">Impuesto</th>
                                                             <th className="text-center font-semibold">Subtotal</th>
                                                             <th></th>
                                                         </tr>
@@ -600,6 +607,9 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">
                                                                     {formatCOP(sp.product.sale_price)}
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center font-semibold text-yellow-900 dark:text-yellow-200">
+                                                                    {sp.product.tax || 0}%
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center font-semibold text-green-900 dark:text-green-200">
                                                                     {formatCOP(sp.subtotal)}
@@ -668,6 +678,12 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                 </span>
                                                             </div>
                                                             <div>
+                                                                <span className="font-medium text-neutral-500">Impuesto: </span>
+                                                                <span className="font-semibold text-yellow-900 dark:text-yellow-200">
+                                                                    {sp.product.tax || 0}%
+                                                                </span>
+                                                            </div>
+                                                            <div>
                                                                 <span className="font-medium text-neutral-500">Subtotal: </span>
                                                                 <span className="font-semibold text-green-900 dark:text-green-200">
                                                                     {formatCOP(sp.subtotal)}
@@ -685,30 +701,6 @@ export default function Create({ branches, clients, products = [] }: Props) {
 
                                 {/* Totales */}
                                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="taxPercent">Impuesto (%)</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                id="taxPercent"
-                                                type="number"
-                                                min={0}
-                                                max={100}
-                                                step={0.01}
-                                                className="w-full border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200"
-                                                value={taxPercent}
-                                                onChange={(e) => setTaxPercentAndCookie(Number(e.target.value))}
-                                                required
-                                            />
-                                            <button
-                                                type="button"
-                                                className={`rounded border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${taxPercent === 19 ? 'border-yellow-400 bg-yellow-200 text-yellow-900' : 'border-gray-300 bg-gray-100 text-gray-700'}`}
-                                                onClick={() => setTaxPercentAndCookie(taxPercent === 19 ? 0 : 19)}
-                                                title={taxPercent === 19 ? 'Poner IVA en 0%' : 'Poner IVA en 19%'}
-                                            >
-                                                {taxPercent === 19 ? 'Sin IVA (0%)' : 'IVA 19%'}
-                                            </button>
-                                        </div>
-                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="tax">Valor Impuesto</Label>
                                         <Input
