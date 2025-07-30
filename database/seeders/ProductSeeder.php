@@ -33,9 +33,11 @@ class ProductSeeder extends Seeder
             foreach ($nombres as $nombre) {
                 $branch = $branches->first(); // Solo la primera sucursal
                 if ($branch) {
-                    $asciiName = iconv('UTF-8', 'ASCII//TRANSLIT', $nombre);
-                    $asciiName = preg_replace('/[^A-Za-z0-9]/', '', $asciiName);
-                    $code = strtoupper(substr($asciiName,0,3)) . $branch->id . $categoria->id . rand(100,999);
+                    // Generar código único de 8 dígitos
+                    do {
+                        $code = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
+                        $exists = Product::where('code', $code)->exists();
+                    } while ($exists);
 
                     // Precios realistas por categoría
                     switch ($categoria->name) {

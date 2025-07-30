@@ -288,11 +288,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                     sideOffset={6}
                                                     style={{ wordBreak: 'break-word', whiteSpace: 'pre-line', fontSize: '0.95rem' }}
                                                 >
-                                                    <strong>¿Qué es el SKU?</strong>
+                                                    <strong>¿Qué es el código del producto?</strong>
                                                     <br />
-                                                    El SKU (Stock Keeping Unit) es un código único para identificar productos en inventario.
+                                                    Puedes usar el botón "Generar código" para crear un código automático de 8 dígitos, o ingresar tu propio código personalizado (máximo 50 caracteres).
                                                     <br />
-                                                    <strong>Ejemplo:</strong> <span className="font-mono">CAMISA-ROJA-M</span>
+                                                    <strong>Ejemplos:</strong> <span className="font-mono">12345678</span>, <span className="font-mono">SKU-001</span>, <span className="font-mono">CAMISA-ROJA-M</span>
                                                     <Tooltip.Arrow className="fill-neutral-900" />
                                                 </Tooltip.Content>
                                             </Tooltip.Portal>

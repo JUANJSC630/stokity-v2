@@ -313,7 +313,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Genera un código de producto basado en el nombre, asegurando unicidad
+     * Genera un código de producto único de 8 dígitos por defecto
      */
     public function generateCode(Request $request)
     {
@@ -322,18 +322,18 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        $maxAttempts = 10;
+        $maxAttempts = 20; // Aumentamos los intentos para mayor seguridad
         do {
-            // Tomar los últimos 6 dígitos del timestamp y 2 random
-            $timePart = substr(now()->format('His'), -6); // Ej: 235907
-            $randPart = str_pad(strval(rand(0, 99)), 2, '0', STR_PAD_LEFT); // Ej: 07
-            $code = $timePart . $randPart; // Ej: 235907
+            // Generar un número aleatorio de 8 dígitos
+            $code = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
             $exists = Product::where('code', $code)->exists();
             $maxAttempts--;
         } while ($exists && $maxAttempts > 0);
+        
         if ($maxAttempts <= 0) {
-            return response()->json(['error' => 'No se pudo generar un código único.'], 500);
+            return response()->json(['error' => 'No se pudo generar un código único de 8 dígitos.'], 500);
         }
+        
         return response()->json(['code' => $code]);
     }
 }
