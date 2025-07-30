@@ -45,7 +45,7 @@ class SaleSeeder extends Seeder
             $total = $net + $tax;
             $sale = Sale::create([
                 'branch_id' => $branch->id,
-                'code' => 'SALE-' . str_pad($i, 4, '0', STR_PAD_LEFT),
+                'code' => str_pad($i, 10, '0', STR_PAD_LEFT),
                 'client_id' => $client->id,
                 'seller_id' => $seller->id,
                 'tax' => $tax,

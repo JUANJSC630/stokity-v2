@@ -130,8 +130,8 @@ class SaleController extends Controller
             $totalTax += $productTaxAmount;
         }
 
-        // Generar código único para la venta
-        $validated['code'] = 'SALE-' . now()->format('YmdHis') . rand(100, 999);
+        // Generar código único para la venta (solo números del timestamp)
+        $validated['code'] = now()->format('YmdHis') . rand(100, 999);
         $validated['tax'] = $totalTax;
 
         $products = $validated['products'];
