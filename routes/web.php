@@ -8,9 +8,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     
     // Rutas para las páginas del sidebar - La ruta de usuarios está definida en users.php
     
@@ -35,3 +33,4 @@ require __DIR__.'/categories.php';
 require __DIR__.'/products.php';
 require __DIR__.'/clients.php';
 require __DIR__.'/sales.php';
+require __DIR__.'/reports.php';

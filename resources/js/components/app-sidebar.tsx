@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Banknote, BarChart3, Building2, LayoutGrid, Package, Tags, UserRound, Users } from 'lucide-react';
+import { Banknote, BarChart3, Building2, LayoutGrid, Package, Tags, UserRound, Users, TrendingUp, Package2, Users2, Building, RotateCcw } from 'lucide-react';
 import AppLogo from './app-logo';
 
 // All available navigation items
@@ -51,10 +51,42 @@ const allNavItems: NavItem[] = [
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
     },
     {
-        title: 'Reportes de Ventas',
-        href: '/report-sales',
+        title: 'Reportes',
+        href: '',
         icon: BarChart3,
         roles: ['administrador', 'encargado'], // Admin and manager
+        children: [
+            {
+                title: 'Principal',
+                href: '/reports',
+                icon: BarChart3,
+            },
+            {
+                title: 'Detalle de Ventas',
+                href: '/reports/sales-detail',
+                icon: TrendingUp,
+            },
+            {
+                title: 'Productos',
+                href: '/reports/products',
+                icon: Package2,
+            },
+            {
+                title: 'Vendedores',
+                href: '/reports/sellers',
+                icon: Users2,
+            },
+            {
+                title: 'Sucursales',
+                href: '/reports/branches',
+                icon: Building,
+            },
+            {
+                title: 'Devoluciones',
+                href: '/reports/returns',
+                icon: RotateCcw,
+            },
+        ],
     },
 ];
 

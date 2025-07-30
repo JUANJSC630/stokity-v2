@@ -97,6 +97,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
                 toast.error(`El monto pagado (${formatCOP(amountPaid)}) debe ser al menos igual al total (${formatCOP(total)})`);
                 return;
             }
+            
+            // Asegurar que el cambio no sea negativo
+            const change = Math.max(amountPaid - total, 0);
+            form.setData('change_amount', change.toFixed(2));
         }
         
         const data = {
@@ -766,7 +770,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                     form.setData('amount_paid', numericValue.toString());
                                                     // Calcular cambio inmediatamente con el nuevo valor
                                                     const total = parseFloat(form.data.total) || 0;
-                                                    const change = numericValue - total;
+                                                    const change = Math.max(numericValue - total, 0); // No permitir cambio negativo
                                                     form.setData('change_amount', change.toFixed(2));
                                                 }}
                                                 onBlur={() => {

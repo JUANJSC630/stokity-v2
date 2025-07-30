@@ -21,6 +21,7 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     roles?: string[]; // Which roles can access this menu item
+    children?: NavItem[]; // Sub-items for nested navigation
 }
 
 export interface SharedData {

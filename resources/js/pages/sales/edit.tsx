@@ -226,10 +226,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="cash">Efectivo</SelectItem>
-                                            <SelectItem value="credit_card">Tarjeta de crédito</SelectItem>
-                                            <SelectItem value="debit_card">Tarjeta débito</SelectItem>
                                             <SelectItem value="transfer">Transferencia</SelectItem>
-                                            <SelectItem value="other">Otro</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {form.errors.payment_method && <p className="text-sm text-red-500">{form.errors.payment_method}</p>}

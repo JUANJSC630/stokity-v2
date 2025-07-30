@@ -104,7 +104,7 @@ class SaleController extends Controller
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
-            'change_amount' => 'required|numeric|min:0',
+            'change_amount' => 'required|numeric',
             'payment_method' => 'required|string|in:cash,credit_card,debit_card,transfer,other',
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
@@ -264,7 +264,7 @@ class SaleController extends Controller
             'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,credit_card,debit_card,transfer,other',
+            'payment_method' => 'required|string|in:cash,Nequi,Tarjeta de crédito,Transferencia,Daviplata,transfer',
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
         ]);
