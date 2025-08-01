@@ -189,12 +189,13 @@ export default function Branches({ branches, filters = { search: '', status: 'al
                                 <div className="col-span-2">
                                     <form onSubmit={handleSearch}>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="product-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                            <Label htmlFor="branch-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                                 Buscar
                                             </Label>
                                             <div className="relative">
                                                 <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
                                                 <Input
+                                                    id="branch-search"
                                                     ref={searchRef}
                                                     type="search"
                                                     placeholder="Buscar por código, cliente o vendedor"

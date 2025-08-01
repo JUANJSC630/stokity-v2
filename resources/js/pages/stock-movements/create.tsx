@@ -133,7 +133,7 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
               <div>
                 <Label htmlFor="product_id">Producto *</Label>
                 <Select value={data.product_id.toString()} onValueChange={handleProductChange}>
-                  <SelectTrigger>
+                  <SelectTrigger id="product_id">
                     <SelectValue placeholder="Seleccionar producto" />
                   </SelectTrigger>
                     <SelectContent>
@@ -179,7 +179,7 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
               <div>
                 <Label htmlFor="type">Tipo de Movimiento *</Label>
                 <Select value={data.type} onValueChange={handleTypeChange}>
-                  <SelectTrigger>
+                  <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

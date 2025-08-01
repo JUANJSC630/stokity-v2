@@ -224,9 +224,9 @@ export default function StockMovementsIndex({ movements, branches, products, fil
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Tipo</label>
+                <label htmlFor="type-filter" className="block text-sm font-medium mb-1">Tipo</label>
                 <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
+                  <SelectTrigger id="type-filter">
                     <SelectValue placeholder="Todos los tipos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -240,9 +240,9 @@ export default function StockMovementsIndex({ movements, branches, products, fil
 
               {branches.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Sucursal</label>
+                  <label htmlFor="branch-filter" className="block text-sm font-medium mb-1">Sucursal</label>
                   <Select value={branch} onValueChange={setBranch}>
-                    <SelectTrigger>
+                    <SelectTrigger id="branch-filter">
                       <SelectValue placeholder="Todas las sucursales" />
                     </SelectTrigger>
                     <SelectContent>
@@ -258,9 +258,9 @@ export default function StockMovementsIndex({ movements, branches, products, fil
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">Producto</label>
+                <label htmlFor="product-filter" className="block text-sm font-medium mb-1">Producto</label>
                 <Select value={product} onValueChange={setProduct}>
-                  <SelectTrigger>
+                  <SelectTrigger id="product-filter">
                     <SelectValue placeholder="Todos los productos" />
                   </SelectTrigger>
                   <SelectContent>

@@ -119,12 +119,13 @@ export default function Index({ clients, filters }: PageProps) {
                                 <div className="col-span-2">
                                     <form onSubmit={handleSearch}>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="product-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                            <Label htmlFor="client-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                                 Buscar
                                             </Label>
                                             <div className="relative">
                                                 <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
                                                 <Input
+                                                    id="client-search"
                                                     ref={searchRef}
                                                     type="search"
                                                     placeholder="Buscar por código, cliente o vendedor"

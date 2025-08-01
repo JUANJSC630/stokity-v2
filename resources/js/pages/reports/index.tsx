@@ -256,7 +256,7 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
                                                 value={reportMonth} 
                                                 onValueChange={setReportMonth}
                                             >
-                                                <SelectTrigger>
+                                                <SelectTrigger id="report-month">
                                                     <SelectValue placeholder="Selecciona un período" />
                                                 </SelectTrigger>
                                                 <SelectContent>

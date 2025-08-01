@@ -441,7 +441,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
                                         <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                            <SelectTrigger id="branch_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                                 <SelectValue placeholder="Seleccione sucursal" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -462,7 +462,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         <div className="flex flex-row items-center gap-2">
                                             <div className="flex-1">
                                                 <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
-                                                    <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                                    <SelectTrigger id="client_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                                         <SelectValue placeholder="Seleccione cliente" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -515,7 +515,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                             value={form.data.payment_method || ''}
                                             onValueChange={(value) => form.setData('payment_method', value)}
                                         >
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                            <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                                 <SelectValue placeholder="Seleccione método de pago" />
                                             </SelectTrigger>
                                             <SelectContent>

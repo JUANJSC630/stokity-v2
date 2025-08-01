@@ -164,7 +164,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Sucursal <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="branch_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione sucursal" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -183,7 +183,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Cliente <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.client_id} onValueChange={(value) => form.setData('client_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="client_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione cliente" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -202,7 +202,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Vendedor <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.seller_id} onValueChange={(value) => form.setData('seller_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="seller_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione vendedor" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -221,7 +221,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Método de Pago <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.payment_method} onValueChange={(value) => form.setData('payment_method', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione método de pago" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -252,7 +252,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Estado <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.status} onValueChange={(value) => form.setData('status', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="status" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione estado" />
                                         </SelectTrigger>
                                         <SelectContent>
