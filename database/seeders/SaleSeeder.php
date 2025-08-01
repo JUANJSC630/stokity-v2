@@ -22,8 +22,14 @@ class SaleSeeder extends Seeder
         $products = Product::all();
         $sellers = User::where('role', 'vendedor')->get();
         $paymentMethods = ['cash', 'credit_card', 'debit_card', 'transfer', 'other'];
-        for ($i = 1; $i <= 20; $i++) { // Aumentamos a 20 ventas para más datos
-            $branch = $branches->random();
+        // Generar ventas distribuidas entre todas las sucursales
+        $branchesArray = $branches->toArray();
+        $totalBranches = count($branchesArray);
+        
+        for ($i = 1; $i <= 100; $i++) { // Aumentamos a 100 ventas para más datos
+            // Distribuir ventas de manera más equilibrada entre sucursales
+            $branchIndex = ($i - 1) % $totalBranches;
+            $branch = $branches[$branchIndex];
             $client = $clients->random();
             $seller = $sellers->isNotEmpty() ? $sellers->random() : User::first();
             $selectedProducts = $products->random(rand(1, 5)); // Hasta 5 productos por venta
@@ -99,8 +105,10 @@ class SaleSeeder extends Seeder
                 }
             }
             
+            // Generar fecha de venta distribuida en los últimos 7 días
+            $saleDate = now()->subDays(rand(0, 7))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
             // Generar código de venta con timestamp
-            $saleCode = now()->subDays(rand(0, 7))->format('YmdHis') . rand(100, 999);
+            $saleCode = $saleDate->format('YmdHis') . rand(100, 999);
             $sale = Sale::create([
                 'branch_id' => $branch->id,
                 'code' => $saleCode,

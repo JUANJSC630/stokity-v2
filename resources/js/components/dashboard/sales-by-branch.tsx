@@ -28,7 +28,7 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
             <CardHeader>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-blue-500" />
-                    Ventas por Sucursal
+                    Ventas por Sucursal (Mes Actual)
                 </CardTitle>
             </CardHeader>
             <CardContent>
