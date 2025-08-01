@@ -61,10 +61,20 @@ class DashboardController extends Controller
             'total_revenue' => $this->getTotalRevenue($startOfPreviousMonth, $endOfPreviousMonth, $branchFilter),
         ];
 
-        // Cálculo de crecimiento
+        // Comparación con día anterior
+        $previousDay = $currentDate->copy()->subDay();
+        $startOfPreviousDay = $previousDay->copy()->startOfDay();
+        $endOfPreviousDay = $previousDay->copy()->endOfDay();
+        
+        $previousDayMetrics = [
+            'total_sales' => $this->getTotalSales($startOfPreviousDay, $endOfPreviousDay, $branchFilter),
+            'total_revenue' => $this->getTotalRevenue($startOfPreviousDay, $endOfPreviousDay, $branchFilter),
+        ];
+
+        // Cálculo de crecimiento (día actual vs día anterior)
         $growth = [
-            'sales_growth' => $this->calculateGrowth($metrics['total_sales_month'], $previousMonthMetrics['total_sales']),
-            'revenue_growth' => $this->calculateGrowth($metrics['total_revenue_month'], $previousMonthMetrics['total_revenue']),
+            'sales_growth' => $this->calculateGrowth($metrics['total_sales_today'], $previousDayMetrics['total_sales']),
+            'revenue_growth' => $this->calculateGrowth($metrics['total_revenue_today'], $previousDayMetrics['total_revenue']),
         ];
 
         // Productos más vendidos del mes
@@ -112,9 +122,9 @@ class DashboardController extends Controller
             $query->where('branch_id', $branchId);
         }
         
-
+        $count = $query->count();
         
-        return $query->count();
+        return $count;
     }
 
     /**
@@ -129,7 +139,9 @@ class DashboardController extends Controller
             $query->where('branch_id', $branchId);
         }
         
-        return $query->sum('total');
+        $sum = $query->sum('total');
+        
+        return $sum;
     }
 
     /**

@@ -40,10 +40,12 @@ interface DashboardProps {
         total_clients: number;
         total_users: number;
     };
+
     growth: {
         sales_growth: number;
         revenue_growth: number;
     };
+
     topProducts: Array<{
         id: number;
         name: string;

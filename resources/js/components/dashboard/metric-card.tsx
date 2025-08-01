@@ -49,6 +49,9 @@ export function MetricCard({ title, value, description, icon, trend, className }
                             )}
                             {trend.value > 0 ? '+' : ''}{trend.value}%
                         </Badge>
+                        <span className="text-xs text-muted-foreground ml-2">
+                            vs ayer
+                        </span>
                     </div>
                 )}
             </CardContent>

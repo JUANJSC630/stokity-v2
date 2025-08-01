@@ -22,7 +22,8 @@ export function SalesChart({ sales }: SalesChartProps) {
         }).format(amount);
     };
 
-    const maxAmount = Math.max(...sales.map(s => s.total_amount), 1);
+    // Calcular el total de ventas del período para porcentajes reales
+    const totalAmount = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
 
     return (
         <Card>
@@ -41,13 +42,14 @@ export function SalesChart({ sales }: SalesChartProps) {
                     ) : (
                         <div className="space-y-3">
                             {sales.map((sale) => {
-                                const amountPercentage = (sale.total_amount / maxAmount) * 100;
+                                // Calcular porcentaje basado en el total del período
+                                const amountPercentage = totalAmount > 0 ? (sale.total_amount / totalAmount) * 100 : 0;
                                 
                                 return (
                                     <div key={sale.date} className="space-y-2">
                                         <div className="flex items-center justify-between text-sm">
                                             <span className="font-medium">
-                                                {format(new Date(sale.date), 'EEE dd', { locale: es })}
+                                                {format(new Date(sale.date + 'T00:00:00-05:00'), 'EEE dd', { locale: es })}
                                             </span>
                                             <div className="text-right">
                                                 <div className="font-medium">

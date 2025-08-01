@@ -75,7 +75,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
         amount_paid: '0',
         change_amount: '0',
         payment_method: 'cash',
-        date: new Date().toISOString().slice(0, 16), // Formato: YYYY-MM-DDThh:mm
+        date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16), // Formato: YYYY-MM-DDThh:mm en zona horaria local
         status: 'completed',
         products: [] as { id: number; quantity: number; price: number; subtotal: number }[],
     });
