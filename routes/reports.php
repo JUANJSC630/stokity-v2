@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\ReportController;
+use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(function () {
     // Rutas principales de reportes
     Route::prefix('reports')->name('reports.')->group(function () {
         // Dashboard principal de reportes

@@ -23,10 +23,10 @@ class StockMovementController extends Controller
 
         $query = StockMovement::with(['product', 'user', 'branch']);
 
-        // Filtrar por sucursal si el usuario no es admin
-        if (!$user->isAdmin() && !$user->isManager()) {
+        // Filtrar por sucursal si el usuario no es administrador
+        if (!$user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
-        } elseif ($request->filled('branch')) {
+        } elseif ($request->filled('branch') && $user->isAdmin()) {
             $query->where('branch_id', $request->branch);
         }
 
@@ -66,7 +66,7 @@ class StockMovementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = $user->isAdmin() || $user->isManager() ? Branch::where('status', true)->get() : collect();
+        $branches = $user->isAdmin() ? Branch::where('status', true)->get() : collect();
         $products = Product::where('status', true)->get();
 
         return Inertia::render('stock-movements/index', [
@@ -92,7 +92,7 @@ class StockMovementController extends Controller
 
         // Obtener productos disponibles
         $products = Product::where('status', true)
-            ->when(!$user->isAdmin() && !$user->isManager() && $user->branch_id, function ($query) use ($user) {
+            ->when(!$user->isAdmin() && $user->branch_id, function ($query) use ($user) {
                 return $query->where('branch_id', $user->branch_id);
             })
             ->with(['category', 'branch'])

@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\User;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Resources\SaleResource;
 
@@ -28,6 +29,12 @@ class SaleController extends Controller
             $with[] = 'seller';
         }
         $query->with($with);
+
+        // Filtrar por sucursal del usuario si no es administrador
+        $user = Auth::user();
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
 
         // Búsqueda eficiente usando join
         if ($request->search) {
@@ -69,18 +76,30 @@ class SaleController extends Controller
      */
     public function create(Request $request)
     {
-        $branches = Branch::all();
+        $user = Auth::user();
+        
+        // Solo mostrar sucursales disponibles según el rol
+        $branches = $user->isAdmin() 
+            ? Branch::where('status', true)->get()
+            : Branch::where('id', $user->branch_id)->get();
+            
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
         $products = collect();
         if ($request->filled('product_search')) {
             $search = $request->input('product_search');
-            $products = Product::where('status', true)
+            $productsQuery = Product::where('status', true)
                 ->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('code', 'like', "%{$search}%");
-                })
-                ->orderBy('name')
+                });
+                
+            // Filtrar productos por sucursal si no es administrador
+            if (!$user->isAdmin() && $user->branch_id) {
+                $productsQuery->where('branch_id', $user->branch_id);
+            }
+            
+            $products = $productsQuery->orderBy('name')
                 ->limit(30)
                 ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
         }

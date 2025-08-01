@@ -2,10 +2,11 @@
 
 use App\Http\Controllers\StockMovementController;
 use App\Http\Middleware\AdminOrManagerMiddleware;
+use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Routes for stock movement management (protected with auth and admin/manager middleware)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     // Main index route - accessible to all authenticated users
     Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
     Route::get('/stock-movements/statistics', [StockMovementController::class, 'statistics'])->name('stock-movements.statistics');

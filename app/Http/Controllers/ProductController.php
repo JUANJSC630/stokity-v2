@@ -25,6 +25,12 @@ class ProductController extends Controller
 
         $query->with($with);
 
+        // Filtrar por sucursal del usuario si no es administrador
+        $user = Auth::user();
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
         // Búsqueda eficiente usando join
         if ($request->search) {
             $search = $request->search;
@@ -46,7 +52,8 @@ class ProductController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        if ($request->branch) {
+        // Solo permitir filtro por sucursal si es administrador
+        if ($request->branch && $user->isAdmin()) {
             $query->where('branch_id', $request->branch);
         }
 
@@ -55,7 +62,11 @@ class ProductController extends Controller
             ->withQueryString();
 
         $categories = Category::where('status', true)->get();
-        $branches = Branch::where('status', true)->get();
+        
+        // Solo mostrar todas las sucursales si es administrador
+        $branches = $user->isAdmin() 
+            ? Branch::where('status', true)->get()
+            : Branch::where('id', $user->branch_id)->get();
 
         return Inertia::render('products/index', [
             'products' => $products,

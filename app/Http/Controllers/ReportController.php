@@ -11,6 +11,7 @@ use App\Models\SaleReturn;
 use App\Models\SaleProduct;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -35,10 +36,12 @@ class ReportController extends Controller
             'payment_methods' => $this->getPaymentMethodsSummary($filters),
         ];
 
+        $user = Auth::user();
+        
         return Inertia::render('reports/index', [
             'dashboardData' => $dashboardData,
             'filters' => $filters,
-            'branches' => Branch::where('status', true)->get(),
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
         ]);
     }
@@ -1099,6 +1102,8 @@ class ReportController extends Controller
      */
     private function getFilters(Request $request)
     {
+        $user = Auth::user();
+        
         $filters = [
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
@@ -1107,6 +1112,11 @@ class ReportController extends Controller
             'category_id' => $request->get('category_id'),
             'status' => $request->get('status', 'completed'),
         ];
+        
+        // Si el usuario no es administrador, forzar el filtro de sucursal
+        if (!$user->isAdmin() && $user->branch_id) {
+            $filters['branch_id'] = $user->branch_id;
+        }
         
         // Si no hay fechas específicas, usar el mes actual por defecto
         if (!$filters['date_from'] && !$filters['date_to']) {

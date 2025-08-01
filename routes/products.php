@@ -3,9 +3,10 @@
 use App\Http\Controllers\ProductController;
 use App\Http\Middleware\AdminOrManagerMiddleware;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\BranchFilterMiddleware;
 
 // Routes for product management (protected with auth and admin/manager middleware)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     // Main index route - accessible to all authenticated users
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 

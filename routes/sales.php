@@ -2,9 +2,10 @@
 
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
+use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(function () {
     Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
     Route::get('sales/create', [SaleController::class, 'create'])->name('sales.create');
     Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
