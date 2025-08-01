@@ -103,7 +103,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
         return new Intl.NumberFormat('es-CO').format(num);
     };
 
-    const totalSales = Array.isArray(salesData) ? salesData.reduce((sum, item) => sum + (Number(item.total_sales) || 0), 0) : 0;
+    const totalSales = Array.isArray(salesData) ? salesData.reduce((sum, item) => sum + (Number(item?.total_sales) ?? 0), 0) : 0;
     const totalAmount = Array.isArray(salesData) ? salesData.reduce((sum, item) => sum + (Number(item.total_amount) || 0), 0) : 0;
     const avgSale = totalSales > 0 ? totalAmount / totalSales : 0;
 
