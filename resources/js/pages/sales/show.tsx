@@ -251,9 +251,7 @@ export default function Show({ sale }: Props) {
                 <html>
                 <head>
                     <title>Recibo Devolución #${ret.id}</title>
-                    ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-                        .map((el) => el.outerHTML)
-                        .join('\n')}
+                    ${getAllStylesheetHTML()}
                     <style>
                         @media print {
                             html, body {
