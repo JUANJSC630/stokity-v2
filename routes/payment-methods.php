@@ -4,7 +4,7 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->middleware(AdminMiddleware::class)->group(function () {
+Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::resource('payment-methods', PaymentMethodController::class);
     Route::patch('payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'toggleActive'])->name('payment-methods.toggle');
 });
