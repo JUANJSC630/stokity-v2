@@ -5,30 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type Product, type Branch } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
-import { useState } from 'react';
-
-interface Product {
-  id: number;
-  name: string;
-  code: string;
-  stock: number;
-  category: {
-    id: number;
-    name: string;
-  };
-  branch: {
-    id: number;
-    name: string;
-  };
-}
-
-interface Branch {
-  id: number;
-  name: string;
-}
+import { useState, useEffect } from 'react';
 
 interface Props {
   products: Product[];
@@ -48,13 +28,28 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-export default function StockMovementCreate({ products, selectedProduct }: Props) {
+export default function StockMovementCreate({ products, selectedProduct }: Props) { 
 
   const [selectedProductData, setSelectedProductData] = useState<Product | null>(selectedProduct || null);
   const [movementType, setMovementType] = useState<'in' | 'out' | 'adjustment'>('in');
 
+  // Prevenir scroll del mouse en inputs de tipo número
+  useEffect(() => {
+    const preventWheel = (e: WheelEvent) => {
+      if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('wheel', preventWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('wheel', preventWheel);
+    };
+  }, []);
+
   const { data, setData, post, processing, errors } = useForm({
-    product_id: selectedProduct?.id || '',
+    product_id: selectedProduct?.id?.toString() || '',
     type: 'in' as 'in' | 'out' | 'adjustment',
     quantity: '',
     unit_cost: '',
@@ -132,16 +127,22 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
               {/* Producto */}
               <div>
                 <Label htmlFor="product_id">Producto *</Label>
-                <Select value={data.product_id.toString()} onValueChange={handleProductChange}>
+                <Select value={data.product_id || ""} onValueChange={handleProductChange}>
                   <SelectTrigger id="product_id">
                     <SelectValue placeholder="Seleccionar producto" />
                   </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id.toString()}>
-                          {product.code} - {product.name} (Stock: {product.stock.toLocaleString()})
+                      {products && products.length > 0 ? (
+                        products.map((product) => (
+                          <SelectItem key={product.id} value={product.id.toString()}>
+                            {product.code} - {product.name} (Stock: {product.stock.toLocaleString()})
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          No hay productos disponibles
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                 </Select>
                 {errors.product_id && (
@@ -200,6 +201,9 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                   id="quantity"
                   type="number"
                   min="1"
+                  step="1"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={data.quantity}
                   onChange={(e) => setData('quantity', e.target.value)}
                   placeholder="Ingrese la cantidad"
@@ -221,6 +225,8 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                     type="number"
                     step="0.01"
                     min="0"
+                    inputMode="decimal"
+                    autoComplete="off"
                     value={data.unit_cost}
                     onChange={(e) => setData('unit_cost', e.target.value)}
                     placeholder="0.00"

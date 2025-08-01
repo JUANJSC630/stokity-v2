@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Branch {
     id: number;
@@ -67,6 +67,21 @@ function unformatCOP(value: string) {
 
 export default function Edit({ sale, branches, clients, sellers }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    // Prevenir scroll del mouse en inputs de tipo número
+    useEffect(() => {
+        const preventWheel = (e: WheelEvent) => {
+            if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('wheel', preventWheel, { passive: false });
+
+        return () => {
+            document.removeEventListener('wheel', preventWheel);
+        };
+    }, []);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {

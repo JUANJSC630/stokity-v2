@@ -24,7 +24,7 @@ class StockMovementController extends Controller
         $query = StockMovement::with(['product', 'user', 'branch']);
 
         // Filtrar por sucursal si el usuario no es admin
-        if (!$user->isAdmin()) {
+        if (!$user->isAdmin() && !$user->isManager()) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->filled('branch')) {
             $query->where('branch_id', $request->branch);
@@ -66,7 +66,7 @@ class StockMovementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get() : collect();
+        $branches = $user->isAdmin() || $user->isManager() ? Branch::where('status', true)->get() : collect();
         $products = Product::where('status', true)->get();
 
         return Inertia::render('stock-movements/index', [
@@ -84,7 +84,6 @@ class StockMovementController extends Controller
     {
         $user = Auth::user();
 
-
         // Si se proporciona un producto específico
         $selectedProduct = null;
         if ($request->filled('product_id')) {
@@ -93,25 +92,15 @@ class StockMovementController extends Controller
 
         // Obtener productos disponibles
         $products = Product::where('status', true)
-            ->when(!$user->isAdmin(), function ($query) use ($user) {
+            ->when(!$user->isAdmin() && !$user->isManager() && $user->branch_id, function ($query) use ($user) {
                 return $query->where('branch_id', $user->branch_id);
             })
             ->with(['category', 'branch'])
             ->get();
 
-        $branches = $user->isAdmin()
+        $branches = $user->isAdmin() || $user->isManager()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
-
-        // Debug: verificar que los productos tienen las relaciones cargadas
-        if ($selectedProduct) {
-            \Log::info('Selected product loaded', [
-                'product_id' => $selectedProduct->id,
-                'product_name' => $selectedProduct->name,
-                'category' => $selectedProduct->category ? $selectedProduct->category->name : 'null',
-                'branch' => $selectedProduct->branch ? $selectedProduct->branch->name : 'null',
-            ]);
-        }
 
         return Inertia::render('stock-movements/create', [
             'products' => $products,
@@ -140,7 +129,7 @@ class StockMovementController extends Controller
         $product = Product::findOrFail($request->product_id);
 
         // Verificar permisos de sucursal
-        if (!$user->isAdmin() && $product->branch_id !== $user->branch_id) {
+        if (!$user->isAdmin() && !$user->isManager() && $product->branch_id !== $user->branch_id) {
             return redirect()->back()->with('error', 'No tienes permisos para modificar este producto.');
         }
 
@@ -264,7 +253,7 @@ class StockMovementController extends Controller
         $query = StockMovement::query();
 
         // Filtrar por sucursal si el usuario no es admin
-        if (!$user->isAdmin()) {
+        if (!$user->isAdmin() && !$user->isManager()) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->filled('branch')) {
             $query->where('branch_id', $request->branch);
@@ -290,7 +279,7 @@ class StockMovementController extends Controller
                 ->toArray(),
         ];
 
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get() : collect();
+        $branches = $user->isAdmin() || $user->isManager() ? Branch::where('status', true)->get() : collect();
 
         return Inertia::render('stock-movements/statistics', [
             'statistics' => $statistics,

@@ -10,7 +10,7 @@ import { type Branch, type BreadcrumbItem, type Client, type User } from '@/type
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -60,6 +60,21 @@ export default function Create({ branches, clients, products = [] }: Props) {
             href: '/sales/create',
         },
     ];
+
+    // Prevenir scroll del mouse en inputs de tipo número
+    useEffect(() => {
+        const preventWheel = (e: WheelEvent) => {
+            if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('wheel', preventWheel, { passive: false });
+
+        return () => {
+            document.removeEventListener('wheel', preventWheel);
+        };
+    }, []);
 
     // Selecciona la sucursal por defecto según la asignada al usuario auth
     const defaultBranchId = auth.user.branch_id ? String(auth.user.branch_id) : branches[0] ? String(branches[0].id) : '';

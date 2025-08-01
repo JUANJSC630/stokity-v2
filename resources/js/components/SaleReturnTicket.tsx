@@ -1,4 +1,4 @@
-import { type Branch } from '@/types';
+import { type Branch  } from '@/types';
 import React from 'react';
 import QRCode from 'react-qr-code';
 
@@ -26,9 +26,13 @@ interface SaleReturnTicketProps {
 }
 
 const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, formatCurrency, formatDateToLocal }) => {
-    // Calcular totales
+    // Calcular totales con impuesto específico por producto
     const net = saleReturn.products.reduce((acc, p) => acc + p.price * p.quantity, 0);
-    const tax = net * 0.19;
+    const tax = saleReturn.products.reduce((acc, p) => {
+        // Usar el impuesto específico del producto si está disponible, sino usar 19% por defecto
+        const productTax = (p as { tax?: number }).tax || 19;
+        return acc + (p.price * p.quantity * productTax / 100);
+    }, 0);
     const total = net + tax;
     return (
         <div
@@ -124,7 +128,8 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, f
                 </tbody>
             </table>
             <hr />
-            <p style={{ fontSize: 10, marginTop: 2 }}>¡Gracias por su devolución!</p>
+            <br />
+            <p style={{ fontSize: 10, marginTop: 2 }}>¡Gracias por su preferencia!</p>
         </div>
     );
 };

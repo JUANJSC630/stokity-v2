@@ -19,6 +19,11 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para ver usuarios.');
+        }
+
         $query = User::query();
 
         $with = ['branch'];
@@ -49,6 +54,11 @@ class UserController extends Controller
      */
     public function create()
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para crear usuarios.');
+        }
+
         $branches = Branch::where('status', true)->get();
 
         return Inertia::render('users/create', [
@@ -62,6 +72,11 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para crear usuarios.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -142,6 +157,11 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para ver usuarios.');
+        }
+
         return Inertia::render('users/show', [
             'user' => $user->load('branch'),
         ]);
@@ -152,6 +172,11 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar usuarios.');
+        }
+
         $branches = Branch::where('status', true)->get();
 
         return Inertia::render('users/edit', [
@@ -166,6 +191,11 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar usuarios.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
@@ -279,6 +309,11 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para eliminar usuarios.');
+        }
+
         // Prevent self-deletion
         if ($user->id === Auth::id()) {
             return redirect()->back()

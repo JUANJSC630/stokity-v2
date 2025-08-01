@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -20,6 +20,10 @@ interface Props {
 
 export default function Show({ sale }: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
+
+    // Obtener el usuario autenticado
+    const { auth } = usePage<{ auth: { user: User } }>().props;
+    const isAdmin = auth.user.role === 'administrador';
 
     // Calcular cantidad devuelta por producto
     // Tipos para productos y devoluciones
@@ -54,6 +58,29 @@ export default function Show({ sale }: Props) {
     const originalNetValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0);
     const originalTaxValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + (sp.product?.tax || 0) * sp.price * sp.quantity / 100, 0);
     const originalTotalValue = originalNetValue + originalTaxValue;
+
+    // Función helper para calcular el total devuelto incluyendo impuesto
+    const calculateTotalReturned = () => {
+        return (Array.isArray(sale.saleReturns) ? sale.saleReturns : []).reduce((acc, ret) => {
+            if (Array.isArray(ret.products)) {
+                return (
+                    acc +
+                    ret.products.reduce((sum, p) => {
+                        const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === p.id);
+                        if (!saleProd) return sum;
+                        
+                        // Calcular precio base devuelto
+                        const basePriceReturned = saleProd.price * (p.pivot?.quantity ?? 0);
+                        // Calcular impuesto proporcional devuelto
+                        const taxReturned = (saleProd.product?.tax || 0) * basePriceReturned / 100;
+                        // Total devuelto incluyendo impuesto
+                        return sum + basePriceReturned + taxReturned;
+                    }, 0)
+                );
+            }
+            return acc;
+        }, 0);
+    };
 
     // Calcular valores actualizados según productos restantes (solo para mostrar productos disponibles)
     // const netValue = remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0);
@@ -214,6 +241,7 @@ export default function Show({ sale }: Props) {
                       name: saleProd?.product?.name ?? 'Producto eliminado',
                       price: saleProd?.price ?? 0,
                       quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
+                      tax: saleProd?.product?.tax ?? 19, // Add tax field
                   };
               })
             : [];
@@ -620,7 +648,7 @@ export default function Show({ sale }: Props) {
                             <p>Última actualización: {new Date(sale.updated_at).toLocaleDateString()}</p>
                         </div>
                         <div className="flex gap-2 self-end md:self-center">
-                            {sale.id && (
+                            {sale.id && isAdmin && (
                                 <Link href={route('sales.edit', sale.id)}>
                                     <Button variant="outline" className="flex gap-1">
                                         <Edit className="size-4" />
@@ -650,27 +678,13 @@ export default function Show({ sale }: Props) {
                                 <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                     <div>Total Devuelto</div>
                                     <div className="text-right text-red-600 dark:text-red-400">
-                                        -
-                                        {formatCurrency(
-                                            (Array.isArray(sale.saleReturns) ? sale.saleReturns : []).reduce((acc, ret) => {
-                                                if (Array.isArray(ret.products)) {
-                                                    return (
-                                                        acc +
-                                                        ret.products.reduce((sum, p) => {
-                                                            const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === p.id);
-                                                            return sum + (saleProd?.price ?? 0) * (p.pivot?.quantity ?? 0);
-                                                        }, 0)
-                                                    );
-                                                }
-                                                return acc;
-                                            }, 0),
-                                        )}
+                                        -{formatCurrency(calculateTotalReturned())}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                     <div>Valor Neto Restante</div>
                                     <div className="text-right">
-                                        {formatCurrency(remainingSaleProducts.reduce((acc, sp) => acc + sp.price * sp.remaining, 0))}
+                                        {formatCurrency(originalTotalValue - calculateTotalReturned())}
                                     </div>
                                 </div>
                             </div>
@@ -757,6 +771,7 @@ export default function Show({ sale }: Props) {
                                                               name: saleProd?.product?.name ?? 'Producto eliminado',
                                                               price: saleProd?.price ?? 0,
                                                               quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
+                                                              tax: saleProd?.product?.tax ?? 19, // Add tax field
                                                           };
                                                       })
                                                     : [];

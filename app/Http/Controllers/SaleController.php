@@ -247,6 +247,11 @@ class SaleController extends Controller
      */
     public function edit(Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar ventas.');
+        }
+
         $branches = Branch::all();
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
@@ -264,6 +269,11 @@ class SaleController extends Controller
      */
     public function update(Request $request, Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar ventas.');
+        }
+
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
@@ -286,6 +296,11 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para eliminar ventas.');
+        }
+
         // Restaurar el stock de los productos antes de eliminar la venta
         foreach ($sale->saleProducts as $saleProduct) {
             $product = Product::find($saleProduct->product_id);
