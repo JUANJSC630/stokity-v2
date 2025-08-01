@@ -13,12 +13,12 @@ class ClientSeeder extends Seeder
     public function run(): void
     {
         Client::firstOrCreate([
-            'name' => 'Anónimo',
+            'name' => 'Consumidor Final',
         ], [
             'document' => '0000000000',
             'phone' => '3000000000',
             'address' => 'Sin dirección',
-            'email' => 'anonimo@cliente.com',
+            'email' => 'sincorreo@cliente.com',
             'birthdate' => '1990-01-01',
         ]);
 

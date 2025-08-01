@@ -52,7 +52,7 @@ export default function Show({ sale }: Props) {
 
     // Calcular valores originales de la venta (sin afectar por devoluciones)
     const originalNetValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0);
-    const originalTaxValue = originalNetValue * 0.19;
+    const originalTaxValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + (sp.product?.tax || 0) * sp.price * sp.quantity / 100, 0);
     const originalTotalValue = originalNetValue + originalTaxValue;
 
     // Calcular valores actualizados según productos restantes (solo para mostrar productos disponibles)
@@ -435,7 +435,7 @@ export default function Show({ sale }: Props) {
                                         <div className="text-right">{formatCurrency(originalNetValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                        <div>Impuesto (19%)</div>
+                                        <div>Impuesto</div>
                                         <div className="text-right">{formatCurrency(originalTaxValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
@@ -510,7 +510,18 @@ export default function Show({ sale }: Props) {
                                                         </div>
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-muted-foreground">Subtotal:</span>
-                                                            <span className="font-semibold">{formatCurrency(sp.price * sp.quantity)}</span>
+                                                            <span>{formatCurrency(sp.price * sp.quantity)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">Impuesto:</span>
+                                                            <span>
+                                                                {formatCurrency((sp.product?.tax || 0) * sp.price * sp.quantity / 100)}
+                                                                {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm font-semibold">
+                                                            <span>Total con Impuesto:</span>
+                                                            <span>{formatCurrency(sp.price * sp.quantity + (sp.product?.tax || 0) * sp.price * sp.quantity / 100)}</span>
                                                         </div>
                                                         {isReturned && (
                                                             <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
@@ -539,6 +550,7 @@ export default function Show({ sale }: Props) {
                                                         Devuelto
                                                     </th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Precio</th>
+                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Impuesto</th>
                                                     <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Subtotal</th>
                                                 </tr>
                                             </thead>
@@ -559,13 +571,17 @@ export default function Show({ sale }: Props) {
                                                                     )}
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    {formatCurrency((sp.product?.tax || 0) * sp.price * sp.quantity / 100)}
+                                                                    {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
+                                                                </td>
                                                                 <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.quantity)}</td>
                                                             </tr>
                                                         );
                                                     })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan={5} className="p-4 text-center text-neutral-400">
+                                                        <td colSpan={6} className="p-4 text-center text-neutral-400">
                                                             No hay productos registrados en esta venta
                                                         </td>
                                                     </tr>
@@ -574,12 +590,21 @@ export default function Show({ sale }: Props) {
                                             <tfoot className="bg-muted/20">
                                                 <tr>
                                                     <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={4}>
-                                                        Total
+                                                        Subtotal Neto
                                                     </td>
                                                     <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
-                                                        {formatCurrency(
-                                                            (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0),
-                                                        )}
+                                                        {formatCurrency(originalTaxValue)}
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
+                                                        {formatCurrency(originalNetValue)}
+                                                    </td>
+                                                </tr>
+                                                <tr className="border-t border-gray-300 dark:border-gray-700">
+                                                    <td className="px-2 py-2 text-lg font-bold md:px-4 md:py-2" colSpan={5}>
+                                                        Total con Impuesto
+                                                    </td>
+                                                    <td className="px-2 py-2 text-lg text-right font-bold md:px-4 md:py-2">
+                                                        {formatCurrency(originalTotalValue)}
                                                     </td>
                                                 </tr>
                                             </tfoot>
