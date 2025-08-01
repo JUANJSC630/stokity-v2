@@ -1,7 +1,7 @@
 import { CardCreateClient } from '@/components/clients';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -316,12 +316,8 @@ export default function Create({ branches, clients, products = [] }: Props) {
                             toast.success('Cliente creado correctamente');
                             router.reload({ only: ['clients'] });
                         }}
+                        onCancel={() => setShowCreateClient(false)}
                     />
-                    <DialogClose asChild>
-                        <Button variant="outline" className="mt-4 w-full">
-                            Cerrar
-                        </Button>
-                    </DialogClose>
                 </DialogContent>
             </Dialog>
 

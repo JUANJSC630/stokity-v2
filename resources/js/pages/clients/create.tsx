@@ -18,7 +18,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export function CardCreateClient({ onSuccess }: { onSuccess?: () => void }) {
+export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
     const form = useForm<{
         name: string;
         document: string;
@@ -47,6 +47,15 @@ export function CardCreateClient({ onSuccess }: { onSuccess?: () => void }) {
             },
         });
     };
+
+    const handleCancel = () => {
+        if (onCancel) {
+            onCancel();
+        } else {
+            router.visit(route('clients.index'));
+        }
+    };
+
     return (
         <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
             <CardHeader>
@@ -133,11 +142,9 @@ export function CardCreateClient({ onSuccess }: { onSuccess?: () => void }) {
                         </div>
                     </div>
                     <div className="flex justify-end space-x-2">
-                        <Link href={route('clients.index')}>
-                            <Button variant="outline" type="button">
-                                Cancelar
-                            </Button>
-                        </Link>
+                        <Button variant="outline" type="button" onClick={handleCancel}>
+                            Cancelar
+                        </Button>
                         <Button type="submit" disabled={form.processing} className="gap-1">
                             <Save className="size-4" />
                             <span>Guardar Cliente</span>
