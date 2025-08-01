@@ -136,7 +136,7 @@ export default function SellersReport({
         return growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
     };
 
-    const totalSellers = sellersData?.sellers_performance?.length || 0;
+    const totalSellers = sellersData?.sellers_performance?.length ?? 0;
     const totalSales = sellersData?.sellers_performance?.reduce((sum, seller) => sum + seller.total_sales, 0) || 0;
     const totalRevenue = sellersData?.sellers_performance?.reduce((sum, seller) => sum + seller.total_amount, 0) || 0;
 
