@@ -165,9 +165,7 @@ export default function Show({ sale }: Props) {
                 <html>
                 <head>
                     <title>Ticket Venta ${sale.code}</title>
-                    ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-                        .map((el) => el.outerHTML)
-                        .join('\n')}
+                    ${cachedStylesheetsHTML}
                     <style>
                         @media print {
                             body, html {
