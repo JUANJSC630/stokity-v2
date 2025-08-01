@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -26,17 +26,32 @@ interface RecentSalesProps {
 }
 
 export function RecentSales({ sales }: RecentSalesProps) {
-
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'completed':
-                return <Badge variant="default" className="text-xs">Completada</Badge>;
+                return (
+                    <Badge variant="default" className="text-xs">
+                        Completada
+                    </Badge>
+                );
             case 'pending':
-                return <Badge variant="secondary" className="text-xs">Pendiente</Badge>;
+                return (
+                    <Badge variant="secondary" className="text-xs">
+                        Pendiente
+                    </Badge>
+                );
             case 'cancelled':
-                return <Badge variant="destructive" className="text-xs">Cancelada</Badge>;
+                return (
+                    <Badge variant="destructive" className="text-xs">
+                        Cancelada
+                    </Badge>
+                );
             default:
-                return <Badge variant="outline" className="text-xs">{status}</Badge>;
+                return (
+                    <Badge variant="outline" className="text-xs">
+                        {status}
+                    </Badge>
+                );
         }
     };
 
@@ -51,7 +66,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
     const getInitials = (name: string) => {
         return name
             .split(' ')
-            .map(word => word.charAt(0))
+            .map((word) => word.charAt(0))
             .join('')
             .toUpperCase()
             .slice(0, 2);
@@ -65,53 +80,46 @@ export function RecentSales({ sales }: RecentSalesProps) {
             <CardContent>
                 <div className="space-y-3">
                     {sales.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="py-8 text-center text-muted-foreground">
                             <p>No hay ventas recientes</p>
                         </div>
                     ) : (
                         sales.map((sale) => (
-                            <div key={sale.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
+                            <div
+                                key={sale.id}
+                                className="flex flex-col gap-4 rounded-lg border border-neutral-200 p-4 transition-colors hover:bg-neutral-50 sm:flex-row sm:items-start sm:justify-between dark:border-neutral-700 dark:hover:bg-neutral-800"
+                            >
                                 {/* Cliente y Avatar */}
-                                <div className="flex items-start gap-4 min-w-0 flex-1">
+                                <div className="flex min-w-0 flex-1 items-start gap-4">
                                     <Avatar className="h-10 w-10 flex-shrink-0">
                                         <AvatarFallback className="text-sm">
                                             {sale.client?.name ? getInitials(sale.client.name) : 'CL'}
                                         </AvatarFallback>
                                     </Avatar>
-                                    
+
                                     {/* Información del cliente y venta */}
                                     <div className="min-w-0 flex-1 space-y-2">
-                                        <p className="text-sm font-medium truncate">
-                                            {sale.client?.name || 'Cliente no especificado'}
-                                        </p>
-                                        
+                                        <p className="truncate text-sm font-medium">{sale.client?.name || 'Cliente no especificado'}</p>
+
                                         {/* Código de venta */}
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            {sale.code}
-                                        </p>
-                                        
+                                        <p className="truncate text-xs text-muted-foreground">{sale.code}</p>
+
                                         {/* Fecha, hora y vendedor - Responsive */}
                                         <div className="flex flex-col gap-1">
                                             {/* Fecha y hora */}
                                             <span className="text-xs text-muted-foreground">
                                                 {format(new Date(sale.date), 'dd MMM, HH:mm', { locale: es })}
                                             </span>
-                                            
+
                                             {/* Vendedor - Solo mostrar si existe */}
-                                            {sale.seller && (
-                                                <span className="text-xs text-muted-foreground">
-                                                    por {sale.seller.name}
-                                                </span>
-                                            )}
+                                            {sale.seller && <span className="text-xs text-muted-foreground">por {sale.seller.name}</span>}
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 {/* Monto y Estado */}
-                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                                    <span className="text-sm font-semibold">
-                                        {formatCurrency(sale.total)}
-                                    </span>
+                                <div className="flex flex-shrink-0 flex-col items-end gap-2">
+                                    <span className="text-sm font-semibold">{formatCurrency(sale.total)}</span>
                                     {getStatusBadge(sale.status)}
                                 </div>
                             </div>
@@ -121,4 +129,4 @@ export function RecentSales({ sales }: RecentSalesProps) {
             </CardContent>
         </Card>
     );
-} 
+}

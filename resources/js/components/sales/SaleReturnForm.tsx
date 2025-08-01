@@ -43,18 +43,22 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
     };
 
     const handleReturnAll = () => {
-        setFormProducts(formProducts.map((p) => ({
-            ...p,
-            returnQuantity: p.quantity - p.alreadyReturned
-        })));
+        setFormProducts(
+            formProducts.map((p) => ({
+                ...p,
+                returnQuantity: p.quantity - p.alreadyReturned,
+            })),
+        );
         toast.success('Todos los productos han sido seleccionados para devolución');
     };
 
     const handleClearAll = () => {
-        setFormProducts(formProducts.map((p) => ({
-            ...p,
-            returnQuantity: 0
-        })));
+        setFormProducts(
+            formProducts.map((p) => ({
+                ...p,
+                returnQuantity: 0,
+            })),
+        );
         toast.success('Todas las cantidades han sido limpiadas');
     };
 
@@ -141,26 +145,14 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                                 );
                             })}
                         </div>
-                        {formProducts.some(p => (p.quantity - p.alreadyReturned) > 0) && (
+                        {formProducts.some((p) => p.quantity - p.alreadyReturned > 0) && (
                             <div className="flex justify-end gap-2">
-                                {formProducts.some(p => p.returnQuantity > 0) && (
-                                    <Button 
-                                        type="button" 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={handleClearAll}
-                                        disabled={loading}
-                                    >
+                                {formProducts.some((p) => p.returnQuantity > 0) && (
+                                    <Button type="button" variant="outline" size="sm" onClick={handleClearAll} disabled={loading}>
                                         Limpiar todo
                                     </Button>
                                 )}
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={handleReturnAll}
-                                    disabled={loading}
-                                >
+                                <Button type="button" variant="outline" size="sm" onClick={handleReturnAll} disabled={loading}>
                                     Devolver todo
                                 </Button>
                             </div>

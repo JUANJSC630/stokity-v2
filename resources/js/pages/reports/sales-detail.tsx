@@ -1,13 +1,13 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Download, TrendingUp, Activity, Calendar } from 'lucide-react';
+import { Activity, Calendar, Download, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -81,7 +81,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
         if (filters.category_id === 'all') delete filters.category_id;
 
         const url = new URL(`/reports/sales-detail/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach(key => {
+        Object.keys(filters).forEach((key) => {
             if (filters[key as keyof typeof filters]) {
                 url.searchParams.append(key, filters[key as keyof typeof filters]!);
             }
@@ -110,25 +110,16 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Detalle de Ventas" />
-            
+
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Detalle de Ventas</h1>
                     <div className="flex gap-2">
-                        <Button 
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('excel')}
-                        >
+                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
                             <Download className="h-4 w-4" />
                             Exportar Excel
                         </Button>
-                        <Button 
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('pdf')}
-                        >
+                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
                             <Download className="h-4 w-4" />
                             Exportar PDF
                         </Button>
@@ -144,30 +135,38 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                         <CardContent>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Desde</Label>
+                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Desde
+                                    </Label>
                                     <Input
                                         id="date_from"
                                         type="date"
                                         value={dateRange.from}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Hasta</Label>
+                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Hasta
+                                    </Label>
                                     <Input
                                         id="date_to"
                                         type="date"
                                         value={dateRange.to}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Sucursal</Label>
+                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Sucursal
+                                    </Label>
                                     <Select
                                         value={localFilters.branch_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, branch_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="branch" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las sucursales" />
@@ -183,10 +182,14 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Categoría</Label>
+                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Categoría
+                                    </Label>
                                     <Select
                                         value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, category_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="category" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las categorías" />
@@ -220,9 +223,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatNumber(totalSales)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Ventas en el período seleccionado
-                                </p>
+                                <p className="text-xs text-muted-foreground">Ventas en el período seleccionado</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -232,9 +233,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Ingresos totales
-                                </p>
+                                <p className="text-xs text-muted-foreground">Ingresos totales</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -244,9 +243,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatCurrency(avgSale)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Ticket promedio
-                                </p>
+                                <p className="text-xs text-muted-foreground">Ticket promedio</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -256,7 +253,8 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                         <CardHeader>
                             <CardTitle>Detalle por Período</CardTitle>
                             <CardDescription>
-                                Ventas desglosadas por {groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : groupBy === 'month' ? 'mes' : 'año'}
+                                Ventas desglosadas por{' '}
+                                {groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : groupBy === 'month' ? 'mes' : 'año'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -264,25 +262,28 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Período</th>
-                                            <th className="text-right p-2">Ventas</th>
-                                            <th className="text-right p-2">Monto Total</th>
-                                            <th className="text-right p-2">Monto Neto</th>
-                                            <th className="text-right p-2">Impuestos</th>
-                                            <th className="text-right p-2">Promedio</th>
+                                            <th className="p-2 text-left">Período</th>
+                                            <th className="p-2 text-right">Ventas</th>
+                                            <th className="p-2 text-right">Monto Total</th>
+                                            <th className="p-2 text-right">Monto Neto</th>
+                                            <th className="p-2 text-right">Impuestos</th>
+                                            <th className="p-2 text-right">Promedio</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {salesData.map((item, index) => (
-                                            <tr key={index} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={index}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2">
                                                     <Badge variant="outline">{item.period}</Badge>
                                                 </td>
-                                                <td className="text-right p-2">{formatNumber(Number(item.total_sales) || 0)}</td>
-                                                <td className="text-right p-2 font-medium">{formatCurrency(Number(item.total_amount) || 0)}</td>
-                                                <td className="text-right p-2">{formatCurrency(Number(item.net_amount) || 0)}</td>
-                                                <td className="text-right p-2">{formatCurrency(Number(item.tax_amount) || 0)}</td>
-                                                <td className="text-right p-2">{formatCurrency(Number(item.average_sale) || 0)}</td>
+                                                <td className="p-2 text-right">{formatNumber(Number(item.total_sales) || 0)}</td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(Number(item.total_amount) || 0)}</td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.net_amount) || 0)}</td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.tax_amount) || 0)}</td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.average_sale) || 0)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -294,4 +295,4 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
             </div>
         </AppLayout>
     );
-} 
+}

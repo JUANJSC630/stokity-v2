@@ -52,13 +52,13 @@ export default function SaleReturnReceipt({ saleReturn, sale, formatCurrency }: 
     const formatDateToLocal = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleString();
-    };  
+    };
 
     const totalReturned = saleReturn.products.reduce((acc, p) => {
         const basePrice = (p.price ?? 0) * (p.pivot?.quantity ?? 0);
         // Calcular impuesto proporcional del producto devuelto
         const productTax = (p as SaleReturnProduct & { tax?: number }).tax || 19; // Usar impuesto específico del producto o 19% por defecto
-        const taxAmount = basePrice * productTax / 100;
+        const taxAmount = (basePrice * productTax) / 100;
         return acc + basePrice + taxAmount;
     }, 0);
 

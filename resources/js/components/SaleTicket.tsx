@@ -44,11 +44,11 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
             {/* Logo y encabezado */}
             <div style={{ marginBottom: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {/* Puedes cambiar la imagen por tu logo real */}
-                <img 
-                    src="/uploads/default-product.png" 
-                    alt="Default Logo" 
+                <img
+                    src="/uploads/default-product.png"
+                    alt="Default Logo"
                     className="rounded-full"
-                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }} 
+                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
                 />
                 <div style={{ fontWeight: 'bold', fontSize: 13 }}>{sale.branch?.business_name}</div>
                 <div style={{ fontSize: 10 }}>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
@@ -68,7 +68,8 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
             {/* Datos de la venta y cliente en caja */}
             <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
                 <div style={{ fontWeight: 'bold', fontSize: 11 }}>
-                    FACTURA DE VENTA #<br />{sale.code}
+                    FACTURA DE VENTA #<br />
+                    {sale.code}
                 </div>
                 <div style={{ fontSize: 10 }}>
                     {typeof sale.branch?.manager === 'string' ? sale.branch.manager : sale.branch?.manager?.name || 'N/A'}
@@ -92,7 +93,9 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
             {/* Vendedor */}
             <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
                 <div style={{ fontWeight: 'bold', fontSize: 10 }}>
-                    VENDEDOR:<br />{sale.seller?.name || 'N/A'}
+                    VENDEDOR:
+                    <br />
+                    {sale.seller?.name || 'N/A'}
                 </div>
             </div>
             <hr />
@@ -154,11 +157,13 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDat
                             </tr>
                             <tr>
                                 <td style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}>Cambio:</td>
-                                <td style={{ 
-                                    borderTop: '1px solid #000',
-                                    color: sale.change_amount >= 0 ? '#059669' : '#dc2626',
-                                    fontWeight: 'bold'
-                                }}>
+                                <td
+                                    style={{
+                                        borderTop: '1px solid #000',
+                                        color: sale.change_amount >= 0 ? '#059669' : '#dc2626',
+                                        fontWeight: 'bold',
+                                    }}
+                                >
                                     {formatCurrency(sale.change_amount)}
                                 </td>
                             </tr>

@@ -1,24 +1,9 @@
+import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, SalesChart, TopProducts } from '@/components/dashboard';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { 
-    MetricCard, 
-    RecentSales, 
-    LowStockProducts, 
-    TopProducts, 
-    SalesByBranch, 
-    SalesChart 
-} from '@/components/dashboard';
-import { 
-    ShoppingCart, 
-    DollarSign, 
-    Package, 
-    Users, 
-    TrendingUp, 
-    AlertTriangle,
-    UserRound
-} from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { AlertTriangle, DollarSign, Package, ShoppingCart, TrendingUp, UserRound, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -101,16 +86,16 @@ interface DashboardProps {
     userName: string;
 }
 
-export default function Dashboard({ 
-    metrics, 
-    growth, 
-    topProducts, 
-    salesByBranch, 
-    recentSales, 
-    lowStockProducts, 
+export default function Dashboard({
+    metrics,
+    growth,
+    topProducts,
+    salesByBranch,
+    recentSales,
+    lowStockProducts,
     dailySales,
     userRole,
-    userName 
+    userName,
 }: DashboardProps) {
     const [currentGreeting, setCurrentGreeting] = useState('');
 
@@ -124,7 +109,7 @@ export default function Dashboard({
 
     const getGreeting = () => {
         const hour = new Date().getHours();
-        
+
         if (hour >= 5 && hour < 12) {
             return 'Buenos días';
         } else if (hour >= 12 && hour < 19) {
@@ -156,7 +141,9 @@ export default function Dashboard({
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
                 {/* Header */}
                 <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight">{currentGreeting}, {userName}!</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                        {currentGreeting}, {userName}!
+                    </h1>
                     <p className="text-muted-foreground">
                         Bienvenido al panel de control de Stokity. Aquí puedes ver un resumen de las métricas más importantes.
                     </p>
@@ -171,7 +158,7 @@ export default function Dashboard({
                         icon={<ShoppingCart className="h-4 w-4" />}
                         trend={{
                             value: growth.sales_growth,
-                            isPositive: growth.sales_growth >= 0
+                            isPositive: growth.sales_growth >= 0,
                         }}
                     />
                     <MetricCard
@@ -181,21 +168,11 @@ export default function Dashboard({
                         icon={<DollarSign className="h-4 w-4" />}
                         trend={{
                             value: growth.revenue_growth,
-                            isPositive: growth.revenue_growth >= 0
+                            isPositive: growth.revenue_growth >= 0,
                         }}
                     />
-                    <MetricCard
-                        title="Productos"
-                        value={metrics.total_products}
-                        description="En inventario"
-                        icon={<Package className="h-4 w-4" />}
-                    />
-                    <MetricCard
-                        title="Clientes"
-                        value={metrics.total_clients}
-                        description="Registrados"
-                        icon={<UserRound className="h-4 w-4" />}
-                    />
+                    <MetricCard title="Productos" value={metrics.total_products} description="En inventario" icon={<Package className="h-4 w-4" />} />
+                    <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
                 </div>
 
                 {/* Métricas secundarias */}
@@ -226,7 +203,7 @@ export default function Dashboard({
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Gráfico de ventas */}
                     <SalesChart sales={dailySales} />
-                    
+
                     {/* Productos más vendidos */}
                     <TopProducts products={topProducts} />
                 </div>
@@ -235,7 +212,7 @@ export default function Dashboard({
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Ventas recientes */}
                     <RecentSales sales={recentSales} />
-                    
+
                     {/* Productos con bajo stock */}
                     <LowStockProducts products={lowStockProducts} />
                 </div>

@@ -171,11 +171,7 @@ export default function Products({
         {
             key: 'tax',
             title: 'Impuesto',
-            render: (_: unknown, row: Product) => (
-                <span className="text-neutral-700 dark:text-neutral-200">
-                    {row.tax || 0}%
-                </span>
-            ),
+            render: (_: unknown, row: Product) => <span className="text-neutral-700 dark:text-neutral-200">{row.tax || 0}%</span>,
         },
         {
             key: 'stock',

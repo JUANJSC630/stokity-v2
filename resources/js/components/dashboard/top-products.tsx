@@ -27,7 +27,7 @@ export function TopProducts({ products }: TopProductsProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <TrendingUp className="h-5 w-5 text-green-500" />
                     Productos Más Vendidos
                 </CardTitle>
@@ -35,14 +35,14 @@ export function TopProducts({ products }: TopProductsProps) {
             <CardContent>
                 <div className="space-y-4">
                     {products.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="py-8 text-center text-muted-foreground">
                             <p>No hay datos de productos vendidos</p>
                         </div>
                     ) : (
                         products.map((product, index) => (
-                            <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border">
+                            <div key={product.id} className="flex items-center justify-between rounded-lg border p-3">
                                 <div className="flex items-center space-x-3">
-                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                                         #{index + 1}
                                     </div>
                                     <div className="space-y-1">
@@ -55,12 +55,8 @@ export function TopProducts({ products }: TopProductsProps) {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-medium">
-                                        {product.total_quantity} unidades
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {formatCurrency(product.total_amount)}
-                                    </p>
+                                    <p className="text-sm font-medium">{product.total_quantity} unidades</p>
+                                    <p className="text-xs text-muted-foreground">{formatCurrency(product.total_amount)}</p>
                                 </div>
                             </div>
                         ))
@@ -69,4 +65,4 @@ export function TopProducts({ products }: TopProductsProps) {
             </CardContent>
         </Card>
     );
-} 
+}

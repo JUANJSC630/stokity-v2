@@ -1,5 +1,5 @@
-
 import { Button } from '@/components/ui/button';
+import { router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export interface PaginationData {
@@ -52,17 +52,14 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                             className={isFirst || isLast ? 'size-8' : 'size-8 px-3'}
                             onClick={() => {
                                 if (link.url) {
-                                    window.location.href = link.url;
+                                    router.visit(link.url, {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                    });
                                 }
                             }}
                         >
-                            {isFirst ? (
-                                <ChevronLeft className="size-4" />
-                            ) : isLast ? (
-                                <ChevronRight className="size-4" />
-                            ) : (
-                                label
-                            )}
+                            {isFirst ? <ChevronLeft className="size-4" /> : isLast ? <ChevronRight className="size-4" /> : label}
                         </Button>
                     );
                 })}

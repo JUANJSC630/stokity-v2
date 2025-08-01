@@ -26,7 +26,7 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <Building2 className="h-5 w-5 text-blue-500" />
                     Ventas por Sucursal (Mes Actual)
                 </CardTitle>
@@ -34,35 +34,25 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
             <CardContent>
                 <div className="space-y-4">
                     {branches.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="py-8 text-center text-muted-foreground">
                             <p>No hay datos de ventas por sucursal</p>
                         </div>
                     ) : (
                         branches.map((branch, index) => (
-                            <div key={branch.id} className="flex items-center justify-between p-3 rounded-lg border">
+                            <div key={branch.id} className="flex items-center justify-between rounded-lg border p-3">
                                 <div className="flex items-center space-x-3">
-                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
                                         #{index + 1}
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-sm font-medium">{branch.name}</p>
-                                        {branch.business_name && (
-                                            <p className="text-xs text-muted-foreground">
-                                                {branch.business_name}
-                                            </p>
-                                        )}
+                                        {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-medium">
-                                        {branch.total_sales} ventas
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {formatCurrency(branch.total_amount)}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Promedio: {formatCurrency(branch.average_sale)}
-                                    </p>
+                                    <p className="text-sm font-medium">{branch.total_sales} ventas</p>
+                                    <p className="text-xs text-muted-foreground">{formatCurrency(branch.total_amount)}</p>
+                                    <p className="text-xs text-muted-foreground">Promedio: {formatCurrency(branch.average_sale)}</p>
                                 </div>
                             </div>
                         ))
@@ -71,4 +61,4 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
             </CardContent>
         </Card>
     );
-} 
+}

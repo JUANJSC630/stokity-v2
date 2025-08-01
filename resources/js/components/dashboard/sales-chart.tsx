@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TrendingUp } from 'lucide-react';
 
 interface DailySale {
     date: string;
@@ -28,7 +28,7 @@ export function SalesChart({ sales }: SalesChartProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
                     <TrendingUp className="h-5 w-5 text-purple-500" />
                     Ventas de los Últimos 7 Días
                 </CardTitle>
@@ -36,7 +36,7 @@ export function SalesChart({ sales }: SalesChartProps) {
             <CardContent>
                 <div className="space-y-4">
                     {sales.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="py-8 text-center text-muted-foreground">
                             <p>No hay datos de ventas</p>
                         </div>
                     ) : (
@@ -44,7 +44,7 @@ export function SalesChart({ sales }: SalesChartProps) {
                             {sales.map((sale) => {
                                 // Calcular porcentaje basado en el total del período
                                 const amountPercentage = totalAmount > 0 ? (sale.total_amount / totalAmount) * 100 : 0;
-                                
+
                                 return (
                                     <div key={sale.date} className="space-y-2">
                                         <div className="flex items-center justify-between text-sm">
@@ -52,25 +52,19 @@ export function SalesChart({ sales }: SalesChartProps) {
                                                 {format(new Date(sale.date + 'T00:00:00-05:00'), 'EEE dd', { locale: es })}
                                             </span>
                                             <div className="text-right">
-                                                <div className="font-medium">
-                                                    {sale.total_sales} ventas
-                                                </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {formatCurrency(sale.total_amount)}
-                                                </div>
+                                                <div className="font-medium">{sale.total_sales} ventas</div>
+                                                <div className="text-xs text-muted-foreground">{formatCurrency(sale.total_amount)}</div>
                                             </div>
                                         </div>
                                         <div className="space-y-1">
                                             <div className="flex items-center space-x-2">
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                                                <div className="h-2 flex-1 rounded-full bg-gray-200">
+                                                    <div
+                                                        className="h-2 rounded-full bg-purple-500 transition-all duration-300"
                                                         style={{ width: `${amountPercentage}%` }}
                                                     />
                                                 </div>
-                                                <span className="text-xs text-muted-foreground w-12 text-right">
-                                                    {amountPercentage.toFixed(0)}%
-                                                </span>
+                                                <span className="w-12 text-right text-xs text-muted-foreground">{amountPercentage.toFixed(0)}%</span>
                                             </div>
                                         </div>
                                     </div>
@@ -82,4 +76,4 @@ export function SalesChart({ sales }: SalesChartProps) {
             </CardContent>
         </Card>
     );
-} 
+}

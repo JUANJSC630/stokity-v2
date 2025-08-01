@@ -1,13 +1,13 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Download, TrendingUp, Users2, Award, Calendar } from 'lucide-react';
+import { Award, Calendar, Download, TrendingUp, Users2 } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -67,7 +67,12 @@ interface Props {
     categories?: Array<{ id: number; name: string }>;
 }
 
-export default function SellersReport({ sellersData = { sellers_performance: [], sellers_comparison: [], sellers_by_branch: [] }, filters, branches = [], categories = [] }: Props) {
+export default function SellersReport({
+    sellersData = { sellers_performance: [], sellers_comparison: [], sellers_by_branch: [] },
+    filters,
+    branches = [],
+    categories = [],
+}: Props) {
     const [localFilters, setLocalFilters] = useState<Filters>(filters);
     const [dateRange, setDateRange] = useState({
         from: filters.date_from || '',
@@ -101,7 +106,7 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
         if (filters.category_id === 'all') delete filters.category_id;
 
         const url = new URL(`/reports/sellers/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach(key => {
+        Object.keys(filters).forEach((key) => {
             if (filters[key as keyof typeof filters]) {
                 url.searchParams.append(key, filters[key as keyof typeof filters]!);
             }
@@ -124,11 +129,7 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
     };
 
     const getGrowthIcon = (growth: number) => {
-        return growth >= 0 ? (
-            <TrendingUp className="h-4 w-4 text-green-500" />
-        ) : (
-            <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
-        );
+        return growth >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 rotate-180 text-red-500" />;
     };
 
     const getGrowthColor = (growth: number) => {
@@ -142,25 +143,16 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Vendedores" />
-            
+
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Reporte de Vendedores</h1>
                     <div className="flex gap-2">
-                        <Button 
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('excel')}
-                        >
+                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
                             <Download className="h-4 w-4" />
                             Exportar Excel
                         </Button>
-                        <Button 
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('pdf')}
-                        >
+                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
                             <Download className="h-4 w-4" />
                             Exportar PDF
                         </Button>
@@ -176,30 +168,38 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                         <CardContent>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Desde</Label>
+                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Desde
+                                    </Label>
                                     <Input
                                         id="date_from"
                                         type="date"
                                         value={dateRange.from}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Hasta</Label>
+                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Hasta
+                                    </Label>
                                     <Input
                                         id="date_to"
                                         type="date"
                                         value={dateRange.to}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Sucursal</Label>
+                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Sucursal
+                                    </Label>
                                     <Select
                                         value={localFilters.branch_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, branch_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="branch" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las sucursales" />
@@ -215,10 +215,14 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Categoría</Label>
+                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Categoría
+                                    </Label>
                                     <Select
                                         value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, category_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="category" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las categorías" />
@@ -252,9 +256,7 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatNumber(totalSellers)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Vendedores con ventas
-                                </p>
+                                <p className="text-xs text-muted-foreground">Vendedores con ventas</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -264,9 +266,7 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatNumber(totalSales)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Ventas realizadas
-                                </p>
+                                <p className="text-xs text-muted-foreground">Ventas realizadas</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -276,9 +276,7 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Ingresos generados
-                                </p>
+                                <p className="text-xs text-muted-foreground">Ingresos generados</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -287,32 +285,34 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                     <Card>
                         <CardHeader>
                             <CardTitle>Rendimiento de Vendedores</CardTitle>
-                            <CardDescription>
-                                Top vendedores por volumen de ventas
-                            </CardDescription>
+                            <CardDescription>Top vendedores por volumen de ventas</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Vendedor</th>
-                                            <th className="text-left p-2">Email</th>
-                                            <th className="text-right p-2">Ventas</th>
-                                            <th className="text-right p-2">Monto Total</th>
-                                            <th className="text-right p-2">Promedio</th>
+                                            <th className="p-2 text-left">Vendedor</th>
+                                            <th className="p-2 text-left">Email</th>
+                                            <th className="p-2 text-right">Ventas</th>
+                                            <th className="p-2 text-right">Monto Total</th>
+                                            <th className="p-2 text-right">Promedio</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.isArray(sellersData?.sellers_performance) && sellersData.sellers_performance.map((seller) => (
-                                            <tr key={seller.id} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                                                <td className="p-2 font-medium">{seller.name}</td>
-                                                <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
-                                                <td className="text-right p-2">{formatNumber(seller.total_sales)}</td>
-                                                <td className="text-right p-2 font-medium">{formatCurrency(seller.total_amount)}</td>
-                                                <td className="text-right p-2">{formatCurrency(seller.average_sale)}</td>
-                                            </tr>
-                                        ))}
+                                        {Array.isArray(sellersData?.sellers_performance) &&
+                                            sellersData.sellers_performance.map((seller) => (
+                                                <tr
+                                                    key={seller.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2 font-medium">{seller.name}</td>
+                                                    <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
+                                                    <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
+                                                    <td className="p-2 text-right font-medium">{formatCurrency(seller.total_amount)}</td>
+                                                    <td className="p-2 text-right">{formatCurrency(seller.average_sale)}</td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -323,37 +323,40 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                     <Card>
                         <CardHeader>
                             <CardTitle>Comparación de Períodos</CardTitle>
-                            <CardDescription>
-                                Crecimiento de ventas vs período anterior
-                            </CardDescription>
+                            <CardDescription>Crecimiento de ventas vs período anterior</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Vendedor</th>
-                                            <th className="text-right p-2">Período Actual</th>
-                                            <th className="text-right p-2">Período Anterior</th>
-                                            <th className="text-right p-2">Crecimiento</th>
+                                            <th className="p-2 text-left">Vendedor</th>
+                                            <th className="p-2 text-right">Período Actual</th>
+                                            <th className="p-2 text-right">Período Anterior</th>
+                                            <th className="p-2 text-right">Crecimiento</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.isArray(sellersData?.sellers_comparison) && sellersData.sellers_comparison.map((seller) => (
-                                            <tr key={seller.id} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                                                <td className="p-2 font-medium">{seller.name}</td>
-                                                <td className="text-right p-2">{formatNumber(seller.current_period_sales)}</td>
-                                                <td className="text-right p-2">{formatNumber(seller.previous_period_sales)}</td>
-                                                <td className="text-right p-2">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        {getGrowthIcon(seller.growth_percentage)}
-                                                        <span className={getGrowthColor(seller.growth_percentage)}>
-                                                            {seller.growth_percentage > 0 ? '+' : ''}{seller.growth_percentage}%
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {Array.isArray(sellersData?.sellers_comparison) &&
+                                            sellersData.sellers_comparison.map((seller) => (
+                                                <tr
+                                                    key={seller.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2 font-medium">{seller.name}</td>
+                                                    <td className="p-2 text-right">{formatNumber(seller.current_period_sales)}</td>
+                                                    <td className="p-2 text-right">{formatNumber(seller.previous_period_sales)}</td>
+                                                    <td className="p-2 text-right">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            {getGrowthIcon(seller.growth_percentage)}
+                                                            <span className={getGrowthColor(seller.growth_percentage)}>
+                                                                {seller.growth_percentage > 0 ? '+' : ''}
+                                                                {seller.growth_percentage}%
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -364,34 +367,36 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
                     <Card>
                         <CardHeader>
                             <CardTitle>Vendedores por Sucursal</CardTitle>
-                            <CardDescription>
-                                Desglose de vendedores por sucursal
-                            </CardDescription>
+                            <CardDescription>Desglose de vendedores por sucursal</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Vendedor</th>
-                                            <th className="text-left p-2">Email</th>
-                                            <th className="text-left p-2">Sucursal</th>
-                                            <th className="text-right p-2">Ventas</th>
-                                            <th className="text-right p-2">Monto Total</th>
+                                            <th className="p-2 text-left">Vendedor</th>
+                                            <th className="p-2 text-left">Email</th>
+                                            <th className="p-2 text-left">Sucursal</th>
+                                            <th className="p-2 text-right">Ventas</th>
+                                            <th className="p-2 text-right">Monto Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {Array.isArray(sellersData?.sellers_by_branch) && sellersData.sellers_by_branch.map((seller) => (
-                                            <tr key={seller.id} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                                                <td className="p-2 font-medium">{seller.name}</td>
-                                                <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{seller.branch_name}</Badge>
-                                                </td>
-                                                <td className="text-right p-2">{formatNumber(seller.total_sales)}</td>
-                                                <td className="text-right p-2 font-medium">{formatCurrency(seller.total_amount)}</td>
-                                            </tr>
-                                        ))}
+                                        {Array.isArray(sellersData?.sellers_by_branch) &&
+                                            sellersData.sellers_by_branch.map((seller) => (
+                                                <tr
+                                                    key={seller.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2 font-medium">{seller.name}</td>
+                                                    <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
+                                                    <td className="p-2">
+                                                        <Badge variant="outline">{seller.branch_name}</Badge>
+                                                    </td>
+                                                    <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
+                                                    <td className="p-2 text-right font-medium">{formatCurrency(seller.total_amount)}</td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -401,4 +406,4 @@ export default function SellersReport({ sellersData = { sellers_performance: [],
             </div>
         </AppLayout>
     );
-} 
+}

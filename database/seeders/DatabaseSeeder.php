@@ -38,5 +38,8 @@ class DatabaseSeeder extends Seeder
         if (\App\Models\StockMovement::count() === 0) {
             $this->call(StockMovementSeeder::class);
         }
+        if (\App\Models\PaymentMethod::count() === 0) {
+            $this->call(PaymentMethodSeeder::class);
+        }
     }
 }

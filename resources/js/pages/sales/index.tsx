@@ -220,6 +220,8 @@ export default function Index({ sales, filters }: PageProps) {
             params.append('date_to', formatDate(endDate));
         }
 
+        // Cuando se aplican filtros, siempre volver a la página 1
+        // pero preservar los filtros existentes
         router.visit(`/sales?${params.toString()}`, {
             preserveState: true,
             preserveScroll: true,
@@ -242,7 +244,6 @@ export default function Index({ sales, filters }: PageProps) {
             only: ['sales'],
             onFinish: () => setIsSearching(false),
         });
-        window.location.href = '/sales';
     };
 
     const formatCurrency = (value: number) => {
@@ -363,7 +364,10 @@ export default function Index({ sales, filters }: PageProps) {
                                         Estado
                                     </Label>
                                     <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger id="status-filter" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger
+                                            id="status-filter"
+                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        >
                                             <SelectValue placeholder="Estado" />
                                         </SelectTrigger>
                                         <SelectContent>

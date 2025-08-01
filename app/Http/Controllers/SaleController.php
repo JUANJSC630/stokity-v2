@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Resources\SaleResource;
@@ -96,6 +97,9 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        // Obtener códigos de métodos de pago activos para validación
+        $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
+        
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
@@ -104,7 +108,7 @@ class SaleController extends Controller
             'total' => 'required|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
             'change_amount' => 'required|numeric',
-            'payment_method' => 'required|string|in:cash,credit_card,debit_card,transfer,other',
+            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
             'products' => 'required|array|min:1',
@@ -112,6 +116,8 @@ class SaleController extends Controller
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
+        ], [
+            'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
         // Verificar stock disponible y calcular impuesto por producto
@@ -274,6 +280,9 @@ class SaleController extends Controller
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
+        // Obtener códigos de métodos de pago activos para validación
+        $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
+        
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
@@ -281,9 +290,11 @@ class SaleController extends Controller
             'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,Nequi,Tarjeta de crédito,Transferencia,Daviplata,transfer',
+            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
+        ], [
+            'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
         $sale->update($validated);

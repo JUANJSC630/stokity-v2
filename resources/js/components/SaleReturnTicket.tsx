@@ -1,4 +1,4 @@
-import { type Branch  } from '@/types';
+import { type Branch } from '@/types';
 import React from 'react';
 import QRCode from 'react-qr-code';
 
@@ -31,7 +31,7 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, f
     const tax = saleReturn.products.reduce((acc, p) => {
         // Usar el impuesto específico del producto si está disponible, sino usar 19% por defecto
         const productTax = (p as { tax?: number }).tax || 19;
-        return acc + (p.price * p.quantity * productTax / 100);
+        return acc + (p.price * p.quantity * productTax) / 100;
     }, 0);
     const total = net + tax;
     return (
@@ -50,11 +50,11 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, f
         >
             {/* Logo y encabezado */}
             <div style={{ marginBottom: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img 
-                    src="/uploads/default-product.png" 
-                    alt="Default Logo" 
+                <img
+                    src="/uploads/default-product.png"
+                    alt="Default Logo"
                     className="rounded-full"
-                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }} 
+                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
                 />
                 <div style={{ fontWeight: 'bold', fontSize: 13 }}>{sale.branch?.business_name}</div>
                 <div style={{ fontSize: 10 }}>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
@@ -70,7 +70,8 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, f
             {/* Datos de la devolución */}
             <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
                 <div style={{ fontWeight: 'bold', fontSize: 11 }}>
-                    RECIBO DE DEVOLUCIÓN<br />#{saleReturn.code || saleReturn.id}
+                    RECIBO DE DEVOLUCIÓN
+                    <br />#{saleReturn.code || saleReturn.id}
                 </div>
                 <div style={{ fontSize: 10 }}>{formatDateToLocal(saleReturn.created_at)}</div>
                 <div style={{ fontSize: 10 }}>Motivo: {saleReturn.reason || 'Sin motivo'}</div>
@@ -86,7 +87,9 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, f
             {/* Vendedor */}
             <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
                 <div style={{ fontWeight: 'bold', fontSize: 10 }}>
-                    VENDEDOR:<br />{sale.seller?.name || 'N/A'}
+                    VENDEDOR:
+                    <br />
+                    {sale.seller?.name || 'N/A'}
                 </div>
             </div>
             <hr />

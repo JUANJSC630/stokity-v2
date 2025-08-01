@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 
-import {Table, type Column} from '@/components/common/Table';
+import { Table, type Column } from '@/components/common/Table';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowUpRight, Recycle, Search, Trash2 } from 'lucide-react';
@@ -53,7 +53,6 @@ export default function TrashedProducts({
     branches = [],
     filters = { search: '', category: 'all', branch: 'all' },
 }: TrashedProductsPageProps) {
-
     const productData = {
         data: Array.isArray(products?.data) ? products.data : [],
         links: Array.isArray(products?.links) ? products.links : [],
@@ -153,11 +152,7 @@ export default function TrashedProducts({
             title: 'Nombre',
             render: (_: unknown, row: Product) => (
                 <div className="flex items-center gap-3">
-                    <img
-                        src={row.image_url}
-                        alt={row.name}
-                        className="h-10 w-10 rounded-md border bg-muted object-cover"
-                    />
+                    <img src={row.image_url} alt={row.name} className="h-10 w-10 rounded-md border bg-muted object-cover" />
                     <span>{row.name}</span>
                 </div>
             ),
@@ -188,20 +183,17 @@ export default function TrashedProducts({
         {
             key: 'stock',
             title: 'Stock',
-            render: (_: unknown, row: Product) => (
-                row.stock <= row.min_stock ? (
-                    <span className="font-medium text-destructive">{row.stock}</span>
-                ) : (
-                    <span>{row.stock}</span>
-                )
-            ),
+            render: (_: unknown, row: Product) =>
+                row.stock <= row.min_stock ? <span className="font-medium text-destructive">{row.stock}</span> : <span>{row.stock}</span>,
         },
-        ...((branches.length > 0)
-            ? [{
-                key: 'branch' as keyof (Product & { actions: null }),
-                title: 'Sucursal',
-                render: (_: unknown, row: Product) => row.branch?.name || 'N/A',
-            }]
+        ...(branches.length > 0
+            ? [
+                  {
+                      key: 'branch' as keyof (Product & { actions: null }),
+                      title: 'Sucursal',
+                      render: (_: unknown, row: Product) => row.branch?.name || 'N/A',
+                  },
+              ]
             : []),
         {
             key: 'actions',
@@ -210,12 +202,7 @@ export default function TrashedProducts({
                 <div className="flex gap-1">
                     {canManageProducts && (
                         <>
-                            <Button
-                                onClick={() => handleRestore(row.id)}
-                                variant="outline"
-                                size="sm"
-                                className="flex h-8 items-center gap-1"
-                            >
+                            <Button onClick={() => handleRestore(row.id)} variant="outline" size="sm" className="flex h-8 items-center gap-1">
                                 <Recycle className="h-4 w-4" />
                                 <span>Restaurar</span>
                             </Button>

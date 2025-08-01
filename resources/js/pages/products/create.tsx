@@ -290,9 +290,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 >
                                                     <strong>¿Qué es el código del producto?</strong>
                                                     <br />
-                                                    Puedes usar el botón "Generar código" para crear un código automático de 8 dígitos, o ingresar tu propio código personalizado (máximo 50 caracteres).
+                                                    Puedes usar el botón "Generar código" para crear un código automático de 8 dígitos, o ingresar tu
+                                                    propio código personalizado (máximo 50 caracteres).
                                                     <br />
-                                                    <strong>Ejemplos:</strong> <span className="font-mono">12345678</span>, <span className="font-mono">SKU-001</span>, <span className="font-mono">CAMISA-ROJA-M</span>
+                                                    <strong>Ejemplos:</strong> <span className="font-mono">12345678</span>,{' '}
+                                                    <span className="font-mono">SKU-001</span>, <span className="font-mono">CAMISA-ROJA-M</span>
                                                     <Tooltip.Arrow className="fill-neutral-900" />
                                                 </Tooltip.Content>
                                             </Tooltip.Portal>
@@ -414,13 +416,15 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 value={form.data.tax}
                                                 onChange={(e) => form.setData('tax', Number(e.target.value))}
                                             />
-                                            <span className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">%</span>
+                                            <span className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                                %
+                                            </span>
                                         </div>
                                         <button
                                             type="button"
                                             className={`rounded border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${
-                                                form.data.tax === 19 
-                                                    ? 'border-yellow-400 bg-yellow-200 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200' 
+                                                form.data.tax === 19
+                                                    ? 'border-yellow-400 bg-yellow-200 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-200'
                                                     : 'border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
                                             }`}
                                             onClick={() => handleTaxChange(form.data.tax === 19 ? 0 : 19)}
@@ -430,9 +434,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         </button>
                                     </div>
                                     {form.errors.tax && <p className="text-xs text-destructive">{form.errors.tax}</p>}
-                                    <p className="text-xs text-muted-foreground">
-                                        Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).</p>
                                 </div>
 
                                 {/* Stock actual */}

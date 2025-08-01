@@ -56,7 +56,7 @@ export default function Show({ sale }: Props) {
 
     // Calcular valores originales de la venta (sin afectar por devoluciones)
     const originalNetValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + sp.price * sp.quantity, 0);
-    const originalTaxValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + (sp.product?.tax || 0) * sp.price * sp.quantity / 100, 0);
+    const originalTaxValue = (sale.saleProducts ?? []).reduce((acc, sp) => acc + ((sp.product?.tax || 0) * sp.price * sp.quantity) / 100, 0);
     const originalTotalValue = originalNetValue + originalTaxValue;
 
     // Función helper para calcular el total devuelto incluyendo impuesto
@@ -68,11 +68,11 @@ export default function Show({ sale }: Props) {
                     ret.products.reduce((sum, p) => {
                         const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === p.id);
                         if (!saleProd) return sum;
-                        
+
                         // Calcular precio base devuelto
                         const basePriceReturned = saleProd.price * (p.pivot?.quantity ?? 0);
                         // Calcular impuesto proporcional devuelto
-                        const taxReturned = (saleProd.product?.tax || 0) * basePriceReturned / 100;
+                        const taxReturned = ((saleProd.product?.tax || 0) * basePriceReturned) / 100;
                         // Total devuelto incluyendo impuesto
                         return sum + basePriceReturned + taxReturned;
                     }, 0)
@@ -543,13 +543,17 @@ export default function Show({ sale }: Props) {
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-muted-foreground">Impuesto:</span>
                                                             <span>
-                                                                {formatCurrency((sp.product?.tax || 0) * sp.price * sp.quantity / 100)}
+                                                                {formatCurrency(((sp.product?.tax || 0) * sp.price * sp.quantity) / 100)}
                                                                 {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
                                                             </span>
                                                         </div>
                                                         <div className="flex justify-between text-sm font-semibold">
                                                             <span>Total con Impuesto:</span>
-                                                            <span>{formatCurrency(sp.price * sp.quantity + (sp.product?.tax || 0) * sp.price * sp.quantity / 100)}</span>
+                                                            <span>
+                                                                {formatCurrency(
+                                                                    sp.price * sp.quantity + ((sp.product?.tax || 0) * sp.price * sp.quantity) / 100,
+                                                                )}
+                                                            </span>
                                                         </div>
                                                         {isReturned && (
                                                             <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
@@ -600,7 +604,7 @@ export default function Show({ sale }: Props) {
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
                                                                 <td className="px-4 py-3 text-right">
-                                                                    {formatCurrency((sp.product?.tax || 0) * sp.price * sp.quantity / 100)}
+                                                                    {formatCurrency(((sp.product?.tax || 0) * sp.price * sp.quantity) / 100)}
                                                                     {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.quantity)}</td>
@@ -631,7 +635,7 @@ export default function Show({ sale }: Props) {
                                                     <td className="px-2 py-2 text-lg font-bold md:px-4 md:py-2" colSpan={5}>
                                                         Total con Impuesto
                                                     </td>
-                                                    <td className="px-2 py-2 text-lg text-right font-bold md:px-4 md:py-2">
+                                                    <td className="px-2 py-2 text-right text-lg font-bold md:px-4 md:py-2">
                                                         {formatCurrency(originalTotalValue)}
                                                     </td>
                                                 </tr>
@@ -677,15 +681,11 @@ export default function Show({ sale }: Props) {
                                 </div>
                                 <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                     <div>Total Devuelto</div>
-                                    <div className="text-right text-red-600 dark:text-red-400">
-                                        -{formatCurrency(calculateTotalReturned())}
-                                    </div>
+                                    <div className="text-right text-red-600 dark:text-red-400">-{formatCurrency(calculateTotalReturned())}</div>
                                 </div>
                                 <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                     <div>Valor Neto Restante</div>
-                                    <div className="text-right">
-                                        {formatCurrency(originalTotalValue - calculateTotalReturned())}
-                                    </div>
+                                    <div className="text-right">{formatCurrency(originalTotalValue - calculateTotalReturned())}</div>
                                 </div>
                             </div>
                         </div>

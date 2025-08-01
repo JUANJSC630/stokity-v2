@@ -1,4 +1,5 @@
 import { CardCreateClient } from '@/components/clients';
+import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,7 +11,7 @@ import { type Branch, type BreadcrumbItem, type Client, type User } from '@/type
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -89,7 +90,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
         total: '0',
         amount_paid: '0',
         change_amount: '0',
-        payment_method: 'cash',
+        payment_method: '',
         date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16), // Formato: YYYY-MM-DDThh:mm en zona horaria local
         status: 'completed',
         products: [] as { id: number; quantity: number; price: number; subtotal: number }[],
@@ -101,22 +102,22 @@ export default function Create({ branches, clients, products = [] }: Props) {
             toast.error('Debes agregar al menos un producto a la venta.');
             return;
         }
-        
+
         // Validar que el monto pagado sea suficiente si es efectivo
         if (form.data.payment_method === 'cash') {
             const total = parseFloat(form.data.total) || 0;
             const amountPaid = parseFloat(form.data.amount_paid) || 0;
-            
+
             if (amountPaid < total) {
                 toast.error(`El monto pagado (${formatCOP(amountPaid)}) debe ser al menos igual al total (${formatCOP(total)})`);
                 return;
             }
-            
+
             // Asegurar que el cambio no sea negativo
             const change = Math.max(amountPaid - total, 0);
             form.setData('change_amount', change.toFixed(2));
         }
-        
+
         const data = {
             branch_id: form.data.branch_id,
             client_id: form.data.client_id,
@@ -243,22 +244,20 @@ export default function Create({ branches, clients, products = [] }: Props) {
         setSaleProducts((prev) => prev.map((sp) => (sp.product.id === id ? { ...sp, quantity: qty, subtotal: qty * sp.product.sale_price } : sp)));
     }
 
-
-
     function recalculateTotals() {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
-        
+
         // Calcular impuesto por producto
         const tax = saleProducts.reduce((sum, sp) => {
             const productTax = sp.product.tax || 0;
-            return sum + (sp.subtotal * (productTax / 100));
+            return sum + sp.subtotal * (productTax / 100);
         }, 0);
-        
+
         const total = net + tax;
         form.setData('net', net.toFixed(2));
         form.setData('tax', tax.toFixed(2));
         form.setData('total', total.toFixed(2));
-        
+
         // Si el método de pago es efectivo, calcular la devuelta automáticamente
         if (form.data.payment_method === 'cash') {
             const amountPaid = parseFloat(form.data.amount_paid) || 0;
@@ -267,17 +266,13 @@ export default function Create({ branches, clients, products = [] }: Props) {
         }
     }
 
-
-
-
-
     // Función para formatear el input mientras el usuario escribe
     function formatAmountPaidInput(value: string) {
         // Remover todo excepto números
         const numbersOnly = value.replace(/[^\d]/g, '');
-        
+
         if (numbersOnly === '') return '';
-        
+
         // Convertir a número y formatear
         const numericValue = parseInt(numbersOnly, 10);
         return new Intl.NumberFormat('es-CO', {
@@ -311,7 +306,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
 
     // Estado para mostrar el modal de crear cliente
     const [showCreateClient, setShowCreateClient] = useState(false);
-    
+
     // Estado para el input de monto pagado (formato visual)
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
 
@@ -456,7 +451,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
                                         <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                            <SelectTrigger id="branch_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                            <SelectTrigger
+                                                id="branch_id"
+                                                className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                            >
                                                 <SelectValue placeholder="Seleccione sucursal" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -477,7 +475,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         <div className="flex flex-row items-center gap-2">
                                             <div className="flex-1">
                                                 <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
-                                                    <SelectTrigger id="client_id" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                                    <SelectTrigger
+                                                        id="client_id"
+                                                        className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                                    >
                                                         <SelectValue placeholder="Seleccione cliente" />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -522,24 +523,12 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         {form.errors.seller_id && <p className="text-sm text-red-500">{form.errors.seller_id}</p>}
                                     </div> */}
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="payment_method">
-                                            Método de Pago <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Select
-                                            value={form.data.payment_method || ''}
-                                            onValueChange={(value) => form.setData('payment_method', value)}
-                                        >
-                                            <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione método de pago" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="cash">Efectivo</SelectItem>
-                                                <SelectItem value="transfer">Transferencia</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {form.errors.payment_method && <p className="text-sm text-red-500">{form.errors.payment_method}</p>}
-                                    </div>
+                                    <PaymentMethodSelect
+                                        value={form.data.payment_method || undefined}
+                                        onValueChange={(value) => form.setData('payment_method', value)}
+                                        error={form.errors.payment_method}
+                                        required
+                                    />
 
                                     {/* <div className="space-y-2">
                                         <Label htmlFor="date">

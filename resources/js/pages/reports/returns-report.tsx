@@ -1,13 +1,13 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Download, TrendingUp, RotateCcw, AlertTriangle, Calendar } from 'lucide-react';
+import { AlertTriangle, Calendar, Download, RotateCcw, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -72,7 +72,17 @@ interface Props {
     categories?: Array<{ id: number; name: string }>;
 }
 
-export default function ReturnsReport({ returnsData = { returns_summary: { total_returns: 0, total_amount: 0, average_return: 0, return_rate: 0 }, returns_by_product: [], returns_by_reason: [], returns_trend: [] }, filters, branches = [], categories = [] }: Props) {
+export default function ReturnsReport({
+    returnsData = {
+        returns_summary: { total_returns: 0, total_amount: 0, average_return: 0, return_rate: 0 },
+        returns_by_product: [],
+        returns_by_reason: [],
+        returns_trend: [],
+    },
+    filters,
+    branches = [],
+    categories = [],
+}: Props) {
     const [localFilters, setLocalFilters] = useState<Filters>(filters);
     const [dateRange, setDateRange] = useState({
         from: filters.date_from || '',
@@ -106,7 +116,7 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
         if (filters.category_id === 'all') delete filters.category_id;
 
         const url = new URL(`/reports/returns/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach(key => {
+        Object.keys(filters).forEach((key) => {
             if (filters[key as keyof typeof filters]) {
                 url.searchParams.append(key, filters[key as keyof typeof filters]!);
             }
@@ -150,25 +160,16 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Devoluciones" />
-            
+
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Reporte de Devoluciones</h1>
                     <div className="flex gap-2">
-                        <Button 
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('excel')}
-                        >
+                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
                             <Download className="h-4 w-4" />
                             Exportar Excel
                         </Button>
-                        <Button 
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={() => exportReport('pdf')}
-                        >
+                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
                             <Download className="h-4 w-4" />
                             Exportar PDF
                         </Button>
@@ -184,30 +185,38 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                         <CardContent>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Desde</Label>
+                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Desde
+                                    </Label>
                                     <Input
                                         id="date_from"
                                         type="date"
                                         value={dateRange.from}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Fecha Hasta</Label>
+                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Fecha Hasta
+                                    </Label>
                                     <Input
                                         id="date_to"
                                         type="date"
                                         value={dateRange.to}
-                                        onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
                                         className="h-8 text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Sucursal</Label>
+                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Sucursal
+                                    </Label>
                                     <Select
                                         value={localFilters.branch_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, branch_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="branch" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las sucursales" />
@@ -223,10 +232,14 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Categoría</Label>
+                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Categoría
+                                    </Label>
                                     <Select
                                         value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) => setLocalFilters(prev => ({ ...prev, category_id: value === 'all' ? undefined : value }))}
+                                        onValueChange={(value) =>
+                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
+                                        }
                                     >
                                         <SelectTrigger id="category" className="h-8 text-sm">
                                             <SelectValue placeholder="Todas las categorías" />
@@ -260,9 +273,7 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatNumber(summary.total_returns)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Devoluciones realizadas
-                                </p>
+                                <p className="text-xs text-muted-foreground">Devoluciones realizadas</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -272,9 +283,7 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatCurrency(summary.total_amount)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Valor de devoluciones
-                                </p>
+                                <p className="text-xs text-muted-foreground">Valor de devoluciones</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -284,9 +293,7 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{formatCurrency(summary.average_return)}</div>
-                                <p className="text-xs text-muted-foreground">
-                                    Valor promedio
-                                </p>
+                                <p className="text-xs text-muted-foreground">Valor promedio</p>
                             </CardContent>
                         </Card>
                         <Card>
@@ -298,9 +305,7 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                                 <div className={`text-2xl font-bold ${getReturnRateColor(summary.return_rate)}`}>
                                     {formatPercentage(summary.return_rate)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Porcentaje de devoluciones
-                                </p>
+                                <p className="text-xs text-muted-foreground">Porcentaje de devoluciones</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -309,34 +314,35 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                     <Card>
                         <CardHeader>
                             <CardTitle>Devoluciones por Producto</CardTitle>
-                            <CardDescription>
-                                Productos con mayor tasa de devolución
-                            </CardDescription>
+                            <CardDescription>Productos con mayor tasa de devolución</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Código</th>
-                                            <th className="text-left p-2">Producto</th>
-                                            <th className="text-right p-2">Devoluciones</th>
-                                            <th className="text-right p-2">Cantidad</th>
-                                            <th className="text-right p-2">Monto Total</th>
-                                            <th className="text-right p-2">Tasa</th>
+                                            <th className="p-2 text-left">Código</th>
+                                            <th className="p-2 text-left">Producto</th>
+                                            <th className="p-2 text-right">Devoluciones</th>
+                                            <th className="p-2 text-right">Cantidad</th>
+                                            <th className="p-2 text-right">Monto Total</th>
+                                            <th className="p-2 text-right">Tasa</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {returnsData?.returns_by_product?.map((product) => (
-                                            <tr key={product.id} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={product.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2">
                                                     <Badge variant="outline">{product.code}</Badge>
                                                 </td>
                                                 <td className="p-2 font-medium">{product.name}</td>
-                                                <td className="text-right p-2">{formatNumber(product.total_returns)}</td>
-                                                <td className="text-right p-2">{formatNumber(product.total_quantity)}</td>
-                                                <td className="text-right p-2 font-medium">{formatCurrency(product.total_amount)}</td>
-                                                <td className="text-right p-2">
+                                                <td className="p-2 text-right">{formatNumber(product.total_returns)}</td>
+                                                <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(product.total_amount)}</td>
+                                                <td className="p-2 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         {getReturnRateBadge(product.return_rate)}
                                                         <span className={getReturnRateColor(product.return_rate)}>
@@ -356,28 +362,29 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                     <Card>
                         <CardHeader>
                             <CardTitle>Devoluciones por Razón</CardTitle>
-                            <CardDescription>
-                                Análisis de motivos de devolución
-                            </CardDescription>
+                            <CardDescription>Análisis de motivos de devolución</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="text-left p-2">Razón</th>
-                                            <th className="text-right p-2">Cantidad</th>
-                                            <th className="text-right p-2">Monto Total</th>
-                                            <th className="text-right p-2">Porcentaje</th>
+                                            <th className="p-2 text-left">Razón</th>
+                                            <th className="p-2 text-right">Cantidad</th>
+                                            <th className="p-2 text-right">Monto Total</th>
+                                            <th className="p-2 text-right">Porcentaje</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {returnsData?.returns_by_reason?.map((reason, index) => (
-                                            <tr key={index} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={index}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2 font-medium">{reason.reason || 'Sin especificar'}</td>
-                                                <td className="text-right p-2">{formatNumber(reason.count)}</td>
-                                                <td className="text-right p-2 font-medium">{formatCurrency(reason.total_amount)}</td>
-                                                <td className="text-right p-2">{formatPercentage(reason.percentage)}</td>
+                                                <td className="p-2 text-right">{formatNumber(reason.count)}</td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(reason.total_amount)}</td>
+                                                <td className="p-2 text-right">{formatPercentage(reason.percentage)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -391,28 +398,29 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
                         <Card>
                             <CardHeader>
                                 <CardTitle>Tendencia de Devoluciones</CardTitle>
-                                <CardDescription>
-                                    Evolución de devoluciones en el tiempo
-                                </CardDescription>
+                                <CardDescription>Evolución de devoluciones en el tiempo</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                                <th className="text-left p-2">Fecha</th>
-                                                <th className="text-right p-2">Devoluciones</th>
-                                                <th className="text-right p-2">Monto Total</th>
+                                                <th className="p-2 text-left">Fecha</th>
+                                                <th className="p-2 text-right">Devoluciones</th>
+                                                <th className="p-2 text-right">Monto Total</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {returnsData?.returns_trend?.map((trend, index) => (
-                                                <tr key={index} className="border-b border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                                                <tr
+                                                    key={index}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
                                                     <td className="p-2">
                                                         <Badge variant="outline">{trend.date}</Badge>
                                                     </td>
-                                                    <td className="text-right p-2">{formatNumber(trend.returns_count)}</td>
-                                                    <td className="text-right p-2 font-medium">{formatCurrency(trend.returns_amount)}</td>
+                                                    <td className="p-2 text-right">{formatNumber(trend.returns_count)}</td>
+                                                    <td className="p-2 text-right font-medium">{formatCurrency(trend.returns_amount)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -425,4 +433,4 @@ export default function ReturnsReport({ returnsData = { returns_summary: { total
             </div>
         </AppLayout>
     );
-} 
+}

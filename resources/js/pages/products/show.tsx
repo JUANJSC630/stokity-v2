@@ -40,7 +40,12 @@ export default function ProductShow({ product }: ProductShowProps) {
                         <Link href={`/products/${product.id}/movements`}>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                    />
                                 </svg>
                                 <span className="hidden sm:inline">Movimientos</span>
                             </Button>
@@ -100,7 +105,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                             size={80}
                                             style={{ height: 'auto', maxWidth: 80, width: '100%' }}
                                             viewBox={`0 0 256 256`}
-                                            className="sm:w-20 sm:h-20"
+                                            className="sm:h-20 sm:w-20"
                                         />
                                     </div>
                                 </div>
@@ -129,7 +134,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de compra</div>
-                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
+                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
                                         $
                                         {Number(product.purchase_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -139,7 +144,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de venta</div>
-                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
+                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
                                         $
                                         {Number(product.sale_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -147,9 +152,9 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         })}
                                     </div>
                                 </div>
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800 sm:col-span-2 lg:col-span-1">
+                                <div className="rounded-md bg-neutral-50 p-4 sm:col-span-2 lg:col-span-1 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Impuesto</div>
-                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
+                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
                                         {product.tax || 0}%
                                     </div>
                                 </div>
@@ -160,13 +165,17 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">{product.stock}</span>
+                                        <span className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
+                                            {product.stock}
+                                        </span>
                                         {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
                                     </div>
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
-                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">{product.min_stock}</div>
+                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
+                                        {product.min_stock}
+                                    </div>
                                 </div>
                             </div>
 
@@ -179,7 +188,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                             </div>
 
                             {/* Fechas */}
-                            <div className="grid grid-cols-1 gap-4 border-t pt-4 dark:border-neutral-700 sm:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2 dark:border-neutral-700">
                                 <div>
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Creado</div>
                                     <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.created_at).toLocaleDateString()}</div>
