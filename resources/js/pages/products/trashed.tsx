@@ -53,11 +53,7 @@ export default function TrashedProducts({
     branches = [],
     filters = { search: '', category: 'all', branch: 'all' },
 }: TrashedProductsPageProps) {
-    // Add console log to debug the structure of products
-    console.log('Trashed Products Props:', products);
 
-    // Ensure products and their properties have valid values
-    // Complete structure to avoid undefined errors
     const productData = {
         data: Array.isArray(products?.data) ? products.data : [],
         links: Array.isArray(products?.links) ? products.links : [],

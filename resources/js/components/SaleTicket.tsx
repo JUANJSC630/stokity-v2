@@ -27,7 +27,6 @@ interface SaleTicketProps {
 }
 
 const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDateToLocal }) => {
-    console.log('SaleTicket sale:', sale);
     return (
         <div
             className="ticket"

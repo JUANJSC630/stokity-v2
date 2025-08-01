@@ -128,4 +128,20 @@ class Product extends Model
     {
         return $this->hasMany(SaleReturnProduct::class);
     }
+
+    /**
+     * Get all stock movements for the product.
+     */
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * Get the latest stock movement for the product.
+     */
+    public function latestStockMovement()
+    {
+        return $this->hasOne(StockMovement::class)->latestOfMany();
+    }
 }

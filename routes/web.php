@@ -34,3 +34,4 @@ require __DIR__.'/products.php';
 require __DIR__.'/clients.php';
 require __DIR__.'/sales.php';
 require __DIR__.'/reports.php';
+require __DIR__.'/stock-movements.php';

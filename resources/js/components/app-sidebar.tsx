@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Banknote, BarChart3, Building2, LayoutGrid, Package, Tags, UserRound, Users, TrendingUp, Package2, Users2, Building, RotateCcw } from 'lucide-react';
+import { Banknote, BarChart3, Building2, LayoutGrid, Package, Tags, UserRound, Users, TrendingUp, Package2, Users2, Building, RotateCcw, Activity } from 'lucide-react';
 import AppLogo from './app-logo';
 
 // All available navigation items
@@ -49,6 +49,12 @@ const allNavItems: NavItem[] = [
         href: '/sales',
         icon: Banknote,
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
+    },
+    {
+        title: 'Movimientos de Stock',
+        href: '/stock-movements',
+        icon: Activity,
+        roles: ['administrador', 'encargado'], // Admin and manager
     },
     {
         title: 'Reportes',

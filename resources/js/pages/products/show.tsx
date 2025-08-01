@@ -28,27 +28,43 @@ export default function ProductShow({ product }: ProductShowProps) {
             <Head title={`Producto: ${product.name}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <h1 className="text-2xl font-semibold">Detalles del Producto</h1>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Link href="/products">
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
                                 <ArrowLeft className="h-4 w-4" />
-                                Volver
+                                <span className="hidden sm:inline">Volver</span>
+                            </Button>
+                        </Link>
+                        <Link href={`/products/${product.id}/movements`}>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                                <span className="hidden sm:inline">Movimientos</span>
+                            </Button>
+                        </Link>
+                        <Link href={`/stock-movements/create?product_id=${product.id}`}>
+                            <Button size="sm" className="flex items-center gap-1">
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                <span className="hidden sm:inline">Nuevo Movimiento</span>
                             </Button>
                         </Link>
                         <Link href={`/products/${product.id}/edit`}>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
                                 <Edit2 className="h-4 w-4" />
-                                Editar
+                                <span className="hidden sm:inline">Editar</span>
                             </Button>
                         </Link>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Imagen y estado */}
-                    <Card className="md:col-span-1">
+                    <Card className="lg:col-span-1">
                         <CardHeader>
                             <CardTitle>Imagen</CardTitle>
                         </CardHeader>
@@ -81,9 +97,10 @@ export default function ProductShow({ product }: ProductShowProps) {
                                     <div className="flex justify-center py-2">
                                         <QRCode
                                             value={product.code}
-                                            size={100}
+                                            size={80}
                                             style={{ height: 'auto', maxWidth: 80, width: '100%' }}
                                             viewBox={`0 0 256 256`}
+                                            className="sm:w-20 sm:h-20"
                                         />
                                     </div>
                                 </div>
@@ -102,17 +119,17 @@ export default function ProductShow({ product }: ProductShowProps) {
                     </Card>
 
                     {/* Información general */}
-                    <Card className="md:col-span-2">
+                    <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>{product.name}</CardTitle>
                             <CardDescription>Información detallada del producto</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Precios */}
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de compra</div>
-                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
                                         $
                                         {Number(product.purchase_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -122,7 +139,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de venta</div>
-                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
                                         $
                                         {Number(product.sale_price).toLocaleString('es-CO', {
                                             minimumFractionDigits: 0,
@@ -130,26 +147,26 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         })}
                                     </div>
                                 </div>
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800 sm:col-span-2 lg:col-span-1">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Impuesto</div>
-                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">
                                         {product.tax || 0}%
                                     </div>
                                 </div>
                             </div>
 
                             {/* Inventario */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{product.stock}</span>
+                                        <span className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">{product.stock}</span>
                                         {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
                                     </div>
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
-                                    <div className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{product.min_stock}</div>
+                                    <div className="text-xl font-semibold text-neutral-900 dark:text-neutral-100 sm:text-2xl">{product.min_stock}</div>
                                 </div>
                             </div>
 
@@ -162,7 +179,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                             </div>
 
                             {/* Fechas */}
-                            <div className="grid grid-cols-2 gap-4 border-t pt-4 dark:border-neutral-700">
+                            <div className="grid grid-cols-1 gap-4 border-t pt-4 dark:border-neutral-700 sm:grid-cols-2">
                                 <div>
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Creado</div>
                                     <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.created_at).toLocaleDateString()}</div>

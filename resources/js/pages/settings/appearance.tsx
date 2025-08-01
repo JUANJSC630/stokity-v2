@@ -86,7 +86,7 @@ export default function Appearance() {
                     <div>
                         <Card>
                             <CardHeader>
-                                <CardTitle>Imagen por defecto de productos</CardTitle>
+                                <CardTitle>Imagen por defecto</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <form onSubmit={handleSubmit} className="space-y-4">

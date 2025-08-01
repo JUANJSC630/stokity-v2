@@ -115,7 +115,6 @@ export default function Users({ users, filters = { search: '', status: 'all' } }
             <Badge className="bg-red-500 hover:bg-red-600">Inactivo</Badge>
         );
     };
-console.log(users);
     const columns: Column<User & { actions: null }>[] = [
         { key: 'id', title: 'ID' },
         { key: 'name', title: 'Usuario' },
