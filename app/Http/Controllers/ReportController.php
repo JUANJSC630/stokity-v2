@@ -25,7 +25,7 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $filters = $this->getFilters($request);
-        
+
         // Obtener datos del dashboard
         $dashboardData = [
             'sales_summary' => $this->getSalesSummary($filters),
@@ -37,12 +37,17 @@ class ReportController extends Controller
         ];
 
         $user = Auth::user();
-        
+
         return Inertia::render('reports/index', [
             'dashboardData' => $dashboardData,
             'filters' => $filters,
             'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
+            ],
         ]);
     }
 
@@ -53,27 +58,27 @@ class ReportController extends Controller
     {
         $filters = $this->getFilters($request);
         $groupBy = $request->get('group_by', 'day'); // day, week, month, year
-        
+
         $salesData = $this->getSalesByPeriod($filters, $groupBy);
-        
+
         // Debug: verificar datos
         \Log::info('Sales Data Debug', [
             'salesData' => $salesData->toArray(),
             'filters' => $filters,
             'groupBy' => $groupBy
         ]);
-        
+
         // Calcular totales agregados para las tarjetas de resumen
         $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
-        
+
         $salesSummary = [
             'total_sales' => $totalSales,
             'total_amount' => $totalAmount,
             'average_sale' => $averageSale,
         ];
-        
+
         return Inertia::render('reports/sales-detail', [
             'salesData' => $salesData->toArray(),
             'salesSummary' => $salesSummary,
@@ -90,27 +95,27 @@ class ReportController extends Controller
     public function exportSalesDetailPdf(Request $request)
     {
         \Log::info('Iniciando exportación PDF Sales Detail', ['request' => $request->all()]);
-        
+
         $filters = $this->getFilters($request);
         $groupBy = $request->get('group_by', 'day');
-        
+
         $salesData = $this->getSalesByPeriod($filters, $groupBy);
-        
+
         // Calcular totales
         $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
-        
+
         $html = $this->generateSalesDetailPdfHtml($filters, $salesData, $totalSales, $totalAmount, $averageSale, $groupBy);
-        
+
         $filename = 'reporte-detalle-ventas-' . now()->format('Y-m-d-H-i-s') . '.pdf';
-        
+
         try {
             $pdf = \PDF::loadHTML($html);
             $pdf->setPaper('a4', 'portrait');
-            
+
             \Log::info('PDF generado exitosamente', ['file_name' => $filename]);
-            
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error generando PDF', ['error' => $e->getMessage()]);
@@ -124,24 +129,24 @@ class ReportController extends Controller
     public function exportSalesDetailExcel(Request $request)
     {
         \Log::info('Iniciando exportación Excel Sales Detail', ['request' => $request->all()]);
-        
+
         $filters = $this->getFilters($request);
         $groupBy = $request->get('group_by', 'day');
-        
+
         $salesData = $this->getSalesByPeriod($filters, $groupBy);
-        
+
         // Calcular totales
         $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
-        
+
         $csvContent = $this->generateSalesDetailCsvContent($filters, $salesData, $totalSales, $totalAmount, $averageSale, $groupBy);
-        
+
         $filename = 'reporte-detalle-ventas-' . now()->format('Y-m-d-H-i-s') . '.csv';
-        
+
         try {
             \Log::info('CSV generado exitosamente', ['file_size' => strlen($csvContent)]);
-            
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
@@ -158,27 +163,36 @@ class ReportController extends Controller
     public function productsReport(Request $request)
     {
         $filters = $this->getFilters($request);
-        
+
         $topProducts = $this->getTopProducts($filters, 20);
-        
+
         // Debug: verificar datos de productos
         \Log::info('Products Data Debug', [
             'top_products' => $topProducts->toArray(),
             'filters' => $filters
         ]);
-        
+
         $productsData = [
             'top_products' => $topProducts,
             'products_by_category' => $this->getProductsByCategory($filters),
-            'low_stock_products' => $this->getLowStockProducts(),
+            'low_stock_products' => $this->getLowStockProducts($filters),
             'products_performance' => $this->getProductsPerformance($filters),
         ];
+
+
+
+        $user = Auth::user();
 
         return Inertia::render('reports/products-report', [
             'productsData' => $productsData,
             'filters' => $filters,
-            'branches' => Branch::where('status', true)->get(),
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
+            ],
         ]);
     }
 
@@ -188,18 +202,25 @@ class ReportController extends Controller
     public function sellersReport(Request $request)
     {
         $filters = $this->getFilters($request);
-        
+
         $sellersData = [
             'sellers_performance' => $this->getSellersPerformance($filters),
             'sellers_comparison' => $this->getSellersComparison($filters),
             'sellers_by_branch' => $this->getSellersByBranch($filters),
         ];
 
+        $user = Auth::user();
+
         return Inertia::render('reports/sellers-report', [
             'sellersData' => $sellersData,
             'filters' => $filters,
-            'branches' => Branch::where('status', true)->get(),
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
+            ],
         ]);
     }
 
@@ -209,7 +230,7 @@ class ReportController extends Controller
     public function branchesReport(Request $request)
     {
         $filters = $this->getFilters($request);
-        
+
         $branchesData = [
             'branches_performance' => $this->getBranchesPerformance($filters),
             'branches_comparison' => $this->getBranchesComparison($filters),
@@ -230,15 +251,15 @@ class ReportController extends Controller
     public function returnsReport(Request $request)
     {
         $filters = $this->getFilters($request);
-        
+
         // Obtener datos base
         $summary = $this->getReturnsSummary($filters);
         $returnsByProduct = $this->getReturnsByProduct($filters);
         $returnsByReason = $this->getReturnsByReason($filters);
         $returnsTrend = $this->getReturnsTrend($filters);
-        
+
         // Calcular tasa de devolución
-        $totalSales = Sale::where('status', 'completed')
+        $totalSales = Sale::whereIn('status', ['completed', 'cancelled'])
             ->when($filters['date_from'], function ($query, $date) {
                 return $query->whereDate('date', '>=', $date);
             })
@@ -249,9 +270,9 @@ class ReportController extends Controller
                 return $query->where('branch_id', $branchId);
             })
             ->count();
-        
+
         $returnRate = $totalSales > 0 ? ($summary->total_returns / $totalSales) * 100 : 0;
-        
+
         // Formatear datos para el frontend
         $returnsData = [
             'returns_summary' => [
@@ -273,11 +294,11 @@ class ReportController extends Controller
                     ->when($filters['branch_id'], function ($query, $branchId) {
                         return $query->where('sales.branch_id', $branchId);
                     })
-                    ->where('sales.status', 'completed')
+                    ->whereIn('sales.status', ['completed', 'cancelled'])
                     ->sum('sale_products.quantity');
-                
+
                 $returnRate = $productSales > 0 ? ($product->returned_quantity / $productSales) * 100 : 0;
-                
+
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -306,11 +327,18 @@ class ReportController extends Controller
             }),
         ];
 
+        $user = Auth::user();
+
         return Inertia::render('reports/returns-report', [
             'returnsData' => $returnsData,
             'filters' => $filters,
             'branches' => Branch::where('status', true)->get(),
             'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
+            ],
         ]);
     }
 
@@ -321,10 +349,10 @@ class ReportController extends Controller
     {
         try {
             \Log::info('Iniciando exportación PDF', ['request' => $request->all()]);
-            
+
             $filters = $this->getFilters($request);
             \Log::info('Filtros aplicados', $filters);
-            
+
             // Obtener datos para el reporte
             $salesData = $this->getSalesByPeriod($filters, 'day');
             $topProducts = $this->getTopProducts($filters, 20);
@@ -332,7 +360,7 @@ class ReportController extends Controller
             $salesBySeller = $this->getSalesBySeller($filters);
             $returnsData = $this->getReturnsByProduct($filters);
             $paymentMethods = $this->getPaymentMethodsSummary($filters);
-            
+
             \Log::info('Datos obtenidos para PDF', [
                 'sales_count' => count($salesData),
                 'products_count' => count($topProducts),
@@ -341,24 +369,23 @@ class ReportController extends Controller
                 'returns_count' => count($returnsData),
                 'payment_methods_count' => count($paymentMethods)
             ]);
-            
+
             // Generar contenido HTML para PDF
             $html = $this->generatePdfHtml($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods);
-            
+
             \Log::info('HTML generado para PDF', ['html_length' => strlen($html)]);
-            
+
             // Generar PDF
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHtml($html);
             $pdf->setPaper('A4', 'portrait');
-            
+
             // Generar nombre del archivo con timestamp
             $fileName = 'reporte-ventas-' . now()->format('Y-m-d-H-i-s') . '.pdf';
-            
+
             \Log::info('PDF generado exitosamente', ['file_name' => $fileName]);
-            
+
             // Retornar PDF para descarga
             return $pdf->download($fileName);
-            
         } catch (\Exception $e) {
             \Log::error('Error en exportación PDF: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
@@ -376,10 +403,10 @@ class ReportController extends Controller
     {
         try {
             \Log::info('Iniciando exportación CSV', ['request' => $request->all()]);
-            
+
             $filters = $this->getFilters($request);
             \Log::info('Filtros aplicados', $filters);
-            
+
             // Obtener datos para el reporte
             $salesData = $this->getSalesByPeriod($filters, 'day');
             $topProducts = $this->getTopProducts($filters, 50);
@@ -387,7 +414,7 @@ class ReportController extends Controller
             $salesBySeller = $this->getSalesBySeller($filters);
             $returnsData = $this->getReturnsByProduct($filters);
             $paymentMethods = $this->getPaymentMethodsSummary($filters);
-            
+
             \Log::info('Datos obtenidos', [
                 'sales_count' => count($salesData),
                 'products_count' => count($topProducts),
@@ -396,15 +423,15 @@ class ReportController extends Controller
                 'returns_count' => count($returnsData),
                 'payment_methods_count' => count($paymentMethods)
             ]);
-            
+
             // Crear el contenido del CSV
             $csvContent = $this->generateCsvContent($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods);
-            
+
             // Generar nombre del archivo con timestamp
             $fileName = 'reporte-ventas-' . now()->format('Y-m-d-H-i-s') . '.csv';
-            
+
             \Log::info('CSV generado exitosamente', ['file_size' => strlen($csvContent)]);
-            
+
             // Retornar respuesta con headers para descarga
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
@@ -412,7 +439,6 @@ class ReportController extends Controller
                 ->header('Cache-Control', 'no-cache, must-revalidate')
                 ->header('Pragma', 'no-cache')
                 ->header('Expires', '0');
-                
         } catch (\Exception $e) {
             \Log::error('Error en exportación CSV: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
@@ -429,11 +455,11 @@ class ReportController extends Controller
     private function getSalesSummary($filters)
     {
         $cacheKey = 'sales_summary_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             $summary = $query->select([
                 DB::raw('COUNT(*) as total_sales'),
                 DB::raw('SUM(total) as total_amount'),
@@ -447,18 +473,28 @@ class ReportController extends Controller
             $previousPeriod = $this->getPreviousPeriod($filters);
             $previousQuery = Sale::query();
             $this->applyFilters($previousQuery, $previousPeriod);
-            
+
             $previousSummary = $previousQuery->select([
                 DB::raw('COUNT(*) as total_sales'),
                 DB::raw('SUM(total) as total_amount'),
             ])->first();
 
             return [
-                'current' => $summary,
-                'previous' => $previousSummary,
+                'current' => [
+                    'total_sales' => (int) ($summary->total_sales ?? 0),
+                    'total_amount' => (float) ($summary->total_amount ?? 0),
+                    'net_amount' => (float) ($summary->net_amount ?? 0),
+                    'tax_amount' => (float) ($summary->tax_amount ?? 0),
+                    'average_sale' => (float) ($summary->average_sale ?? 0),
+                    'total_paid' => (float) ($summary->total_paid ?? 0),
+                ],
+                'previous' => [
+                    'total_sales' => (int) ($previousSummary->total_sales ?? 0),
+                    'total_amount' => (float) ($previousSummary->total_amount ?? 0),
+                ],
                 'growth' => [
-                    'sales_count' => $this->calculateGrowth($summary->total_sales, $previousSummary->total_sales),
-                    'total_amount' => $this->calculateGrowth($summary->total_amount, $previousSummary->total_amount),
+                    'sales_count' => $this->calculateGrowth($summary->total_sales ?? 0, $previousSummary->total_sales ?? 0),
+                    'total_amount' => $this->calculateGrowth($summary->total_amount ?? 0, $previousSummary->total_amount ?? 0),
                 ],
             ];
         });
@@ -470,7 +506,7 @@ class ReportController extends Controller
     private function getTopProducts($filters, $limit = 10)
     {
         $cacheKey = 'top_products_' . md5(serialize($filters)) . '_' . $limit;
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters, $limit) {
             $results = DB::table('sales')
                 ->join('sale_products', 'sales.id', '=', 'sale_products.sale_id')
@@ -515,11 +551,11 @@ class ReportController extends Controller
     private function getSalesByBranch($filters)
     {
         $cacheKey = 'sales_by_branch_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
                 ->select([
                     'branches.id',
@@ -541,11 +577,11 @@ class ReportController extends Controller
     private function getSalesBySeller($filters)
     {
         $cacheKey = 'sales_by_seller_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->join('users', 'sales.seller_id', '=', 'users.id')
                 ->select([
                     'users.id',
@@ -568,10 +604,10 @@ class ReportController extends Controller
     private function getReturnsSummary($filters)
     {
         $cacheKey = 'returns_summary_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = SaleReturn::query();
-            
+
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
@@ -583,15 +619,15 @@ class ReportController extends Controller
                     $q->where('branch_id', $filters['branch_id']);
                 });
             }
-            
+
             $summary = $query->select([
                 DB::raw('COUNT(*) as total_returns'),
                 DB::raw('COUNT(DISTINCT sale_id) as unique_sales_returned'),
             ])->first();
-            
+
             // Calcular montos totales de devoluciones
             $amountsQuery = SaleReturn::query();
-            
+
             if ($filters['date_from']) {
                 $amountsQuery->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
@@ -603,14 +639,14 @@ class ReportController extends Controller
                     $q->where('branch_id', $filters['branch_id']);
                 });
             }
-            
+
             $amounts = $amountsQuery->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
                 ->join('products', 'sale_return_products.product_id', '=', 'products.id')
                 ->select([
                     DB::raw('SUM(sale_return_products.quantity * products.sale_price) as total_amount'),
                     DB::raw('AVG(sale_return_products.quantity * products.sale_price) as average_return'),
                 ])->first();
-            
+
             return (object) [
                 'total_returns' => $summary->total_returns ?? 0,
                 'unique_sales_returned' => $summary->unique_sales_returned ?? 0,
@@ -626,46 +662,89 @@ class ReportController extends Controller
     private function getSalesByPeriod($filters, $groupBy = 'day')
     {
         $cacheKey = 'sales_by_period_' . md5(serialize($filters)) . '_' . $groupBy;
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters, $groupBy) {
             $query = Sale::query();
-            $this->applyFilters($query, $filters);
             
+            // Aplicar filtros básicos sin el filtro de status
+            if ($filters['date_from']) {
+                $query->whereDate('sales.date', '>=', $filters['date_from']);
+            }
+            if ($filters['date_to']) {
+                $query->whereDate('sales.date', '<=', $filters['date_to']);
+            }
+            if ($filters['branch_id']) {
+                $query->where('sales.branch_id', $filters['branch_id']);
+            }
+            if ($filters['seller_id']) {
+                $query->where('sales.seller_id', $filters['seller_id']);
+            }
+            if ($filters['category_id']) {
+                $query->whereHas('saleProducts.product', function ($q) use ($filters) {
+                    $q->where('category_id', $filters['category_id']);
+                });
+            }
+            
+            // Para el detalle de ventas, incluir tanto completed como cancelled
+            $query->whereIn('sales.status', ['completed', 'cancelled']);
+
             $dateFormat = $this->getDateFormat($groupBy);
-            
+
             $result = $query->select([
                 DB::raw("DATE_FORMAT(sales.date, '{$dateFormat}') as period"),
+                'sales.status',
                 DB::raw('COUNT(*) as total_sales'),
                 DB::raw('COALESCE(SUM(sales.total), 0) as total_amount'),
                 DB::raw('COALESCE(SUM(sales.net), 0) as net_amount'),
                 DB::raw('COALESCE(SUM(sales.tax), 0) as tax_amount'),
                 DB::raw('COALESCE(AVG(sales.total), 0) as average_sale'),
             ])
-            ->groupBy('period')
-            ->orderBy('period')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'period' => $item->period,
-                    'total_sales' => (int) $item->total_sales,
-                    'total_amount' => (float) $item->total_amount,
-                    'net_amount' => (float) $item->net_amount,
-                    'tax_amount' => (float) $item->tax_amount,
-                    'average_sale' => (float) $item->average_sale,
-                ];
-            });
-            
-            // Debug: verificar tipos de datos
-            \Log::info('Sales Period Data Debug', [
-                'result' => $result->toArray(),
-                'first_item' => $result->first() ? [
-                    'total_sales_type' => gettype($result->first()['total_sales']),
-                    'total_amount_type' => gettype($result->first()['total_amount']),
-                    'total_sales_value' => $result->first()['total_sales'],
-                    'total_amount_value' => $result->first()['total_amount'],
-                ] : 'No data'
-            ]);
-            
+                ->groupBy('period', 'sales.status')
+                ->orderBy('period')
+                ->orderBy('sales.status')
+                ->get()
+                ->groupBy('period')
+                ->map(function ($periodGroup) {
+                    $result = [
+                        'period' => $periodGroup->first()->period,
+                        'completed' => [
+                            'total_sales' => 0,
+                            'total_amount' => 0,
+                            'net_amount' => 0,
+                            'tax_amount' => 0,
+                            'average_sale' => 0,
+                        ],
+                        'cancelled' => [
+                            'total_sales' => 0,
+                            'total_amount' => 0,
+                            'net_amount' => 0,
+                            'tax_amount' => 0,
+                            'average_sale' => 0,
+                        ],
+                        'pending' => [
+                            'total_sales' => 0,
+                            'total_amount' => 0,
+                            'net_amount' => 0,
+                            'tax_amount' => 0,
+                            'average_sale' => 0,
+                        ],
+                    ];
+                    
+                    foreach ($periodGroup as $item) {
+                        $status = $item->status;
+                        $result[$status] = [
+                            'total_sales' => (int) $item->total_sales,
+                            'total_amount' => (float) $item->total_amount,
+                            'net_amount' => (float) $item->net_amount,
+                            'tax_amount' => (float) $item->tax_amount,
+                            'average_sale' => (float) $item->average_sale,
+                        ];
+                    }
+                    
+                    return $result;
+                })
+                ->values();
+
             return $result;
         });
     }
@@ -676,7 +755,7 @@ class ReportController extends Controller
     private function getProductsByCategory($filters)
     {
         $cacheKey = 'products_by_category_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $results = DB::table('sales')
                 ->join('sale_products', 'sales.id', '=', 'sale_products.sale_id')
@@ -688,6 +767,9 @@ class ReportController extends Controller
                 })
                 ->when($filters['date_to'], function ($query, $date) {
                     return $query->whereDate('sales.date', '<=', $date);
+                })
+                ->when($filters['branch_id'], function ($query, $branchId) {
+                    return $query->where('sales.branch_id', $branchId);
                 })
                 ->select([
                     'categories.id',
@@ -716,14 +798,28 @@ class ReportController extends Controller
     /**
      * Obtener productos con bajo stock
      */
-    private function getLowStockProducts()
+    private function getLowStockProducts($filters = [])
     {
-        return Product::where('stock', '<=', DB::raw('min_stock'))
-            ->where('status', true)
-            ->select(['id', 'name', 'code', 'stock', 'min_stock'])
-            ->orderBy('stock')
-            ->limit(20)
-            ->get();
+        $cacheKey = 'low_stock_products_' . md5(serialize($filters));
+
+        return Cache::remember($cacheKey, 900, function () use ($filters) {
+            $query = Product::where('stock', '<=', DB::raw('min_stock'))
+                ->where('status', true);
+
+            // Aplicar filtro de sucursal si está especificado
+            if (!empty($filters['branch_id'])) {
+                $query->whereHas('stockMovements', function ($q) use ($filters) {
+                    $q->where('branch_id', (int) $filters['branch_id']);
+                });
+            }
+
+            $results = $query->select(['id', 'name', 'code', 'stock', 'min_stock'])
+                ->orderBy('stock')
+                ->limit(20)
+                ->get();
+
+            return $results;
+        });
     }
 
     /**
@@ -732,7 +828,7 @@ class ReportController extends Controller
     private function getProductsPerformance($filters)
     {
         $cacheKey = 'products_performance_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $results = DB::table('products')
                 ->leftJoin('sale_products', 'products.id', '=', 'sale_products.product_id')
@@ -781,25 +877,41 @@ class ReportController extends Controller
     private function getSellersPerformance($filters)
     {
         $cacheKey = 'sellers_performance_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
-            return $query->join('users', 'sales.seller_id', '=', 'users.id')
+
+            $result = $query->join('users', 'sales.seller_id', '=', 'users.id')
                 ->select([
                     'users.id',
                     'users.name',
                     'users.email',
                     DB::raw('COUNT(*) as total_sales'),
-                    DB::raw('SUM(sales.total) as total_amount'),
-                    DB::raw('AVG(sales.total) as average_sale'),
+                    DB::raw('CAST(SUM(sales.total) AS DECIMAL(15,2)) as total_amount'),
+                    DB::raw('CAST(AVG(sales.total) AS DECIMAL(15,2)) as average_sale'),
                     DB::raw('MIN(sales.date) as first_sale'),
                     DB::raw('MAX(sales.date) as last_sale'),
                 ])
                 ->groupBy('users.id', 'users.name', 'users.email')
                 ->orderBy('total_amount', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'email' => $item->email,
+                        'total_sales' => (int) $item->total_sales,
+                        'total_amount' => (float) $item->total_amount,
+                        'average_sale' => (float) $item->average_sale,
+                        'first_sale' => $item->first_sale,
+                        'last_sale' => $item->last_sale,
+                    ];
+                });
+
+
+
+            return $result;
         });
     }
 
@@ -809,35 +921,35 @@ class ReportController extends Controller
     private function getSellersComparison($filters)
     {
         $cacheKey = 'sellers_comparison_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             // Obtener período actual
             $currentPeriod = $this->getSellersPerformance($filters);
-            
+
             // Obtener período anterior
             $previousFilters = $this->getPreviousPeriod($filters);
             $previousPeriod = $this->getSellersPerformance($previousFilters);
-            
+
             $result = [];
-            
+
             foreach ($currentPeriod as $current) {
-                $previous = $previousPeriod->where('id', $current->id)->first();
-                $previousSales = $previous ? $previous->total_sales : 0;
-                $currentSales = $current->total_sales;
-                
-                $growthPercentage = $previousSales > 0 
-                    ? (($currentSales - $previousSales) / $previousSales) * 100 
+                $previous = collect($previousPeriod)->where('id', $current['id'])->first();
+                $previousSales = $previous ? $previous['total_sales'] : 0;
+                $currentSales = $current['total_sales'];
+
+                $growthPercentage = $previousSales > 0
+                    ? (($currentSales - $previousSales) / $previousSales) * 100
                     : 0;
-                
+
                 $result[] = [
-                    'id' => $current->id,
-                    'name' => $current->name,
+                    'id' => $current['id'],
+                    'name' => $current['name'],
                     'current_period_sales' => $currentSales,
                     'previous_period_sales' => $previousSales,
                     'growth_percentage' => round($growthPercentage, 2),
                 ];
             }
-            
+
             return collect($result);
         });
     }
@@ -848,11 +960,11 @@ class ReportController extends Controller
     private function getSellersByBranch($filters)
     {
         $cacheKey = 'sellers_by_branch_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->join('users', 'sales.seller_id', '=', 'users.id')
                 ->join('branches', 'sales.branch_id', '=', 'branches.id')
                 ->select([
@@ -876,11 +988,11 @@ class ReportController extends Controller
     private function getBranchesPerformance($filters)
     {
         $cacheKey = 'branches_performance_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
                 ->select([
                     'branches.id',
@@ -904,11 +1016,11 @@ class ReportController extends Controller
     private function getBranchesComparison($filters)
     {
         $cacheKey = 'branches_comparison_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
                 ->select([
                     'branches.id',
@@ -940,10 +1052,10 @@ class ReportController extends Controller
     private function getReturnsByProduct($filters)
     {
         $cacheKey = 'returns_by_product_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = SaleReturn::query();
-            
+
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
@@ -955,7 +1067,7 @@ class ReportController extends Controller
                     $q->where('branch_id', $filters['branch_id']);
                 });
             }
-            
+
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
                 ->join('products', 'sale_return_products.product_id', '=', 'products.id')
                 ->select([
@@ -979,10 +1091,10 @@ class ReportController extends Controller
     private function getReturnsByReason($filters)
     {
         $cacheKey = 'returns_by_reason_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = SaleReturn::query();
-            
+
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
@@ -994,7 +1106,7 @@ class ReportController extends Controller
                     $q->where('branch_id', $filters['branch_id']);
                 });
             }
-            
+
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
                 ->join('products', 'sale_return_products.product_id', '=', 'products.id')
                 ->select([
@@ -1014,10 +1126,10 @@ class ReportController extends Controller
     private function getReturnsTrend($filters)
     {
         $cacheKey = 'returns_trend_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = SaleReturn::query();
-            
+
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
@@ -1029,7 +1141,7 @@ class ReportController extends Controller
                     $q->where('branch_id', $filters['branch_id']);
                 });
             }
-            
+
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
                 ->join('products', 'sale_return_products.product_id', '=', 'products.id')
                 ->select([
@@ -1049,20 +1161,20 @@ class ReportController extends Controller
     private function getPaymentMethodsSummary($filters)
     {
         $cacheKey = 'payment_methods_summary_' . md5(serialize($filters));
-        
+
         return Cache::remember($cacheKey, 900, function () use ($filters) {
             $query = Sale::query();
             $this->applyFilters($query, $filters);
-            
+
             return $query->select([
                 'sales.payment_method',
                 DB::raw('COUNT(*) as transaction_count'),
                 DB::raw('SUM(sales.total) as total_amount'),
                 DB::raw('AVG(sales.total) as average_amount'),
             ])
-            ->groupBy('sales.payment_method')
-            ->orderBy('total_amount', 'desc')
-            ->get();
+                ->groupBy('sales.payment_method')
+                ->orderBy('total_amount', 'desc')
+                ->get();
         });
     }
 
@@ -1093,7 +1205,7 @@ class ReportController extends Controller
         } else {
             $query->where('sales.status', 'completed');
         }
-        
+
         return $query;
     }
 
@@ -1103,7 +1215,7 @@ class ReportController extends Controller
     private function getFilters(Request $request)
     {
         $user = Auth::user();
-        
+
         $filters = [
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
@@ -1112,12 +1224,12 @@ class ReportController extends Controller
             'category_id' => $request->get('category_id'),
             'status' => $request->get('status', 'completed'),
         ];
-        
+
         // Si el usuario no es administrador, forzar el filtro de sucursal
         if (!$user->isAdmin() && $user->branch_id) {
             $filters['branch_id'] = $user->branch_id;
         }
-        
+
         // Si no hay fechas específicas, usar el mes actual por defecto
         if (!$filters['date_from'] && !$filters['date_to']) {
             $now = now();
@@ -1128,7 +1240,7 @@ class ReportController extends Controller
                 'date_to' => $filters['date_to']
             ]);
         }
-        
+
         \Log::info('Filtros procesados', $filters);
         return $filters;
     }
@@ -1140,9 +1252,9 @@ class ReportController extends Controller
     {
         $dateFrom = $filters['date_from'] ? Carbon::parse($filters['date_from']) : Carbon::now()->subMonth();
         $dateTo = $filters['date_to'] ? Carbon::parse($filters['date_to']) : Carbon::now();
-        
+
         $duration = $dateFrom->diffInDays($dateTo);
-        
+
         return [
             'date_from' => $dateFrom->subDays($duration)->format('Y-m-d'),
             'date_to' => $dateFrom->format('Y-m-d'),
@@ -1161,7 +1273,7 @@ class ReportController extends Controller
         if ($previous == 0) {
             return $current > 0 ? 100 : 0;
         }
-        
+
         return round((($current - $previous) / $previous) * 100, 2);
     }
 
@@ -1190,25 +1302,25 @@ class ReportController extends Controller
     private function generateCsvContent($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods)
     {
         $csv = [];
-        
+
         // Encabezado del reporte con formato mejorado
         $csv[] = ['REPORTE DE VENTAS - STOKITY V2'];
         $csv[] = ['Sistema de Gestión de Inventario y Ventas'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         // Resumen ejecutivo
         $totalSales = collect($salesData)->sum('total_sales');
         $totalAmount = collect($salesData)->sum('total_amount');
         $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
-        
+
         $csv[] = ['RESUMEN EJECUTIVO'];
         $csv[] = ['Total de Ventas:', $totalSales];
         $csv[] = ['Monto Total:', '$ ' . number_format($totalAmount, 2, ',', '.')];
         $csv[] = ['Promedio por Venta:', '$ ' . number_format($avgSale, 2, ',', '.')];
         $csv[] = [];
-        
+
         // Filtros aplicados
         $csv[] = ['FILTROS APLICADOS'];
         $hasFilters = false;
@@ -1232,32 +1344,45 @@ class ReportController extends Controller
             $csv[] = ['Sin filtros aplicados (todos los datos)'];
         }
         $csv[] = [];
-        
+
         // Ventas por período con formato mejorado
         if (count($salesData) > 0) {
             $csv[] = ['VENTAS POR PERÍODO'];
-            $csv[] = ['Fecha', 'Total Ventas', 'Monto Total', 'Monto Neto', 'Impuestos', 'Promedio por Venta'];
-            $csv[] = ['', '', '', '', '', ''];
-            
+            $csv[] = [
+                'Fecha',
+                'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Imp. Completadas', 'Prom. Completadas',
+                'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Imp. Canceladas', 'Prom. Canceladas',
+                'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Imp. Pendientes', 'Prom. Pendientes',
+            ];
             foreach ($salesData as $sale) {
                 $csv[] = [
                     $sale['period'],
-                    $sale['total_sales'],
-                    '$ ' . number_format($sale['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['average_sale'], 2, ',', '.')
+                    $sale['completed']['total_sales'],
+                    '$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.'),
+                    $sale['cancelled']['total_sales'],
+                    '$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.'),
+                    $sale['pending']['total_sales'],
+                    '$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.'),
                 ];
             }
             $csv[] = [];
         }
-        
+
         // Productos más vendidos con formato mejorado
         if (count($topProducts) > 0) {
             $csv[] = ['PRODUCTOS MÁS VENDIDOS'];
             $csv[] = ['Código', 'Nombre del Producto', 'Cantidad Vendida', 'Monto Total', 'Número de Ventas'];
             $csv[] = ['', '', '', '', ''];
-            
+
             foreach ($topProducts as $product) {
                 $csv[] = [
                     $product->code,
@@ -1269,13 +1394,13 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         // Ventas por sucursal con formato mejorado
         if (count($salesByBranch) > 0) {
             $csv[] = ['VENTAS POR SUCURSAL'];
             $csv[] = ['ID', 'Nombre de Sucursal', 'Nombre Comercial', 'Total Ventas', 'Monto Total', 'Promedio por Venta'];
             $csv[] = ['', '', '', '', '', ''];
-            
+
             foreach ($salesByBranch as $branch) {
                 $csv[] = [
                     $branch->id,
@@ -1288,13 +1413,13 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         // Ventas por vendedor con formato mejorado
         if (count($salesBySeller) > 0) {
             $csv[] = ['VENTAS POR VENDEDOR'];
             $csv[] = ['ID', 'Nombre del Vendedor', 'Email', 'Total Ventas', 'Monto Total', 'Promedio por Venta'];
             $csv[] = ['', '', '', '', '', ''];
-            
+
             foreach ($salesBySeller as $seller) {
                 $csv[] = [
                     $seller->id,
@@ -1307,13 +1432,13 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         // Devoluciones por producto con formato mejorado
         if (count($returnsData) > 0) {
             $csv[] = ['DEVOLUCIONES POR PRODUCTO'];
             $csv[] = ['ID', 'Código', 'Nombre del Producto', 'Cantidad Devuelta', 'Número de Devoluciones'];
             $csv[] = ['', '', '', '', ''];
-            
+
             foreach ($returnsData as $return) {
                 $csv[] = [
                     $return->id,
@@ -1325,13 +1450,13 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         // Métodos de pago con formato mejorado
         if (count($paymentMethods) > 0) {
             $csv[] = ['MÉTODOS DE PAGO'];
             $csv[] = ['Método de Pago', 'Número de Transacciones', 'Monto Total', 'Promedio por Transacción'];
             $csv[] = ['', '', '', ''];
-            
+
             foreach ($paymentMethods as $method) {
                 $csv[] = [
                     ucfirst(str_replace('_', ' ', $method->payment_method)),
@@ -1342,17 +1467,17 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         // Pie de página
         $csv[] = ['FIN DEL REPORTE'];
         $csv[] = ['Este reporte fue generado automáticamente por Stokity V2'];
         $csv[] = ['Para más información, contacte al administrador del sistema'];
-        
+
         // Convertir array a CSV con formato mejorado
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
             // Asegurar que todos los valores sean strings y manejar caracteres especiales
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 if (is_null($value)) return '';
                 if (is_numeric($value)) return (string)$value;
                 return (string)$value;
@@ -1362,7 +1487,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         // Asegurar que el contenido tenga BOM para UTF-8
         return "\xEF\xBB\xBF" . $csvContent;
     }
@@ -1375,7 +1500,7 @@ class ReportController extends Controller
         $totalSales = collect($salesData)->sum('total_sales');
         $totalAmount = collect($salesData)->sum('total_amount');
         $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
-        
+
         $html = '
         <!DOCTYPE html>
         <html>
@@ -1437,7 +1562,7 @@ class ReportController extends Controller
         $html .= '
             <div class="filters">
                 <h3>FILTROS APLICADOS</h3>';
-        
+
         $hasFilters = false;
         if ($filters['date_from']) {
             $html .= '<p><strong>Fecha desde:</strong> ' . $filters['date_from'] . '</p>';
@@ -1458,7 +1583,7 @@ class ReportController extends Controller
         if (!$hasFilters) {
             $html .= '<p>Sin filtros aplicados (todos los datos)</p>';
         }
-        
+
         $html .= '</div>';
 
         // Ventas por período
@@ -1469,28 +1594,53 @@ class ReportController extends Controller
                 <table>
                     <thead>
                         <tr>
-                            <th>Fecha</th>
-                            <th class="number">Total Ventas</th>
-                            <th class="currency">Monto Total</th>
-                            <th class="currency">Monto Neto</th>
-                            <th class="currency">Impuestos</th>
-                            <th class="currency">Promedio por Venta</th>
+                            <th rowspan="2">Fecha</th>
+                            <th colspan="5" style="text-align: center;">Completadas</th>
+                            <th colspan="5" style="text-align: center;">Canceladas</th>
+                            <th colspan="5" style="text-align: center;">Pendientes</th>
+                        </tr>
+                        <tr>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($salesData as $sale) {
                 $html .= '
                         <tr>
                             <td>' . $sale['period'] . '</td>
-                            <td class="number">' . $sale['total_sales'] . '</td>
-                            <td class="currency">$ ' . number_format($sale['total_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['net_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['tax_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['completed']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['cancelled']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['pending']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1513,7 +1663,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($topProducts as $product) {
                 $html .= '
                         <tr>
@@ -1524,7 +1674,7 @@ class ReportController extends Controller
                             <td class="number">' . $product->sales_count . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1548,7 +1698,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($salesByBranch as $branch) {
                 $html .= '
                         <tr>
@@ -1560,7 +1710,7 @@ class ReportController extends Controller
                             <td class="currency">$ ' . number_format($branch->average_sale, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1584,7 +1734,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($salesBySeller as $seller) {
                 $html .= '
                         <tr>
@@ -1596,7 +1746,7 @@ class ReportController extends Controller
                             <td class="currency">$ ' . number_format($seller->average_sale, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1619,7 +1769,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($returnsData as $return) {
                 $html .= '
                         <tr>
@@ -1630,7 +1780,7 @@ class ReportController extends Controller
                             <td class="number">' . $return->return_count . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1652,7 +1802,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($paymentMethods as $method) {
                 $html .= '
                         <tr>
@@ -1662,7 +1812,7 @@ class ReportController extends Controller
                             <td class="currency">$ ' . number_format($method->average_amount, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1747,7 +1897,7 @@ class ReportController extends Controller
         $html .= '
             <div class="filters">
                 <h3>FILTROS APLICADOS</h3>';
-        
+
         $hasFilters = false;
         if ($filters['date_from']) {
             $html .= '<p><strong>Fecha desde:</strong> ' . $filters['date_from'] . '</p>';
@@ -1768,7 +1918,7 @@ class ReportController extends Controller
         if (!$hasFilters) {
             $html .= '<p>Sin filtros aplicados (todos los datos)</p>';
         }
-        
+
         $html .= '</div>';
 
         // Ventas por período
@@ -1779,28 +1929,53 @@ class ReportController extends Controller
                 <table>
                     <thead>
                         <tr>
-                            <th>Fecha</th>
-                            <th class="number">Total Ventas</th>
-                            <th class="currency">Monto Total</th>
-                            <th class="currency">Monto Neto</th>
-                            <th class="currency">Impuestos</th>
-                            <th class="currency">Promedio por Venta</th>
+                            <th rowspan="2">Fecha</th>
+                            <th colspan="5" style="text-align: center;">Completadas</th>
+                            <th colspan="5" style="text-align: center;">Canceladas</th>
+                            <th colspan="5" style="text-align: center;">Pendientes</th>
+                        </tr>
+                        <tr>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
+                            <th class="number">Ventas</th>
+                            <th class="currency">Monto</th>
+                            <th class="currency">Neto</th>
+                            <th class="currency">Imp.</th>
+                            <th class="currency">Prom.</th>
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($salesData as $sale) {
                 $html .= '
                         <tr>
                             <td>' . $sale['period'] . '</td>
-                            <td class="number">' . $sale['total_sales'] . '</td>
-                            <td class="currency">$ ' . number_format($sale['total_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['net_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['tax_amount'], 2, ',', '.') . '</td>
-                            <td class="currency">$ ' . number_format($sale['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['completed']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['cancelled']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.') . '</td>
+                            <td class="number">' . $sale['pending']['total_sales'] . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.') . '</td>
+                            <td class="currency">$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -1825,21 +2000,21 @@ class ReportController extends Controller
     private function generateSalesDetailCsvContent($filters, $salesData, $totalSales, $totalAmount, $averageSale, $groupBy)
     {
         $csv = [];
-        
+
         // Encabezado del reporte con formato mejorado
         $csv[] = ['REPORTE DETALLADO DE VENTAS - STOKITY V2'];
         $csv[] = ['Sistema de Gestión de Inventario y Ventas'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         // Resumen ejecutivo
         $csv[] = ['RESUMEN EJECUTIVO'];
         $csv[] = ['Total de Ventas:', $totalSales];
         $csv[] = ['Monto Total:', '$ ' . number_format($totalAmount, 2, ',', '.')];
         $csv[] = ['Promedio por Venta:', '$ ' . number_format($averageSale, 2, ',', '.')];
         $csv[] = [];
-        
+
         // Filtros aplicados
         $csv[] = ['FILTROS APLICADOS'];
         $hasFilters = false;
@@ -1863,36 +2038,49 @@ class ReportController extends Controller
             $csv[] = ['Sin filtros aplicados (todos los datos)'];
         }
         $csv[] = [];
-        
+
         // Ventas por período con formato mejorado
         if (count($salesData) > 0) {
             $csv[] = ['VENTAS POR PERÍODO'];
-            $csv[] = ['Fecha', 'Total Ventas', 'Monto Total', 'Monto Neto', 'Impuestos', 'Promedio por Venta'];
-            $csv[] = ['', '', '', '', '', ''];
-            
+            $csv[] = [
+                'Fecha',
+                'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Imp. Completadas', 'Prom. Completadas',
+                'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Imp. Canceladas', 'Prom. Canceladas',
+                'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Imp. Pendientes', 'Prom. Pendientes',
+            ];
             foreach ($salesData as $sale) {
                 $csv[] = [
                     $sale['period'],
-                    $sale['total_sales'],
-                    '$ ' . number_format($sale['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['average_sale'], 2, ',', '.')
+                    $sale['completed']['total_sales'],
+                    '$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.'),
+                    $sale['cancelled']['total_sales'],
+                    '$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.'),
+                    $sale['pending']['total_sales'],
+                    '$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.'),
+                    '$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.'),
                 ];
             }
             $csv[] = [];
         }
-        
+
         // Pie de página
         $csv[] = ['FIN DEL REPORTE'];
         $csv[] = ['Este reporte fue generado automáticamente por Stokity V2'];
         $csv[] = ['Para más información, contacte al administrador del sistema'];
-        
+
         // Convertir array a CSV con formato mejorado
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
             // Asegurar que todos los valores sean strings y manejar caracteres especiales
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 if (is_null($value)) return '';
                 if (is_numeric($value)) return (string)$value;
                 return (string)$value;
@@ -1902,7 +2090,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         // Asegurar que el contenido tenga BOM para UTF-8
         return "\xEF\xBB\xBF" . $csvContent;
     }
@@ -1922,10 +2110,10 @@ class ReportController extends Controller
             $lowStockProducts = $this->getLowStockProducts();
 
             $html = $this->generateProductsPdfHtml($filters, $productsData, $topProducts, $productsByCategory, $lowStockProducts);
-            
+
             $pdf = \PDF::loadHTML($html);
             $filename = 'reporte_productos_' . now()->format('Y-m-d_H-i-s') . '.pdf';
-            
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de productos: ' . $e->getMessage());
@@ -1946,9 +2134,9 @@ class ReportController extends Controller
             $lowStockProducts = $this->getLowStockProducts();
 
             $csvContent = $this->generateProductsCsvContent($filters, $productsData, $topProducts, $productsByCategory, $lowStockProducts);
-            
+
             $filename = 'reporte_productos_' . now()->format('Y-m-d_H-i-s') . '.csv';
-            
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
@@ -1971,10 +2159,10 @@ class ReportController extends Controller
             $sellersByBranch = $this->getSellersByBranch($filters);
 
             $html = $this->generateSellersPdfHtml($filters, $sellersData, $sellersComparison, $sellersByBranch);
-            
+
             $pdf = \PDF::loadHTML($html);
             $filename = 'reporte_vendedores_' . now()->format('Y-m-d_H-i-s') . '.pdf';
-            
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de vendedores: ' . $e->getMessage());
@@ -1994,9 +2182,9 @@ class ReportController extends Controller
             $sellersByBranch = $this->getSellersByBranch($filters);
 
             $csvContent = $this->generateSellersCsvContent($filters, $sellersData, $sellersComparison, $sellersByBranch);
-            
+
             $filename = 'reporte_vendedores_' . now()->format('Y-m-d_H-i-s') . '.csv';
-            
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
@@ -2019,10 +2207,10 @@ class ReportController extends Controller
             $branchesByRegion = $this->getBranchesByRegion($filters);
 
             $html = $this->generateBranchesPdfHtml($filters, $branchesData, $branchesComparison, $branchesByRegion);
-            
+
             $pdf = \PDF::loadHTML($html);
             $filename = 'reporte_sucursales_' . now()->format('Y-m-d_H-i-s') . '.pdf';
-            
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de sucursales: ' . $e->getMessage());
@@ -2042,9 +2230,9 @@ class ReportController extends Controller
             $branchesByRegion = $this->getBranchesByRegion($filters);
 
             $csvContent = $this->generateBranchesCsvContent($filters, $branchesData, $branchesComparison, $branchesByRegion);
-            
+
             $filename = 'reporte_sucursales_' . now()->format('Y-m-d_H-i-s') . '.csv';
-            
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
@@ -2068,10 +2256,10 @@ class ReportController extends Controller
             $returnsTrend = $this->getReturnsTrend($filters);
 
             $html = $this->generateReturnsPdfHtml($filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend);
-            
+
             $pdf = \PDF::loadHTML($html);
             $filename = 'reporte_devoluciones_' . now()->format('Y-m-d_H-i-s') . '.pdf';
-            
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de devoluciones: ' . $e->getMessage());
@@ -2092,9 +2280,9 @@ class ReportController extends Controller
             $returnsTrend = $this->getReturnsTrend($filters);
 
             $csvContent = $this->generateReturnsCsvContent($filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend);
-            
+
             $filename = 'reporte_devoluciones_' . now()->format('Y-m-d_H-i-s') . '.csv';
-            
+
             return response($csvContent)
                 ->header('Content-Type', 'text/csv; charset=UTF-8')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
@@ -2149,7 +2337,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($topProducts as $product) {
                 $html .= '
                         <tr>
@@ -2158,7 +2346,7 @@ class ReportController extends Controller
                             <td>$ ' . number_format($product->total_amount, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -2179,16 +2367,16 @@ class ReportController extends Controller
     private function generateProductsCsvContent($filters, $productsData, $topProducts, $productsByCategory, $lowStockProducts)
     {
         $csv = [];
-        
+
         $csv[] = ['REPORTE DE PRODUCTOS - STOKITY V2'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         if (count($topProducts) > 0) {
             $csv[] = ['TOP PRODUCTOS'];
             $csv[] = ['Producto', 'Ventas', 'Monto'];
-            
+
             foreach ($topProducts as $product) {
                 $csv[] = [
                     $product->name,
@@ -2198,12 +2386,12 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         $csv[] = ['FIN DEL REPORTE'];
-        
+
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 return is_null($value) ? '' : (string)$value;
             }, $row);
             fputcsv($output, $cleanRow, ';');
@@ -2211,7 +2399,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         return "\xEF\xBB\xBF" . $csvContent;
     }
 
@@ -2257,7 +2445,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($sellersData as $seller) {
                 $html .= '
                         <tr>
@@ -2267,7 +2455,7 @@ class ReportController extends Controller
                             <td>$ ' . number_format($seller->average_sale, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -2288,16 +2476,16 @@ class ReportController extends Controller
     private function generateSellersCsvContent($filters, $sellersData, $sellersComparison, $sellersByBranch)
     {
         $csv = [];
-        
+
         $csv[] = ['REPORTE DE VENDEDORES - STOKITY V2'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         if (count($sellersData) > 0) {
             $csv[] = ['RENDIMIENTO DE VENDEDORES'];
             $csv[] = ['Vendedor', 'Ventas', 'Monto', 'Promedio'];
-            
+
             foreach ($sellersData as $seller) {
                 $csv[] = [
                     $seller->name,
@@ -2308,12 +2496,12 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         $csv[] = ['FIN DEL REPORTE'];
-        
+
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 return is_null($value) ? '' : (string)$value;
             }, $row);
             fputcsv($output, $cleanRow, ';');
@@ -2321,7 +2509,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         return "\xEF\xBB\xBF" . $csvContent;
     }
 
@@ -2367,7 +2555,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($branchesData as $branch) {
                 $html .= '
                         <tr>
@@ -2377,7 +2565,7 @@ class ReportController extends Controller
                             <td>$ ' . number_format($branch->average_sale, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -2398,16 +2586,16 @@ class ReportController extends Controller
     private function generateBranchesCsvContent($filters, $branchesData, $branchesComparison, $branchesByRegion)
     {
         $csv = [];
-        
+
         $csv[] = ['REPORTE DE SUCURSALES - STOKITY V2'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         if (count($branchesData) > 0) {
             $csv[] = ['RENDIMIENTO DE SUCURSALES'];
             $csv[] = ['Sucursal', 'Ventas', 'Monto', 'Promedio'];
-            
+
             foreach ($branchesData as $branch) {
                 $csv[] = [
                     $branch->name,
@@ -2418,12 +2606,12 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         $csv[] = ['FIN DEL REPORTE'];
-        
+
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 return is_null($value) ? '' : (string)$value;
             }, $row);
             fputcsv($output, $cleanRow, ';');
@@ -2431,7 +2619,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         return "\xEF\xBB\xBF" . $csvContent;
     }
 
@@ -2510,7 +2698,7 @@ class ReportController extends Controller
                         </tr>
                     </thead>
                     <tbody>';
-            
+
             foreach ($returnsByProduct as $product) {
                 $html .= '
                         <tr>
@@ -2520,7 +2708,7 @@ class ReportController extends Controller
                             <td>$ ' . number_format($product->total_amount, 2, ',', '.') . '</td>
                         </tr>';
             }
-            
+
             $html .= '
                     </tbody>
                 </table>
@@ -2541,12 +2729,12 @@ class ReportController extends Controller
     private function generateReturnsCsvContent($filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend)
     {
         $csv = [];
-        
+
         $csv[] = ['REPORTE DE DEVOLUCIONES - STOKITY V2'];
         $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
         $csv[] = ['Usuario: ' . auth()->user()->name];
         $csv[] = [];
-        
+
         // Resumen de devoluciones
         $csv[] = ['RESUMEN DE DEVOLUCIONES'];
         $csv[] = ['Métrica', 'Valor'];
@@ -2555,12 +2743,12 @@ class ReportController extends Controller
         $csv[] = ['Monto Total de Devoluciones', '$ ' . number_format($returnsData->total_amount, 2, ',', '.')];
         $csv[] = ['Promedio por Devolución', '$ ' . number_format($returnsData->average_return, 2, ',', '.')];
         $csv[] = [];
-        
+
         // Devoluciones por producto
         if (count($returnsByProduct) > 0) {
             $csv[] = ['DEVOLUCIONES POR PRODUCTO'];
             $csv[] = ['Producto', 'Cantidad Devuelta', 'Devoluciones', 'Monto'];
-            
+
             foreach ($returnsByProduct as $product) {
                 $csv[] = [
                     $product->name,
@@ -2571,12 +2759,12 @@ class ReportController extends Controller
             }
             $csv[] = [];
         }
-        
+
         $csv[] = ['FIN DEL REPORTE'];
-        
+
         $output = fopen('php://temp', 'r+');
         foreach ($csv as $row) {
-            $cleanRow = array_map(function($value) {
+            $cleanRow = array_map(function ($value) {
                 return is_null($value) ? '' : (string)$value;
             }, $row);
             fputcsv($output, $cleanRow, ';');
@@ -2584,7 +2772,7 @@ class ReportController extends Controller
         rewind($output);
         $csvContent = stream_get_contents($output);
         fclose($output);
-        
+
         return "\xEF\xBB\xBF" . $csvContent;
     }
-} 
+}

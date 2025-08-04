@@ -108,6 +108,7 @@ const allNavItems: NavItem[] = [
                 title: 'Sucursales',
                 href: '/reports/branches',
                 icon: Building,
+                roles: ['administrador'], // Only admin
             },
             {
                 title: 'Devoluciones',

@@ -86,9 +86,14 @@ interface Props {
     filters: Filters;
     branches: Array<{ id: number; name: string; business_name?: string }>;
     categories: Array<{ id: number; name: string }>;
+    user?: {
+        is_admin: boolean;
+        branch_id?: number;
+        branch_name?: string;
+    };
 }
 
-export default function ReportsIndex({ dashboardData, filters, branches, categories }: Props) {
+export default function ReportsIndex({ dashboardData, filters, branches, categories, user }: Props) {
     const [localFilters, setLocalFilters] = useState<Filters>(filters);
     const [dateRange, setDateRange] = useState({
         from: filters.date_from || '',
@@ -107,6 +112,11 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
         if (filters.branch_id === 'all') delete filters.branch_id;
         if (filters.category_id === 'all') delete filters.category_id;
 
+        // Para usuarios no administradores, forzar el filtro de sucursal
+        if (!user?.is_admin && user?.branch_id) {
+            filters.branch_id = user.branch_id.toString();
+        }
+
         router.get('/reports', filters, {
             preserveState: true,
             preserveScroll: true,
@@ -122,6 +132,11 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
 
         if (filters.branch_id === 'all') delete filters.branch_id;
         if (filters.category_id === 'all') delete filters.category_id;
+
+        // Para usuarios no administradores, forzar el filtro de sucursal
+        if (!user?.is_admin && user?.branch_id) {
+            filters.branch_id = user.branch_id.toString();
+        }
 
         const url = new URL(`/reports/export/${type}`, window.location.origin);
         Object.keys(filters).forEach((key) => {
@@ -163,7 +178,10 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
         applyFilters();
     };
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (amount: number | null | undefined) => {
+        if (amount === null || amount === undefined || isNaN(amount)) {
+            return '$ 0';
+        }
         return new Intl.NumberFormat('es-CO', {
             style: 'currency',
             currency: 'COP',
@@ -172,7 +190,10 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
         }).format(amount);
     };
 
-    const formatNumber = (num: number) => {
+    const formatNumber = (num: number | null | undefined) => {
+        if (num === null || num === undefined || isNaN(num)) {
+            return '0';
+        }
         return new Intl.NumberFormat('es-CO').format(num);
     };
 
@@ -311,29 +332,31 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
                                         Filtros Adicionales
                                     </Label>
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Sucursal
-                                            </Label>
-                                            <Select
-                                                value={localFilters.branch_id || 'all'}
-                                                onValueChange={(value) =>
-                                                    setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                                }
-                                            >
-                                                <SelectTrigger id="branch" className="h-8 text-sm">
-                                                    <SelectValue placeholder="Todas las sucursales" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Todas las sucursales</SelectItem>
-                                                    {branches.map((branch) => (
-                                                        <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                            {branch.business_name || branch.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {user?.is_admin && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                    Sucursal
+                                                </Label>
+                                                <Select
+                                                    value={localFilters.branch_id || 'all'}
+                                                    onValueChange={(value) =>
+                                                        setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
+                                                    }
+                                                >
+                                                    <SelectTrigger id="branch" className="h-8 text-sm">
+                                                        <SelectValue placeholder="Todas las sucursales" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">Todas las sucursales</SelectItem>
+                                                        {branches.map((branch) => (
+                                                            <SelectItem key={branch.id} value={branch.id.toString()}>
+                                                                {branch.business_name || branch.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
                                         <div className="space-y-2">
                                             <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                                 Categoría

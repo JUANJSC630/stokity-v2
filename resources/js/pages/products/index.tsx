@@ -60,7 +60,7 @@ export default function Products({
     const isAdmin = auth.user.role === 'administrador';
     const isManager = auth.user.role === 'encargado';
     const canManageProducts = isAdmin || isManager;
-    
+
     // Ocultar filtro de sucursal si no es administrador
     const showBranchFilter = isAdmin;
 
