@@ -1,23 +1,25 @@
+import PaginationFooter from '@/components/common/PaginationFooter';
+import { Table, type Column } from '@/components/common/Table';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Label } from '@radix-ui/react-label';
 import { AlertTriangle, Edit2, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface CategoriesPageProps {
-    categories?: {
+    categories: {
         data: Category[];
-        meta: {
-            current_page: number;
-            last_page: number;
-            per_page: number;
-            total: number;
-            from: number;
-            to: number;
-        };
+        links: { label: string; url: string | null }[];
+        current_page: number;
+        from: number;
+        to: number;
+        total: number;
+        last_page: number;
     };
     filters?: {
         search?: string;
@@ -31,13 +33,11 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Categories({
-    categories = { data: [], meta: { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 } },
-    filters = { search: '' },
-}: CategoriesPageProps) {
+export default function Categories({ categories, filters = { search: '' } }: CategoriesPageProps) {
     const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
-    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+    const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
+    const searchRef = useRef<HTMLInputElement>(null);
     const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -49,27 +49,42 @@ export default function Categories({
         name: '',
     });
 
-    // Update search results when search query changes
+    const hasResetRef = useRef(false);
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (searchQuery !== filters?.search) {
-                setIsSearching(true);
-                router.visit(
-                    `/categories?search=${encodeURIComponent(searchQuery)}&page=1`, // Reset to page 1 when search changes
-                    {
-                        preserveState: true,
-                        preserveScroll: true,
-                        only: ['categories'],
-                        onFinish: () => {
-                            setIsSearching(false);
-                        },
-                    },
-                );
+        if (search.trim() === '') {
+            const url = new URL(window.location.href);
+            const hasFilters = url.searchParams.get('search');
+            if (!hasResetRef.current && hasFilters) {
+                hasResetRef.current = true;
+                setSearch('');
+                applyFilters('');
             }
-        }, 300);
+        } else {
+            hasResetRef.current = false;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-        return () => clearTimeout(timeoutId);
-    }, [searchQuery, filters?.search]);
+    const applyFilters = (searchParam = search) => {
+        setIsSearching(true);
+        const params = new URLSearchParams();
+
+        if (searchParam) {
+            params.append('search', searchParam);
+        }
+
+        router.visit(`/categories?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['categories'],
+            onFinish: () => setIsSearching(false),
+        });
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters();
+    };
 
     // Handle delete confirmation
     const handleDelete = () => {
@@ -121,260 +136,146 @@ export default function Categories({
         setCreateModalOpen(true);
     };
 
-    // Debug pagination data
-    console.log('Categories data:', categories);
+    // Table columns for desktop
+    const columns: Column<Category & { actions: null }>[] = [
+        { key: 'name', title: 'Nombre', render: (_: unknown, row: Category) => <span className="font-medium">{row.name}</span> },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Category) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
+                        <Edit2 className="size-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500"
+                        onClick={() => {
+                            setCategoryToDelete(row);
+                            setDeleteModalOpen(true);
+                        }}
+                    >
+                        <Trash2 className="size-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías" />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 dark:bg-neutral-900/50" style={{ minHeight: 'calc(100vh - 64px)' }}>
-                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Categorías</h1>
-
-                    <div className="flex flex-wrap gap-3">
+            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+                {/* Título y botones juntos alineados a la derecha */}
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <h1 className="text-3xl font-bold">Gestión de Categorías</h1>
+                    <div className="flex gap-2">
                         {(auth.user.role === 'administrador' || auth.user.role === 'encargado') && (
-                            <Button
-                                className="flex gap-2 rounded-lg bg-black font-medium shadow-sm hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-                                onClick={openCreateModal}
-                            >
-                                <Plus className="size-4" />
-                                <span>Nueva Categoría</span>
+                            <Button className="flex gap-1" onClick={openCreateModal}>
+                                <Plus className="mr-1 size-4" />
+                                Nueva Categoría
                             </Button>
                         )}
                         {auth.user.role === 'administrador' && (
-                            <Button
-                                variant="outline"
-                                className="flex gap-2 rounded-lg border-gray-200 font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-neutral-800"
-                                asChild
-                            >
-                                <Link href="/categories/trashed">
+                            <Link href="/categories/trashed">
+                                <Button variant="outline" className="flex gap-2">
                                     <Trash2 className="size-4" />
-                                    <span>Categorías Eliminadas</span>
-                                </Link>
-                            </Button>
+                                    Categorías Eliminadas
+                                </Button>
+                            </Link>
                         )}
                     </div>
                 </div>
 
-                <div className="relative mb-4 w-full max-w-md">
-                    <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar categorías..."
-                        className="w-full rounded-lg pl-10"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        disabled={isSearching}
-                    />
+                {/* Filtro en Card */}
+                <div className="flex flex-col gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Filtrar Categorías</CardTitle>
+                            <CardDescription>Busca categorías por nombre</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-5">
+                                <div className="col-span-2">
+                                    <form onSubmit={handleSearch}>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="category-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                Buscar
+                                            </Label>
+                                            <div className="relative">
+                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
+                                                <Input
+                                                    ref={searchRef}
+                                                    type="search"
+                                                    placeholder="Buscar por nombre de categoría"
+                                                    className="h-8 pl-8 text-sm"
+                                                    value={search}
+                                                    onChange={(e) => setSearch(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-4">
-                    {/* Content area with min-height to ensure pagination stays at bottom */}
-                    <div className="flex-grow" style={{ minHeight: '300px' }}>
-                        <div className="flex flex-wrap gap-2">
-                            {categories?.data?.length > 0 ? (
-                                categories.data.map((category: Category) => (
-                                    <div
-                                        key={category.id}
-                                        className="inline-flex items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm transition-all hover:border-gray-300 hover:shadow-md dark:border-neutral-600 dark:bg-neutral-700 dark:hover:border-gray-500"
-                                        style={{ width: 'fit-content', minWidth: '160px', maxWidth: '100%' }}
-                                    >
-                                        <span className="mr-2 overflow-visible text-sm font-medium whitespace-normal text-gray-900 dark:text-gray-100">
-                                            {category.name}
-                                        </span>
-                                        <div className="flex shrink-0">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 shrink-0 rounded-full p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                                onClick={() => openEditModal(category)}
-                                            >
-                                                <Edit2 className="size-3.5" />
-                                                <span className="sr-only">Editar</span>
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 shrink-0 rounded-full p-0 text-red-500 hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-900 dark:hover:text-red-300"
-                                                onClick={() => {
-                                                    setCategoryToDelete(category);
-                                                    setDeleteModalOpen(true);
-                                                }}
-                                            >
-                                                <Trash2 className="size-3.5" />
-                                                <span className="sr-only">Eliminar</span>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="flex h-40 w-full items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
-                                    <p className="text-center text-neutral-500 dark:text-neutral-400">No se encontraron categorías</p>
-                                </div>
-                            )}
+                {/* Tabla y Cards */}
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
+                    {isSearching && (
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
                         </div>
+                    )}
+
+                    {/* Desktop table */}
+                    <div className="hidden overflow-x-auto md:block">
+                        <Table columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
                     </div>
 
-                    {/* Pagination - always at bottom */}
-                    <div className="mt-auto border-t border-neutral-100 pt-5 dark:border-neutral-700">
-                        <div className="flex items-center justify-between">
-                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                                Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.from || 0}</span> a{' '}
-                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.to || 0}</span> de{' '}
-                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{categories?.meta?.total || 0}</span> resultados
-                            </div>
-
-                            {categories?.meta?.last_page > 1 && (
-                                <nav className="flex items-center gap-x-1">
-                                    {/* Previous page button */}
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page <= 1 ? 'text-neutral-300 dark:text-neutral-700' : 'text-neutral-500 dark:text-neutral-200'}`}
-                                        disabled={categories?.meta?.current_page <= 1}
-                                        onClick={() => {
-                                            const prevPage = categories?.meta?.current_page - 1;
-                                            router.visit(`/categories?page=${prevPage}&search=${encodeURIComponent(searchQuery || '')}`, {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                                only: ['categories'],
-                                            });
-                                        }}
-                                    >
-                                        <span className="sr-only">Página anterior</span>
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                    </Button>
-
-                                    {/* Page numbers */}
-                                    <div className="flex items-center">
-                                        {(() => {
-                                            const currentPage = categories?.meta?.current_page || 1;
-                                            const lastPage = categories?.meta?.last_page || 1;
-                                            const pages = [];
-
-                                            // Show first page if we're not at the beginning
-                                            if (currentPage > 3) {
-                                                pages.push(
-                                                    <Button
-                                                        key={1}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-8 w-8 rounded-md border-gray-200 p-0 dark:border-gray-700"
-                                                        onClick={() => {
-                                                            router.visit(`/categories?page=1&search=${encodeURIComponent(searchQuery || '')}`, {
-                                                                preserveState: true,
-                                                                preserveScroll: true,
-                                                                only: ['categories'],
-                                                            });
-                                                        }}
-                                                    >
-                                                        <span>1</span>
-                                                    </Button>,
-                                                );
-
-                                                // Add ellipsis if needed
-                                                if (currentPage > 4) {
-                                                    pages.push(
-                                                        <span key="ellipsis-start" className="mx-1 text-gray-400 dark:text-gray-600">
-                                                            ...
-                                                        </span>,
-                                                    );
-                                                }
-                                            }
-
-                                            // Calculate range of pages to show
-                                            const startPage = Math.max(1, currentPage - 1);
-                                            const endPage = Math.min(lastPage, currentPage + 1);
-
-                                            // Add page numbers
-                                            for (let i = startPage; i <= endPage; i++) {
-                                                pages.push(
-                                                    <Button
-                                                        key={i}
-                                                        variant={i === currentPage ? 'default' : 'outline'}
-                                                        size="sm"
-                                                        className={`h-8 w-8 rounded-md p-0 ${
-                                                            i === currentPage
-                                                                ? 'bg-black text-white dark:bg-gray-100 dark:text-gray-900'
-                                                                : 'border-gray-200 text-gray-700 dark:border-gray-700 dark:text-gray-200'
-                                                        }`}
-                                                        onClick={() => {
-                                                            if (i !== currentPage) {
-                                                                router.visit(
-                                                                    `/categories?page=${i}&search=${encodeURIComponent(searchQuery || '')}`,
-                                                                    {
-                                                                        preserveState: true,
-                                                                        preserveScroll: true,
-                                                                        only: ['categories'],
-                                                                    },
-                                                                );
-                                                            }
-                                                        }}
-                                                    >
-                                                        <span>{i}</span>
-                                                    </Button>,
-                                                );
-                                            }
-
-                                            // Add ellipsis if needed
-                                            if (currentPage < lastPage - 2) {
-                                                pages.push(
-                                                    <span key="ellipsis-end" className="mx-1 text-gray-400 dark:text-gray-600">
-                                                        ...
-                                                    </span>,
-                                                );
-
-                                                // Always show last page
-                                                pages.push(
-                                                    <Button
-                                                        key={lastPage}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-8 w-8 rounded-md border-gray-200 p-0 text-gray-700 dark:border-gray-700 dark:text-gray-200"
-                                                        onClick={() => {
-                                                            router.visit(
-                                                                `/categories?page=${lastPage}&search=${encodeURIComponent(searchQuery || '')}`,
-                                                                {
-                                                                    preserveState: true,
-                                                                    preserveScroll: true,
-                                                                    only: ['categories'],
-                                                                },
-                                                            );
-                                                        }}
-                                                    >
-                                                        <span>{lastPage}</span>
-                                                    </Button>,
-                                                );
-                                            }
-
-                                            return pages;
-                                        })()}
+                    {/* Mobile cards */}
+                    <div className="block md:hidden">
+                        {categories.data.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">No se encontraron categorías</div>
+                        ) : (
+                            <div className="flex flex-col gap-4 p-2">
+                                {categories.data.map((category) => (
+                                    <div key={category.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <div className="text-base font-semibold">{category.name}</div>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0" onClick={() => openEditModal(category)}>
+                                                    <Edit2 className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 p-0 text-red-500"
+                                                    onClick={() => {
+                                                        setCategoryToDelete(category);
+                                                        setDeleteModalOpen(true);
+                                                    }}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                                    {/* Next page button */}
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className={`h-8 w-8 rounded-md p-0 ${categories?.meta?.current_page >= categories?.meta?.last_page ? 'text-gray-300 dark:text-gray-700' : 'text-gray-500 dark:text-gray-200'}`}
-                                        disabled={categories?.meta?.current_page >= categories?.meta?.last_page}
-                                        onClick={() => {
-                                            const nextPage = categories?.meta?.current_page + 1;
-                                            router.visit(`/categories?page=${nextPage}&search=${encodeURIComponent(searchQuery || '')}`, {
-                                                preserveState: true,
-                                                preserveScroll: true,
-                                                only: ['categories'],
-                                            });
-                                        }}
-                                    >
-                                        <span className="sr-only">Página siguiente</span>
-                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </Button>
-                                </nav>
-                            )}
-                        </div>
+                    {/* Pagination */}
+                    <div>
+                        <PaginationFooter
+                            data={{
+                                ...categories,
+                                resourceLabel: 'categorías',
+                            }}
+                        />
                     </div>
                 </div>
 

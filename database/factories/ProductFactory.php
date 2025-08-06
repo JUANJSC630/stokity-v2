@@ -428,7 +428,7 @@ class ProductFactory extends Factory
 
         return [
             'name' => $productName,
-            'code' => $this->faker->unique()->bothify('COL-####'),
+            'code' => str_pad($this->faker->unique()->numberBetween(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'description' => $description,
             'purchase_price' => $purchasePrice,
             'sale_price' => $salePrice,

@@ -1,37 +1,26 @@
+import EyeButton from '@/components/common/EyeButton';
+import PaginationFooter from '@/components/common/PaginationFooter';
+import { Table, type Column } from '@/components/common/Table';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type Client } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Eye, Plus, Search } from 'lucide-react';
+import { Label } from '@radix-ui/react-label';
+import { Eye, Plus, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-interface Client {
-    id: number;
-    name: string;
-    document: string;
-    phone: string | null;
-    address: string | null;
-    email: string | null;
-    birthdate: string | null;
-    created_at: string;
-    updated_at: string;
-}
-
-type PaginatedData<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-    links: { url: string | null; label: string; active: boolean }[];
-};
-
-interface Props {
-    clients: PaginatedData<Client>;
+interface PageProps {
+    clients: {
+        data: Client[];
+        links: { label: string; url: string | null }[];
+        current_page: number;
+        from: number;
+        to: number;
+        total: number;
+        last_page: number;
+    };
     filters: {
         search?: string;
     };
@@ -44,106 +33,125 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Clients({ clients, filters }: Props) {
+export default function Index({ clients, filters }: PageProps) {
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
-    const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
 
+    const hasResetRef = useRef(false);
     useEffect(() => {
-        if (searchInputRef.current) {
-            searchInputRef.current.focus();
-        }
-    }, [filters.search]);
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (search !== filters.search) {
-                setIsSearching(true);
-                router.get(
-                    '/clients',
-                    { search, page: 1 }, // Reset to page 1 when search criteria changes
-                    {
-                        preserveState: true,
-                        preserveScroll: true,
-                        onFinish: () => setIsSearching(false),
-                    },
-                );
+        if (search.trim() === '') {
+            const url = new URL(window.location.href);
+            const hasFilters = url.searchParams.get('search');
+            if (!hasResetRef.current && hasFilters) {
+                hasResetRef.current = true;
+                setSearch('');
+                applyFilters('');
             }
-        }, 300);
+        } else {
+            hasResetRef.current = false;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-        return () => clearTimeout(timeout);
-    }, [search, filters.search]);
+    const applyFilters = (searchParam = search) => {
+        setIsSearching(true);
+        const params = new URLSearchParams();
+
+        if (searchParam) {
+            params.append('search', searchParam);
+        }
+
+        router.visit(`/clients?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['clients'],
+            onFinish: () => setIsSearching(false),
+        });
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters();
+    };
+
+    const columns: Column<Client & { actions: null }>[] = [
+        { key: 'name', title: 'Nombre', render: (_: unknown, row: Client) => <span className="font-medium">{row.name}</span> },
+        { key: 'document', title: 'Documento' },
+        { key: 'phone', title: 'Teléfono', render: (_: unknown, row: Client) => row.phone || '-' },
+        { key: 'email', title: 'Correo', render: (_: unknown, row: Client) => row.email || '-' },
+        { key: 'address', title: 'Dirección', render: (_: unknown, row: Client) => row.address || '-' },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Client) => (
+                <div className="flex items-center gap-2">
+                    <Link href={route('clients.show', row.id)}>
+                        <EyeButton text="Ver Cliente" />
+                    </Link>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Clientes" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
-                    <h1 className="text-2xl font-bold">Gestión de Clientes</h1>
+                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
+                    <h1 className="text-3xl font-bold">Gestión de Clientes</h1>
                     <Link href={route('clients.create')}>
                         <Button className="flex gap-1">
-                            <Plus className="size-4" />
-                            <span>Nuevo Cliente</span>
+                            <Plus className="mr-1 size-4" />
+                            Nuevo Cliente
                         </Button>
                     </Link>
                 </div>
 
-                <div className="relative mb-4 w-full max-w-sm">
-                    <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Buscar clientes..."
-                        className="w-full pl-10"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        disabled={isSearching}
-                    />
+                <div className="flex flex-col gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Filtrar Clientes</CardTitle>
+                            <CardDescription>Busca clientes por código, nombre o correo electrónico</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-5">
+                                <div className="col-span-2">
+                                    <form onSubmit={handleSearch}>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="client-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                Buscar
+                                            </Label>
+                                            <div className="relative">
+                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
+                                                <Input
+                                                    id="client-search"
+                                                    ref={searchRef}
+                                                    type="search"
+                                                    placeholder="Buscar por código, cliente o vendedor"
+                                                    className="h-8 pl-8 text-sm"
+                                                    value={search}
+                                                    onChange={(e) => setSearch(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <Card className="flex-1 overflow-hidden">
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
+                    {isSearching && (
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
+                        </div>
+                    )}
+
                     {/* Desktop table */}
                     <div className="hidden overflow-x-auto md:block">
-                        <table className="w-full">
-                            <thead className="bg-muted/50">
-                                <tr className="border-b text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">Nombre</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Documento</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Teléfono</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Correo</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Dirección</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {clients.data.map((client) => (
-                                    <tr key={client.id} className="border-b hover:bg-muted/20">
-                                        <td className="px-4 py-3 text-sm font-medium">{client.name}</td>
-                                        <td className="px-4 py-3 text-sm">{client.document}</td>
-                                        <td className="px-4 py-3 text-sm">{client.phone || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">{client.email || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">{client.address || '-'}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <Link href={route('clients.show', client.id)}>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                        <Eye className="size-4" />
-                                                        <span className="sr-only">Ver Cliente</span>
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-
-                                {clients.data.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center">
-                                            <p className="text-muted-foreground">No se encontraron clientes</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <Table columns={columns} data={clients.data.map((client) => ({ ...client, actions: null }))} />
                     </div>
 
                     {/* Mobile cards */}
@@ -183,33 +191,15 @@ export default function Clients({ clients, filters }: Props) {
                     </div>
 
                     {/* Pagination */}
-                    {clients.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t px-4 py-3">
-                            <div className="text-sm text-muted-foreground">
-                                Mostrando {clients.from} a {clients.to} de {clients.total} resultados
-                            </div>
-                            <div className="flex space-x-1">
-                                {clients.current_page > 1 && (
-                                    <Link href={`/clients?page=${clients.current_page - 1}&search=${search}`} preserveScroll preserveState>
-                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                            <ChevronLeft className="size-4" />
-                                            <span className="sr-only">Página anterior</span>
-                                        </Button>
-                                    </Link>
-                                )}
-
-                                {clients.current_page < clients.last_page && (
-                                    <Link href={`/clients?page=${clients.current_page + 1}&search=${search}`} preserveScroll preserveState>
-                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                            <ChevronRight className="size-4" />
-                                            <span className="sr-only">Página siguiente</span>
-                                        </Button>
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </Card>
+                    <div>
+                        <PaginationFooter
+                            data={{
+                                ...clients,
+                                resourceLabel: 'clientes',
+                            }}
+                        />
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );

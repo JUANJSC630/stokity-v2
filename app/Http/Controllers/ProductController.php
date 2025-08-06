@@ -11,67 +11,62 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
-        $query = Product::query()
-            ->with(['category', 'branch'])
-            ->orderBy('name');
+        $query = Product::query();
 
-        // Filter by status if requested
-        if ($request->has('status')) {
-            $query->where('status', $request->boolean('status'));
+        $with = ['branch', 'category'];
+
+        $query->with($with);
+
+        // Filtrar por sucursal del usuario si no es administrador
+        $user = Auth::user();
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
         }
 
-        // Filter by category if requested
-        if ($request->filled('category')) {
+        // Búsqueda eficiente usando join
+        if ($request->search) {
+            $search = $request->search;
+            $query->leftJoin('branches', 'products.branch_id', '=', 'branches.id')
+                ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+                ->where(function ($q) use ($search) {
+                    $q->where('products.name', 'like', "%{$search}%")
+                        ->orWhere('products.code', 'like', "%{$search}%")
+                        ->orWhere('products.description', 'like', "%{$search}%");
+                })
+                ->select('products.*');
+        }
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('products.status', $request->status);
+        }
+
+        if ($request->category) {
             $query->where('category_id', $request->category);
         }
 
-        // Filter by branch if requested
-        if ($request->filled('branch')) {
+        // Solo permitir filtro por sucursal si es administrador
+        if ($request->branch && $user->isAdmin()) {
             $query->where('branch_id', $request->branch);
-        } else {
-            // If user is not admin and has a branch, show only products from that branch
-            $user = Auth::user();
-            if (!$user->isAdmin() && $user->branch_id) {
-                $query->where('branch_id', $user->branch_id);
-            }
         }
 
-        // Filter by search term
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
+        $products = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
-        $paginatedProducts = $query->paginate(10)->withQueryString();
         $categories = Category::where('status', true)->get();
-        $branches = Auth::user()->isAdmin() ? Branch::where('status', true)->get() : [];
-
-        $products = [
-            'data' => $paginatedProducts->items(),
-            'meta' => [
-                'current_page' => $paginatedProducts->currentPage(),
-                'last_page' => $paginatedProducts->lastPage(),
-                'per_page' => $paginatedProducts->perPage(),
-                'total' => $paginatedProducts->total(),
-                'from' => $paginatedProducts->firstItem(),
-                'to' => $paginatedProducts->lastItem(),
-            ],
-            'links' => $paginatedProducts->linkCollection()->toArray(),
-        ];
+        
+        // Solo mostrar todas las sucursales si es administrador
+        $branches = $user->isAdmin() 
+            ? Branch::where('status', true)->get()
+            : Branch::where('id', $user->branch_id)->get();
 
         return Inertia::render('products/index', [
             'products' => $products,
@@ -84,7 +79,7 @@ class ProductController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): Response
+    public function create()
     {
         $user = Auth::user();
         $categories = Category::where('status', true)->get();
@@ -104,7 +99,7 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(ProductRequest $request): RedirectResponse
+    public function store(ProductRequest $request)
     {
         // Validar y obtener datos
         $validated = $request->validated();
@@ -131,7 +126,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product): Response
+    public function show(Product $product)
     {
         // Cargar relaciones
         $product->load(['category', 'branch']);
@@ -144,7 +139,7 @@ class ProductController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Product $product): Response
+    public function edit(Product $product)
     {
         $user = Auth::user();
         $categories = Category::where('status', true)->get();
@@ -164,7 +159,7 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(ProductRequest $request, Product $product): RedirectResponse
+    public function update(ProductRequest $request, Product $product)
     {
         // Validar y obtener datos
         $validated = $request->validated();
@@ -197,7 +192,7 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Product $product): RedirectResponse
+    public function destroy(Product $product)
     {
         $product->delete();
 
@@ -208,7 +203,7 @@ class ProductController extends Controller
     /**
      * Display a listing of trashed resources.
      */
-    public function trashed(Request $request): Response
+    public function trashed(Request $request)
     {
         $query = Product::onlyTrashed()
             ->with(['category', 'branch'])
@@ -268,7 +263,7 @@ class ProductController extends Controller
     /**
      * Restore the specified resource.
      */
-    public function restore($id): RedirectResponse
+    public function restore($id)
     {
         $product = Product::onlyTrashed()->findOrFail($id);
         $product->restore();
@@ -280,7 +275,7 @@ class ProductController extends Controller
     /**
      * Force delete the specified resource.
      */
-    public function forceDelete($id): RedirectResponse
+    public function forceDelete($id)
     {
         $product = Product::onlyTrashed()->findOrFail($id);
 
@@ -298,7 +293,7 @@ class ProductController extends Controller
     /**
      * Update product stock.
      */
-    public function updateStock(Request $request, Product $product): RedirectResponse
+    public function updateStock(Request $request, Product $product)
     {
         $request->validate([
             'stock' => 'required|integer|min:0',
@@ -329,35 +324,27 @@ class ProductController extends Controller
     }
 
     /**
-     * Genera un código de producto basado en el nombre, asegurando unicidad
+     * Genera un código de producto único de 8 dígitos por defecto
      */
     public function generateCode(Request $request)
     {
+        // No es necesario el nombre, pero se valida por compatibilidad
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
-        $words = preg_split('/\s+/', trim($request->name));
-        $parts = [];
-        foreach ($words as $word) {
-            $clean = preg_replace('/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/u', '', $word);
-            if (mb_strlen($clean) <= 3) {
-                $parts[] = mb_strtoupper($clean);
-            } else {
-                $parts[] = mb_strtoupper(mb_substr($clean, 0, 6));
-            }
-        }
-        $prefix = implode('-', $parts);
-        $nextNumber = 1;
-        $maxAttempts = 1000;
+
+        $maxAttempts = 20; // Aumentamos los intentos para mayor seguridad
         do {
-            $code = $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            // Generar un número aleatorio de 8 dígitos
+            $code = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
             $exists = Product::where('code', $code)->exists();
-            $nextNumber++;
             $maxAttempts--;
         } while ($exists && $maxAttempts > 0);
+        
         if ($maxAttempts <= 0) {
-            return response()->json(['error' => 'No se pudo generar un código único.'], 500);
+            return response()->json(['error' => 'No se pudo generar un código único de 8 dígitos.'], 500);
         }
+        
         return response()->json(['code' => $code]);
     }
 }

@@ -13,14 +13,19 @@ class ClientController extends Controller
      */
     public function index(Request $request)
     {
-        $clients = Client::query()
-            ->when($request->search, function($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('document', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%")
-                      ->orWhere('phone', 'like', "%{$search}%");
-            })
-            ->orderBy('name')
+        $query = Client::query();
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('document', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $clients = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
@@ -52,9 +57,10 @@ class ClientController extends Controller
             'birthdate' => 'nullable|date',
         ]);
 
-        Client::create($validated);
+        $client = Client::create($validated);
+        // Si la petición es Inertia, devolver redirect para Inertia
 
-        return redirect()->route('clients.index')->with('success', 'Cliente creado exitosamente.');
+        return redirect()->back()->with('success', 'Cliente creado exitosamente.');
     }
 
     /**
@@ -84,10 +90,10 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'document' => 'required|string|max:20|unique:clients,document,'.$client->id,
+            'document' => 'required|string|max:20|unique:clients,document,' . $client->id,
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'email' => 'nullable|string|email|max:255|unique:clients,email,'.$client->id,
+            'email' => 'nullable|string|email|max:255|unique:clients,email,' . $client->id,
             'birthdate' => 'nullable|date',
         ]);
 

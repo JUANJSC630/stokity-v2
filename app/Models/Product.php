@@ -22,6 +22,7 @@ class Product extends Model
         'description',
         'purchase_price',
         'sale_price',
+        'tax',
         'stock',
         'min_stock',
         'image',
@@ -38,6 +39,7 @@ class Product extends Model
     protected $casts = [
         'purchase_price' => 'decimal:2',
         'sale_price' => 'decimal:2',
+        'tax' => 'decimal:2',
         'status' => 'boolean',
         'stock' => 'integer',
         'min_stock' => 'integer',
@@ -117,5 +119,29 @@ class Product extends Model
     public function saleProducts()
     {
         return $this->hasMany(SaleProduct::class);
+    }
+
+    /**
+     * Get all of the sale returns for the product.
+     */
+    public function saleReturnProducts()
+    {
+        return $this->hasMany(SaleReturnProduct::class);
+    }
+
+    /**
+     * Get all stock movements for the product.
+     */
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * Get the latest stock movement for the product.
+     */
+    public function latestStockMovement()
+    {
+        return $this->hasOne(StockMovement::class)->latestOfMany();
     }
 }

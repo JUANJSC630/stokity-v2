@@ -1,37 +1,24 @@
+import { CardCreateClient } from '@/components/clients';
+import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import type { User as BaseUser } from '@/types';
-import { type BreadcrumbItem } from '@/types';
+import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import Cookies from 'js-cookie';
 import { Plus, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-
-interface Branch {
-    id: number;
-    name: string;
-}
-
-interface Client {
-    id: number;
-    name: string;
-}
-
-interface User extends BaseUser {
-    branch_id?: number | null;
-}
 
 interface Props {
     branches: Branch[];
     clients: Client[];
     sellers: User[];
-    products: Product[]; // <-- Agrega esto a tus props reales
+    products: Product[];
 }
 
 // Utilidad para formatear a COP
@@ -45,11 +32,23 @@ function formatCOP(value: string | number) {
     }).format(num);
 }
 
+// Utilidad para formatear números sin símbolo de moneda
+function formatNumber(value: string | number) {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '';
+    return new Intl.NumberFormat('es-CO', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(num);
+}
+
 export default function Create({ branches, clients, products = [] }: Props) {
+    // Ordenar clientes por id descendente (más reciente arriba)
+    const sortedClients = [...clients].sort((a, b) => b.id - a.id);
     // Busca el id real del cliente Anónimo si existe, si no, usa el primero
-    const anonymous = clients.find((c) => c.name.toLowerCase() === 'anónimo');
-    const anonymousClient = anonymous || clients[0];
-    const clientsWithAnonymous = anonymous ? clients : [{ id: 0, name: 'Anónimo' }, ...clients];
+    const anonymous = sortedClients.find((c) => c.name.toLowerCase() === 'consumidor final');
+    const anonymousClient = anonymous || sortedClients[0];
+    const clientsWithAnonymous = anonymous ? sortedClients : [{ id: 0, name: 'Consumidor Final' }, ...sortedClients];
 
     const { auth } = usePage<{ auth: { user: User } }>().props;
     const breadcrumbs: BreadcrumbItem[] = [
@@ -63,6 +62,21 @@ export default function Create({ branches, clients, products = [] }: Props) {
         },
     ];
 
+    // Prevenir scroll del mouse en inputs de tipo número
+    useEffect(() => {
+        const preventWheel = (e: WheelEvent) => {
+            if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('wheel', preventWheel, { passive: false });
+
+        return () => {
+            document.removeEventListener('wheel', preventWheel);
+        };
+    }, []);
+
     // Selecciona la sucursal por defecto según la asignada al usuario auth
     const defaultBranchId = auth.user.branch_id ? String(auth.user.branch_id) : branches[0] ? String(branches[0].id) : '';
 
@@ -74,8 +88,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
         tax: '0',
         net: '0',
         total: '0',
-        payment_method: 'cash',
-        date: new Date().toISOString().slice(0, 16), // Formato: YYYY-MM-DDThh:mm
+        amount_paid: '0',
+        change_amount: '0',
+        payment_method: '',
+        date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16), // Formato: YYYY-MM-DDThh:mm en zona horaria local
         status: 'completed',
         products: [] as { id: number; quantity: number; price: number; subtotal: number }[],
     });
@@ -86,8 +102,33 @@ export default function Create({ branches, clients, products = [] }: Props) {
             toast.error('Debes agregar al menos un producto a la venta.');
             return;
         }
+
+        // Validar que el monto pagado sea suficiente si es efectivo
+        if (form.data.payment_method === 'cash') {
+            const total = parseFloat(form.data.total) || 0;
+            const amountPaid = parseFloat(form.data.amount_paid) || 0;
+
+            if (amountPaid < total) {
+                toast.error(`El monto pagado (${formatCOP(amountPaid)}) debe ser al menos igual al total (${formatCOP(total)})`);
+                return;
+            }
+
+            // Asegurar que el cambio no sea negativo
+            const change = Math.max(amountPaid - total, 0);
+            form.setData('change_amount', change.toFixed(2));
+        }
+
         const data = {
-            ...form.data,
+            branch_id: form.data.branch_id,
+            client_id: form.data.client_id,
+            seller_id: form.data.seller_id,
+            net: form.data.net,
+            total: form.data.total,
+            amount_paid: form.data.amount_paid,
+            change_amount: form.data.change_amount,
+            payment_method: form.data.payment_method,
+            date: form.data.date,
+            status: form.data.status,
             products: saleProducts.map((sp) => ({
                 id: sp.product.id,
                 quantity: sp.quantity,
@@ -148,6 +189,24 @@ export default function Create({ branches, clients, products = [] }: Props) {
         // eslint-disable-next-line
     }, [productSearch]);
 
+    // Handler para Enter en el input de búsqueda
+    function handleProductSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // Buscar producto exacto por código o nombre
+            const search = productSearch.trim().toLowerCase();
+            const found = products.find((p) => p.code?.toLowerCase() === search || p.name?.toLowerCase() === search);
+            if (found) {
+                handleAddProduct(found);
+                setProductSearch('');
+            } else if (products.length === 1) {
+                // Si solo hay un resultado, agregarlo
+                handleAddProduct(products[0]);
+                setProductSearch('');
+            }
+        }
+    }
+
     function handleAddProduct(prod: Product) {
         if (!prod) return;
         setSaleProducts((prev) => {
@@ -185,35 +244,92 @@ export default function Create({ branches, clients, products = [] }: Props) {
         setSaleProducts((prev) => prev.map((sp) => (sp.product.id === id ? { ...sp, quantity: qty, subtotal: qty * sp.product.sale_price } : sp)));
     }
 
-    const [taxPercent, setTaxPercentState] = useState<number>(() => {
-        const cookieValue = Cookies.get('stokity_tax_percent');
-        return cookieValue !== undefined ? Number(cookieValue) : 19;
-    });
-
-    function setTaxPercentAndCookie(value: number) {
-        setTaxPercentState(value);
-        Cookies.set('stokity_tax_percent', String(value), { expires: 365 });
-    }
-
     function recalculateTotals() {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
-        const tax = net * (taxPercent / 100);
+
+        // Calcular impuesto por producto
+        const tax = saleProducts.reduce((sum, sp) => {
+            const productTax = sp.product.tax || 0;
+            return sum + sp.subtotal * (productTax / 100);
+        }, 0);
+
+        const total = net + tax;
         form.setData('net', net.toFixed(2));
         form.setData('tax', tax.toFixed(2));
-        form.setData('total', (net + tax).toFixed(2));
+        form.setData('total', total.toFixed(2));
+
+        // Si el método de pago es efectivo, calcular la devuelta automáticamente
+        if (form.data.payment_method === 'cash') {
+            const amountPaid = parseFloat(form.data.amount_paid) || 0;
+            const change = amountPaid - total;
+            form.setData('change_amount', change.toFixed(2));
+        }
+    }
+
+    // Función para formatear el input mientras el usuario escribe
+    function formatAmountPaidInput(value: string) {
+        // Remover todo excepto números
+        const numbersOnly = value.replace(/[^\d]/g, '');
+
+        if (numbersOnly === '') return '';
+
+        // Convertir a número y formatear
+        const numericValue = parseInt(numbersOnly, 10);
+        return new Intl.NumberFormat('es-CO', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(numericValue);
+    }
+
+    // Función para parsear el valor formateado de vuelta a número
+    function parseFormattedAmount(formattedValue: string): number {
+        // Remover todos los caracteres no numéricos
+        const numbersOnly = formattedValue.replace(/[^\d]/g, '');
+        return parseInt(numbersOnly, 10) || 0;
     }
 
     React.useEffect(() => {
         recalculateTotals();
         // eslint-disable-next-line
-    }, [saleProducts, taxPercent]);
+    }, [saleProducts, form.data.payment_method]);
+
+    // Inicializar el display del monto pagado cuando cambie el total
+    React.useEffect(() => {
+        const numericValue = parseFloat(form.data.amount_paid) || 0;
+        if (numericValue > 0) {
+            setAmountPaidDisplay(formatNumber(numericValue));
+        }
+    }, [form.data.amount_paid]);
 
     // Referencia para el input de búsqueda de productos
     const productSearchRef = React.useRef<HTMLInputElement>(null);
 
+    // Estado para mostrar el modal de crear cliente
+    const [showCreateClient, setShowCreateClient] = useState(false);
+
+    // Estado para el input de monto pagado (formato visual)
+    const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nueva Venta" />
+
+            {/* Modal para crear cliente */}
+            <Dialog open={showCreateClient} onOpenChange={setShowCreateClient}>
+                <DialogContent className="max-w-lg md:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Crear Nuevo Cliente</DialogTitle>
+                    </DialogHeader>
+                    <CardCreateClient
+                        onSuccess={() => {
+                            setShowCreateClient(false);
+                            toast.success('Cliente creado correctamente');
+                            router.reload({ only: ['clients'] });
+                        }}
+                        onCancel={() => setShowCreateClient(false)}
+                    />
+                </DialogContent>
+            </Dialog>
 
             <div className="flex flex-col gap-4 p-2 sm:p-4 md:h-[calc(100dvh-64px)] md:min-h-0 md:flex-row">
                 {/* Sección derecha: Productos disponibles */}
@@ -225,6 +341,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                             placeholder="Buscar producto..."
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
+                            onKeyDown={handleProductSearchKeyDown}
                             className="mb-2"
                             ref={productSearchRef}
                         />
@@ -243,6 +360,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                     placeholder="Buscar producto..."
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
+                                    onKeyDown={handleProductSearchKeyDown}
                                     className="mb-2"
                                     ref={productSearchRef}
                                 />
@@ -333,7 +451,10 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
                                         <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                            <SelectTrigger
+                                                id="branch_id"
+                                                className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                            >
                                                 <SelectValue placeholder="Seleccione sucursal" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -351,18 +472,35 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         <Label htmlFor="client_id">
                                             Cliente <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione cliente" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {clientsWithAnonymous.map((client) => (
-                                                    <SelectItem key={client.id} value={client.id.toString()}>
-                                                        {client.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="flex flex-row items-center gap-2">
+                                            <div className="flex-1">
+                                                <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
+                                                    <SelectTrigger
+                                                        id="client_id"
+                                                        className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                                    >
+                                                        <SelectValue placeholder="Seleccione cliente" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {clientsWithAnonymous.map((client) => (
+                                                            <SelectItem key={client.id} value={client.id.toString()}>
+                                                                {client.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="outline"
+                                                onClick={() => setShowCreateClient(true)}
+                                                title="Crear cliente"
+                                                className="p-2"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                         {form.errors.client_id && <p className="text-sm text-red-500">{form.errors.client_id}</p>}
                                     </div>
 
@@ -385,24 +523,12 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         {form.errors.seller_id && <p className="text-sm text-red-500">{form.errors.seller_id}</p>}
                                     </div> */}
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="payment_method">
-                                            Método de Pago <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Select
-                                            value={form.data.payment_method || ''}
-                                            onValueChange={(value) => form.setData('payment_method', value)}
-                                        >
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione método de pago" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="cash">Efectivo</SelectItem>
-                                                <SelectItem value="transfer">Transferencia</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {form.errors.payment_method && <p className="text-sm text-red-500">{form.errors.payment_method}</p>}
-                                    </div>
+                                    <PaymentMethodSelect
+                                        value={form.data.payment_method || undefined}
+                                        onValueChange={(value) => form.setData('payment_method', value)}
+                                        error={form.errors.payment_method}
+                                        required
+                                    />
 
                                     {/* <div className="space-y-2">
                                         <Label htmlFor="date">
@@ -450,6 +576,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                             <th className="text-left font-semibold">Producto</th>
                                                             <th className="text-center font-semibold">Cantidad</th>
                                                             <th className="text-center font-semibold">Precio</th>
+                                                            <th className="text-center font-semibold">Impuesto</th>
                                                             <th className="text-center font-semibold">Subtotal</th>
                                                             <th></th>
                                                         </tr>
@@ -480,6 +607,9 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">
                                                                     {formatCOP(sp.product.sale_price)}
+                                                                </td>
+                                                                <td className="px-2 py-1 text-center font-semibold text-yellow-900 dark:text-yellow-200">
+                                                                    {sp.product.tax || 0}%
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center font-semibold text-green-900 dark:text-green-200">
                                                                     {formatCOP(sp.subtotal)}
@@ -548,6 +678,12 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                 </span>
                                                             </div>
                                                             <div>
+                                                                <span className="font-medium text-neutral-500">Impuesto: </span>
+                                                                <span className="font-semibold text-yellow-900 dark:text-yellow-200">
+                                                                    {sp.product.tax || 0}%
+                                                                </span>
+                                                            </div>
+                                                            <div>
                                                                 <span className="font-medium text-neutral-500">Subtotal: </span>
                                                                 <span className="font-semibold text-green-900 dark:text-green-200">
                                                                     {formatCOP(sp.subtotal)}
@@ -565,30 +701,6 @@ export default function Create({ branches, clients, products = [] }: Props) {
 
                                 {/* Totales */}
                                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="taxPercent">Impuesto (%)</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                id="taxPercent"
-                                                type="number"
-                                                min={0}
-                                                max={100}
-                                                step={0.01}
-                                                className="w-full border-yellow-200 bg-yellow-50 text-yellow-900 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200"
-                                                value={taxPercent}
-                                                onChange={(e) => setTaxPercentAndCookie(Number(e.target.value))}
-                                                required
-                                            />
-                                            <button
-                                                type="button"
-                                                className={`rounded border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${taxPercent === 19 ? 'border-yellow-400 bg-yellow-200 text-yellow-900' : 'border-gray-300 bg-gray-100 text-gray-700'}`}
-                                                onClick={() => setTaxPercentAndCookie(taxPercent === 19 ? 0 : 19)}
-                                                title={taxPercent === 19 ? 'Poner IVA en 0%' : 'Poner IVA en 19%'}
-                                            >
-                                                {taxPercent === 19 ? 'Sin IVA (0%)' : 'IVA 19%'}
-                                            </button>
-                                        </div>
-                                    </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="tax">Valor Impuesto</Label>
                                         <Input
@@ -629,6 +741,129 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         {form.errors.total && <p className="text-sm text-red-500">{form.errors.total}</p>}
                                     </div>
                                 </div>
+
+                                {/* Sección de Pago y Cambio */}
+                                {form.data.payment_method === 'cash' && (
+                                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="amount_paid">
+                                                Con Cuánto Paga <span className="text-red-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="amount_paid"
+                                                type="text"
+                                                placeholder="0"
+                                                className="w-full border-purple-200 bg-purple-50 text-purple-900 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-200"
+                                                value={amountPaidDisplay}
+                                                onChange={(e) => {
+                                                    const formattedValue = formatAmountPaidInput(e.target.value);
+                                                    setAmountPaidDisplay(formattedValue);
+                                                    const numericValue = parseFormattedAmount(formattedValue);
+                                                    form.setData('amount_paid', numericValue.toString());
+                                                    // Calcular cambio inmediatamente con el nuevo valor
+                                                    const total = parseFloat(form.data.total) || 0;
+                                                    const change = Math.max(numericValue - total, 0); // No permitir cambio negativo
+                                                    form.setData('change_amount', change.toFixed(2));
+                                                }}
+                                                onBlur={() => {
+                                                    const numericValue = parseFloat(form.data.amount_paid) || 0;
+                                                    setAmountPaidDisplay(formatNumber(numericValue));
+                                                }}
+                                                required
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex flex-wrap gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            form.setData('amount_paid', total.toString());
+                                                            setAmountPaidDisplay(formatNumber(total));
+                                                            form.setData('change_amount', '0.00');
+                                                        }}
+                                                        className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800"
+                                                        title="Pagar exacto"
+                                                    >
+                                                        Exacto
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 1000) * 1000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-green-300 bg-green-100 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-200 dark:border-green-600 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800"
+                                                        title="Redondear al mil"
+                                                    >
+                                                        Mil
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 5000) * 5000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-purple-300 bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200 dark:border-purple-600 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-800"
+                                                        title="Redondear a 5 mil"
+                                                    >
+                                                        5 Mil
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const total = parseFloat(form.data.total) || 0;
+                                                            const amount = Math.ceil(total / 10000) * 10000;
+                                                            form.setData('amount_paid', amount.toString());
+                                                            setAmountPaidDisplay(formatNumber(amount));
+                                                            const change = amount - total;
+                                                            form.setData('change_amount', change.toFixed(2));
+                                                        }}
+                                                        className="rounded border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 hover:bg-yellow-200 dark:border-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-800"
+                                                        title="Redondear a 10 mil"
+                                                    >
+                                                        10 Mil
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        form.setData('amount_paid', '0');
+                                                        setAmountPaidDisplay('');
+                                                        form.setData('change_amount', '0.00');
+                                                    }}
+                                                    className="rounded border border-gray-300 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                                    title="Limpiar campo"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                            {form.errors.amount_paid && <p className="text-sm text-red-500">{form.errors.amount_paid}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="change_amount">Cambio</Label>
+                                            <Input
+                                                id="change_amount"
+                                                type="text"
+                                                value={formatCOP(form.data.change_amount || 0)}
+                                                readOnly
+                                                className={`w-full font-semibold ${
+                                                    parseFloat(form.data.change_amount) >= 0
+                                                        ? 'border-green-200 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200'
+                                                        : 'border-red-200 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200'
+                                                }`}
+                                            />
+                                            {form.errors.change_amount && <p className="text-sm text-red-500">{form.errors.change_amount}</p>}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Botones */}
                                 <div className="mt-4 flex flex-col justify-end gap-2 sm:flex-row sm:gap-0 sm:space-x-2">

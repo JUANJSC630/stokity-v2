@@ -19,21 +19,30 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::query()
-            ->with('branch')
-            ->orderBy('name');
-            
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para ver usuarios.');
+        }
+
+        $query = User::query();
+
+        $with = ['branch'];
+
+        $query->with($with);
+
         if ($request->has('search')) {
             $query->where(function ($q) use ($request) {
                 $search = $request->search;
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('role', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('role', 'like', "%{$search}%");
             });
         }
-        
-        $users = $query->paginate(10)->withQueryString();
-        
+
+        $users = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('users/index', [
             'users' => $users,
             'filters' => $request->only('search'),
@@ -45,8 +54,13 @@ class UserController extends Controller
      */
     public function create()
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para crear usuarios.');
+        }
+
         $branches = Branch::where('status', true)->get();
-        
+
         return Inertia::render('users/create', [
             'branches' => $branches,
             'roles' => ['administrador', 'encargado', 'vendedor'],
@@ -58,12 +72,17 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para crear usuarios.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'role' => 'required|in:administrador,encargado,vendedor',
             'branch_id' => [
-                Rule::requiredIf(fn () => $request->role !== 'administrador'),
+                Rule::requiredIf(fn() => $request->role !== 'administrador'),
                 'nullable',
                 'exists:branches,id',
             ],
@@ -76,33 +95,33 @@ class UserController extends Controller
         if ($request->hasFile('photo')) {
             try {
                 $uploadPath = public_path('uploads/users');
-                
+
                 // Asegurarse de que el directorio existe
                 if (!file_exists($uploadPath)) {
                     mkdir($uploadPath, 0755, true);
                 }
-                
+
                 $file = $request->file('photo');
                 $extension = $file->getClientOriginalExtension();
                 $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $extension;
-                
+
                 // Subir la imagen
                 $file->move($uploadPath, $filename);
-                
+
                 // Verificar que se subió correctamente
                 if (file_exists($uploadPath . '/' . $filename)) {
                     $validated['photo'] = $filename;
-                    
+
                     // Log para depuración
                     \Log::info('Foto subida exitosamente:', [
-                        'filename' => $filename, 
-                        'path' => $uploadPath, 
+                        'filename' => $filename,
+                        'path' => $uploadPath,
                         'full_path' => $uploadPath . '/' . $filename,
                         'url' => asset('uploads/users/' . $filename)
                     ]);
                 } else {
                     \Log::error('Error: No se pudo verificar la existencia del archivo subido:', [
-                        'filename' => $filename, 
+                        'filename' => $filename,
                         'path' => $uploadPath
                     ]);
                 }
@@ -123,7 +142,7 @@ class UserController extends Controller
             'status' => $validated['status'] ?? true,
             'photo' => $validated['photo'] ?? null,
         ]);
-        
+
         // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
         if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
@@ -138,6 +157,11 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para ver usuarios.');
+        }
+
         return Inertia::render('users/show', [
             'user' => $user->load('branch'),
         ]);
@@ -148,8 +172,13 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar usuarios.');
+        }
+
         $branches = Branch::where('status', true)->get();
-        
+
         return Inertia::render('users/edit', [
             'user' => $user->load('branch'),
             'branches' => $branches,
@@ -162,6 +191,11 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar usuarios.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => [
@@ -173,7 +207,7 @@ class UserController extends Controller
             ],
             'role' => 'required|in:administrador,encargado,vendedor',
             'branch_id' => [
-                Rule::requiredIf(fn () => $request->role !== 'administrador'),
+                Rule::requiredIf(fn() => $request->role !== 'administrador'),
                 'nullable',
                 'exists:branches,id',
             ],
@@ -186,39 +220,39 @@ class UserController extends Controller
         if ($request->hasFile('photo')) {
             try {
                 $uploadPath = public_path('uploads/users');
-                
+
                 // Asegurarse de que el directorio existe
                 if (!file_exists($uploadPath)) {
                     mkdir($uploadPath, 0755, true);
                 }
-                
+
                 // Delete old photo if exists
                 if ($user->photo && file_exists($uploadPath . '/' . $user->photo)) {
                     unlink($uploadPath . '/' . $user->photo);
                 }
-                
+
                 $file = $request->file('photo');
                 $extension = $file->getClientOriginalExtension();
                 $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $extension;
-                
+
                 // Subir la imagen
                 $file->move($uploadPath, $filename);
-                
+
                 // Verificar que se subió correctamente
                 if (file_exists($uploadPath . '/' . $filename)) {
                     $validated['photo'] = $filename;
-                    
+
                     // Log para depuración
                     \Log::info('Foto actualizada exitosamente:', [
-                        'filename' => $filename, 
-                        'path' => $uploadPath, 
+                        'filename' => $filename,
+                        'path' => $uploadPath,
                         'full_path' => $uploadPath . '/' . $filename,
                         'url' => asset('uploads/users/' . $filename),
                         'user_id' => $user->id
                     ]);
                 } else {
                     \Log::error('Error: No se pudo verificar la existencia del archivo actualizado:', [
-                        'filename' => $filename, 
+                        'filename' => $filename,
                         'path' => $uploadPath,
                         'user_id' => $user->id
                     ]);
@@ -239,26 +273,26 @@ class UserController extends Controller
             'branch_id' => $validated['role'] === 'administrador' ? null : $validated['branch_id'],
             'status' => $validated['status'] ?? $user->status,
         ];
-        
+
         // Add photo if it was updated
         if (isset($validated['photo'])) {
             $userData['photo'] = $validated['photo'];
         }
-        
+
         // Add password if it was provided
         if (isset($validated['password'])) {
             $userData['password'] = Hash::make($validated['password']);
         }
-        
+
         $user->update($userData);
-        
+
         // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
         if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
             // Si el usuario ya era encargado de otra sucursal, quitarlo como encargado
             Branch::where('manager_id', $user->id)
-                  ->where('id', '!=', $validated['branch_id'])
-                  ->update(['manager_id' => null]);
-                  
+                ->where('id', '!=', $validated['branch_id'])
+                ->update(['manager_id' => null]);
+
             // Asignar al usuario como encargado de la nueva sucursal
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
         } elseif ($validated['role'] !== 'encargado') {
@@ -275,6 +309,11 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para eliminar usuarios.');
+        }
+
         // Prevent self-deletion
         if ($user->id === Auth::id()) {
             return redirect()->back()

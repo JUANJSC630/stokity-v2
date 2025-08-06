@@ -8,9 +8,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     
     // Rutas para las páginas del sidebar - La ruta de usuarios está definida en users.php
     
@@ -22,6 +20,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('report-sales', function () {
         return Inertia::render('report-sales/index');
     })->name('report-sales');
+
+    // Ruta para imprimir recibo de devolución en ESC/POS
+    Route::get('sale-returns/{id}/print', [\App\Http\Controllers\SaleReturnController::class, 'printReturnReceipt'])->name('sale-returns.print');
 });
 
 require __DIR__.'/settings.php';
@@ -32,3 +33,6 @@ require __DIR__.'/categories.php';
 require __DIR__.'/products.php';
 require __DIR__.'/clients.php';
 require __DIR__.'/sales.php';
+require __DIR__.'/reports.php';
+require __DIR__.'/stock-movements.php';
+require __DIR__.'/payment-methods.php';

@@ -1,3 +1,4 @@
+import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,7 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Branch {
     id: number;
@@ -67,6 +68,21 @@ function unformatCOP(value: string) {
 
 export default function Edit({ sale, branches, clients, sellers }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    // Prevenir scroll del mouse en inputs de tipo número
+    useEffect(() => {
+        const preventWheel = (e: WheelEvent) => {
+            if (e.target instanceof HTMLInputElement && e.target.type === 'number') {
+                e.preventDefault();
+            }
+        };
+
+        document.addEventListener('wheel', preventWheel, { passive: false });
+
+        return () => {
+            document.removeEventListener('wheel', preventWheel);
+        };
+    }, []);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -164,7 +180,10 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Sucursal <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger
+                                            id="branch_id"
+                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        >
                                             <SelectValue placeholder="Seleccione sucursal" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -183,7 +202,10 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Cliente <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.client_id} onValueChange={(value) => form.setData('client_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger
+                                            id="client_id"
+                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        >
                                             <SelectValue placeholder="Seleccione cliente" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -202,7 +224,10 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Vendedor <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.seller_id} onValueChange={(value) => form.setData('seller_id', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger
+                                            id="seller_id"
+                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        >
                                             <SelectValue placeholder="Seleccione vendedor" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -216,24 +241,12 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                     {form.errors.seller_id && <p className="text-sm text-red-500">{form.errors.seller_id}</p>}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="payment_method">
-                                        Método de Pago <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Select value={form.data.payment_method} onValueChange={(value) => form.setData('payment_method', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                            <SelectValue placeholder="Seleccione método de pago" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="cash">Efectivo</SelectItem>
-                                            <SelectItem value="credit_card">Tarjeta de crédito</SelectItem>
-                                            <SelectItem value="debit_card">Tarjeta débito</SelectItem>
-                                            <SelectItem value="transfer">Transferencia</SelectItem>
-                                            <SelectItem value="other">Otro</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {form.errors.payment_method && <p className="text-sm text-red-500">{form.errors.payment_method}</p>}
-                                </div>
+                                <PaymentMethodSelect
+                                    value={form.data.payment_method || undefined}
+                                    onValueChange={(value) => form.setData('payment_method', value)}
+                                    error={form.errors.payment_method}
+                                    required
+                                />
 
                                 <div className="space-y-2">
                                     <Label htmlFor="date">
@@ -255,7 +268,7 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
                                         Estado <span className="text-red-500">*</span>
                                     </Label>
                                     <Select value={form.data.status} onValueChange={(value) => form.setData('status', value)}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger id="status" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                                             <SelectValue placeholder="Seleccione estado" />
                                         </SelectTrigger>
                                         <SelectContent>

@@ -27,7 +27,7 @@ class SaleFactory extends Factory
 
         return [
             'branch_id' => Branch::inRandomOrder()->first()->id ?? Branch::factory(),
-            'code' => 'SALE-' . $this->faker->unique()->numerify('######'),
+            'code' => $this->faker->unique()->numerify('##########'),
             'client_id' => Client::inRandomOrder()->first()->id ?? Client::factory(),
             'seller_id' => User::inRandomOrder()->first()->id ?? User::factory(),
             'tax' => $tax,

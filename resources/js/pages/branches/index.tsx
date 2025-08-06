@@ -1,26 +1,28 @@
+import EyeButton from '@/components/common/EyeButton';
+import PaginationFooter from '@/components/common/PaginationFooter';
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Eye, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Label } from '@radix-ui/react-label';
+import { AlertTriangle, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface BranchesPageProps {
-    branches?: {
+    branches: {
         data: Branch[];
-        meta: {
-            current_page: number;
-            last_page: number;
-            per_page: number;
-            total: number;
-            from: number;
-            to: number;
-        };
+        links: { label: string; url: string | null }[];
+        current_page: number;
+        from: number;
+        to: number;
+        total: number;
+        last_page: number;
     };
     filters?: {
         search?: string;
@@ -35,40 +37,69 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Branches({
-    branches = { data: [], meta: { current_page: 1, last_page: 1, per_page: 10, total: 0, from: 0, to: 0 } },
-    filters = { search: '', status: '' },
-}: BranchesPageProps) {
+export default function Branches({ branches, filters = { search: '', status: 'all' } }: BranchesPageProps) {
     const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
-    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
-    const [selectedStatus, setSelectedStatus] = useState(filters?.status || 'all');
+    const [search, setSearch] = useState(filters.search || '');
+    const [status, setStatus] = useState(filters.status || 'all');
+
     const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
+    const searchRef = useRef<HTMLInputElement>(null);
 
+    const hasResetRef = useRef(false);
     useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            if (searchQuery !== filters?.search || selectedStatus !== filters?.status) {
-                setIsSearching(true);
-                router.get(
-                    '/branches',
-                    {
-                        search: searchQuery,
-                        status: selectedStatus,
-                        page: 1, // Reset to page 1 when search criteria changes
-                    },
-                    {
-                        preserveState: true,
-                        preserveScroll: true,
-                        replace: true,
-                        onFinish: () => setIsSearching(false),
-                    },
-                );
+        if (search.trim() === '') {
+            const url = new URL(window.location.href);
+            const hasFilters = url.searchParams.get('search') || url.searchParams.get('status');
+            if (!hasResetRef.current && hasFilters) {
+                hasResetRef.current = true;
+                setSearch('');
+                setStatus('all');
+                applyFilters('', 'all');
             }
-        }, 300);
+        } else {
+            hasResetRef.current = false;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
-        return () => clearTimeout(timeoutId);
-    }, [searchQuery, selectedStatus, filters?.search, filters?.status]);
+    const applyFilters = (searchParam = search, statusParam = status) => {
+        setIsSearching(true);
+        const params = new URLSearchParams();
+
+        if (searchParam) {
+            params.append('search', searchParam);
+        }
+
+        if (statusParam && statusParam !== 'all') {
+            params.append('status', statusParam);
+        }
+
+        router.visit(`/branches?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['branches'],
+            onFinish: () => setIsSearching(false),
+        });
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters();
+    };
+
+    const handleStatusChange = (newStatus: string) => {
+        setStatus(newStatus);
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (newStatus && newStatus !== 'all') params.append('status', newStatus);
+        router.visit(`/branches?${params.toString()}`, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['branches'],
+        });
+    };
 
     const handleDelete = () => {
         if (branchToDelete) {
@@ -80,6 +111,46 @@ export default function Branches({
             });
         }
     };
+
+    const columns: Column<Branch & { actions: null }>[] = [
+        { key: 'name', title: 'Nombre', render: (_: unknown, row: Branch) => <span className="font-medium">{row.name}</span> },
+        { key: 'address', title: 'Dirección' },
+        { key: 'phone', title: 'Teléfono' },
+        {
+            key: 'status',
+            title: 'Estado',
+            render: (_: unknown, row: Branch) => <Badge variant={row.status ? 'default' : 'destructive'}>{row.status ? 'Activa' : 'Inactiva'}</Badge>,
+        },
+        {
+            key: 'manager',
+            title: 'Gerente',
+            render: (_: unknown, row: Branch) => (row.manager ? <span>{row.manager.name}</span> : '-'),
+        },
+        {
+            key: 'employees',
+            title: 'Empleados',
+            render: (_: unknown, row: Branch) => {
+                const managerId = row.manager?.id;
+                const employeesCount = row.employees ? row.employees.filter((emp) => emp.id !== managerId && emp.role === 'vendedor').length : 0;
+                return employeesCount > 0 ? (
+                    <span className="text-xs text-muted-foreground">{employeesCount} vendedor(es)</span>
+                ) : (
+                    <span className="text-xs text-muted-foreground">Sin vendedores</span>
+                );
+            },
+        },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Branch) => (
+                <div className="flex gap-1">
+                    <Link href={`/branches/${row.id}`}>
+                        <EyeButton text="Ver Sucursal" />
+                    </Link>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -107,109 +178,64 @@ export default function Branches({
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                    <div className="relative w-full max-w-full md:max-w-sm">
-                        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Buscar sucursales..."
-                            className="w-full pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            disabled={isSearching}
-                        />
-                    </div>
-                    <div className="w-full max-w-full md:max-w-xs">
-                        <Select value={selectedStatus} onValueChange={setSelectedStatus} disabled={isSearching}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filtrar por estado" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                <SelectItem value="active">Activas</SelectItem>
-                                <SelectItem value="inactive">Inactivas</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="flex flex-col gap-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Filtrar Productos</CardTitle>
+                            <CardDescription>Busca productos por código, nombre, estado, categoría o sucursal</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                                <div className="col-span-2">
+                                    <form onSubmit={handleSearch}>
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="branch-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                Buscar
+                                            </Label>
+                                            <div className="relative">
+                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
+                                                <Input
+                                                    id="branch-search"
+                                                    ref={searchRef}
+                                                    type="search"
+                                                    placeholder="Buscar por código, cliente o vendedor"
+                                                    className="h-8 pl-8 text-sm"
+                                                    value={search}
+                                                    onChange={(e) => setSearch(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Estado
+                                    </Label>
+                                    <Select value={status} onValueChange={handleStatusChange}>
+                                        <SelectTrigger id="status-filter" className="h-8 text-sm">
+                                            <SelectValue placeholder="Estado" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todos</SelectItem>
+                                            <SelectItem value="1">Activos</SelectItem>
+                                            <SelectItem value="0">Inactivos</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <Card className="flex-1 overflow-hidden">
-                    <div className="w-full overflow-x-auto hidden md:block">
-                        <table className="w-full min-w-[700px]">
-                            <thead className="bg-muted/50">
-                                <tr className="border-b text-left">
-                                    <th className="px-4 py-3 text-sm font-medium">Nombre</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Dirección</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Teléfono</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Estado</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Gerente</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Empleados</th>
-                                    <th className="px-4 py-3 text-sm font-medium">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {branches?.data?.length > 0 ? (
-                                    branches?.data?.map((branch: Branch) => (
-                                        <tr key={branch.id} className="border-b hover:bg-muted/20">
-                                            <td className="px-4 py-3 text-sm font-medium">{branch.name}</td>
-                                            <td className="px-4 py-3 text-sm">{branch.address}</td>
-                                            <td className="px-4 py-3 text-sm">{branch.phone}</td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <Badge variant={branch.status ? 'default' : 'destructive'}>
-                                                    {branch.status ? 'Activa' : 'Inactiva'}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {branch.manager ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <span>{branch.manager.name}</span>
-                                                    </div>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                {branch.employees ? (
-                                                    (() => {
-                                                        // Filter out the branch manager from the employees count
-                                                        const managerId = branch.manager?.id;
-                                                        const employeesCount = branch.employees.filter(
-                                                            // Only count employees that are not the manager
-                                                            (emp) => emp.id !== managerId && emp.role === 'vendedor',
-                                                        ).length;
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
+                    {isSearching && (
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
+                        </div>
+                    )}
 
-                                                        return employeesCount > 0 ? (
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-xs text-muted-foreground">{employeesCount} vendedor(es)</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground">Sin vendedores</span>
-                                                        );
-                                                    })()
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">Sin vendedores</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <div className="flex gap-1">
-                                                    <Link href={`/branches/${branch.id}`}>
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                            <Eye className="size-4" />
-                                                            <span className="sr-only">Ver Sucursal</span>
-                                                        </Button>
-                                                    </Link>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={7} className="px-4 py-6 text-center">
-                                            <p className="text-muted-foreground">No se encontraron sucursales</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                    <div className="hidden w-full overflow-x-auto md:block">
+                        <Table columns={columns} data={branches.data.map((branch) => ({ ...branch, actions: null }))} />
                     </div>
 
                     {/* Tarjetas para móvil */}
@@ -234,9 +260,7 @@ export default function Branches({
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
                                             <span className="font-medium">Estado:</span>{' '}
-                                            <Badge variant={branch.status ? 'default' : 'destructive'}>
-                                                {branch.status ? 'Activa' : 'Inactiva'}
-                                            </Badge>
+                                            <Badge variant={branch.status ? 'default' : 'destructive'}>{branch.status ? 'Activa' : 'Inactiva'}</Badge>
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
                                             <span className="font-medium">Gerente:</span> {branch.manager ? branch.manager.name : '-'}
@@ -262,41 +286,15 @@ export default function Branches({
                     </div>
 
                     {/* Pagination */}
-                    {branches?.meta?.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t px-4 py-3">
-                            <div className="text-sm text-muted-foreground">
-                                Mostrando {branches?.meta?.from} a {branches?.meta?.to} de {branches?.meta?.total} resultados
-                            </div>
-                            <div className="flex space-x-1">
-                                {branches?.meta?.current_page > 1 && (
-                                    <Link
-                                        href={`/branches?page=${branches?.meta?.current_page - 1}&search=${searchQuery}&status=${selectedStatus}`}
-                                        preserveScroll
-                                        preserveState
-                                    >
-                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                            <ChevronLeft className="size-4" />
-                                            <span className="sr-only">Página anterior</span>
-                                        </Button>
-                                    </Link>
-                                )}
-
-                                {branches?.meta?.current_page < branches?.meta?.last_page && (
-                                    <Link
-                                        href={`/branches?page=${branches?.meta?.current_page + 1}&search=${searchQuery}&status=${selectedStatus}`}
-                                        preserveScroll
-                                        preserveState
-                                    >
-                                        <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                            <ChevronRight className="size-4" />
-                                            <span className="sr-only">Página siguiente</span>
-                                        </Button>
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </Card>
+                    <div>
+                        <PaginationFooter
+                            data={{
+                                ...branches,
+                                resourceLabel: 'sucursales',
+                            }}
+                        />
+                    </div>
+                </div>
 
                 <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
                     <DialogContent>

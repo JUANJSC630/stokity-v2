@@ -15,30 +15,26 @@ class BranchController extends Controller
     /**
      * Display a listing of the branches.
      */
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
-        $query = Branch::query()
-            ->with('manager:id,name,email')
-            ->with('employees:id,name,email,role,branch_id,status')
-            ->orderBy('name');
+        $query = Branch::query();
 
         // Aplicar filtros de búsqueda
-        if ($request->has('search')) {
+        if ($request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
         // Filtrar por estado
         if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status === 'active');
+            $query->where('branches.status', $request->status);
         }
 
-        $branches = $query->paginate(10)->withQueryString();
+        $branches = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('branches/index', [
             'branches' => $branches,
@@ -51,22 +47,19 @@ class BranchController extends Controller
      */
     public function trashed(Request $request): Response
     {
-        $query = Branch::onlyTrashed()
-            ->with('manager:id,name,email')
-            ->orderBy('deleted_at', 'desc');
+        $query = Branch::onlyTrashed();
 
         // Aplicar filtros de búsqueda
-        if ($request->has('search')) {
+        if ($request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
-        $branches = $query->paginate(10)->withQueryString();
+        $branches = $query->orderBy('deleted_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('branches/trashed', [
             'branches' => $branches,
@@ -157,7 +150,7 @@ class BranchController extends Controller
     public function show(Branch $branch): Response
     {
         $branch->load(['manager:id,name,email,role', 'employees:id,name,email,role,branch_id,status']);
-        
+
         return Inertia::render('branches/show', [
             'branch' => $branch,
         ]);

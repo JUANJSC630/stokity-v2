@@ -139,7 +139,7 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                         Gerente / Responsable
                                     </Label>
                                     <Select value={data.manager_id} onValueChange={(value) => setData('manager_id', value)}>
-                                        <SelectTrigger className={errors.manager_id ? 'border-destructive' : ''}>
+                                        <SelectTrigger id="manager_id" className={errors.manager_id ? 'border-destructive' : ''}>
                                             <SelectValue placeholder="Seleccionar encargado" />
                                         </SelectTrigger>
                                         <SelectContent>

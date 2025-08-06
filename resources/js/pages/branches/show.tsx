@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, ArrowLeft, Edit, Mail, MapPin, Phone, Trash2, User as UserIcon, Users } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building, Edit, Mail, MapPin, Phone, Trash2, User as UserIcon, Users } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
@@ -93,6 +93,13 @@ export default function BranchDetail({ branch }: Props) {
                                 </div>
                             </div>
                         )}
+                        <div className="flex items-start gap-3">
+                            <Building className="mt-0.5 size-5 text-muted-foreground" />
+                            <div>
+                                <h3 className="text-sm font-medium">Nombre comercial</h3>
+                                <p className="text-sm text-muted-foreground">{branch.business_name}</p>
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 

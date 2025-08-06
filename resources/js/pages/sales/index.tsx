@@ -1,19 +1,29 @@
+import EyeButton from '@/components/common/EyeButton';
+import PaginationFooter from '@/components/common/PaginationFooter';
+import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type Sale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
+import { Label } from '@radix-ui/react-label';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, Eye, Plus, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, Plus, Search, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RangeKeyDict } from 'react-date-range';
 import { DateRangePicker, createStaticRanges } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+
+function addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(date.getDate() + days);
+    return result;
+}
 
 const customStaticRanges = createStaticRanges([
     {
@@ -81,38 +91,6 @@ const customInputRanges = [
     },
 ];
 
-interface Branch {
-    id: number;
-    name: string;
-}
-
-interface Client {
-    id: number;
-    name: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-}
-
-interface Sale {
-    id: number;
-    branch_id: number;
-    code: string;
-    client_id: number;
-    seller_id: number;
-    tax: number;
-    net: number;
-    total: number;
-    payment_method: string;
-    date: string;
-    status: string;
-    branch: Branch;
-    client: Client;
-    seller: User;
-}
-
 interface PageProps {
     sales: {
         data: Sale[];
@@ -131,6 +109,13 @@ interface PageProps {
     };
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Ventas',
+        href: '/sales',
+    },
+];
+
 export default function Index({ sales, filters }: PageProps) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
@@ -140,11 +125,11 @@ export default function Index({ sales, filters }: PageProps) {
         endDate: filters.date_to ? new Date(filters.date_to) : undefined,
         key: 'selection',
     });
+    const [isSearching, setIsSearching] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
     const datePickerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // Cerrar el date picker al hacer clic fuera de él
         const handleClickOutside = (event: MouseEvent) => {
             if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
                 setShowDatePicker(false);
@@ -161,9 +146,12 @@ export default function Index({ sales, filters }: PageProps) {
     const hasResetRef = useRef(false);
     useEffect(() => {
         if (search.trim() === '') {
-            // Solo limpiar si no se ha hecho ya y si hay filtros activos
             const url = new URL(window.location.href);
-            const hasFilters = url.searchParams.get('search') || url.searchParams.get('status') || url.searchParams.get('date_from') || url.searchParams.get('date_to');
+            const hasFilters =
+                url.searchParams.get('search') ||
+                url.searchParams.get('status') ||
+                url.searchParams.get('date_from') ||
+                url.searchParams.get('date_to');
             if (!hasResetRef.current && hasFilters) {
                 hasResetRef.current = true;
                 setStatus('all');
@@ -180,16 +168,13 @@ export default function Index({ sales, filters }: PageProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Ventas',
-            href: '/sales',
-        },
-    ];
-
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         applyFilters();
+    };
+
+    const formatDate = (date: Date) => {
+        return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
     };
 
     const handleStatusChange = (newStatus: string) => {
@@ -215,8 +200,8 @@ export default function Index({ sales, filters }: PageProps) {
             key: 'selection',
         });
     };
-
     const applyFilters = (searchParam = search, statusParam = status, startDate = dateRange.startDate, endDate = dateRange.endDate) => {
+        setIsSearching(true);
         const params = new URLSearchParams();
 
         if (searchParam) {
@@ -235,14 +220,17 @@ export default function Index({ sales, filters }: PageProps) {
             params.append('date_to', formatDate(endDate));
         }
 
+        // Cuando se aplican filtros, siempre volver a la página 1
+        // pero preservar los filtros existentes
         router.visit(`/sales?${params.toString()}`, {
             preserveState: true,
             preserveScroll: true,
             only: ['sales'],
+            onFinish: () => setIsSearching(false),
         });
     };
-
     const clearFilters = () => {
+        setIsSearching(true);
         setSearch('');
         setStatus('all');
         setDateRange({
@@ -250,11 +238,12 @@ export default function Index({ sales, filters }: PageProps) {
             endDate: undefined,
             key: 'selection',
         });
-        window.location.href = '/sales';
-    };
-
-    const formatDate = (date: Date) => {
-        return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
+        router.visit('/sales', {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['sales'],
+            onFinish: () => setIsSearching(false),
+        });
     };
 
     const formatCurrency = (value: number) => {
@@ -308,11 +297,29 @@ export default function Index({ sales, filters }: PageProps) {
         return date.toLocaleString();
     };
 
+    const columns: Column<Sale & { actions: null }>[] = [
+        { key: 'code', title: 'Código' },
+        { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'N/A' },
+        { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
+        { key: 'payment_method', title: 'Método de pago', render: (_: unknown, row: Sale) => getPaymentMethodText(row.payment_method) },
+        { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateToLocal(row.date) },
+        { key: 'status', title: 'Estado', render: (_: unknown, row: Sale) => getStatusBadge(row.status) },
+        {
+            key: 'actions',
+            title: 'Acciones',
+            render: (_: unknown, row: Sale) => (
+                <Link href={route('sales.show', row.id)}>
+                    <EyeButton text="Ver Venta" />
+                </Link>
+            ),
+        },
+    ];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ventas" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4 md:gap-8">
-                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Administración de Ventas</h1>
                     <Link href={route('sales.create')}>
                         <Button>
@@ -329,26 +336,38 @@ export default function Index({ sales, filters }: PageProps) {
                             <CardDescription>Busca ventas por código, cliente o vendedor, estado o rango de fechas</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid gap-4 md:grid-cols-4">
-                                <div className="md:col-span-2">
+                            <div className="grid gap-4 md:grid-cols-5">
+                                <div className="col-span-2">
                                     <form onSubmit={handleSearch}>
-                                        <div className="relative">
-                                            <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                ref={searchRef}
-                                                type="search"
-                                                placeholder="Buscar por código, cliente o vendedor"
-                                                className="w-full bg-white pl-8 text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                                value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
-                                            />
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="sale-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                Buscar
+                                            </Label>
+                                            <div className="relative">
+                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
+                                                <Input
+                                                    id="sale-search"
+                                                    ref={searchRef}
+                                                    type="search"
+                                                    placeholder="Buscar por código, cliente o vendedor"
+                                                    className="h-8 pl-8 text-sm"
+                                                    value={search}
+                                                    onChange={(e) => setSearch(e.target.value)}
+                                                />
+                                            </div>
                                         </div>
                                     </form>
                                 </div>
 
-                                <div>
+                                <div className="w-full">
+                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Estado
+                                    </Label>
                                     <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                                        <SelectTrigger
+                                            id="status-filter"
+                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        >
                                             <SelectValue placeholder="Estado" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -360,11 +379,15 @@ export default function Index({ sales, filters }: PageProps) {
                                     </Select>
                                 </div>
 
-                                <div className="relative w-full md:w-auto" ref={datePickerRef}>
+                                <div className="relative w-full" ref={datePickerRef}>
+                                    <Label htmlFor="date-range" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                        Rango de fechas
+                                    </Label>
                                     <Input
+                                        id="date-range"
                                         type="text"
                                         placeholder="Seleccionar rango de fechas"
-                                        className="w-full cursor-pointer bg-white text-black dark:bg-neutral-800 dark:text-neutral-100 text-sm md:text-base"
+                                        className="w-full cursor-pointer bg-white text-sm text-black md:text-base dark:bg-neutral-800 dark:text-neutral-100"
                                         value={
                                             dateRange.startDate && dateRange.endDate
                                                 ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
@@ -375,10 +398,10 @@ export default function Index({ sales, filters }: PageProps) {
                                     />
 
                                     {showDatePicker && (
-                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:mt-2 md:z-10 md:origin-top-right">
+                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:z-10 md:mt-2 md:origin-top-right">
                                             <div className="absolute inset-0 bg-black/30 md:hidden" onClick={() => setShowDatePicker(false)}></div>
                                             <div
-                                                className="relative rounded-md bg-white shadow-lg dark:bg-neutral-800 w-[95vw] max-w-xs md:max-w-md p-4 md:p-0 mx-2 overflow-auto"
+                                                className="relative mx-2 w-[95vw] max-w-xs overflow-auto rounded-md bg-white p-4 shadow-lg md:max-w-md md:p-0 dark:bg-neutral-800"
                                                 style={{ maxHeight: '90vh' }}
                                             >
                                                 <DateRangePicker
@@ -410,248 +433,78 @@ export default function Index({ sales, filters }: PageProps) {
                                     )}
                                 </div>
 
-                                <div className="flex justify-end space-x-2 md:col-span-4">
-                                    <Button variant="outline" className="mt-2" onClick={clearFilters}>
+                                <div className="flex w-full flex-col justify-end">
+                                    <Button variant="outline" onClick={clearFilters}>
                                         Limpiar filtros
                                     </Button>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
+                </div>
 
-                    <Card>
-    <CardContent>
-        {/* Tabla solo visible en escritorio */}
-        <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                    <tr className="border-b text-left font-medium">
-                        <th className="px-4 py-2">Código</th>
-                        <th className="px-4 py-2">Cliente</th>
-                        <th className="px-4 py-2">Total</th>
-                        <th className="px-4 py-2">Método de pago</th>
-                        <th className="px-4 py-2">Fecha</th>
-                        <th className="px-4 py-2">Estado</th>
-                        <th className="px-4 py-2">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sales.data.length === 0 ? (
-                        <tr>
-                            <td colSpan={7} className="py-6 text-center">
-                                No se encontraron ventas con los filtros seleccionados
-                            </td>
-                        </tr>
-                    ) : (
-                        [...sales.data]
-                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                            .map((sale) => (
-                                <tr key={sale.id} className="border-b">
-                                    <td className="px-4 py-4">{sale.code}</td>
-                                    <td className="px-4 py-4">{sale.client?.name || 'N/A'}</td>
-                                    <td className="px-4 py-4 font-semibold">{formatCurrency(sale.total)}</td>
-                                    <td className="px-4 py-4">{getPaymentMethodText(sale.payment_method)}</td>
-                                    <td className="px-4 py-4">{formatDateToLocal(sale.date)}</td>
-                                    <td className="px-4 py-4">{getStatusBadge(sale.status)}</td>
-                                    <td className="px-4 py-4">
-                                        <Link href={route('sales.show', sale.id)}>
-                                            <Button variant="ghost" size="icon">
-                                                <Eye className="size-4" />
-                                            </Button>
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))
+                <div className="relative overflow-hidden rounded-md bg-card shadow">
+                    {isSearching && (
+                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
+                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
+                        </div>
                     )}
-                </tbody>
-            </table>
-        </div>
-        {/* Tarjetas para móvil */}
-        <div className="block md:hidden">
-            {sales.data.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
-            ) : (
-                <div className="flex flex-col gap-4 p-2">
-                    {[...sales.data]
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((sale) => (
-                            <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                <div className="mb-2 flex items-center justify-between">
-                                    <div className="text-base font-semibold">{sale.code}</div>
-                                    <Link href={route('sales.show', sale.id)}>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                            <Eye className="size-4" />
-                                        </Button>
-                                    </Link>
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
-                                </div>
-                                <div className="mb-1 text-sm text-muted-foreground">
-                                    <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
-                                </div>
-                            </div>
-                        ))}
-                </div>
-            )}
-        </div>
-        {/* Paginación */}
-        {sales.data.length > 0 && (
-            <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                    Mostrando {sales.from} a {sales.to} de {sales.total} ventas
-                </div>
-                <div className="flex items-center gap-1">
-                    {sales.links.map((link, i) => {
-                        if (link.url === null) {
-                            return (
-                                <Button key={i} variant="ghost" size="icon" disabled className="size-8">
-                                    {i === 0 ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-                                </Button>
-                            );
-                        }
-                        let label = link.label;
-                        if (i === 0 || i === sales.links.length - 1) {
-                            label = '';
-                        }
-                        return (
-                            <Button
-                                key={i}
-                                variant={link.url && i === sales.current_page ? 'default' : 'ghost'}
-                                size={i === 0 || i === sales.links.length - 1 ? 'icon' : 'default'}
-                                className={i === 0 || i === sales.links.length - 1 ? 'size-8' : 'size-8 px-3'}
-                                onClick={() => {
-                                    if (link.url) {
-                                        window.location.href = link.url;
-                                    }
-                                }}
-                            >
-                                {i === 0 ? (
-                                    <ChevronLeft className="size-4" />
-                                ) : i === sales.links.length - 1 ? (
-                                    <ChevronRight className="size-4" />
-                                ) : (
-                                    label
-                                )}
-                            </Button>
-                        );
-                    })}
-                </div>
-            </div>
-        )}
-    </CardContent>
-</Card>
-                </div>
-            </div>
 
-            <style>
-                {`
-              .dark .rdrCalendarWrapper {
-                background-color: #262626 !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrMonthAndYearPickers,
-              .dark .rdrMonthAndYearWrapper,
-              .dark .rdrWeekDays {
-                background: #262626 !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrDayNumber span {
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrDayDisabled {
-                background: #262626 !important;
-                color: #737373 !important;
-              }
-              .dark .rdrDayToday .rdrDayNumber span {
-                border-color: #3b82f6 !important;
-              }
-              .dark .rdrDayHovered, .dark .rdrDayActive, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
-                background: #1e293b !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrSelected, .dark .rdrInRange, .dark .rdrStartEdge, .dark .rdrEndEdge {
-                background: #3b82f6 !important;
-                color: #fff !important;
-              }
-              .dark .rdrDateDisplayWrapper {
-                background: #262626 !important;
-                border-color: #444 !important;
-              }
-              .dark .rdrDateDisplayItem {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: 1px solid #444 !important;
-              }
-              .dark .rdrDateDisplayItem input {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: none !important;
-              }
-              .dark .rdrDefinedRangesWrapper {
-                background: #18181b !important;
-                border-right: 1px solid #444 !important;
-              }
-              .dark .rdrStaticRangeLabel, .dark .rdrInputRangeInput {
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrStaticRange:hover .rdrStaticRangeLabel, .dark .rdrStaticRange:focus .rdrStaticRangeLabel {
-                background: #27272a !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange,
-              .dark .rdrStaticRangeLabel {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-              }
-              .dark .rdrStaticRange:focus .rdrStaticRangeLabel,
-              .dark .rdrStaticRange:hover .rdrStaticRangeLabel {
-                background: #27272a !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange.rdrStaticRangeSelected .rdrStaticRangeLabel {
-                background: #3b82f6 !important;
-                color: #fff !important;
-              }
-              .dark .rdrStaticRange.rdrStaticRangeDisabled .rdrStaticRangeLabel {
-                background: #18181b !important;
-                color: #737373 !important;
-                opacity: 0.6 !important;
-                cursor: not-allowed !important;
-              }
-              .dark .rdrInputRangeInput {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border: 1px solid #444 !important;
-              }
-              .dark .rdrNextPrevButton {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-                border-radius: 6px !important;
-              }
-              .dark .rdrNextPrevButton:focus {
-                outline: 2px solid #3b82f6 !important;
-              }
-              .dark .rdrMonthAndYearPickers select {
-                background: #18181b !important;
-                color: #f3f4f6 !important;
-              }
-            `}
-            </style>
+                    {/* Tabla solo visible en escritorio */}
+                    <div className="hidden overflow-x-auto md:block">
+                        <Table columns={columns} data={sales.data.map((sale) => ({ ...sale, actions: null }))} />
+                    </div>
+
+                    {/* Tarjetas para móvil */}
+                    <div className="block md:hidden">
+                        {sales.data.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
+                        ) : (
+                            <div className="flex flex-col gap-4 p-2">
+                                {[...sales.data]
+                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                    .map((sale) => (
+                                        <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <div className="text-base font-semibold">{sale.code}</div>
+                                                <Link href={route('sales.show', sale.id)}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                        <Eye className="size-4" />
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                            </div>
+                                            <div className="mb-1 text-sm text-muted-foreground">
+                                                <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Paginación */}
+                    <div>
+                        <PaginationFooter
+                            data={{
+                                ...sales,
+                                resourceLabel: 'ventas',
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
         </AppLayout>
     );
-}
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(date.getDate() + days);
-    return result;
 }

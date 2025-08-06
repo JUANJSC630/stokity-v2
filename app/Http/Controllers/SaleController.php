@@ -7,7 +7,9 @@ use App\Models\Client;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Resources\SaleResource;
 
@@ -27,6 +29,12 @@ class SaleController extends Controller
             $with[] = 'seller';
         }
         $query->with($with);
+
+        // Filtrar por sucursal del usuario si no es administrador
+        $user = Auth::user();
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
 
         // Búsqueda eficiente usando join
         if ($request->search) {
@@ -68,20 +76,32 @@ class SaleController extends Controller
      */
     public function create(Request $request)
     {
-        $branches = Branch::all();
+        $user = Auth::user();
+        
+        // Solo mostrar sucursales disponibles según el rol
+        $branches = $user->isAdmin() 
+            ? Branch::where('status', true)->get()
+            : Branch::where('id', $user->branch_id)->get();
+            
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
         $products = collect();
         if ($request->filled('product_search')) {
             $search = $request->input('product_search');
-            $products = Product::where('status', true)
+            $productsQuery = Product::where('status', true)
                 ->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('code', 'like', "%{$search}%");
-                })
-                ->orderBy('name')
+                });
+                
+            // Filtrar productos por sucursal si no es administrador
+            if (!$user->isAdmin() && $user->branch_id) {
+                $productsQuery->where('branch_id', $user->branch_id);
+            }
+            
+            $products = $productsQuery->orderBy('name')
                 ->limit(30)
-                ->get();
+                ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
         }
         return Inertia::render('sales/create', [
             'branches' => $branches,
@@ -96,14 +116,18 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        // Obtener códigos de métodos de pago activos para validación
+        $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
+        
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
             'seller_id' => 'required|exists:users,id',
-            'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,credit_card,debit_card,transfer,other',
+            'amount_paid' => 'required|numeric|min:0',
+            'change_amount' => 'required|numeric',
+            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
             'products' => 'required|array|min:1',
@@ -111,9 +135,12 @@ class SaleController extends Controller
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
+        ], [
+            'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
-        // Verificar stock disponible
+        // Verificar stock disponible y calcular impuesto por producto
+        $totalTax = 0;
         foreach ($request->products as $index => $prod) {
             $product = Product::find($prod['id']);
             if (!$product || $product->stock < $prod['quantity']) {
@@ -121,10 +148,16 @@ class SaleController extends Controller
                     "products.{$index}.quantity" => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
                 ])->withInput();
             }
+            
+            // Calcular impuesto por producto
+            $productTax = $product->tax ?? 0;
+            $productTaxAmount = $prod['subtotal'] * ($productTax / 100);
+            $totalTax += $productTaxAmount;
         }
 
-        // Generar código único para la venta
-        $validated['code'] = 'SALE-' . now()->format('YmdHis') . rand(100, 999);
+        // Generar código único para la venta (solo números del timestamp)
+        $validated['code'] = now()->format('YmdHis') . rand(100, 999);
+        $validated['tax'] = $totalTax;
 
         $products = $validated['products'];
         unset($validated['products']);
@@ -156,11 +189,16 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
-        // Forzar carga de relaciones incluyendo saleProducts.product
-        $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
+        // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
+        $sale->load([
+            'branch.manager',
+            'branch',
+            'client',
+            'seller',
+            'saleProducts.product',
+            'saleReturns.products',
+        ]);
 
-        // En lugar de usar el Resource, vamos a crear manualmente la estructura de datos
-        // para asegurarnos de que todo está exactamente como necesitamos
         $saleData = [
             'id' => $sale->id,
             'branch_id' => $sale->branch_id,
@@ -170,12 +208,23 @@ class SaleController extends Controller
             'tax' => $sale->tax,
             'net' => $sale->net,
             'total' => $sale->total,
+            'amount_paid' => $sale->amount_paid,
+            'change_amount' => $sale->change_amount,
             'payment_method' => $sale->payment_method,
             'date' => $sale->date,
             'status' => $sale->status,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
-            'branch' => $sale->branch,
+            'branch' => $sale->branch ? [
+                'id' => $sale->branch->id,
+                'name' => $sale->branch->name,
+                'manager' => $sale->branch->manager ? $sale->branch->manager->name : null,
+                'address' => $sale->branch->address,
+                'phone' => $sale->branch->phone,
+                'email' => $sale->branch->email,
+                'status' => $sale->branch->status,
+                'business_name' => $sale->branch->business_name ?? null,
+            ] : null,
             'client' => $sale->client,
             'seller' => $sale->seller,
             'saleProducts' => $sale->saleProducts->map(function ($saleProduct) {
@@ -190,17 +239,28 @@ class SaleController extends Controller
                         'id' => $saleProduct->product->id,
                         'name' => $saleProduct->product->name,
                         'code' => $saleProduct->product->code,
+                        'tax' => $saleProduct->product->tax,
                     ] : null,
                 ];
             })->toArray(),
+            // Agregar historial de devoluciones
+            'saleReturns' => $sale->saleReturns->map(function ($saleReturn) {
+                return [
+                    'id' => $saleReturn->id,
+                    'reason' => $saleReturn->reason,
+                    'created_at' => $saleReturn->created_at,
+                    'products' => $saleReturn->products->map(function ($product) {
+                        return [
+                            'id' => $product->id,
+                            'name' => $product->name,
+                            'pivot' => [
+                                'quantity' => $product->pivot->quantity,
+                            ],
+                        ];
+                    })->toArray(),
+                ];
+            })->toArray(),
         ];
-
-        // Depuración: verificar la estructura de datos
-        \Illuminate\Support\Facades\Log::debug('Sale data structure manual', [
-            'sale_id' => $sale->id,
-            'has_sale_products' => $sale->saleProducts->count(),
-            'sale_products_count' => count($saleData['saleProducts']),
-        ]);
 
         return Inertia::render('sales/show', [
             'sale' => $saleData,
@@ -212,6 +272,11 @@ class SaleController extends Controller
      */
     public function edit(Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar ventas.');
+        }
+
         $branches = Branch::all();
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
@@ -229,6 +294,14 @@ class SaleController extends Controller
      */
     public function update(Request $request, Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para editar ventas.');
+        }
+
+        // Obtener códigos de métodos de pago activos para validación
+        $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
+        
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
@@ -236,9 +309,11 @@ class SaleController extends Controller
             'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,credit_card,debit_card,transfer,other',
+            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
+        ], [
+            'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
         $sale->update($validated);
@@ -251,6 +326,11 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
+        // Verificar que el usuario sea administrador
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'No tienes permisos para eliminar ventas.');
+        }
+
         // Restaurar el stock de los productos antes de eliminar la venta
         foreach ($sale->saleProducts as $saleProduct) {
             $product = Product::find($saleProduct->product_id);

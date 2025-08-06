@@ -3,10 +3,11 @@
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');

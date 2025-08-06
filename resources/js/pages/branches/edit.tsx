@@ -31,6 +31,7 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
         address: branch.address || '',
         phone: branch.phone || '',
         email: branch.email || '',
+        business_name: branch.business_name || '',
         status: branch.status,
         manager_id: branch.manager_id ? branch.manager_id.toString() : 'none',
     });
@@ -101,6 +102,19 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
                             </div>
 
                             <div className="space-y-2">
+                                <Label htmlFor="business_name" className={errors.business_name ? 'text-destructive' : ''}>
+                                    Nombre comercial
+                                </Label>
+                                <Input
+                                    id="business_name"
+                                    value={data.business_name}
+                                    onChange={(e) => setData('business_name', e.target.value)}
+                                    className={errors.business_name ? 'border-destructive' : ''}
+                                />
+                                {errors.business_name && <p className="text-sm text-destructive">{errors.business_name}</p>}
+                            </div>
+
+                            <div className="space-y-2">
                                 <Label htmlFor="address" className={errors.address ? 'text-destructive' : ''}>
                                     Dirección *
                                 </Label>
@@ -133,7 +147,7 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
                                         Gerente / Responsable
                                     </Label>
                                     <Select value={data.manager_id} onValueChange={(value) => setData('manager_id', value)}>
-                                        <SelectTrigger className={errors.manager_id ? 'border-destructive' : ''}>
+                                        <SelectTrigger id="manager_id" className={errors.manager_id ? 'border-destructive' : ''}>
                                             <SelectValue placeholder="Seleccionar encargado" />
                                         </SelectTrigger>
                                         <SelectContent>

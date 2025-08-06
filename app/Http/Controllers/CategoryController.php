@@ -14,81 +14,48 @@ class CategoryController extends Controller
     /**
      * Display a listing of the categories.
      */
-    public function index(Request $request): Response
+    public function index(Request $request)
     {
-        $query = Category::query()
-            ->orderBy('name');
+        $query = Category::query();
 
         // Apply search filters
-        if ($request->has('search')) {
+        if ($request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
-        // Filter by status
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status === 'active');
-        }
-
-        $paginatedCategories = $query->paginate(30)->withQueryString();
 
         // Restructure pagination data to match frontend expectations
-        $categories = [
-            'data' => $paginatedCategories->items(),
-            'meta' => [
-                'current_page' => $paginatedCategories->currentPage(),
-                'last_page' => $paginatedCategories->lastPage(),
-                'per_page' => $paginatedCategories->perPage(),
-                'total' => $paginatedCategories->total(),
-                'from' => $paginatedCategories->firstItem(),
-                'to' => $paginatedCategories->lastItem(),
-                'links' => $paginatedCategories->linkCollection()->toArray(),
-                'path' => $paginatedCategories->path(),
-            ],
-        ];
+        $categories = $query->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('categories/index', [
             'categories' => $categories,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search']),
         ]);
     }
 
     /**
      * Display trashed categories.
      */
-    public function trashed(Request $request): Response
+    public function trashed(Request $request)
     {
-        $query = Category::onlyTrashed()
-            ->orderBy('deleted_at', 'desc');
+        $query = Category::onlyTrashed();
 
         // Apply search filters
-        if ($request->has('search')) {
+        if ($request->search) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
             });
         }
 
-        $paginatedCategories = $query->paginate(30)->withQueryString();
-
-        // Restructure pagination data to match frontend expectations
-        $categories = [
-            'data' => $paginatedCategories->items(),
-            'meta' => [
-                'current_page' => $paginatedCategories->currentPage(),
-                'last_page' => $paginatedCategories->lastPage(),
-                'per_page' => $paginatedCategories->perPage(),
-                'total' => $paginatedCategories->total(),
-                'from' => $paginatedCategories->firstItem(),
-                'to' => $paginatedCategories->lastItem(),
-                'links' => $paginatedCategories->linkCollection()->toArray(),
-                'path' => $paginatedCategories->path(),
-            ],
-        ];
+        $categories = $query->orderBy('deleted_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('categories/trashed', [
             'categories' => $categories,
@@ -99,7 +66,7 @@ class CategoryController extends Controller
     /**
      * Show the form for creating a new category.
      */
-    public function create(): Response
+    public function create()
     {
         return Inertia::render('categories/create');
     }
@@ -107,7 +74,7 @@ class CategoryController extends Controller
     /**
      * Store a newly created category.
      */
-    public function store(CategoryRequest $request): RedirectResponse
+    public function store(CategoryRequest $request)
     {
         Category::create($request->validated());
 
@@ -118,7 +85,7 @@ class CategoryController extends Controller
     /**
      * Display the specified category.
      */
-    public function show(Category $category): Response
+    public function show(Category $category)
     {
         $category->loadCount('products');
 
@@ -130,7 +97,7 @@ class CategoryController extends Controller
     /**
      * Show the form for editing the specified category.
      */
-    public function edit(Category $category): Response
+    public function edit(Category $category)
     {
         return Inertia::render('categories/edit', [
             'category' => $category,
@@ -140,7 +107,7 @@ class CategoryController extends Controller
     /**
      * Update the specified category.
      */
-    public function update(CategoryRequest $request, Category $category): RedirectResponse
+    public function update(CategoryRequest $request, Category $category)
     {
         $category->update($request->validated());
 
@@ -151,7 +118,7 @@ class CategoryController extends Controller
     /**
      * Remove the specified category (soft delete).
      */
-    public function destroy(Category $category): RedirectResponse
+    public function destroy(Category $category)
     {
         $category->delete();
 
@@ -162,7 +129,7 @@ class CategoryController extends Controller
     /**
      * Restore the specified trashed category.
      */
-    public function restore($id): RedirectResponse
+    public function restore($id)
     {
         $category = Category::onlyTrashed()->findOrFail($id);
         $category->restore();
@@ -174,7 +141,7 @@ class CategoryController extends Controller
     /**
      * Permanently delete the specified category from the database.
      */
-    public function forceDelete($id): RedirectResponse
+    public function forceDelete($id)
     {
         $category = Category::onlyTrashed()->findOrFail($id);
 
