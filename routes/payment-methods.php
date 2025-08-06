@@ -9,5 +9,5 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::patch('payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'toggleActive'])->name('payment-methods.toggle');
 });
 
-// API route for getting active payment methods (no auth required for this specific route)
-Route::get('api/payment-methods/active', [PaymentMethodController::class, 'getActive'])->name('api.payment-methods.active'); 
+// API route for getting active payment methods (auth required for this route)
+Route::middleware('auth')->get('api/payment-methods/active', [PaymentMethodController::class, 'getActive'])->name('api.payment-methods.active'); 
