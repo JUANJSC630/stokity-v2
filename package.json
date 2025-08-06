@@ -3,7 +3,7 @@
     "type": "module",
     "engines": {
         "node": ">=20.0.0",
-        "yarn": "1.22.x"
+        "npm": ">=9.0.0"
     },
     "scripts": {
         "build": "vite build",
