@@ -289,7 +289,7 @@ class DashboardController extends Controller
     {
         $query = Sale::with(['branch', 'client', 'seller'])
             ->where('status', 'completed')
-            ->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->limit($limit);
 
         if ($branchId) {
