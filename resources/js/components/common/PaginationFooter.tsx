@@ -52,7 +52,12 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                             className={isFirst || isLast ? 'size-8' : 'size-8 px-3'}
                             onClick={() => {
                                 if (link.url) {
-                                    router.visit(link.url, {
+                                    // Ensure HTTPS if the current page is HTTPS
+                                    const url = window.location.protocol === 'https:' 
+                                        ? link.url.replace(/^http:/, 'https:') 
+                                        : link.url;
+                                    
+                                    router.visit(url, {
                                         preserveState: true,
                                         preserveScroll: true,
                                     });
