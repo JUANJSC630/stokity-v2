@@ -61,7 +61,7 @@ class SaleController extends Controller
             $query->whereDate('date', '<=', $request->date_to);
         }
 
-        $sales = $query->orderBy('date', 'desc')
+        $sales = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 

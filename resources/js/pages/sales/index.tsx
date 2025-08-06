@@ -461,9 +461,7 @@ export default function Index({ sales, filters }: PageProps) {
                             <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
                         ) : (
                             <div className="flex flex-col gap-4 p-2">
-                                {[...sales.data]
-                                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                    .map((sale) => (
+                                {sales.data.map((sale) => (
                                         <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
                                             <div className="mb-2 flex items-center justify-between">
                                                 <div className="text-base font-semibold">{sale.code}</div>
