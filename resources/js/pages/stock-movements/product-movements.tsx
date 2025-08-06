@@ -95,7 +95,6 @@ export default function ProductMovements({ product, movements }: Props) {
                         <div className="text-center">
                             <h1 className="mb-4 text-2xl font-semibold text-red-600">Error en datos del producto</h1>
                             <p className="mb-4 text-gray-600">Los datos del producto están incompletos.</p>
-                            <pre className="mt-2 rounded bg-gray-100 p-2 text-xs">{JSON.stringify({ product, movements }, null, 2)}</pre>
                             <Link href="/products">
                                 <Button className="mt-4">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
