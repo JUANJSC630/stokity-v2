@@ -4,7 +4,7 @@ import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -157,6 +157,22 @@ export default function Show({ sale }: Props) {
         router.reload();
     };
 
+    // Función helper para obtener todos los estilos CSS de la página actual
+    const getAllStylesheetHTML = () => {
+        let stylesHTML = '';
+        // Obtener estilos de las etiquetas <link>
+        const linkElements = document.querySelectorAll('link[rel="stylesheet"]');
+        linkElements.forEach((link) => {
+            stylesHTML += `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`;
+        });
+        // Obtener estilos de las etiquetas <style>
+        const styleElements = document.querySelectorAll('style');
+        styleElements.forEach((style) => {
+            stylesHTML += `<style>${style.innerHTML}</style>`;
+        });
+        return stylesHTML;
+    };
+
     // Imprimir el ticket usando el componente SaleTicket en una nueva ventana
     const handlePrintTicket = () => {
         const printWindow = window.open('', '', 'width=400,height=600');
@@ -165,7 +181,7 @@ export default function Show({ sale }: Props) {
                 <html>
                 <head>
                     <title>Ticket Venta ${sale.code}</title>
-                    ${cachedStylesheetsHTML}
+                    ${getAllStylesheetHTML()}
                     <style>
                         @media print {
                             body, html {
@@ -337,6 +353,9 @@ export default function Show({ sale }: Props) {
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>Vista previa de la factura</DialogTitle>
+                            <DialogDescription>
+                                Visualización del ticket de venta antes de imprimir
+                            </DialogDescription>
                         </DialogHeader>
                         <div
                             className="flex justify-center bg-white p-4 dark:bg-neutral-900"
@@ -724,6 +743,9 @@ export default function Show({ sale }: Props) {
                                 <DialogContent className="max-w-md">
                                     <DialogHeader>
                                         <DialogTitle>Recibo de devolución</DialogTitle>
+                                        <DialogDescription>
+                                            Visualización del recibo de devolución de productos
+                                        </DialogDescription>
                                     </DialogHeader>
                                     <div
                                         className="flex justify-center bg-white p-4 dark:bg-neutral-900"
