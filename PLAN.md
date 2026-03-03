@@ -36,10 +36,8 @@
 
 ## Prioridad 2 — Funcionalidades core faltantes
 
-- [ ] **Descuentos en ventas** — migración, modelo (`Sale`), controlador y vista
-  - Descuento por ítem (porcentaje o monto fijo)
-  - Descuento global por venta
-- [ ] **Notas/observaciones en ventas** — campo de texto interno por venta
+- [x] **Descuentos en ventas** — % o monto fijo, calculado server-side, visible en detalle
+- [x] **Notas/observaciones en ventas** — campo de texto interno por venta
 
 ---
 
@@ -55,7 +53,7 @@
 
 ## Prioridad 4 — Funcionalidades complementarias
 
-- [ ] **Historial de compras del cliente** — ver todas las ventas desde el perfil del cliente
+- [x] **Historial de compras del cliente** — stats + tabla paginada en el perfil del cliente
 - [ ] **Ventas pendientes / cotizaciones** — guardar venta en borrador antes de cobrar
 - [ ] **Alertas de stock bajo por email** — no solo en el dashboard
 - [ ] **Balance por sucursal** — efectivo esperado en caja al cierre del día

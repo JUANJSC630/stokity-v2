@@ -22,4 +22,9 @@ class Client extends Model
     protected $casts = [
         'birthdate' => 'date',
     ];
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
 }

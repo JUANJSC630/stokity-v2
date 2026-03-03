@@ -66,10 +66,24 @@ class ClientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Client $client)
+    public function show(Request $request, Client $client)
     {
+        $sales = $client->sales()
+            ->with('seller')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        $stats = [
+            'total_sales'   => $client->sales()->count(),
+            'total_spent'   => (float) $client->sales()->sum('total'),
+            'last_purchase' => $client->sales()->max('created_at'),
+        ];
+
         return Inertia::render('clients/show', [
             'client' => $client,
+            'sales'  => $sales,
+            'stats'  => $stats,
         ]);
     }
 
