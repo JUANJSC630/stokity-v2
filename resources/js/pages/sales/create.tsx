@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
@@ -85,6 +86,9 @@ export default function Create({ branches, clients }: Props) {
         client_id: anonymousClient ? String(anonymousClient.id) : '',
         seller_id: String(auth.user.id),
         tax: '0',
+        discount_type: 'none' as 'none' | 'percentage' | 'fixed',
+        discount_value: '0',
+        discount_amount: '0',
         net: '0',
         total: '0',
         amount_paid: '0',
@@ -92,6 +96,7 @@ export default function Create({ branches, clients }: Props) {
         payment_method: '',
         date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16), // Formato: YYYY-MM-DDThh:mm en zona horaria local
         status: 'completed',
+        notes: '',
         products: [] as { id: number; quantity: number; price: number; subtotal: number }[],
     });
 
@@ -128,6 +133,9 @@ export default function Create({ branches, clients }: Props) {
             payment_method: form.data.payment_method,
             date: form.data.date,
             status: form.data.status,
+            discount_type: form.data.discount_type,
+            discount_value: form.data.discount_value,
+            notes: form.data.notes,
             products: saleProducts.map((sp) => ({
                 id: sp.product.id,
                 quantity: sp.quantity,
@@ -243,7 +251,10 @@ export default function Create({ branches, clients }: Props) {
         setSaleProducts((prev) => prev.map((sp) => (sp.product.id === id ? { ...sp, quantity: qty, subtotal: qty * sp.product.sale_price } : sp)));
     }
 
-    function recalculateTotals() {
+    function recalculateTotals(
+        discountType = form.data.discount_type,
+        discountVal = form.data.discount_value,
+    ) {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
 
         // Calcular impuesto por producto
@@ -252,10 +263,24 @@ export default function Create({ branches, clients }: Props) {
             return sum + sp.subtotal * (productTax / 100);
         }, 0);
 
-        const total = net + tax;
-        form.setData('net', net.toFixed(2));
-        form.setData('tax', tax.toFixed(2));
-        form.setData('total', total.toFixed(2));
+        const gross = net + tax;
+        const dVal = parseFloat(discountVal) || 0;
+        const discountAmount =
+            discountType === 'percentage'
+                ? Math.round(gross * (dVal / 100) * 100) / 100
+                : discountType === 'fixed'
+                  ? Math.min(dVal, gross)
+                  : 0;
+
+        const total = Math.max(0, gross - discountAmount);
+
+        form.setData((prev) => ({
+            ...prev,
+            net: net.toFixed(2),
+            tax: tax.toFixed(2),
+            discount_amount: discountAmount.toFixed(2),
+            total: total.toFixed(2),
+        }));
 
         // Si el método de pago es efectivo, calcular la devuelta automáticamente
         if (form.data.payment_method === 'cash') {
@@ -288,9 +313,9 @@ export default function Create({ branches, clients }: Props) {
     }
 
     React.useEffect(() => {
-        recalculateTotals();
+        recalculateTotals(form.data.discount_type, form.data.discount_value);
         // eslint-disable-next-line
-    }, [saleProducts, form.data.payment_method]);
+    }, [saleProducts, form.data.payment_method, form.data.discount_type, form.data.discount_value]);
 
     // Inicializar el display del monto pagado cuando cambie el total
     React.useEffect(() => {
@@ -701,6 +726,43 @@ export default function Create({ branches, clients }: Props) {
                                     )}
                                 </div>
 
+                                {/* Descuento */}
+                                <div className="mt-4 space-y-3 rounded-lg border border-orange-100 bg-orange-50/50 p-3 dark:border-orange-800 dark:bg-orange-900/10">
+                                    <Label className="text-sm font-semibold text-orange-800 dark:text-orange-300">Descuento</Label>
+                                    <div className="flex gap-2">
+                                        <Select
+                                            value={form.data.discount_type}
+                                            onValueChange={(v) => form.setData('discount_type', v as 'none' | 'percentage' | 'fixed')}
+                                        >
+                                            <SelectTrigger className="w-36 bg-white dark:bg-neutral-800">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Sin descuento</SelectItem>
+                                                <SelectItem value="percentage">Porcentaje %</SelectItem>
+                                                <SelectItem value="fixed">Monto fijo $</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {form.data.discount_type !== 'none' && (
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={form.data.discount_type === 'percentage' ? 100 : undefined}
+                                                step={form.data.discount_type === 'percentage' ? 1 : 100}
+                                                placeholder={form.data.discount_type === 'percentage' ? '0' : '0'}
+                                                value={form.data.discount_value === '0' ? '' : form.data.discount_value}
+                                                onChange={(e) => form.setData('discount_value', e.target.value || '0')}
+                                                className="w-32 bg-white dark:bg-neutral-800"
+                                            />
+                                        )}
+                                        {form.data.discount_type !== 'none' && parseFloat(form.data.discount_amount) > 0 && (
+                                            <span className="flex items-center text-sm font-semibold text-red-600 dark:text-red-400">
+                                                − {formatCOP(form.data.discount_amount)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Totales */}
                                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
@@ -716,7 +778,7 @@ export default function Create({ branches, clients }: Props) {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="net">
-                                            Valor Neto <span className="text-red-500">*</span>
+                                            Subtotal <span className="text-red-500">*</span>
                                         </Label>
                                         <Input
                                             id="net"
@@ -728,7 +790,7 @@ export default function Create({ branches, clients }: Props) {
                                         />
                                         {form.errors.net && <p className="text-sm text-red-500">{form.errors.net}</p>}
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <Label htmlFor="total">
                                             Total <span className="text-red-500">*</span>
                                         </Label>
@@ -742,6 +804,23 @@ export default function Create({ branches, clients }: Props) {
                                         />
                                         {form.errors.total && <p className="text-sm text-red-500">{form.errors.total}</p>}
                                     </div>
+                                </div>
+
+                                {/* Notas */}
+                                <div className="mt-2 space-y-2">
+                                    <Label htmlFor="notes" className="text-sm text-neutral-600 dark:text-neutral-400">
+                                        Notas / Observaciones
+                                    </Label>
+                                    <Textarea
+                                        id="notes"
+                                        placeholder="Observaciones internas de la venta..."
+                                        value={form.data.notes}
+                                        onChange={(e) => form.setData('notes', e.target.value)}
+                                        rows={2}
+                                        maxLength={500}
+                                        className="resize-none bg-white text-sm dark:bg-neutral-800"
+                                    />
+                                    {form.errors.notes && <p className="text-sm text-red-500">{form.errors.notes}</p>}
                                 </div>
 
                                 {/* Sección de Pago y Cambio */}

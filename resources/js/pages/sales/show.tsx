@@ -474,18 +474,35 @@ export default function Show({ sale }: Props) {
                                 </div>
                                 <div className="divide-y">
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                        <div>Valor Neto</div>
+                                        <div>Subtotal</div>
                                         <div className="text-right">{formatCurrency(originalNetValue)}</div>
                                     </div>
                                     <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
                                         <div>Impuesto</div>
                                         <div className="text-right">{formatCurrency(originalTaxValue)}</div>
                                     </div>
+                                    {sale.discount_amount > 0 && (
+                                        <div className="grid grid-cols-2 px-2 py-2 text-red-600 md:px-4 md:py-3 dark:text-red-400">
+                                            <div>
+                                                Descuento
+                                                {sale.discount_type === 'percentage' && (
+                                                    <span className="ml-1 text-xs">({sale.discount_value}%)</span>
+                                                )}
+                                            </div>
+                                            <div className="text-right">− {formatCurrency(sale.discount_amount)}</div>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
                                         <div>Total</div>
-                                        <div className="text-right">{formatCurrency(originalTotalValue)}</div>
+                                        <div className="text-right">{formatCurrency(sale.total)}</div>
                                     </div>
                                 </div>
+                                {sale.notes && (
+                                    <div className="border-t px-2 py-3 md:px-4">
+                                        <span className="text-sm font-medium text-muted-foreground">Notas: </span>
+                                        <span className="text-sm">{sale.notes}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

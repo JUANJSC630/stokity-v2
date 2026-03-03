@@ -16,6 +16,9 @@
 | Impresión térmica ESC/POS | ✅ Funcional |
 | Validación de stock al vender | ✅ Funcional |
 | Audit trail de stock en ventas | ✅ Resuelto |
+| Configuración del negocio (logo, NIT, etc.) | ✅ Resuelto |
+| Almacenamiento de imágenes (Vercel Blob + WebP) | ✅ Resuelto |
+| Búsqueda en tiempo real (POS + productos) | ✅ Resuelto |
 | Descuentos en ventas | ❌ No existe |
 | Tests automatizados | ❌ Vacío |
 
@@ -43,8 +46,8 @@
 ## Prioridad 3 — Experiencia del usuario POS
 
 - [ ] **Vista POS simplificada** — pantalla dedicada para vendedores: buscar producto, carrito, cobrar
-- [ ] **Búsqueda de productos en tiempo real** al crear venta (actualmente requiere submit del form)
-- [ ] **Mostrar stock disponible** al agregar productos a una venta
+- [x] **Búsqueda de productos en tiempo real** — fetch + AbortController, sin cambiar URL
+- [x] **Mostrar stock disponible** — badge "máx." al agregar productos al carrito
 - [ ] **Atajos de teclado** en la pantalla de venta
 - [ ] **Verificar recibo de devoluciones** — probar formato con impresora térmica real
 

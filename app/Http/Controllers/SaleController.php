@@ -106,20 +106,23 @@ class SaleController extends Controller
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
         
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'client_id' => 'required|exists:clients,id',
-            'seller_id' => 'required|exists:users,id',
-            'net' => 'required|numeric|min:0',
-            'total' => 'required|numeric|min:0',
-            'amount_paid' => 'required|numeric|min:0',
-            'change_amount' => 'required|numeric',
+            'branch_id'      => 'required|exists:branches,id',
+            'client_id'      => 'required|exists:clients,id',
+            'seller_id'      => 'required|exists:users,id',
+            'net'            => 'required|numeric|min:0',
+            'total'          => 'required|numeric|min:0',
+            'amount_paid'    => 'required|numeric|min:0',
+            'change_amount'  => 'required|numeric',
             'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
-            'date' => 'required|date',
-            'status' => 'required|string|in:completed,pending,cancelled',
-            'products' => 'required|array|min:1',
-            'products.*.id' => 'required|exists:products,id',
+            'date'           => 'required|date',
+            'status'         => 'required|string|in:completed,pending,cancelled',
+            'discount_type'  => 'required|string|in:none,percentage,fixed',
+            'discount_value' => 'required|numeric|min:0',
+            'notes'          => 'nullable|string|max:500',
+            'products'            => 'required|array|min:1',
+            'products.*.id'       => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price' => 'required|numeric|min:0',
+            'products.*.price'    => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
         ], [
             'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
@@ -141,9 +144,19 @@ class SaleController extends Controller
             $totalTax += $productTaxAmount;
         }
 
+        // Calcular descuento server-side
+        $gross = $validated['net'] + $totalTax;
+        $discountAmount = match ($validated['discount_type']) {
+            'percentage' => round($gross * ($validated['discount_value'] / 100), 2),
+            'fixed'      => min($validated['discount_value'], $gross),
+            default      => 0,
+        };
+
         // Generar código único para la venta (solo números del timestamp)
-        $validated['code'] = now()->format('YmdHis') . rand(100, 999);
-        $validated['tax'] = $totalTax;
+        $validated['code']            = now()->format('YmdHis') . rand(100, 999);
+        $validated['tax']             = $totalTax;
+        $validated['discount_amount'] = $discountAmount;
+        $validated['total']           = max(0, $gross - $discountAmount);
 
         $products = $validated['products'];
         unset($validated['products']);
@@ -205,6 +218,9 @@ class SaleController extends Controller
             'client_id' => $sale->client_id,
             'seller_id' => $sale->seller_id,
             'tax' => $sale->tax,
+            'discount_type' => $sale->discount_type,
+            'discount_value' => $sale->discount_value,
+            'discount_amount' => $sale->discount_amount,
             'net' => $sale->net,
             'total' => $sale->total,
             'amount_paid' => $sale->amount_paid,
@@ -212,6 +228,7 @@ class SaleController extends Controller
             'payment_method' => $sale->payment_method,
             'date' => $sale->date,
             'status' => $sale->status,
+            'notes' => $sale->notes,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
             'branch' => $sale->branch ? [

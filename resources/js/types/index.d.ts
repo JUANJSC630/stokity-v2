@@ -150,6 +150,9 @@ export interface Sale {
     client_id: number;
     seller_id: number;
     tax: number;
+    discount_type: 'none' | 'percentage' | 'fixed';
+    discount_value: number;
+    discount_amount: number;
     net: number;
     total: number;
     amount_paid: number;
@@ -157,12 +160,13 @@ export interface Sale {
     payment_method: string;
     date: string;
     status: string;
+    notes?: string | null;
     created_at: string;
     updated_at: string;
     branch?: Branch | null;
     client?: Client | null;
     seller?: User | null;
-    saleProducts: SaleProduct[]; // La propiedad saleProducts siempre debe ser un array
+    saleProducts: SaleProduct[];
     saleReturns?: SaleReturn[];
 }
 

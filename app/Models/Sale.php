@@ -16,6 +16,9 @@ class Sale extends Model
         'client_id',
         'seller_id',
         'tax',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
         'net',
         'total',
         'amount_paid',
@@ -23,11 +26,14 @@ class Sale extends Model
         'payment_method',
         'date',
         'status',
+        'notes',
     ];
 
     protected $casts = [
         'date' => 'datetime',
         'tax' => 'decimal:2',
+        'discount_value' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'net' => 'decimal:2',
         'total' => 'decimal:2',
         'amount_paid' => 'decimal:2',
