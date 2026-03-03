@@ -19,7 +19,9 @@
 | Configuración del negocio (logo, NIT, etc.) | ✅ Resuelto |
 | Almacenamiento de imágenes (Vercel Blob + WebP) | ✅ Resuelto |
 | Búsqueda en tiempo real (POS + productos) | ✅ Resuelto |
-| Descuentos en ventas | ❌ No existe |
+| Descuentos en ventas | ✅ Resuelto |
+| Notas en ventas | ✅ Resuelto |
+| Historial de compras del cliente | ✅ Resuelto |
 | Tests automatizados | ❌ Vacío |
 
 ---
