@@ -36,7 +36,7 @@
 
 ---
 
-## Prioridad 2 — Funcionalidades core faltantes
+## Prioridad 2 — Funcionalidades core faltantes ✅ Completo
 
 - [x] **Descuentos en ventas** — % o monto fijo, calculado server-side, visible en detalle
 - [x] **Notas/observaciones en ventas** — campo de texto interno por venta
