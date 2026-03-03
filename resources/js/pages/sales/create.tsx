@@ -467,8 +467,8 @@ export default function Create({ branches, clients }: Props) {
                             <CardTitle>Información de la Venta</CardTitle>
                             <CardDescription>Complete los detalles de la venta. Todos los campos marcados con * son obligatorios.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                            <form onSubmit={handleSubmit} className="flex h-full min-h-0 flex-col space-y-6">
+                        <CardContent className="flex-1 overflow-y-auto">
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-4">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="hidden space-y-2">
                                         <Label htmlFor="branch_id">
@@ -588,12 +588,12 @@ export default function Create({ branches, clients }: Props) {
                                 </div>
 
                                 {/* Productos agregados a la venta */}
-                                <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-4 overflow-hidden">
+                                <div className="mt-2 flex flex-col gap-3">
                                     <Label>Productos en la venta</Label>
                                     {saleProducts.length > 0 ? (
                                         <>
                                             {/* Vista tabla en escritorio */}
-                                            <div className="hidden min-h-0 flex-1 overflow-y-auto md:block">
+                                            <div className="hidden max-h-[280px] overflow-y-auto md:block">
                                                 <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
                                                     <thead>
                                                         <tr className="bg-neutral-50 dark:bg-neutral-800">
@@ -727,7 +727,7 @@ export default function Create({ branches, clients }: Props) {
                                 </div>
 
                                 {/* Descuento */}
-                                <div className="mt-4 space-y-3 rounded-lg border border-orange-100 bg-orange-50/50 p-3 dark:border-orange-800 dark:bg-orange-900/10">
+                                <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/50 p-3 dark:border-orange-800 dark:bg-orange-900/10">
                                     <Label className="text-sm font-semibold text-orange-800 dark:text-orange-300">Descuento</Label>
                                     <div className="flex gap-2">
                                         <Select
@@ -764,7 +764,7 @@ export default function Create({ branches, clients }: Props) {
                                 </div>
 
                                 {/* Totales */}
-                                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="tax">Valor Impuesto</Label>
                                         <Input
@@ -807,7 +807,7 @@ export default function Create({ branches, clients }: Props) {
                                 </div>
 
                                 {/* Notas */}
-                                <div className="mt-2 space-y-2">
+                                <div className="space-y-2">
                                     <Label htmlFor="notes" className="text-sm text-neutral-600 dark:text-neutral-400">
                                         Notas / Observaciones
                                     </Label>
@@ -825,7 +825,7 @@ export default function Create({ branches, clients }: Props) {
 
                                 {/* Sección de Pago y Cambio */}
                                 {form.data.payment_method === 'cash' && (
-                                    <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="amount_paid">
                                                 Con Cuánto Paga <span className="text-red-500">*</span>
