@@ -43,7 +43,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
             form.clearErrors('photo');
 
             // Validar tamaño antes de continuar
-            if (file.size > 2 * 1024 * 1024) {
+            if (file.size > 4 * 1024 * 1024) {
                 // 2MB en bytes
                 form.setError('photo', 'El archivo no debe pesar más de 2MB');
             }
@@ -67,7 +67,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         e.preventDefault();
 
         // Validación previa de tamaño de imagen
-        if (form.data.photo && form.data.photo.size > 2 * 1024 * 1024) {
+        if (form.data.photo && form.data.photo.size > 4 * 1024 * 1024) {
             // 2MB en bytes
             // Mostrar error de tamaño manualmente
             form.setError('photo', 'El archivo no debe pesar más de 2MB');
@@ -129,7 +129,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                             </label>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-xs text-muted-foreground">JPG, PNG, GIF. Máx 2MB</span>
+                            <span className="text-xs text-muted-foreground">JPG, PNG, GIF, WebP. Máx 4MB</span>
                             {form.data.photo && (
                                 <span className={`text-xs font-medium ${form.errors.photo ? 'text-red-500' : 'text-green-600'}`}>
                                     {formatFileSize(form.data.photo.size)}

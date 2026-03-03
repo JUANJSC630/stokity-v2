@@ -118,18 +118,19 @@ class User extends Authenticatable
      */
     public function getPhotoUrlAttribute(): string
     {
-        // Hay una foto guardada
         if ($this->photo) {
+            // Vercel Blob URL (new uploads)
+            if (str_starts_with($this->photo, 'http')) {
+                return $this->photo;
+            }
+
+            // Legacy local file
             $path = 'uploads/users/' . $this->photo;
-            
-            // Verificar si el archivo existe
             if (file_exists(public_path($path))) {
-                // Agregamos un timestamp para evitar problemas de caché
                 return asset($path) . '?v=' . filemtime(public_path($path));
             }
         }
-        
-        // Devolver imagen por defecto
+
         return asset('stokity-icon.png');
     }
     

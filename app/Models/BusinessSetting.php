@@ -34,8 +34,17 @@ class BusinessSetting extends Model
      */
     public function getLogoUrlAttribute(): string
     {
-        if ($this->logo && file_exists(public_path('uploads/business/' . $this->logo))) {
-            return asset('uploads/business/' . $this->logo);
+        if ($this->logo) {
+            // Vercel Blob URL (new uploads)
+            if (str_starts_with($this->logo, 'http')) {
+                return $this->logo;
+            }
+
+            // Legacy local file
+            $path = public_path('uploads/business/' . $this->logo);
+            if (file_exists($path)) {
+                return asset('uploads/business/' . $this->logo);
+            }
         }
 
         return asset('stokity-icon.png');

@@ -6,19 +6,21 @@ use App\Http\Requests\ProductRequest;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\BlobStorageService;
 use App\Services\StockMovementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ProductController extends Controller
 {
-    public function __construct(private StockMovementService $stockMovements) {}
+    public function __construct(
+        private StockMovementService $stockMovements,
+        private BlobStorageService $blob,
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -110,15 +112,10 @@ class ProductController extends Controller
         // Validar y obtener datos
         $validated = $request->validated();
 
-        // Manejar la imagen si existe
         if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $filename = time() . '_' . Str::slug($request->name) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/products'), $filename);
-            $validated['image'] = $filename;
+            $validated['image'] = $this->blob->upload($request->file('image'), 'products');
         }
 
-        // Crear el producto
         $product = Product::create($validated);
 
         // Registrar en log - podría implementarse un sistema de auditoría aquí
@@ -170,20 +167,13 @@ class ProductController extends Controller
         // Validar y obtener datos
         $validated = $request->validated();
 
-        // Manejar la imagen si existe
         if ($request->hasFile('image')) {
-            // Eliminar imagen anterior si existe
-            if ($product->image && file_exists(public_path('uploads/products/' . $product->image))) {
-                unlink(public_path('uploads/products/' . $product->image));
+            // Delete old blob if it exists
+            if ($product->image) {
+                $this->blob->delete($product->image);
             }
-
-            // Guardar nueva imagen
-            $file = $request->file('image');
-            $filename = time() . '_' . Str::slug($request->name) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('uploads/products'), $filename);
-            $validated['image'] = $filename;
+            $validated['image'] = $this->blob->upload($request->file('image'), 'products');
         } else {
-            // Si no se sube nueva imagen, evitar que el campo image se actualice a null o vacio
             unset($validated['image']);
         }
 
@@ -285,9 +275,8 @@ class ProductController extends Controller
     {
         $product = Product::onlyTrashed()->findOrFail($id);
 
-        // Eliminar imagen si existe
-        if ($product->image && file_exists(public_path('uploads/products/' . $product->image))) {
-            unlink(public_path('uploads/products/' . $product->image));
+        if ($product->image) {
+            $this->blob->delete($product->image);
         }
 
         $product->forceDelete();
