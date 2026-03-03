@@ -56,6 +56,7 @@ export default function Products({
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const isAdmin = auth.user.role === 'administrador';
     const isManager = auth.user.role === 'encargado';
@@ -64,31 +65,21 @@ export default function Products({
     // Ocultar filtro de sucursal si no es administrador
     const showBranchFilter = isAdmin;
 
-    const hasResetRef = useRef(false);
+    // Debounced auto-search on text input change
     useEffect(() => {
-        if (search.trim() === '') {
-            const url = new URL(window.location.href);
-            const hasFilters =
-                url.searchParams.get('search') ||
-                url.searchParams.get('status') ||
-                url.searchParams.get('category') ||
-                url.searchParams.get('branch');
-            if (!hasResetRef.current && hasFilters) {
-                hasResetRef.current = true;
-                setSearch('');
-                setStatus('all');
-                setCategory('all');
-                setBranch('all');
-                applyFilters('', 'all', 'all', 'all');
-            }
-        } else {
-            hasResetRef.current = false;
-        }
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = setTimeout(() => {
+            applyFilters(search, status, category, branch);
+        }, 350);
+        return () => {
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         applyFilters();
     };
 
@@ -102,6 +93,7 @@ export default function Products({
         router.visit(`/products?${params.toString()}`, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
             only: ['products'],
         });
     };
@@ -129,6 +121,7 @@ export default function Products({
         router.visit(`/products?${params.toString()}`, {
             preserveState: true,
             preserveScroll: true,
+            replace: true,
             only: ['products'],
             onFinish: () => setIsSearching(false),
         });

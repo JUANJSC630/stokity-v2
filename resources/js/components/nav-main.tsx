@@ -21,7 +21,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
 
     const [expandedItems, setExpandedItems] = useState<string[]>(() => {
         // Expandir automáticamente "Reportes" si estamos en una página de reportes
-        if (page.url.startsWith('/reports')) {
+        if (page.url.split('?')[0].startsWith('/reports')) {
             return ['Reportes'];
         }
         return [];
@@ -31,17 +31,19 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
         setExpandedItems((prev) => (prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]));
     };
 
+    const currentPath = page.url.split('?')[0];
+
     const isItemActive = (item: NavItem) => {
         // Para items con children, solo activar si estamos en la página principal del grupo
         if (item.children) {
-            return page.url === item.href;
+            return currentPath === item.href;
         }
         // Para items sin children, activar si la URL coincide exactamente o es la página principal
-        return page.url === item.href || page.url.startsWith(item.href + '/');
+        return currentPath === item.href || currentPath.startsWith(item.href + '/');
     };
 
     const isChildActive = (child: NavItem) => {
-        return page.url === child.href;
+        return currentPath === child.href;
     };
 
     return (

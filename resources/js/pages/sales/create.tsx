@@ -18,7 +18,6 @@ interface Props {
     branches: Branch[];
     clients: Client[];
     sellers: User[];
-    products: Product[];
 }
 
 // Utilidad para formatear a COP
@@ -42,7 +41,7 @@ function formatNumber(value: string | number) {
     }).format(num);
 }
 
-export default function Create({ branches, clients, products = [] }: Props) {
+export default function Create({ branches, clients }: Props) {
     // Ordenar clientes por id descendente (más reciente arriba)
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
     // Busca el id real del cliente Anónimo si existe, si no, usa el primero
@@ -160,31 +159,31 @@ export default function Create({ branches, clients, products = [] }: Props) {
     const [productQuantity, setProductQuantity] = useState<number>(1);
     const [productSearch, setProductSearch] = useState('');
     const [searching, setSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<Product[]>([]);
     const searchTimeout = React.useRef<NodeJS.Timeout | null>(null);
+    const abortRef = React.useRef<AbortController | null>(null);
 
     React.useEffect(() => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
         if (!productSearch || productSearch.trim().length < 2) {
-            // Si el input está vacío o muy corto, no mostrar productos
-            if (products.length > 0) {
-                router.visit(route('sales.create'), {
-                    method: 'get',
-                    preserveState: true,
-                    preserveScroll: true,
-                    only: ['products'],
-                });
-            }
+            setSearchResults([]);
             return;
         }
         setSearching(true);
-        searchTimeout.current = setTimeout(() => {
-            router.visit(route('sales.create', { product_search: productSearch }), {
-                method: 'get',
-                preserveState: true,
-                preserveScroll: true,
-                only: ['products'],
-                onFinish: () => setSearching(false),
-            });
+        searchTimeout.current = setTimeout(async () => {
+            if (abortRef.current) abortRef.current.abort();
+            abortRef.current = new AbortController();
+            try {
+                const res = await fetch(
+                    route('api.products.search') + '?' + new URLSearchParams({ q: productSearch }),
+                    { signal: abortRef.current.signal },
+                );
+                if (res.ok) setSearchResults(await res.json());
+            } catch (err) {
+                if ((err as Error).name !== 'AbortError') console.error(err);
+            } finally {
+                setSearching(false);
+            }
         }, 350);
         // eslint-disable-next-line
     }, [productSearch]);
@@ -195,13 +194,13 @@ export default function Create({ branches, clients, products = [] }: Props) {
             e.preventDefault();
             // Buscar producto exacto por código o nombre
             const search = productSearch.trim().toLowerCase();
-            const found = products.find((p) => p.code?.toLowerCase() === search || p.name?.toLowerCase() === search);
+            const found = searchResults.find((p) => p.code?.toLowerCase() === search || p.name?.toLowerCase() === search);
             if (found) {
                 handleAddProduct(found);
                 setProductSearch('');
-            } else if (products.length === 1) {
+            } else if (searchResults.length === 1) {
                 // Si solo hay un resultado, agregarlo
-                handleAddProduct(products[0]);
+                handleAddProduct(searchResults[0]);
                 setProductSearch('');
             }
         }
@@ -378,8 +377,8 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {productSearch.trim().length >= 2 && products.length > 0 ? (
-                                            products.map((p, idx) => (
+                                        {productSearch.trim().length >= 2 && searchResults.length > 0 ? (
+                                            searchResults.map((p, idx) => (
                                                 <tr key={p.id} className={idx % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/40' : ''}>
                                                     <td className="text-center font-mono text-xs text-neutral-500">{idx + 1}</td>
                                                     <td className="text-center">
@@ -417,7 +416,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                     </td>
                                                 </tr>
                                             ))
-                                        ) : productSearch.trim().length >= 2 && products.length === 0 ? (
+                                        ) : productSearch.trim().length >= 2 && searchResults.length === 0 ? (
                                             <tr>
                                                 <td colSpan={5} className="text-center text-neutral-400">
                                                     No se encontraron productos
@@ -588,7 +587,7 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                     {sp.product.name}
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center align-middle">
-                                                                    <div className="flex h-full items-center justify-center">
+                                                                    <div className="flex h-full flex-col items-center justify-center gap-0.5">
                                                                         <Input
                                                                             type="number"
                                                                             min={1}
@@ -603,6 +602,9 @@ export default function Create({ branches, clients, products = [] }: Props) {
                                                                             className="m-0 h-7 w-14 border-0 bg-transparent p-0 text-center align-middle text-sm font-semibold shadow-none focus:border-0 focus:ring-0"
                                                                             style={{ verticalAlign: 'middle' }}
                                                                         />
+                                                                        {sp.quantity >= sp.product.stock && (
+                                                                            <span className="text-[10px] font-semibold text-orange-500">máx.</span>
+                                                                        )}
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">

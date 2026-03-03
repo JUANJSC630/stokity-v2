@@ -89,29 +89,11 @@ class SaleController extends Controller
             
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
-        $products = collect();
-        if ($request->filled('product_search')) {
-            $search = $request->input('product_search');
-            $productsQuery = Product::where('status', true)
-                ->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('code', 'like', "%{$search}%");
-                });
-                
-            // Filtrar productos por sucursal si no es administrador
-            if (!$user->isAdmin() && $user->branch_id) {
-                $productsQuery->where('branch_id', $user->branch_id);
-            }
-            
-            $products = $productsQuery->orderBy('name')
-                ->limit(30)
-                ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
-        }
+
         return Inertia::render('sales/create', [
             'branches' => $branches,
-            'clients' => $clients,
-            'sellers' => $sellers,
-            'products' => $products,
+            'clients'  => $clients,
+            'sellers'  => $sellers,
         ]);
     }
 

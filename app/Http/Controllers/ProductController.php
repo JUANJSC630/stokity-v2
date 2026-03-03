@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\StockMovementService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -342,6 +343,32 @@ class ProductController extends Controller
 
         return redirect()->back()
             ->with('success', 'Stock actualizado correctamente');
+    }
+
+    /**
+     * Search products by name or code — JSON API for POS search.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate(['q' => 'required|string|min:2|max:100']);
+
+        $user = Auth::user();
+
+        $query = Product::where('status', true)
+            ->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->q}%")
+                    ->orWhere('code', 'like', "%{$request->q}%");
+            });
+
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $products = $query->orderBy('name')
+            ->limit(30)
+            ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
+
+        return response()->json($products);
     }
 
     /**

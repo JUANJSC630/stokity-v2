@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\BranchFilterMiddleware;
 
 // Routes for product management (protected with auth and admin/manager middleware)
+// JSON API for POS product search (auth only, no branch middleware needed — controller handles it)
+Route::middleware('auth')->get('/api/products/search', [ProductController::class, 'search'])->name('api.products.search');
+
 Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     // Main index route - accessible to all authenticated users
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
