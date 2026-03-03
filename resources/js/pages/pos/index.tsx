@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
+import { type Branch, type BreadcrumbItem, type Client, type SharedData, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Keyboard, Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { Keyboard, Minus, Plus, Printer, Search, ShoppingCart, Trash2, Wifi, WifiOff } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -39,8 +40,46 @@ function parseFormatted(v: string): number {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'POS', href: '/pos' }];
 
+// ─── Printer status indicator ────────────────────────────────────────────────
+function PrinterStatusBadge({ status, printers, selectedPrinter, onConnect }: {
+    status: string;
+    printers: string[];
+    selectedPrinter: string;
+    onConnect: () => void;
+}) {
+    if (status === 'connected' && selectedPrinter) {
+        return (
+            <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                <Wifi className="h-3 w-3" />
+                {selectedPrinter.length > 20 ? selectedPrinter.slice(0, 18) + '…' : selectedPrinter}
+            </span>
+        );
+    }
+    if (status === 'connecting') {
+        return (
+            <span className="flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[11px] text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
+                <Printer className="h-3 w-3 animate-pulse" />
+                Conectando…
+            </span>
+        );
+    }
+    if (status === 'unavailable') {
+        return (
+            <button
+                type="button"
+                onClick={onConnect}
+                className="flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400"
+            >
+                <WifiOff className="h-3 w-3" />
+                Sin impresora
+            </button>
+        );
+    }
+    return null;
+}
+
 export default function PosIndex({ branches, clients }: Props) {
-    const { auth } = usePage<{ auth: { user: User } }>().props;
+    const { auth } = usePage<SharedData>().props;
 
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
     const anonymous = sortedClients.find((c) => c.name.toLowerCase() === 'consumidor final');
@@ -56,6 +95,7 @@ export default function PosIndex({ branches, clients }: Props) {
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
     const [amountPaid, setAmountPaid] = useState(0);
     const [submitting, setSubmitting] = useState(false);
+    const [showPrinterMenu, setShowPrinterMenu] = useState(false);
 
     // Search
     const [query, setQuery] = useState('');
@@ -64,6 +104,12 @@ export default function PosIndex({ branches, clients }: Props) {
     const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const abortRef = useRef<AbortController | null>(null);
+
+    // Printer
+    const printer = usePrinter();
+
+    // Track the last sale ID we've already printed to avoid double-printing
+    const lastPrintedSaleId = useRef<number | null>(null);
 
     // --- Totals ---
     const net = cart.reduce((s, i) => s + i.subtotal, 0);
@@ -78,6 +124,25 @@ export default function PosIndex({ branches, clients }: Props) {
               : 0;
     const total = Math.max(0, gross - discountAmount);
     const change = Math.max(0, amountPaid - total);
+
+    // Ref to printer so we can access it inside router.post callbacks without stale closures
+    const printerRef = useRef(printer);
+    printerRef.current = printer;
+
+    // Fallback: print when printer finishes connecting after a page reload (Inertia 409 hard-reload case).
+    // The onSuccess path handles the fast case; this handles the reload case.
+    const { flash } = usePage<SharedData>().props;
+    useEffect(() => {
+        const saleId = flash?.last_sale_id;
+        if (!saleId || saleId === lastPrintedSaleId.current) return;
+        if (printer.status !== 'connected' || !printer.selectedPrinter) return;
+
+        lastPrintedSaleId.current = saleId;
+        printerRef.current.printReceipt(saleId).catch((err: Error) => {
+            toast.error('Error al imprimir: ' + err.message);
+        });
+    // Run whenever printer connects OR a new sale flash arrives
+    }, [flash?.last_sale_id, printer.status, printer.selectedPrinter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- Product search ---
     useEffect(() => {
@@ -134,25 +199,21 @@ export default function PosIndex({ branches, clients }: Props) {
             const tag = (e.target as HTMLElement).tagName;
             const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 
-            // / → focus search
             if (e.key === '/' && !isInput) {
                 e.preventDefault();
                 searchRef.current?.focus();
                 return;
             }
-            // Escape → clear search
             if (e.key === 'Escape' && document.activeElement === searchRef.current) {
                 setQuery('');
                 setResults([]);
                 return;
             }
-            // Enter in search → add top result
             if (e.key === 'Enter' && document.activeElement === searchRef.current) {
                 e.preventDefault();
                 if (results.length > 0) addToCart(results[0]);
                 return;
             }
-            // F9 → submit
             if (e.key === 'F9') {
                 e.preventDefault();
                 handleSubmit();
@@ -178,6 +239,7 @@ export default function PosIndex({ branches, clients }: Props) {
         router.post(
             route('sales.store'),
             {
+                source: 'pos',
                 branch_id: defaultBranchId,
                 client_id: clientId,
                 seller_id: String(auth.user.id),
@@ -199,7 +261,7 @@ export default function PosIndex({ branches, clients }: Props) {
                 })),
             },
             {
-                onSuccess: () => {
+                onSuccess: (page) => {
                     toast.success('¡Venta registrada!');
                     setCart([]);
                     setAmountPaid(0);
@@ -209,6 +271,17 @@ export default function PosIndex({ branches, clients }: Props) {
                     setPaymentMethod('');
                     setClientId(defaultClientId);
                     setTimeout(() => searchRef.current?.focus(), 0);
+
+                    // Auto-print si hay impresora conectada
+                    const pageFlash = (page.props as unknown as SharedData).flash;
+                    const saleId = pageFlash?.last_sale_id;
+                    const p = printerRef.current;
+                    if (saleId && p.status === 'connected' && p.selectedPrinter) {
+                        lastPrintedSaleId.current = saleId; // mark so fallback effect doesn't re-print
+                        p.printReceipt(saleId).catch((err: Error) => {
+                            toast.error('Error al imprimir: ' + err.message);
+                        });
+                    }
                 },
                 onError: (errors) => {
                     Object.values(errors).forEach((msg) => toast.error(String(msg)));
@@ -305,7 +378,7 @@ export default function PosIndex({ branches, clients }: Props) {
 
                 {/* ── RIGHT: Cart + Payment ── */}
                 <div className="flex w-full flex-col overflow-hidden md:w-[420px]">
-                    {/* Client + clear cart */}
+                    {/* Client + clear cart + printer status */}
                     <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
                         <Select value={clientId} onValueChange={setClientId}>
                             <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
@@ -319,6 +392,94 @@ export default function PosIndex({ branches, clients }: Props) {
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        {/* Printer indicator */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setShowPrinterMenu((v) => !v)}
+                                className="flex h-9 items-center"
+                                title="Configurar impresora"
+                            >
+                                <PrinterStatusBadge
+                                    status={printer.status}
+                                    printers={printer.printers}
+                                    selectedPrinter={printer.selectedPrinter}
+                                    onConnect={printer.connect}
+                                />
+                            </button>
+
+                            {/* Printer dropdown */}
+                            {showPrinterMenu && (
+                                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
+                                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Impresora</p>
+
+                                    {printer.status === 'unavailable' && (
+                                        <div className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                                            QZ Tray no detectado.{' '}
+                                            <a
+                                                href="https://qz.io/download/"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="underline"
+                                            >
+                                                Descargar
+                                            </a>
+                                        </div>
+                                    )}
+
+                                    {printer.printers.length > 0 && (
+                                        <Select
+                                            value={printer.selectedPrinter}
+                                            onValueChange={printer.setSelectedPrinter}
+                                        >
+                                            <SelectTrigger className="h-8 w-full text-xs">
+                                                <SelectValue placeholder="Selecciona impresora…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {printer.printers.map((name) => (
+                                                    <SelectItem key={name} value={name} className="text-xs">
+                                                        {name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+
+                                    <div className="mt-2 flex items-center gap-2">
+                                        <Label className="text-xs text-muted-foreground">Ancho papel:</Label>
+                                        <div className="flex gap-1">
+                                            {([58, 80] as const).map((w) => (
+                                                <button
+                                                    key={w}
+                                                    type="button"
+                                                    onClick={() => printer.setPaperWidth(w)}
+                                                    className={`rounded border px-2 py-0.5 text-xs transition-colors ${printer.paperWidth === w ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800'}`}
+                                                >
+                                                    {w}mm
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => { printer.connect(); }}
+                                            className="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                        >
+                                            Reconectar
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPrinterMenu(false)}
+                                        className="mt-2 w-full rounded border border-neutral-200 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                    >
+                                        Cerrar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
                         {cart.length > 0 && (
                             <button
                                 type="button"

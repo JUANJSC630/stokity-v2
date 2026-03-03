@@ -5,21 +5,54 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, RotateCcw, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
 
-interface Props {
-    sale: Sale;
+interface TicketConfig {
+    paper_width: 58 | 80;
+    header_size: 'normal' | 'large';
+    show_logo: boolean;
+    show_nit: boolean;
+    show_address: boolean;
+    show_phone: boolean;
+    show_seller: boolean;
+    show_branch: boolean;
+    show_tax: boolean;
+    footer_line1: string;
+    footer_line2: string;
 }
 
-export default function Show({ sale }: Props) {
+interface Props {
+    sale: Sale;
+    businessName?: string | null;
+    businessNit?: string | null;
+    businessLogoUrl?: string | null;
+    ticketConfig?: TicketConfig;
+}
+
+export default function Show({ sale, businessName, businessNit, businessLogoUrl, ticketConfig }: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
+    const printer = usePrinter();
+
+    const handleThermalPrint = async () => {
+        if (printer.status !== 'connected' || !printer.selectedPrinter) {
+            toast.error('QZ Tray no conectado. Haz clic en el ícono de impresora en el POS para configurarla.');
+            return;
+        }
+        try {
+            await printer.printReceipt(sale.id);
+            toast.success('Enviado a la impresora');
+        } catch (err) {
+            toast.error('Error al imprimir: ' + (err as Error).message);
+        }
+    };
 
     // Obtener el usuario autenticado
     const { auth } = usePage<{ auth: { user: User } }>().props;
@@ -211,7 +244,7 @@ export default function Show({ sale }: Props) {
                 if (rootDiv) {
                     clearInterval(interval);
                     ReactDOM.createRoot(rootDiv).render(
-                        <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />,
+                        <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />,
                     );
                     setTimeout(() => {
                         printWindow.focus();
@@ -330,9 +363,19 @@ export default function Show({ sale }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Venta: ${sale.code}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="no-print mb-4 flex gap-2">
+                <div className="no-print mb-4 flex flex-wrap gap-2">
                     <Button onClick={handlePrintTicket} variant="default">
                         Imprimir Ticket
+                    </Button>
+                    <Button
+                        onClick={handleThermalPrint}
+                        variant="outline"
+                        className="flex gap-1"
+                        title="Impresora térmica vía QZ Tray"
+                        disabled={printer.status !== 'connected'}
+                    >
+                        <Printer className="size-4" />
+                        Térmica
                     </Button>
                     <Button onClick={() => setShowTicketPreview(true)} variant="outline" className="flex gap-1" title="Visualizar factura">
                         <Eye className="size-4" />
@@ -357,19 +400,8 @@ export default function Show({ sale }: Props) {
                                 Visualización del ticket de venta antes de imprimir
                             </DialogDescription>
                         </DialogHeader>
-                        <div
-                            className="flex justify-center bg-white p-4 dark:bg-neutral-900"
-                            style={{
-                                maxWidth: '58mm',
-                                width: '58mm',
-                                margin: '0 auto',
-                                boxShadow: '0 0 8px #ccc',
-                                borderRadius: 8,
-                                maxHeight: '80vh',
-                                overflow: 'auto',
-                            }}
-                        >
-                            <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
+                        <div className="flex max-h-[70vh] justify-center overflow-auto py-2">
+                            <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                         </div>
                         <DialogClose asChild>
                             <Button variant="outline" className="mt-4 w-full">
@@ -380,7 +412,7 @@ export default function Show({ sale }: Props) {
                 </Dialog>
                 {/* Ticket para impresión térmica, solo visible al imprimir */}
                 <div className="hidden print:block">
-                    <SaleTicket sale={sale} formatCurrency={formatCurrency} formatDateToLocal={formatDateToLocal} />
+                    <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                 </div>
 
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">

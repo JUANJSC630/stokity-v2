@@ -161,8 +161,12 @@ class SaleController extends Controller
         $products = $validated['products'];
         unset($validated['products']);
 
-        DB::transaction(function () use ($validated, $products) {
-            $sale = Sale::create($validated);
+        $saleId   = null;
+        $saleCode = null;
+        DB::transaction(function () use ($validated, $products, &$saleId, &$saleCode) {
+            $sale     = Sale::create($validated);
+            $saleId   = $sale->id;
+            $saleCode = $sale->code;
 
             foreach ($products as $prod) {
                 $sale->saleProducts()->create([
@@ -192,6 +196,14 @@ class SaleController extends Controller
                 }
             }
         });
+
+        // Si la venta viene del POS, redirigir al POS con el ID para auto-imprimir
+        if ($request->input('source') === 'pos') {
+            return redirect()->route('pos.index')
+                ->with('last_sale_id', $saleId)
+                ->with('last_sale_code', $saleCode)
+                ->with('success', 'Venta registrada exitosamente.');
+        }
 
         return redirect()->route('sales.index')->with('success', 'Venta creada exitosamente.');
     }
@@ -278,8 +290,14 @@ class SaleController extends Controller
             })->toArray(),
         ];
 
+        $business = \App\Models\BusinessSetting::getSettings();
+
         return Inertia::render('sales/show', [
-            'sale' => $saleData,
+            'sale'             => $saleData,
+            'businessName'     => $business->name,
+            'businessNit'      => $business->nit,
+            'businessLogoUrl'  => $business->logo_url,
+            'ticketConfig'     => $business->getTicketConfig(),
         ]);
     }
 

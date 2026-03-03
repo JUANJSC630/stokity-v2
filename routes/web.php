@@ -36,3 +36,4 @@ require __DIR__.'/sales.php';
 require __DIR__.'/reports.php';
 require __DIR__.'/stock-movements.php';
 require __DIR__.'/payment-methods.php';
+require __DIR__.'/printing.php';

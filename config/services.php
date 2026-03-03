@@ -39,4 +39,9 @@ return [
         'token' => env('BLOB_READ_WRITE_TOKEN'),
     ],
 
+    'qz_tray' => [
+        'private_key_b64'  => env('PRINTER_PRIVATE_KEY_B64'),
+        'certificate_b64'  => env('PRINTER_CERTIFICATE_B64'),
+    ],
+
 ];

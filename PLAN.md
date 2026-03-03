@@ -13,7 +13,7 @@
 | Reportes + exportación PDF/Excel | ✅ Funcional |
 | Métodos de pago dinámicos | ✅ Funcional |
 | Devoluciones | ✅ Funcional |
-| Impresión térmica ESC/POS | ✅ Funcional |
+| Impresión térmica ESC/POS (QZ Tray) | ✅ Funcional |
 | Validación de stock al vender | ✅ Funcional |
 | Audit trail de stock en ventas | ✅ Resuelto |
 | Configuración del negocio (logo, NIT, etc.) | ✅ Resuelto |
@@ -56,6 +56,7 @@
 ## Prioridad 4 — Funcionalidades complementarias
 
 - [x] **Historial de compras del cliente** — stats + tabla paginada en el perfil del cliente
+- [x] **Módulo de impresoras (QZ Tray)** — impresión térmica ESC/POS desde la web; auto-imprime al registrar venta en POS; selector de impresora + ancho de papel (58/80mm); botón "Térmica" en vista de venta
 - [ ] **Ventas pendientes / cotizaciones** — guardar venta en borrador antes de cobrar
 - [ ] **Alertas de stock bajo por email** — no solo en el dashboard
 - [ ] **Balance por sucursal** — efectivo esperado en caja al cierre del día

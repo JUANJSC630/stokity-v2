@@ -27,6 +27,16 @@ const sidebarNavItems: NavItem[] = [
         href: '/settings/business',
         icon: null,
     },
+    {
+        title: 'Impresora',
+        href: '/settings/printer',
+        icon: null,
+    },
+    {
+        title: 'Ticket',
+        href: '/settings/ticket',
+        icon: null,
+    },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {

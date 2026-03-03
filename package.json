@@ -58,6 +58,7 @@
         "js-cookie": "^3.0.5",
         "laravel-vite-plugin": "^1.0",
         "lucide-react": "^0.475.0",
+        "qz-tray": "^2.2.5",
         "react": "^19.0.0",
         "react-date-range": "^2.0.1",
         "react-dom": "^19.0.0",

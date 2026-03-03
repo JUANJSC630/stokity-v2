@@ -1,179 +1,255 @@
 import { type Branch } from '@/types';
 import React from 'react';
-import QRCode from 'react-qr-code';
+
+interface TicketConfig {
+    paper_width: 58 | 80;
+    header_size: 'normal' | 'large';
+    show_logo: boolean;
+    show_nit: boolean;
+    show_address: boolean;
+    show_phone: boolean;
+    show_seller: boolean;
+    show_branch: boolean;
+    show_tax: boolean;
+    footer_line1: string;
+    footer_line2: string;
+}
+
+const DEFAULT_CONFIG: TicketConfig = {
+    paper_width: 58,
+    header_size: 'large',
+    show_logo: false,
+    show_nit: true,
+    show_address: true,
+    show_phone: true,
+    show_seller: true,
+    show_branch: true,
+    show_tax: true,
+    footer_line1: '¡Gracias por su compra!',
+    footer_line2: 'Vuelva pronto',
+};
+
+function fmt(n: number): string {
+    return '$' + Math.round(n).toLocaleString('es-CO');
+}
 
 interface SaleTicketProps {
     sale: {
         code: string;
-        date: string;
+        created_at?: string;
+        date?: string;
         branch?: Branch | null;
-        client?: { name: string; document?: string | undefined; phone?: string | undefined; address?: string | undefined } | null;
+        client?: { name: string } | null;
         seller?: { name: string } | null;
         saleProducts: Array<{
             id: number;
             quantity: number;
             price: number;
-            product?: { name: string; tax?: number } | null;
+            subtotal?: number;
+            product?: { name: string } | null;
         }>;
         net: number;
         tax: number;
+        discount_type?: string | null;
+        discount_value?: number | null;
+        discount_amount?: number | null;
         total: number;
-        payment_method?: string;
-        amount_paid?: number;
-        change_amount?: number;
+        payment_method?: string | null;
+        amount_paid?: number | null;
+        change_amount?: number | null;
     };
-    formatCurrency: (value: number) => string;
-    formatDateToLocal: (date: string) => string;
+    businessName?: string | null;
+    businessNit?: string | null;
+    businessLogoUrl?: string | null;
+    ticketConfig?: TicketConfig;
 }
 
-const SaleTicket: React.FC<SaleTicketProps> = ({ sale, formatCurrency, formatDateToLocal }) => {
+function fmtDate(dateString: string | undefined | null): string {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return (
+        String(d.getDate()).padStart(2, '0') +
+        '/' +
+        String(d.getMonth() + 1).padStart(2, '0') +
+        '/' +
+        d.getFullYear() +
+        ' ' +
+        String(d.getHours()).padStart(2, '0') +
+        ':' +
+        String(d.getMinutes()).padStart(2, '0')
+    );
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+    cash: 'Efectivo',
+    nequi: 'Nequi',
+    credit_card: 'Tarjeta crédito',
+    debit_card: 'Tarjeta débito',
+    transfer: 'Transferencia',
+    other: 'Otro',
+};
+
+const SaleTicket: React.FC<SaleTicketProps> = ({ sale, businessName, businessNit, businessLogoUrl, ticketConfig }) => {
+    const config = ticketConfig ?? DEFAULT_CONFIG;
+    const is58 = config.paper_width === 58;
+    const chars = is58 ? 32 : 48;
+
+    const mono: React.CSSProperties = {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: '12px',
+    };
+
+    const Sep = ({ double = false }: { double?: boolean }) => (
+        <div style={{ ...mono, fontSize: '10px', overflow: 'hidden', whiteSpace: 'nowrap', color: '#555', margin: '3px 0', letterSpacing: '0px' }}>
+            {(double ? '=' : '-').repeat(chars)}
+        </div>
+    );
+
+    const Row = ({ label, value }: { label: string; value: string }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', ...mono }}>
+            <span>{label}</span>
+            <span>{value}</span>
+        </div>
+    );
+
+    const dateStr = fmtDate(sale.created_at ?? sale.date);
+    const paymentLabel = PAYMENT_LABELS[sale.payment_method ?? ''] ?? sale.payment_method ?? '';
+    const isCash = sale.payment_method === 'cash';
+
     return (
         <div
-            className="ticket"
             style={{
-                width: '100%',
-                fontFamily: 'Arial, monospace',
-                fontSize: 15,
-                background: '#fff',
-                padding: 0,
-                margin: 0,
-                boxSizing: 'border-box',
-                textAlign: 'center',
+                ...mono,
+                lineHeight: '1.6',
+                color: '#111',
+                backgroundColor: '#fff',
+                padding: '16px 14px',
+                width: is58 ? '260px' : '368px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                borderRadius: '4px',
             }}
         >
-            {/* Logo y encabezado */}
-            <div style={{ marginBottom: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {/* Puedes cambiar la imagen por tu logo real */}
-                <img
-                    src="/uploads/default-product.png"
-                    alt="Default Logo"
-                    className="rounded-full"
-                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
+            {/* ── Header ── */}
+            <div style={{ textAlign: 'center', marginBottom: '2px' }}>
+                {config.show_logo && businessLogoUrl && (
+                    <img
+                        src={businessLogoUrl}
+                        alt="Logo"
+                        style={{ maxWidth: is58 ? '80px' : '110px', height: 'auto', display: 'block', margin: '0 auto 6px' }}
+                    />
+                )}
+                <div
+                    style={{
+                        fontWeight: 'bold',
+                        fontSize: config.header_size === 'large' ? '22px' : '14px',
+                        lineHeight: 1.2,
+                        marginBottom: '3px',
+                    }}
+                >
+                    {businessName ?? sale.branch?.business_name ?? sale.branch?.name}
+                </div>
+                {config.show_nit && businessNit && <div style={mono}>NIT: {businessNit}</div>}
+                {config.show_address && sale.branch?.address && <div style={mono}>{sale.branch.address}</div>}
+                {config.show_phone && sale.branch?.phone && <div style={mono}>Tel: {sale.branch.phone}</div>}
+            </div>
+
+            <Sep double />
+
+            {/* ── Sale info ── */}
+            {[
+                { label: 'Recibo:  ', value: sale.code },
+                { label: 'Fecha:   ', value: dateStr },
+                { label: 'Cliente: ', value: sale.client?.name ?? 'Consumidor Final' },
+                ...(config.show_seller && sale.seller ? [{ label: 'Vendedor:', value: ' ' + sale.seller.name }] : []),
+                ...(config.show_branch && sale.branch ? [{ label: 'Sucursal:', value: ' ' + sale.branch.name }] : []),
+            ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', ...mono }}>
+                    <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>{label}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+                </div>
+            ))}
+
+            <Sep />
+
+            {/* ── Products table header ── */}
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0 8px',
+                    fontWeight: 'bold',
+                    ...mono,
+                    borderBottom: '1px dashed #999',
+                    paddingBottom: '3px',
+                    marginBottom: '3px',
+                }}
+            >
+                <span>Producto</span>
+                <span style={{ textAlign: 'right' }}>Cant</span>
+                <span style={{ textAlign: 'right' }}>Precio</span>
+                <span style={{ textAlign: 'right' }}>Total</span>
+            </div>
+
+            {/* ── Products ── */}
+            {sale.saleProducts.map((sp) => (
+                <div key={sp.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 8px', ...mono }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.product?.name ?? 'Eliminado'}</span>
+                    <span style={{ textAlign: 'right' }}>{sp.quantity}</span>
+                    <span style={{ textAlign: 'right' }}>{fmt(sp.price)}</span>
+                    <span style={{ textAlign: 'right' }}>{fmt(sp.subtotal ?? sp.price * sp.quantity)}</span>
+                </div>
+            ))}
+
+            <Sep />
+
+            {/* ── Totals ── */}
+            <Row label="Subtotal:" value={fmt(sale.net)} />
+            {config.show_tax && <Row label="Impuesto:" value={fmt(sale.tax)} />}
+            {(sale.discount_amount ?? 0) > 0 && (
+                <Row
+                    label={
+                        sale.discount_type === 'percentage'
+                            ? is58
+                                ? `Descto (${sale.discount_value}%):`
+                                : `Descuento (${sale.discount_value}%):`
+                            : 'Descuento:'
+                    }
+                    value={`- ${fmt(sale.discount_amount ?? 0)}`}
                 />
-                <div style={{ fontWeight: 'bold', fontSize: 13 }}>{sale.branch?.business_name}</div>
-                <div style={{ fontSize: 10 }}>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
-            </div>
-            {/* QR y CUFE */}
-            <div style={{ margin: '4px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 'bold' }}>Código QR:</div>
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                    <QRCode value={sale.code} size={60} />
-                </div>
-            </div>
-            {/* CUFE, si tienes ese dato */}
-            {/* <div style={{ fontSize: 10, wordBreak: 'break-all', textAlign: 'center' }}>
-        CUFE: {sale.cufe || 'N/A'}
-      </div> */}
-            <hr />
-            {/* Datos de la venta y cliente en caja */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 11 }}>
-                    FACTURA DE VENTA #<br />
-                    {sale.code}
-                </div>
-                <div style={{ fontSize: 10 }}>
-                    {typeof sale.branch?.manager === 'string' ? sale.branch.manager : sale.branch?.manager?.name || 'N/A'}
-                </div>
-                <div style={{ fontSize: 10 }}>
-                    {sale.branch?.address || 'N/A'} {sale.branch?.name || 'N/A'}
-                </div>
-                <div style={{ fontSize: 10 }}>{sale.branch?.phone || 'N/A'}</div>
-                <div style={{ fontSize: 10 }}>{formatDateToLocal(sale.date)}</div>
-            </div>
-
-            {/* Datos del cliente */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 10 }}>DATOS CLIENTE</div>
-                <div style={{ fontSize: 10 }}>NOMBRE: {sale.client?.name || 'Consumidor Final'}</div>
-                <div style={{ fontSize: 10 }}>NIT/C.C.: {sale.client?.document || 'N/A'}</div>
-                <div style={{ fontSize: 10 }}>TELÉFONO: {sale.client?.phone || 'N/A'}</div>
-                <div style={{ fontSize: 10 }}>DIRECCIÓN: {sale.client?.address || 'N/A'}</div>
-            </div>
-
-            {/* Vendedor */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 10 }}>
-                    VENDEDOR:
-                    <br />
-                    {sale.seller?.name || 'N/A'}
-                </div>
-            </div>
-            <hr />
-
-            {/* Productos vendidos */}
-            <table style={{ width: '100%', fontSize: 10, textAlign: 'center' }}>
-                <thead>
-                    <tr>
-                        <th style={{ width: '50%' }}>Producto</th>
-                        <th style={{ width: '15%' }}>Cant</th>
-                        <th style={{ width: '20%' }}>Precio</th>
-                        <th style={{ width: '15%' }}>IVA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {sale.saleProducts.map((sp) => (
-                        <tr key={sp.id}>
-                            <td>{sp.product?.name || 'Eliminado'}</td>
-                            <td>{sp.quantity}</td>
-                            <td>{formatCurrency(sp.price)}</td>
-                            <td>{sp.product?.tax || 0}%</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <hr />
-
-            {/* Totales */}
-            <table style={{ width: '100%', fontSize: 10, marginTop: 4, marginBottom: 4, textAlign: 'center' }}>
-                <tbody>
-                    <tr>
-                        <td style={{ fontWeight: 'bold' }}>Neto:</td>
-                        <td>{formatCurrency(sale.net)}</td>
-                    </tr>
-                    <tr>
-                        <td style={{ fontWeight: 'bold' }}>Impuesto:</td>
-                        <td>{formatCurrency(sale.tax)}</td>
-                    </tr>
-                    <tr>
-                        <td style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}>Total:</td>
-                        <td style={{ borderTop: '1px solid #000' }}>{formatCurrency(sale.total)}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <hr />
-
-            {/* Información de Pago y Cambio */}
-            {sale.payment_method === 'cash' && sale.amount_paid && sale.change_amount !== undefined && (
-                <>
-                    <table style={{ width: '100%', fontSize: 10, marginTop: 4, marginBottom: 4, textAlign: 'center' }}>
-                        <tbody>
-                            <tr>
-                                <td style={{ fontWeight: 'bold' }}>Total a Pagar:</td>
-                                <td>{formatCurrency(sale.total)}</td>
-                            </tr>
-                            <tr>
-                                <td style={{ fontWeight: 'bold' }}>Con Cuánto Pagó:</td>
-                                <td>{formatCurrency(sale.amount_paid)}</td>
-                            </tr>
-                            <tr>
-                                <td style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}>Cambio:</td>
-                                <td
-                                    style={{
-                                        borderTop: '1px solid #000',
-                                        color: sale.change_amount >= 0 ? '#059669' : '#dc2626',
-                                        fontWeight: 'bold',
-                                    }}
-                                >
-                                    {formatCurrency(sale.change_amount)}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <hr />
-                </>
             )}
 
-            <p style={{ fontSize: 10, marginTop: 2 }}>¡Gracias por su compra!</p>
+            <Sep double />
+
+            {/* ── TOTAL ── */}
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    lineHeight: 1.3,
+                    fontFamily: "'Courier New', Courier, monospace",
+                    margin: '2px 0',
+                }}
+            >
+                <span>TOTAL:</span>
+                <span>{fmt(sale.total)}</span>
+            </div>
+
+            <Sep />
+
+            {/* ── Payment ── */}
+            <Row label="Metodo pago:" value={paymentLabel} />
+            {isCash && sale.amount_paid != null && <Row label="Efectivo:" value={fmt(sale.amount_paid)} />}
+            {isCash && sale.change_amount != null && <Row label="Cambio:" value={fmt(sale.change_amount)} />}
+
+            <Sep double />
+
+            {/* ── Footer ── */}
+            <div style={{ textAlign: 'center', marginTop: '4px', ...mono }}>
+                {config.footer_line1 && <div>{config.footer_line1}</div>}
+                {config.footer_line2 && <div>{config.footer_line2}</div>}
+            </div>
         </div>
     );
 };
