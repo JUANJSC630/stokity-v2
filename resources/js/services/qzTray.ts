@@ -165,10 +165,6 @@ export async function printTest(printerName: string, paperWidth: 58 | 80 = 80): 
 
 /**
  * Fetch ESC/POS receipt bytes from the server and send to printer.
- *
- * @param saleId       Sale ID
- * @param printerName  Target printer name
- * @param paperWidth   58 or 80 (mm) — default 80
  */
 export async function printReceipt(saleId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
     const res = await fetch(`/print/receipt/${saleId}?width=${paperWidth}`, {
@@ -177,6 +173,22 @@ export async function printReceipt(saleId: number, printerName: string, paperWid
 
     if (!res.ok) {
         throw new Error(`Receipt fetch failed: ${res.status}`);
+    }
+
+    const { data } = (await res.json()) as { data: string };
+    await printBase64(printerName, data);
+}
+
+/**
+ * Fetch ESC/POS return receipt bytes from the server and send to printer.
+ */
+export async function printReturn(saleReturnId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
+    const res = await fetch(`/print/return-receipt/${saleReturnId}?width=${paperWidth}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    if (!res.ok) {
+        throw new Error(`Return receipt fetch failed: ${res.status}`);
     }
 
     const { data } = (await res.json()) as { data: string };

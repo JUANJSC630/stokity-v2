@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessSetting;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Mike42\Escpos\EscposImage;
@@ -80,6 +81,154 @@ class PrintController extends Controller
         return response()->json([
             'data' => base64_encode($bytes),
             'code' => $sale->code,
+        ]);
+    }
+
+    /**
+     * Generate ESC/POS return receipt bytes for a sale return, base64-encoded.
+     */
+    public function returnReceipt(Request $request, SaleReturn $saleReturn)
+    {
+        $saleReturn->load(['sale.branch', 'sale.client', 'sale.seller', 'products']);
+
+        $business     = BusinessSetting::getSettings();
+        $config       = $business->getTicketConfig();
+        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $charsPerLine = $paperWidth >= 80 ? 48 : 32;
+
+        $cfg  = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $sep  = str_repeat('-', $charsPerLine);
+        $sep2 = str_repeat('=', $charsPerLine);
+
+        $connector = new DummyPrintConnector();
+        $printer   = new Printer($connector);
+
+        try {
+            $p    = $printer;
+            $sale = $saleReturn->sale;
+            $biz  = $business;
+
+            $p->initialize();
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+
+            // Business name
+            if ($cfg['header_size'] === 'large') {
+                $p->setTextSize(2, 2);
+                $p->text($this->truncate($biz->name, (int) ($charsPerLine / 2)) . "\n");
+                $p->setTextSize(1, 1);
+            } else {
+                $p->setEmphasis(true);
+                $p->text($this->truncate($biz->name, $charsPerLine) . "\n");
+                $p->setEmphasis(false);
+            }
+            if ($cfg['show_nit'] && $biz->nit) {
+                $p->text('NIT: ' . $biz->nit . "\n");
+            }
+            if ($cfg['show_address'] && $biz->address) {
+                $p->text($this->wrapCenter($biz->address, $charsPerLine) . "\n");
+            }
+            if ($cfg['show_phone'] && $biz->phone) {
+                $p->text('Tel: ' . $biz->phone . "\n");
+            }
+
+            $p->text($sep2 . "\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->setEmphasis(true);
+            $p->text("RECIBO DE DEVOLUCIÓN\n");
+            $p->setEmphasis(false);
+            $p->text($sep . "\n");
+
+            $p->setJustification(Printer::JUSTIFY_LEFT);
+            $p->setEmphasis(true); $p->text('Devol.:  '); $p->setEmphasis(false);
+            $p->text(($saleReturn->id) . "\n");
+
+            $p->setEmphasis(true); $p->text('Venta:   '); $p->setEmphasis(false);
+            $p->text($sale->code . "\n");
+
+            $p->setEmphasis(true); $p->text('Fecha:   '); $p->setEmphasis(false);
+            $p->text($saleReturn->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
+
+            if ($sale->client) {
+                $p->setEmphasis(true); $p->text('Cliente: '); $p->setEmphasis(false);
+                $p->text($this->truncate($sale->client->name, $charsPerLine - 9) . "\n");
+            }
+            if ($cfg['show_seller'] && $sale->seller) {
+                $p->setEmphasis(true); $p->text('Vendedor:'); $p->setEmphasis(false);
+                $p->text(' ' . $this->truncate($sale->seller->name, $charsPerLine - 10) . "\n");
+            }
+            if ($cfg['show_branch'] && $sale->branch) {
+                $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
+                $p->text(' ' . $this->truncate($sale->branch->name, $charsPerLine - 10) . "\n");
+            }
+            if ($saleReturn->reason) {
+                $p->setEmphasis(true); $p->text('Motivo:  '); $p->setEmphasis(false);
+                $p->text($this->truncate($saleReturn->reason, $charsPerLine - 9) . "\n");
+            }
+
+            $p->text($sep . "\n");
+
+            // Products header
+            if ($charsPerLine < 40) {
+                $qtyW = 4; $priceW = 8; $subW = 8;
+            } else {
+                $qtyW = 5; $priceW = 10; $subW = 10;
+            }
+            $nameW = $charsPerLine - $qtyW - $priceW - $subW - ($charsPerLine < 40 ? 2 : 3);
+
+            $p->setEmphasis(true);
+            $p->text(
+                str_pad('Producto', $nameW)
+                . str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
+                . str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
+                . str_pad('Total', $subW, ' ', STR_PAD_LEFT) . "\n"
+            );
+            $p->setEmphasis(false);
+            $p->text($sep . "\n");
+
+            $net = 0;
+            $tax = 0;
+            foreach ($saleReturn->products as $product) {
+                $qty      = $product->pivot->quantity;
+                $price    = $product->sale_price ?? 0;
+                $subtotal = $price * $qty;
+                $net     += $subtotal;
+                $tax     += $subtotal * (($product->tax ?? 0) / 100);
+
+                $p->text(
+                    str_pad($this->truncate($product->name, $nameW), $nameW)
+                    . str_pad(number_format($qty), $qtyW, ' ', STR_PAD_LEFT)
+                    . str_pad($this->formatMoney($price), $priceW, ' ', STR_PAD_LEFT)
+                    . str_pad($this->formatMoney($subtotal), $subW, ' ', STR_PAD_LEFT) . "\n"
+                );
+            }
+
+            $p->text($sep . "\n");
+            $this->printTotalRow($p, 'Subtotal:', $this->formatMoney($net), $charsPerLine);
+            if ($cfg['show_tax'] && $tax > 0) {
+                $this->printTotalRow($p, 'Impuesto:', $this->formatMoney($tax), $charsPerLine);
+            }
+            $p->text($sep2 . "\n");
+            $p->setEmphasis(true);
+            $p->setTextSize(1, 2);
+            $this->printTotalRow($p, 'TOTAL:', $this->formatMoney($net + $tax), $charsPerLine);
+            $p->setTextSize(1, 1);
+            $p->setEmphasis(false);
+            $p->text($sep2 . "\n");
+
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            if ($cfg['footer_line1']) $p->text($cfg['footer_line1'] . "\n");
+            if ($cfg['footer_line2']) $p->text($cfg['footer_line2'] . "\n");
+
+            $p->feed(4);
+            $p->cut();
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
+
+        return response()->json([
+            'data' => base64_encode($bytes),
+            'id'   => $saleReturn->id,
         ]);
     }
 

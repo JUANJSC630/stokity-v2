@@ -1,6 +1,19 @@
 import { type Branch } from '@/types';
 import React from 'react';
-import QRCode from 'react-qr-code';
+
+interface TicketConfig {
+    paper_width: 58 | 80;
+    header_size: 'normal' | 'large';
+    show_logo: boolean;
+    show_nit: boolean;
+    show_address: boolean;
+    show_phone: boolean;
+    show_seller: boolean;
+    show_branch: boolean;
+    show_tax: boolean;
+    footer_line1: string;
+    footer_line2: string;
+}
 
 interface SaleReturnTicketProps {
     saleReturn: {
@@ -13,126 +26,218 @@ interface SaleReturnTicketProps {
             name: string;
             price: number;
             quantity: number;
+            tax?: number;
         }>;
     };
     sale: {
         code: string;
         branch?: Branch | null;
-        client?: { name: string; document?: string | undefined; phone?: string | undefined; address?: string | undefined } | null;
+        client?: { name: string } | null;
         seller?: { name: string } | null;
     };
-    formatCurrency: (value: number) => string;
-    formatDateToLocal: (date: string) => string;
+    businessName?: string | null;
+    businessNit?: string | null;
+    businessLogoUrl?: string | null;
+    ticketConfig?: TicketConfig;
 }
 
-const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({ saleReturn, sale, formatCurrency, formatDateToLocal }) => {
-    // Calcular totales con impuesto específico por producto
+const DEFAULT_CONFIG: TicketConfig = {
+    paper_width: 58,
+    header_size: 'large',
+    show_logo: false,
+    show_nit: true,
+    show_address: true,
+    show_phone: true,
+    show_seller: true,
+    show_branch: true,
+    show_tax: true,
+    footer_line1: '¡Gracias por su compra!',
+    footer_line2: 'Vuelva pronto',
+};
+
+function fmt(n: number): string {
+    return '$' + Math.round(n).toLocaleString('es-CO');
+}
+
+function fmtDate(dateString: string | undefined | null): string {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    return (
+        String(d.getDate()).padStart(2, '0') +
+        '/' +
+        String(d.getMonth() + 1).padStart(2, '0') +
+        '/' +
+        d.getFullYear() +
+        ' ' +
+        String(d.getHours()).padStart(2, '0') +
+        ':' +
+        String(d.getMinutes()).padStart(2, '0')
+    );
+}
+
+const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
+    saleReturn,
+    sale,
+    businessName,
+    businessNit,
+    businessLogoUrl,
+    ticketConfig,
+}) => {
+    const config = ticketConfig ?? DEFAULT_CONFIG;
+    const is58 = config.paper_width === 58;
+    const chars = is58 ? 32 : 48;
+
+    const mono: React.CSSProperties = {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: '12px',
+    };
+
+    const Sep = ({ double = false }: { double?: boolean }) => (
+        <div style={{ ...mono, fontSize: '10px', overflow: 'hidden', whiteSpace: 'nowrap', color: '#555', margin: '3px 0' }}>
+            {(double ? '=' : '-').repeat(chars)}
+        </div>
+    );
+
+    const Row = ({ label, value }: { label: string; value: string }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', ...mono }}>
+            <span>{label}</span>
+            <span>{value}</span>
+        </div>
+    );
+
     const net = saleReturn.products.reduce((acc, p) => acc + p.price * p.quantity, 0);
     const tax = saleReturn.products.reduce((acc, p) => {
-        // Usar el impuesto específico del producto si está disponible, sino usar 19% por defecto
-        const productTax = (p as { tax?: number }).tax || 19;
+        const productTax = p.tax ?? 0;
         return acc + (p.price * p.quantity * productTax) / 100;
     }, 0);
     const total = net + tax;
+
+    const name = businessName ?? sale.branch?.business_name ?? sale.branch?.name;
+
     return (
         <div
-            className="ticket"
             style={{
-                width: '100%',
-                fontFamily: 'Arial, monospace',
-                fontSize: 15,
-                background: '#fff',
-                padding: 0,
-                margin: 0,
-                boxSizing: 'border-box',
-                textAlign: 'center',
+                ...mono,
+                lineHeight: '1.6',
+                color: '#111',
+                backgroundColor: '#fff',
+                padding: '16px 14px',
+                width: is58 ? '260px' : '368px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                borderRadius: '4px',
             }}
         >
-            {/* Logo y encabezado */}
-            <div style={{ marginBottom: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <img
-                    src="/uploads/default-product.png"
-                    alt="Default Logo"
-                    className="rounded-full"
-                    style={{ maxWidth: '40mm', width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
-                />
-                <div style={{ fontWeight: 'bold', fontSize: 13 }}>{sale.branch?.business_name}</div>
-                <div style={{ fontSize: 10 }}>GRACIAS POR PREFERIRNOS WhatsApp: 3148279405</div>
-            </div>
-            {/* QR y código de devolución */}
-            <div style={{ margin: '4px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 'bold' }}>Código QR:</div>
-                <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                    <QRCode value={saleReturn.code || String(saleReturn.id)} size={60} />
+            {/* ── Header ── */}
+            <div style={{ textAlign: 'center', marginBottom: '2px' }}>
+                {config.show_logo && businessLogoUrl && (
+                    <img
+                        src={businessLogoUrl}
+                        alt="Logo"
+                        style={{ maxWidth: is58 ? '80px' : '110px', height: 'auto', display: 'block', margin: '0 auto 6px' }}
+                    />
+                )}
+                <div
+                    style={{
+                        fontWeight: 'bold',
+                        fontSize: config.header_size === 'large' ? '22px' : '14px',
+                        lineHeight: 1.2,
+                        marginBottom: '3px',
+                    }}
+                >
+                    {name}
                 </div>
+                {config.show_nit && businessNit && <div style={mono}>NIT: {businessNit}</div>}
+                {config.show_address && sale.branch?.address && <div style={mono}>{sale.branch.address}</div>}
+                {config.show_phone && sale.branch?.phone && <div style={mono}>Tel: {sale.branch.phone}</div>}
             </div>
-            <hr />
-            {/* Datos de la devolución */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 11 }}>
-                    RECIBO DE DEVOLUCIÓN
-                    <br />#{saleReturn.code || saleReturn.id}
+
+            <Sep double />
+
+            {/* ── Return header ── */}
+            <div style={{ textAlign: 'center', fontWeight: 'bold', ...mono, marginBottom: '2px' }}>
+                RECIBO DE DEVOLUCIÓN
+            </div>
+
+            <Sep />
+
+            {/* ── Return info ── */}
+            {[
+                { label: 'Devol.:  ', value: String(saleReturn.code ?? saleReturn.id) },
+                { label: 'Venta:   ', value: sale.code },
+                { label: 'Fecha:   ', value: fmtDate(saleReturn.created_at) },
+                { label: 'Cliente: ', value: sale.client?.name ?? 'Consumidor Final' },
+                ...(config.show_seller && sale.seller ? [{ label: 'Vendedor:', value: ' ' + sale.seller.name }] : []),
+                ...(config.show_branch && sale.branch ? [{ label: 'Sucursal:', value: ' ' + sale.branch.name }] : []),
+                ...(saleReturn.reason ? [{ label: 'Motivo:  ', value: saleReturn.reason }] : []),
+            ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', ...mono }}>
+                    <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>{label}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
                 </div>
-                <div style={{ fontSize: 10 }}>{formatDateToLocal(saleReturn.created_at)}</div>
-                <div style={{ fontSize: 10 }}>Motivo: {saleReturn.reason || 'Sin motivo'}</div>
+            ))}
+
+            <Sep />
+
+            {/* ── Products table header ── */}
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0 8px',
+                    fontWeight: 'bold',
+                    ...mono,
+                    borderBottom: '1px dashed #999',
+                    paddingBottom: '3px',
+                    marginBottom: '3px',
+                }}
+            >
+                <span>Producto</span>
+                <span style={{ textAlign: 'right' }}>Cant</span>
+                <span style={{ textAlign: 'right' }}>Precio</span>
+                <span style={{ textAlign: 'right' }}>Total</span>
             </div>
-            {/* Datos del cliente */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 10 }}>DATOS CLIENTE</div>
-                <div style={{ fontSize: 10 }}>NOMBRE: {sale.client?.name || 'Consumidor Final'}</div>
-                <div style={{ fontSize: 10 }}>NIT/C.C.: {sale.client?.document || 'N/A'}</div>
-                <div style={{ fontSize: 10 }}>TELÉFONO: {sale.client?.phone || 'N/A'}</div>
-                <div style={{ fontSize: 10 }}>DIRECCIÓN: {sale.client?.address || 'N/A'}</div>
-            </div>
-            {/* Vendedor */}
-            <div style={{ border: '1px dashed #000', padding: 2, marginBottom: 2 }}>
-                <div style={{ fontWeight: 'bold', fontSize: 10 }}>
-                    VENDEDOR:
-                    <br />
-                    {sale.seller?.name || 'N/A'}
+
+            {/* ── Products ── */}
+            {saleReturn.products.map((p) => (
+                <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 8px', ...mono }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                    <span style={{ textAlign: 'right' }}>{p.quantity}</span>
+                    <span style={{ textAlign: 'right' }}>{fmt(p.price)}</span>
+                    <span style={{ textAlign: 'right' }}>{fmt(p.price * p.quantity)}</span>
                 </div>
+            ))}
+
+            <Sep />
+
+            {/* ── Totals ── */}
+            <Row label="Subtotal:" value={fmt(net)} />
+            {config.show_tax && tax > 0 && <Row label="Impuesto:" value={fmt(tax)} />}
+
+            <Sep double />
+
+            {/* ── TOTAL ── */}
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    lineHeight: 1.3,
+                    fontFamily: "'Courier New', Courier, monospace",
+                    margin: '2px 0',
+                }}
+            >
+                <span>TOTAL:</span>
+                <span>{fmt(total)}</span>
             </div>
-            <hr />
-            {/* Productos devueltos */}
-            <table style={{ width: '100%', fontSize: 10, textAlign: 'center' }}>
-                <thead>
-                    <tr>
-                        <th style={{ width: '60%' }}>Producto</th>
-                        <th style={{ width: '20%' }}>Cant</th>
-                        <th style={{ width: '20%' }}>Precio</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {saleReturn.products.map((p) => (
-                        <tr key={p.id}>
-                            <td>{p.name}</td>
-                            <td>{p.quantity}</td>
-                            <td>{formatCurrency(p.price)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            <hr />
-            {/* Totales */}
-            <table style={{ width: '100%', fontSize: 10, marginTop: 4, marginBottom: 4, textAlign: 'center' }}>
-                <tbody>
-                    <tr>
-                        <td style={{ fontWeight: 'bold' }}>Neto:</td>
-                        <td>{formatCurrency(net)}</td>
-                    </tr>
-                    <tr>
-                        <td style={{ fontWeight: 'bold' }}>Impuesto:</td>
-                        <td>{formatCurrency(tax)}</td>
-                    </tr>
-                    <tr>
-                        <td style={{ fontWeight: 'bold', borderTop: '1px solid #000' }}>Total:</td>
-                        <td style={{ borderTop: '1px solid #000' }}>{formatCurrency(total)}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <hr />
-            <br />
-            <p style={{ fontSize: 10, marginTop: 2 }}>¡Gracias por su preferencia!</p>
+
+            <Sep double />
+
+            {/* ── Footer ── */}
+            <div style={{ textAlign: 'center', marginTop: '4px', ...mono }}>
+                {config.footer_line1 && <div>{config.footer_line1}</div>}
+                {config.footer_line2 && <div>{config.footer_line2}</div>}
+            </div>
         </div>
     );
 };

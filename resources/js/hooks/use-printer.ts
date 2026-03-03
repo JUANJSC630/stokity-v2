@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { connectQZ, isConnected, listPrinters, printReceipt as qzPrintReceipt, printTest as qzPrintTest } from '@/services/qzTray';
+import { connectQZ, isConnected, listPrinters, printReceipt as qzPrintReceipt, printReturn as qzPrintReturn, printTest as qzPrintTest } from '@/services/qzTray';
 
 const STORAGE_PRINTER_KEY  = 'stokity_printer_name';
 const STORAGE_WIDTH_KEY    = 'stokity_printer_width';
@@ -15,6 +15,7 @@ export interface PrinterState {
     setPaperWidth: (w: 58 | 80) => void;
     connect: () => Promise<void>;
     printReceipt: (saleId: number) => Promise<void>;
+    printReturn: (saleReturnId: number) => Promise<void>;
     printTest: () => Promise<void>;
     errorMessage: string | null;
 }
@@ -96,6 +97,16 @@ export function usePrinter(): PrinterState {
         [selectedPrinter, paperWidth, status],
     );
 
+    const printReturn = useCallback(
+        async (saleReturnId: number) => {
+            if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
+            if (status !== 'connected') throw new Error('QZ Tray no está conectado');
+
+            await qzPrintReturn(saleReturnId, selectedPrinter, paperWidth);
+        },
+        [selectedPrinter, paperWidth, status],
+    );
+
     const printTest = useCallback(async () => {
         if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
         if (status !== 'connected') throw new Error('QZ Tray no está conectado');
@@ -112,6 +123,7 @@ export function usePrinter(): PrinterState {
         setPaperWidth,
         connect,
         printReceipt,
+        printReturn,
         printTest,
         errorMessage,
     };

@@ -96,6 +96,7 @@ export default function PosIndex({ branches, clients }: Props) {
     const [amountPaid, setAmountPaid] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [showPrinterMenu, setShowPrinterMenu] = useState(false);
+    const [formKey, setFormKey] = useState(0);
 
     // Search
     const [query, setQuery] = useState('');
@@ -270,6 +271,7 @@ export default function PosIndex({ branches, clients }: Props) {
                     setDiscountValue('0');
                     setPaymentMethod('');
                     setClientId(defaultClientId);
+                    setFormKey((k) => k + 1);
                     setTimeout(() => searchRef.current?.focus(), 0);
 
                     // Auto-print si hay impresora conectada
@@ -600,6 +602,7 @@ export default function PosIndex({ branches, clients }: Props) {
                         {/* Payment method */}
                         <div className="px-3 pb-2">
                             <PaymentMethodSelect
+                                key={formKey}
                                 value={paymentMethod || undefined}
                                 onValueChange={setPaymentMethod}
                                 label=""

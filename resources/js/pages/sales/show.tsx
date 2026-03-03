@@ -256,106 +256,16 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
         }
     };
 
-    // Imprimir el recibo de devolución visualmente usando SaleReturnTicket
-    const handlePrintReturnReceipt = (saleReturnId: number) => {
-        const ret = (sale.saleReturns ?? []).find((r) => r.id === saleReturnId);
-        if (!ret) {
-            toast.error('No se encontró la devolución.');
+    const handlePrintReturnReceipt = async (saleReturnId: number) => {
+        if (printer.status !== 'connected' || !printer.selectedPrinter) {
+            toast.error('QZ Tray no conectado. Configura la impresora en el POS.');
             return;
         }
-        // Enriquecer productos igual que en el modal
-        const enrichedProducts = Array.isArray(ret.products)
-            ? ret.products.map((rp) => {
-                  const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
-                  return {
-                      code: saleProd?.product?.code ?? '',
-                      description: saleProd?.product?.description ?? '',
-                      purchase_price: saleProd?.product?.purchase_price ?? 0,
-                      sale_price: saleProd?.product?.sale_price ?? 0,
-                      stock: saleProd?.product?.stock ?? 0,
-                      min_stock: saleProd?.product?.min_stock ?? 0,
-                      category_id: saleProd?.product?.category_id ?? 0,
-                      branch_id: saleProd?.product?.branch_id ?? 0,
-                      created_at: saleProd?.product?.created_at ?? '',
-                      updated_at: saleProd?.product?.updated_at ?? '',
-                      image: saleProd?.product?.image ?? '',
-                      image_url: saleProd?.product?.image_url ?? '',
-                      status: Boolean(saleProd?.product?.status),
-                      deleted_at: saleProd?.product?.deleted_at ?? null,
-                      // Additional fields from SaleReturnProduct
-                      ...rp,
-                      id: rp.id,
-                      name: saleProd?.product?.name ?? 'Producto eliminado',
-                      price: saleProd?.price ?? 0,
-                      quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
-                      tax: saleProd?.product?.tax ?? 19, // Add tax field
-                  };
-              })
-            : [];
-        const printWindow = window.open('', '', 'width=400,height=600');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Recibo Devolución #${ret.id}</title>
-                    ${getAllStylesheetHTML()}
-                    <style>
-                        @media print {
-                            html, body {
-                                background: #fff !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 58mm !important;
-                                min-width: 58mm !important;
-                                max-width: 58mm !important;
-                                box-sizing: border-box !important;
-                                display: block !important;
-                            }
-                            #ticket-root {
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 58mm !important;
-                                min-width: 58mm !important;
-                                max-width: 58mm !important;
-                                box-sizing: border-box !important;
-                                display: block !important;
-                            }
-                            @page {
-                                size: 58mm auto;
-                                margin: 0;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div id="ticket-root"></div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            const interval = setInterval(() => {
-                const rootDiv = printWindow.document.getElementById('ticket-root');
-                if (rootDiv) {
-                    clearInterval(interval);
-                    ReactDOM.createRoot(rootDiv).render(
-                        <SaleReturnTicket
-                            saleReturn={{
-                                ...ret,
-                                reason: ret.reason ?? undefined,
-                                products: enrichedProducts,
-                            }}
-                            sale={sale}
-                            formatCurrency={formatCurrency}
-                            formatDateToLocal={formatDateToLocal}
-                        />,
-                    );
-                    setTimeout(() => {
-                        printWindow.focus();
-                        printWindow.print();
-                        printWindow.close();
-                    }, 500);
-                }
-            }, 50);
+        try {
+            await printer.printReturn(saleReturnId);
+            toast.success('Recibo de devolución enviado a la impresora');
+        } catch (err) {
+            toast.error('Error al imprimir: ' + (err as Error).message);
         }
     };
 
@@ -850,8 +760,10 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                                                             products: enrichedProducts,
                                                         }}
                                                         sale={sale}
-                                                        formatCurrency={formatCurrency}
-                                                        formatDateToLocal={formatDateToLocal}
+                                                        businessName={businessName}
+                                                        businessNit={businessNit}
+                                                        businessLogoUrl={businessLogoUrl}
+                                                        ticketConfig={ticketConfig}
                                                     />
                                                 );
                                             })()}
