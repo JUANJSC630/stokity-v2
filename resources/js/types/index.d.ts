@@ -24,8 +24,20 @@ export interface NavItem {
     children?: NavItem[]; // Sub-items for nested navigation
 }
 
+export interface BusinessSetting {
+    name: string;
+    logo: string | null;
+    logo_url: string;
+    nit: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    currency_symbol: string;
+}
+
 export interface SharedData {
     name: string;
+    business: BusinessSetting;
     quote: { message: string; author: string };
     auth: Auth;
     ziggy: Config & { location: string };

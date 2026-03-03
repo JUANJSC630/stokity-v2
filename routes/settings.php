@@ -1,8 +1,9 @@
 <?php
 
+use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Settings\BusinessSettingController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
-use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -22,4 +23,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     })->name('appearance');
 
     Route::post('settings/appearance/default-product-image', [AppearanceController::class, 'updateDefaultProductImage'])->name('appearance.default-product-image');
+
+    Route::get('settings/business', [BusinessSettingController::class, 'edit'])->name('settings.business');
+    Route::post('settings/business', [BusinessSettingController::class, 'update'])->name('settings.business.update');
 });
