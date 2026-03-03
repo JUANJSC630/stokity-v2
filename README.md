@@ -1,68 +1,106 @@
 # Stokity v2
 
-<img src="/public/stokity-icon.png" alt="Stokity Logo" width="200" height="200">
+Sistema POS e inventario multi-sucursal para pequeños y medianos negocios.
 
-## Acerca de Stokity
+**Stack:** Laravel 12 · React 19 · Inertia.js · TailwindCSS · Radix UI
 
-Stokity es un sistema de gestión de inventario y ventas diseñado para simplificar la administración de pequeños y medianos negocios. Con una interfaz moderna y fácil de usar, Stokity permite a los usuarios registrar ventas, gestionar productos, administrar sucursales y generar reportes de ventas de manera eficiente.
+---
 
-## Características Principales
+## Requisitos
 
-- **Dashboard intuitivo**: Vista general del estado del negocio en tiempo real
-- **Gestión de usuarios**: Administración de roles y permisos para el equipo
-- **Gestión de sucursales**: Control de múltiples locales/sucursales 
-- **Gestión de productos**: Inventario, categorías y precios
-- **Gestión de clientes**: Base de datos de clientes
-- **Registro de ventas**: Interfaz simple para registrar transacciones
-- **Reportes**: Análisis de ventas y rendimiento
-
-## Tecnologías
-
-- **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: React 19 con InertiaJS
-- **Interfaz**: TailwindCSS y Radix UI
-- **Base de datos**: SQLite (desarrollo) / MySQL/PostgreSQL (producción)
-
-## Requisitos del Sistema
-
-- PHP 8.2 o superior
-- Node.js 
+- PHP 8.2+
 - Composer
+- Node.js 20+
+- [Laravel Herd](https://herd.laravel.com/) (recomendado para macOS/Windows)
 
-## Instalación
+---
+
+## Inicio rápido
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/stokity-v2.git
-cd stokity-v2
-
-# Instalar dependencias de PHP
+# 1. Instalar dependencias
 composer install
-
-# Instalar dependencias de JavaScript
 npm install
 
-# Configurar el entorno
+# 2. Configurar entorno
 cp .env.example .env
 php artisan key:generate
 
-# Migrar la base de datos
+# 3. Base de datos
 php artisan migrate
+php artisan db:seed        # Carga usuarios, productos y datos de prueba
 
-# Compilar assets
-npm run dev
+# 4. Enlace de archivos públicos
+php artisan storage:link
+
+# 5. Servidor de desarrollo (dos terminales)
+php artisan serve          # Terminal 1 — Laravel en http://localhost:8000
+npm run dev                # Terminal 2 — Vite HMR
 ```
 
-## Uso
+> **Con Laravel Herd:** el servidor PHP corre automáticamente en `https://stokity-v2.test`, solo ejecutar `npm run dev`.
 
-Stokity está diseñado para facilitar la gestión diaria de un negocio, permitiendo:
+---
 
-1. **Administrar inventario**: Crear categorías, registrar productos, actualizar existencias
-2. **Gestionar ventas**: Registrar nuevas ventas, aplicar descuentos, generar facturas
-3. **Administrar clientes**: Mantener registro de clientes frecuentes
-4. **Generar reportes**: Analizar ventas por periodos, productos más vendidos, etc.
-5. **Gestionar sucursales**: Coordinar el inventario y ventas entre múltiples ubicaciones
+## Credenciales de prueba
 
+Los seeders crean un usuario por cada rol. Ver contraseñas en `database/seeders/UserSeeder.php`.
+
+| Rol | Acceso |
+|-----|--------|
+| `administrador` | Todo el sistema, todas las sucursales |
+| `encargado` | Productos, ventas y stock de su sucursal |
+| `vendedor` | Crear ventas y ver productos de su sucursal |
+
+---
+
+## Comandos útiles
+
+```bash
+php artisan migrate:fresh --seed   # Reset completo de BD con datos de prueba
+php artisan route:list             # Ver todos los endpoints
+php artisan tinker                 # REPL interactivo
+
+npm run types                      # Verificar tipos TypeScript
+npm run lint                       # Corregir errores ESLint
+npm run format                     # Formatear código con Prettier
+npm run build                      # Build de producción
+```
+
+---
+
+## Estructura principal
+
+```
+app/Http/Controllers/   # 23 controladores (negocio, auth, settings)
+app/Http/Middleware/     # RBAC + filtro por sucursal
+app/Models/             # 12 modelos Eloquent
+database/migrations/    # 18 migraciones
+database/seeders/       # 9 seeders
+resources/js/pages/     # Páginas React (Inertia)
+resources/js/components/ # Componentes UI reutilizables
+routes/                 # 13 archivos de rutas
+```
+
+---
+
+## Funcionalidades principales
+
+- **Dashboard** — Métricas del día/mes, top productos, alertas de stock bajo, gráfico 7 días
+- **Ventas** — Carrito multi-producto, métodos de pago dinámicos (Nequi, Daviplata, PSE, etc.), devoluciones, impresión térmica ESC/POS
+- **Inventario** — CRUD de productos, movimientos de stock con audit trail, alertas de stock mínimo
+- **Clientes** — Base de datos con historial de compras
+- **Reportes** — Por ventas, productos, vendedor, sucursal y devoluciones con exportación PDF/Excel
+- **Multi-sucursal** — Cada usuario ve solo datos de su sucursal asignada
+- **Roles** — `administrador`, `encargado`, `vendedor` con permisos diferenciados
+
+---
+
+## Documentación adicional
+
+Ver [`PLAN.md`](PLAN.md) para el review completo del sistema, bugs conocidos y plan de mejoras.
+
+---
 
 ## Licencia
 

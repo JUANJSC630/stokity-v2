@@ -8,13 +8,17 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\PaymentMethod;
+use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Http\Resources\SaleResource;
 
 class SaleController extends Controller
 {
+    public function __construct(private StockMovementService $stockMovements) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -162,24 +166,37 @@ class SaleController extends Controller
         $products = $validated['products'];
         unset($validated['products']);
 
-        $sale = Sale::create($validated);
+        DB::transaction(function () use ($validated, $products) {
+            $sale = Sale::create($validated);
 
-        // Guardar productos vendidos y actualizar el stock
-        foreach ($products as $prod) {
-            $sale->saleProducts()->create([
-                'product_id' => $prod['id'],
-                'quantity' => $prod['quantity'],
-                'price' => $prod['price'],
-                'subtotal' => $prod['subtotal'],
-            ]);
+            foreach ($products as $prod) {
+                $sale->saleProducts()->create([
+                    'product_id' => $prod['id'],
+                    'quantity'   => $prod['quantity'],
+                    'price'      => $prod['price'],
+                    'subtotal'   => $prod['subtotal'],
+                ]);
 
-            // Actualizar el stock del producto
-            $product = Product::find($prod['id']);
-            if ($product) {
-                $product->stock -= $prod['quantity'];
-                $product->save();
+                $product = Product::find($prod['id']);
+                if ($product) {
+                    $previousStock = $product->stock;
+                    $product->stock -= $prod['quantity'];
+                    $product->save();
+
+                    $this->stockMovements->record(
+                        product: $product,
+                        type: 'out',
+                        quantity: $prod['quantity'],
+                        previousStock: $previousStock,
+                        newStock: $product->stock,
+                        branchId: $sale->branch_id,
+                        userId: Auth::id(),
+                        reference: $sale->code,
+                        notes: "Venta #{$sale->code}",
+                    );
+                }
             }
-        }
+        });
 
         return redirect()->route('sales.index')->with('success', 'Venta creada exitosamente.');
     }
@@ -331,16 +348,30 @@ class SaleController extends Controller
             abort(403, 'No tienes permisos para eliminar ventas.');
         }
 
-        // Restaurar el stock de los productos antes de eliminar la venta
-        foreach ($sale->saleProducts as $saleProduct) {
-            $product = Product::find($saleProduct->product_id);
-            if ($product) {
-                $product->stock += $saleProduct->quantity;
-                $product->save();
-            }
-        }
+        DB::transaction(function () use ($sale) {
+            foreach ($sale->saleProducts as $saleProduct) {
+                $product = Product::find($saleProduct->product_id);
+                if ($product) {
+                    $previousStock = $product->stock;
+                    $product->stock += $saleProduct->quantity;
+                    $product->save();
 
-        $sale->delete();
+                    $this->stockMovements->record(
+                        product: $product,
+                        type: 'in',
+                        quantity: $saleProduct->quantity,
+                        previousStock: $previousStock,
+                        newStock: $product->stock,
+                        branchId: $sale->branch_id,
+                        userId: Auth::id(),
+                        reference: $sale->code,
+                        notes: "Cancelación venta #{$sale->code}",
+                    );
+                }
+            }
+
+            $sale->delete();
+        });
 
         return redirect()->route('sales.index')->with('success', 'Venta eliminada exitosamente.');
     }

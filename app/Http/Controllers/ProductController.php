@@ -6,14 +6,19 @@ use App\Http\Requests\ProductRequest;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\StockMovementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+    public function __construct(private StockMovementService $stockMovements) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -301,23 +306,39 @@ class ProductController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
-        $oldStock = $product->stock;
+        $previousStock = $product->stock;
 
-        switch ($request->operation) {
-            case 'set':
-                $product->stock = $request->stock;
-                break;
-            case 'add':
-                $product->stock += $request->stock;
-                break;
-            case 'subtract':
-                $product->stock = max(0, $product->stock - $request->stock);
-                break;
-        }
+        $newStock = match ($request->operation) {
+            'set'      => $request->stock,
+            'add'      => $previousStock + $request->stock,
+            'subtract' => max(0, $previousStock - $request->stock),
+        };
 
-        $product->save();
+        $quantity = match ($request->operation) {
+            'add'      => $request->stock,
+            'subtract' => $previousStock - $newStock,
+            'set'      => abs($newStock - $previousStock),
+        };
 
-        // TODO: Log stock movement in a separate table for audit purposes
+        DB::transaction(function () use ($product, $previousStock, $newStock, $quantity, $request) {
+            $product->stock = $newStock;
+            $product->save();
+
+            $this->stockMovements->record(
+                product: $product,
+                type: match ($request->operation) {
+                    'add'      => 'in',
+                    'subtract' => 'out',
+                    'set'      => 'adjustment',
+                },
+                quantity: $quantity,
+                previousStock: $previousStock,
+                newStock: $newStock,
+                branchId: $product->branch_id,
+                userId: Auth::id(),
+                notes: $request->notes,
+            );
+        });
 
         return redirect()->back()
             ->with('success', 'Stock actualizado correctamente');
