@@ -14,6 +14,7 @@ import {
     Package,
     Package2,
     RotateCcw,
+    ScanLine,
     Tags,
     TrendingUp,
     UserRound,
@@ -59,6 +60,11 @@ const allNavItems: NavItem[] = [
         href: '/clients',
         icon: UserRound,
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
+    },
+    {
+        title: 'POS',
+        href: '/pos',
+        icon: ScanLine,
     },
     {
         title: 'Ventas',

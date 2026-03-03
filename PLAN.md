@@ -43,13 +43,13 @@
 
 ---
 
-## Prioridad 3 — Experiencia del usuario POS
+## Prioridad 3 — Experiencia del usuario POS ✅ Completo
 
-- [ ] **Vista POS simplificada** — pantalla dedicada para vendedores: buscar producto, carrito, cobrar
+- [x] **Vista POS simplificada** — `/pos` dedicado: búsqueda, carrito, pago, descuento en una pantalla
 - [x] **Búsqueda de productos en tiempo real** — fetch + AbortController, sin cambiar URL
 - [x] **Mostrar stock disponible** — badge "máx." al agregar productos al carrito
-- [ ] **Atajos de teclado** en la pantalla de venta
-- [ ] **Verificar recibo de devoluciones** — probar formato con impresora térmica real
+- [x] **Atajos de teclado** — `/` buscar, `Enter` agregar, `Esc` limpiar, `F9` cobrar
+- [ ] **Verificar recibo de devoluciones** — probar formato con impresora térmica real (tarea manual)
 
 ---
 
