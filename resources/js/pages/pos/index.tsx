@@ -1,21 +1,47 @@
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { type Branch, type BreadcrumbItem, type Client, type SharedData, type User } from '@/types';
+import { type Branch, type BreadcrumbItem, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import { Keyboard, Minus, Plus, Printer, Search, ShoppingCart, Trash2, Wifi, WifiOff } from 'lucide-react';
+import { ClipboardList, Keyboard, Minus, Plus, Printer, Search, ShoppingCart, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface Props {
     branches: Branch[];
     clients: Client[];
+    pendingSalesCount: number;
+}
+
+interface PendingProduct {
+    product_id: number;
+    product_name: string;
+    quantity: number;
+    price: number;
+    subtotal: number;
+    tax: number;
+    stock: number;
+    image_url: string | null;
+}
+
+interface PendingSale {
+    id: number;
+    code: string;
+    client_id: string;
+    client_name: string;
+    discount_type: 'none' | 'percentage' | 'fixed';
+    discount_value: number;
+    product_count: number;
+    net: number;
+    total: number;
+    notes: string | null;
+    created_at: string;
+    products: PendingProduct[];
 }
 
 interface CartItem {
@@ -34,16 +60,11 @@ function formatNumber(value: number) {
     return new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
 }
 
-function parseFormatted(v: string): number {
-    return parseInt(v.replace(/[^\d]/g, ''), 10) || 0;
-}
-
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'POS', href: '/pos' }];
 
 // ─── Printer status indicator ────────────────────────────────────────────────
-function PrinterStatusBadge({ status, printers, selectedPrinter, onConnect }: {
+function PrinterStatusBadge({ status, selectedPrinter, onConnect }: {
     status: string;
-    printers: string[];
     selectedPrinter: string;
     onConnect: () => void;
 }) {
@@ -51,7 +72,7 @@ function PrinterStatusBadge({ status, printers, selectedPrinter, onConnect }: {
         return (
             <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
                 <Wifi className="h-3 w-3" />
-                {selectedPrinter.length > 20 ? selectedPrinter.slice(0, 18) + '…' : selectedPrinter}
+                {selectedPrinter.length > 12 ? selectedPrinter.slice(0, 10) + '…' : selectedPrinter}
             </span>
         );
     }
@@ -78,7 +99,92 @@ function PrinterStatusBadge({ status, printers, selectedPrinter, onConnect }: {
     return null;
 }
 
-export default function PosIndex({ branches, clients }: Props) {
+// ─── Printer widget (header) ─────────────────────────────────────────────────
+function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks/use-printer').usePrinter> }) {
+    const [open, setOpen] = React.useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        function handleClick(e: MouseEvent) {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [open]);
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className="flex h-8 items-center"
+                title="Configurar impresora"
+            >
+                <PrinterStatusBadge
+                    status={printer.status}
+                    selectedPrinter={printer.selectedPrinter}
+                    onConnect={printer.connect}
+                />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
+                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Impresora</p>
+
+                    {printer.status === 'unavailable' && (
+                        <div className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+                            QZ Tray no detectado.{' '}
+                            <a href="https://qz.io/download/" target="_blank" rel="noreferrer" className="underline">
+                                Descargar
+                            </a>
+                        </div>
+                    )}
+
+                    {printer.printers.length > 0 && (
+                        <Select value={printer.selectedPrinter} onValueChange={printer.setSelectedPrinter}>
+                            <SelectTrigger className="h-8 w-full text-xs">
+                                <SelectValue placeholder="Selecciona impresora…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {printer.printers.map((name) => (
+                                    <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+
+                    <div className="mt-2 flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground">Ancho papel:</Label>
+                        <div className="flex gap-1">
+                            {([58, 80] as const).map((w) => (
+                                <button
+                                    key={w}
+                                    type="button"
+                                    onClick={() => printer.setPaperWidth(w)}
+                                    className={`rounded border px-2 py-0.5 text-xs transition-colors ${printer.paperWidth === w ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800'}`}
+                                >
+                                    {w}mm
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => printer.connect()}
+                            className="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                            Reconectar
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default function PosIndex({ branches, clients, pendingSalesCount: initialPendingCount }: Props) {
     const { auth } = usePage<SharedData>().props;
 
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
@@ -95,8 +201,14 @@ export default function PosIndex({ branches, clients }: Props) {
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
     const [amountPaid, setAmountPaid] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [showPrinterMenu, setShowPrinterMenu] = useState(false);
     const [formKey, setFormKey] = useState(0);
+
+    // Pending sales (cotizaciones)
+    const [pendingCount, setPendingCount] = useState(initialPendingCount);
+    const [showPendingPanel, setShowPendingPanel] = useState(false);
+    const [pendingSales, setPendingSales] = useState<PendingSale[]>([]);
+    const [loadingPending, setLoadingPending] = useState(false);
+    const [activePendingId, setActivePendingId] = useState<number | null>(null); // pending sale being completed
 
     // Search
     const [query, setQuery] = useState('');
@@ -143,7 +255,7 @@ export default function PosIndex({ branches, clients }: Props) {
             toast.error('Error al imprimir: ' + err.message);
         });
     // Run whenever printer connects OR a new sale flash arrives
-    }, [flash?.last_sale_id, printer.status, printer.selectedPrinter]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [flash?.last_sale_id, printer.status, printer.selectedPrinter]);
 
     // --- Product search ---
     useEffect(() => {
@@ -194,6 +306,101 @@ export default function PosIndex({ branches, clients }: Props) {
 
     const removeFromCart = (productId: number) => setCart((prev) => prev.filter((i) => i.product.id !== productId));
 
+    // --- Submit ---
+    const handleSubmit = useCallback(() => {
+        if (cart.length === 0) { toast.error('Agrega al menos un producto'); return; }
+        if (!paymentMethod) { toast.error('Selecciona un método de pago'); return; }
+        if (paymentMethod === 'cash' && amountPaid < total) {
+            toast.error('El monto recibido es menor al total');
+            return;
+        }
+
+        const onSuccess = (page: { props: unknown }) => {
+            toast.success('¡Venta registrada!');
+            setCart([]);
+            setAmountPaid(0);
+            setAmountPaidDisplay('');
+            setDiscountType('none');
+            setDiscountValue('0');
+            setPaymentMethod('');
+            setClientId(defaultClientId);
+            setFormKey((k) => k + 1);
+            setActivePendingId(null);
+            setPendingCount((c) => Math.max(0, activePendingId ? c - 1 : c));
+            setTimeout(() => searchRef.current?.focus(), 0);
+
+            // Auto-print si hay impresora conectada
+            const pageFlash = (page.props as unknown as SharedData).flash;
+            const saleId = pageFlash?.last_sale_id;
+            const p = printerRef.current;
+            if (saleId && p.status === 'connected' && p.selectedPrinter) {
+                lastPrintedSaleId.current = saleId;
+                p.printReceipt(saleId).catch((err: Error) => {
+                    toast.error('Error al imprimir: ' + err.message);
+                });
+            }
+        };
+
+        const onError = (errors: Record<string, string>) => {
+            Object.values(errors).forEach((msg) => toast.error(String(msg)));
+        };
+
+        setSubmitting(true);
+
+        // Completing a previously saved pending sale
+        if (activePendingId) {
+            router.post(
+                route('sales.complete', activePendingId),
+                {
+                    payment_method: paymentMethod,
+                    amount_paid: paymentMethod === 'cash' ? amountPaid.toFixed(2) : total.toFixed(2),
+                    change_amount: paymentMethod === 'cash' ? change.toFixed(2) : '0',
+                    net: net.toFixed(2),
+                    total: total.toFixed(2),
+                    discount_type: discountType,
+                    discount_value: discountValue,
+                    products: cart.map((i) => ({
+                        id: i.product.id,
+                        quantity: i.quantity,
+                        price: i.product.sale_price,
+                        subtotal: i.subtotal,
+                    })),
+                },
+                { onSuccess, onError, onFinish: () => setSubmitting(false) },
+            );
+            return;
+        }
+
+        // Regular completed sale
+        router.post(
+            route('sales.store'),
+            {
+                source: 'pos',
+                branch_id: defaultBranchId,
+                client_id: clientId,
+                seller_id: String(auth.user.id),
+                net: net.toFixed(2),
+                total: total.toFixed(2),
+                amount_paid: paymentMethod === 'cash' ? amountPaid.toFixed(2) : total.toFixed(2),
+                change_amount: paymentMethod === 'cash' ? change.toFixed(2) : '0',
+                payment_method: paymentMethod,
+                date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16),
+                status: 'completed',
+                discount_type: discountType,
+                discount_value: discountValue,
+                notes: '',
+                products: cart.map((i) => ({
+                    id: i.product.id,
+                    quantity: i.quantity,
+                    price: i.product.sale_price,
+                    subtotal: i.subtotal,
+                })),
+            },
+            { onSuccess, onError, onFinish: () => setSubmitting(false) },
+        );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cart, paymentMethod, amountPaid, total, change, discountType, discountValue, activePendingId, defaultBranchId, defaultClientId, clientId]);
+
     // --- Keyboard shortcuts ---
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
@@ -222,21 +429,131 @@ export default function PosIndex({ branches, clients }: Props) {
         }
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [results, addToCart, cart, paymentMethod, amountPaid, total]);
+    }, [results, addToCart, cart, paymentMethod, amountPaid, total, handleSubmit]);
 
     // Auto-focus search on mount
     useEffect(() => { searchRef.current?.focus(); }, []);
 
-    // --- Submit ---
-    function handleSubmit() {
+    // --- Pending sales (cotizaciones) ---
+    async function fetchPendingSales() {
+        setLoadingPending(true);
+        try {
+            const res = await fetch(route('sales.pending'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (res.ok) {
+                const data: PendingSale[] = await res.json();
+                setPendingSales(data);
+                setPendingCount(data.length);
+            }
+        } catch {
+            toast.error('Error al cargar cotizaciones');
+        } finally {
+            setLoadingPending(false);
+        }
+    }
+
+    function openPendingPanel() {
+        setShowPendingPanel(true);
+        fetchPendingSales();
+    }
+
+    function loadPendingSale(sale: PendingSale) {
+        // Convert pending sale products into cart items
+        const newCart: CartItem[] = sale.products.map((p) => ({
+            product: {
+                id: p.product_id,
+                name: p.product_name,
+                code: '',
+                sale_price: Number(p.price),
+                tax: Number(p.tax),
+                stock: Number(p.stock),
+                image_url: p.image_url ?? undefined,
+            } as Product,
+            quantity: Number(p.quantity),
+            subtotal: Number(p.subtotal),
+        }));
+
+        setCart(newCart);
+        setClientId(String(sale.client_id));
+        setDiscountType(sale.discount_type);
+        setDiscountValue(String(sale.discount_value));
+        setActivePendingId(sale.id);
+        setShowPendingPanel(false);
+        toast.success(`Cotización #${sale.code.slice(-6)} cargada`);
+    }
+
+    function cancelActivePending() {
+        setActivePendingId(null);
+        setCart([]);
+        setClientId(defaultClientId);
+        setDiscountType('none');
+        setDiscountValue('0');
+        setPaymentMethod('');
+        setAmountPaid(0);
+        setAmountPaidDisplay('');
+        setFormKey((k) => k + 1);
+    }
+
+    function deletePendingSale(id: number) {
+        router.delete(route('sales.pending.destroy', id), {
+            onSuccess: () => {
+                setPendingSales((prev) => prev.filter((s) => s.id !== id));
+                setPendingCount((c) => Math.max(0, c - 1));
+                if (activePendingId === id) cancelActivePending();
+                toast.success('Cotización eliminada');
+            },
+            onError: () => toast.error('Error al eliminar cotización'),
+        });
+    }
+
+    function handleSaveQuote() {
         if (cart.length === 0) { toast.error('Agrega al menos un producto'); return; }
-        if (!paymentMethod) { toast.error('Selecciona un método de pago'); return; }
-        if (paymentMethod === 'cash' && amountPaid < total) {
-            toast.error('El monto recibido es menor al total');
+
+        const resetCart = () => {
+            setCart([]);
+            setAmountPaid(0);
+            setAmountPaidDisplay('');
+            setDiscountType('none');
+            setDiscountValue('0');
+            setPaymentMethod('');
+            setClientId(defaultClientId);
+            setFormKey((k) => k + 1);
+            setActivePendingId(null);
+            setTimeout(() => searchRef.current?.focus(), 0);
+        };
+
+        setSubmitting(true);
+
+        // Update existing pending sale if one is loaded
+        if (activePendingId) {
+            router.patch(
+                route('sales.pending.update', activePendingId),
+                {
+                    net: net.toFixed(2),
+                    total: total.toFixed(2),
+                    discount_type: discountType,
+                    discount_value: discountValue,
+                    products: cart.map((i) => ({
+                        id: i.product.id,
+                        quantity: i.quantity,
+                        price: i.product.sale_price,
+                        subtotal: i.subtotal,
+                    })),
+                },
+                {
+                    onSuccess: () => {
+                        toast.success('Cotización actualizada');
+                        resetCart();
+                    },
+                    onError: (errors) => {
+                        Object.values(errors).forEach((msg) => toast.error(String(msg)));
+                    },
+                    onFinish: () => setSubmitting(false),
+                },
+            );
             return;
         }
 
-        setSubmitting(true);
+        // Create new pending sale
         router.post(
             route('sales.store'),
             {
@@ -246,11 +563,11 @@ export default function PosIndex({ branches, clients }: Props) {
                 seller_id: String(auth.user.id),
                 net: net.toFixed(2),
                 total: total.toFixed(2),
-                amount_paid: paymentMethod === 'cash' ? amountPaid.toFixed(2) : total.toFixed(2),
-                change_amount: paymentMethod === 'cash' ? change.toFixed(2) : '0',
-                payment_method: paymentMethod,
+                amount_paid: '0',
+                change_amount: '0',
+                payment_method: '',
                 date: new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' }).slice(0, 16),
-                status: 'completed',
+                status: 'pending',
                 discount_type: discountType,
                 discount_value: discountValue,
                 notes: '',
@@ -262,28 +579,10 @@ export default function PosIndex({ branches, clients }: Props) {
                 })),
             },
             {
-                onSuccess: (page) => {
-                    toast.success('¡Venta registrada!');
-                    setCart([]);
-                    setAmountPaid(0);
-                    setAmountPaidDisplay('');
-                    setDiscountType('none');
-                    setDiscountValue('0');
-                    setPaymentMethod('');
-                    setClientId(defaultClientId);
-                    setFormKey((k) => k + 1);
-                    setTimeout(() => searchRef.current?.focus(), 0);
-
-                    // Auto-print si hay impresora conectada
-                    const pageFlash = (page.props as unknown as SharedData).flash;
-                    const saleId = pageFlash?.last_sale_id;
-                    const p = printerRef.current;
-                    if (saleId && p.status === 'connected' && p.selectedPrinter) {
-                        lastPrintedSaleId.current = saleId; // mark so fallback effect doesn't re-print
-                        p.printReceipt(saleId).catch((err: Error) => {
-                            toast.error('Error al imprimir: ' + err.message);
-                        });
-                    }
+                onSuccess: () => {
+                    toast.success('Cotización guardada');
+                    resetCart();
+                    setPendingCount((c) => c + 1);
                 },
                 onError: (errors) => {
                     Object.values(errors).forEach((msg) => toast.error(String(msg)));
@@ -294,7 +593,7 @@ export default function PosIndex({ branches, clients }: Props) {
     }
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs} headerActions={<PrinterWidget printer={printer} />}>
             <Head title="POS — Punto de Venta" />
 
             <div className="flex h-[calc(100dvh-64px)] flex-col gap-0 overflow-hidden md:flex-row">
@@ -354,12 +653,16 @@ export default function PosIndex({ branches, clients }: Props) {
                                     disabled={p.stock <= 0}
                                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}
                                 >
-                                    {p.image_url && (
+                                    {p.image_url ? (
                                         <img
                                             src={p.image_url}
                                             alt={p.name}
-                                            className="h-12 w-12 flex-shrink-0 rounded-lg border border-neutral-200 object-cover shadow-sm"
+                                            className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-neutral-100 object-cover shadow-sm dark:border-neutral-700"
                                         />
+                                    ) : (
+                                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-400 dark:bg-neutral-800">
+                                            {p.name.charAt(0).toUpperCase()}
+                                        </div>
                                     )}
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{p.name}</p>
@@ -382,7 +685,7 @@ export default function PosIndex({ branches, clients }: Props) {
                 <div className="flex w-full flex-col overflow-hidden md:w-[420px]">
                     {/* Client + clear cart + printer status */}
                     <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
-                        <Select value={clientId} onValueChange={setClientId}>
+                        <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
                             <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
                                 <SelectValue placeholder="Cliente" />
                             </SelectTrigger>
@@ -395,92 +698,20 @@ export default function PosIndex({ branches, clients }: Props) {
                             </SelectContent>
                         </Select>
 
-                        {/* Printer indicator */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setShowPrinterMenu((v) => !v)}
-                                className="flex h-9 items-center"
-                                title="Configurar impresora"
-                            >
-                                <PrinterStatusBadge
-                                    status={printer.status}
-                                    printers={printer.printers}
-                                    selectedPrinter={printer.selectedPrinter}
-                                    onConnect={printer.connect}
-                                />
-                            </button>
-
-                            {/* Printer dropdown */}
-                            {showPrinterMenu && (
-                                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
-                                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Impresora</p>
-
-                                    {printer.status === 'unavailable' && (
-                                        <div className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-                                            QZ Tray no detectado.{' '}
-                                            <a
-                                                href="https://qz.io/download/"
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="underline"
-                                            >
-                                                Descargar
-                                            </a>
-                                        </div>
-                                    )}
-
-                                    {printer.printers.length > 0 && (
-                                        <Select
-                                            value={printer.selectedPrinter}
-                                            onValueChange={printer.setSelectedPrinter}
-                                        >
-                                            <SelectTrigger className="h-8 w-full text-xs">
-                                                <SelectValue placeholder="Selecciona impresora…" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {printer.printers.map((name) => (
-                                                    <SelectItem key={name} value={name} className="text-xs">
-                                                        {name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-
-                                    <div className="mt-2 flex items-center gap-2">
-                                        <Label className="text-xs text-muted-foreground">Ancho papel:</Label>
-                                        <div className="flex gap-1">
-                                            {([58, 80] as const).map((w) => (
-                                                <button
-                                                    key={w}
-                                                    type="button"
-                                                    onClick={() => printer.setPaperWidth(w)}
-                                                    className={`rounded border px-2 py-0.5 text-xs transition-colors ${printer.paperWidth === w ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800'}`}
-                                                >
-                                                    {w}mm
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => { printer.connect(); }}
-                                            className="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400"
-                                        >
-                                            Reconectar
-                                        </button>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPrinterMenu(false)}
-                                        className="mt-2 w-full rounded border border-neutral-200 py-1 text-xs hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                    >
-                                        Cerrar
-                                    </button>
-                                </div>
+                        {/* Cotizaciones button */}
+                        <button
+                            type="button"
+                            onClick={openPendingPanel}
+                            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                            title="Cotizaciones pendientes"
+                        >
+                            <ClipboardList className="h-4 w-4" />
+                            {pendingCount > 0 && (
+                                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                                    {pendingCount}
+                                </span>
                             )}
-                        </div>
+                        </button>
 
                         {cart.length > 0 && (
                             <button
@@ -492,13 +723,29 @@ export default function PosIndex({ branches, clients }: Props) {
                                         setAmountPaidDisplay('');
                                     }
                                 }}
-                                className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-lg border border-red-200 px-2 text-xs font-medium text-red-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+                                title="Vaciar carrito"
+                                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Vaciar
+                                <Trash2 className="h-4 w-4" />
                             </button>
                         )}
                     </div>
+
+                    {/* Active pending sale banner */}
+                    {activePendingId && (
+                        <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                                Completando cotización
+                            </span>
+                            <button
+                                type="button"
+                                onClick={cancelActivePending}
+                                className="flex items-center gap-1 text-xs text-amber-600 hover:text-red-500"
+                            >
+                                <X className="h-3 w-3" /> Cancelar
+                            </button>
+                        </div>
+                    )}
 
                     {/* Cart list */}
                     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -646,7 +893,7 @@ export default function PosIndex({ branches, clients }: Props) {
                         )}
 
                         {/* Cobrar button */}
-                        <div className="px-3 pb-3">
+                        <div className="flex flex-col gap-2 px-3 pb-3">
                             <button
                                 type="button"
                                 onClick={handleSubmit}
@@ -660,10 +907,92 @@ export default function PosIndex({ branches, clients }: Props) {
                                     </>
                                 )}
                             </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveQuote}
+                                disabled={submitting || cart.length === 0}
+                                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                            >
+                                <ClipboardList className="h-4 w-4" />
+                                {activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+            {/* Pending sales panel (slide-over) */}
+            {showPendingPanel && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/40"
+                        onClick={() => setShowPendingPanel(false)}
+                    />
+                    {/* Panel */}
+                    <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl dark:bg-neutral-900">
+                        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
+                            <h2 className="font-semibold">Cotizaciones pendientes</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowPendingPanel(false)}
+                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {loadingPending && (
+                                <p className="px-4 py-8 text-center text-sm text-muted-foreground">Cargando...</p>
+                            )}
+                            {!loadingPending && pendingSales.length === 0 && (
+                                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                                    <ClipboardList className="h-10 w-10 opacity-20" />
+                                    <p className="text-sm">No hay cotizaciones pendientes</p>
+                                </div>
+                            )}
+                            {!loadingPending && pendingSales.map((sale) => (
+                                <div key={sale.id} className="border-b border-neutral-100 p-4 dark:border-neutral-800">
+                                    <div className="mb-2 flex items-start justify-between">
+                                        <div>
+                                            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                                                {sale.client_name}
+                                            </p>
+                                            <p className="font-mono text-[11px] text-muted-foreground">#{sale.code.slice(-8)}</p>
+                                        </div>
+                                        <span className="text-sm font-bold text-green-700 dark:text-green-300">
+                                            {formatCOP(sale.total)}
+                                        </span>
+                                    </div>
+                                    <p className="mb-1 text-xs text-muted-foreground">
+                                        {sale.product_count} producto{sale.product_count !== 1 ? 's' : ''}
+                                        {' · '}
+                                        {new Date(sale.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => loadPendingSale(sale)}
+                                            className="flex-1 rounded-lg bg-amber-500 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
+                                        >
+                                            Cargar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (confirm('¿Eliminar esta cotización?')) deletePendingSale(sale.id);
+                                            }}
+                                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }

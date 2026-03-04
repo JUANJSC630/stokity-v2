@@ -1,9 +1,9 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import React, { useState } from 'react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
-import { type BreadcrumbItem } from '@/types';
+import { type SharedData, type BreadcrumbItem } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -21,26 +21,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Appearance() {
-    // Detectar si existe la imagen por defecto
-    const defaultImageUrl = window.location.origin + '/uploads/default-product.png';
+    const { business } = usePage<SharedData>().props;
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [defaultImageExists, setDefaultImageExists] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState(false);
-    // Eliminamos los estados de toast personalizados
 
     const form = useForm({
         image: null as File | null,
     });
-
-    // Verificar si la imagen por defecto existe en el servidor
-    React.useEffect(() => {
-        fetch(defaultImageUrl, { method: 'HEAD' })
-            .then((res) => setDefaultImageExists(res.ok))
-            .catch(() => {
-                setDefaultImageExists(false);
-                toast.error('No existe una imagen por defecto actual.');
-            });
-    }, [defaultImageUrl]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -61,7 +48,6 @@ export default function Appearance() {
             forceFormData: true,
             onSuccess: () => {
                 toast.success('Imagen por defecto actualizada correctamente.');
-                router.visit(route('appearance'), { replace: true });
                 form.reset();
                 setImagePreview(null);
             },
@@ -94,8 +80,8 @@ export default function Appearance() {
                                         <div className="group relative aspect-square w-full max-w-[160px] overflow-hidden rounded-md border-2 border-sidebar-border bg-muted transition-all duration-200 hover:border-primary">
                                             {imagePreview ? (
                                                 <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
-                                            ) : defaultImageExists ? (
-                                                <img src={defaultImageUrl} alt="Imagen por defecto actual" className="h-full w-full object-cover" />
+                                            ) : business.default_product_image_url ? (
+                                                <img src={business.default_product_image_url} alt="Imagen por defecto actual" className="h-full w-full object-cover" />
                                             ) : (
                                                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
                                                     <UserCircle className="size-12" strokeWidth={1.5} />
@@ -108,11 +94,11 @@ export default function Appearance() {
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
-                                            <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
+                                            <input id="image" type="file" className="sr-only" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleImageChange} />
                                         </label>
                                         {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
                                         <p className="text-center text-xs text-muted-foreground">
-                                            Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
+                                            Formatos permitidos: JPG, PNG, GIF, WebP. Tamaño máximo: 2MB
                                         </p>
                                     </div>
                                     <button

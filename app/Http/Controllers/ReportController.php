@@ -2198,7 +2198,91 @@ class ReportController extends Controller
     /**
      * Exportar reporte de sucursales a PDF
      */
-    public function exportBranchesPdf(Request $request)
+    /**
+     * Balance de caja por sucursal (resumen diario de efectivo)
+     */
+    public function cashBalance(Request $request)
+    {
+        $user = Auth::user();
+        $date = $request->get('date', today()->toDateString());
+
+        $branchFilter = $user->isAdmin() ? $request->get('branch_id') : $user->branch_id;
+
+        // Ventas completadas del día, agrupadas por sucursal y método de pago
+        $salesQuery = Sale::query()
+            ->where('status', 'completed')
+            ->whereDate('date', $date)
+            ->selectRaw('branch_id, payment_method, COUNT(*) as sale_count, SUM(total) as revenue, SUM(amount_paid) as total_received, SUM(change_amount) as total_change')
+            ->groupBy('branch_id', 'payment_method');
+
+        if ($branchFilter) {
+            $salesQuery->where('branch_id', $branchFilter);
+        }
+
+        $salesRows = $salesQuery->get();
+
+        // Devoluciones del día (conteo por sucursal)
+        $returnsQuery = SaleReturn::query()
+            ->whereHas('sale', function ($q) use ($date, $branchFilter) {
+                $q->whereDate('date', $date)->where('status', 'completed');
+                if ($branchFilter) $q->where('branch_id', $branchFilter);
+            })
+            ->with('sale:id,branch_id')
+            ->selectRaw('COUNT(*) as return_count');
+
+        $returnsByBranch = SaleReturn::whereHas('sale', function ($q) use ($date, $branchFilter) {
+            $q->whereDate('date', $date)->where('status', 'completed');
+            if ($branchFilter) $q->where('branch_id', $branchFilter);
+        })
+        ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+        ->selectRaw('sales.branch_id, COUNT(*) as return_count')
+        ->groupBy('sales.branch_id')
+        ->get()
+        ->keyBy('branch_id');
+
+        // Ramas involucradas
+        $branchIds = $salesRows->pluck('branch_id')->merge($returnsByBranch->keys())->unique();
+        $branches  = Branch::whereIn('id', $branchIds)->get()->keyBy('id');
+
+        // Sucursales disponibles para el filtro (solo admin)
+        $availableBranches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+
+        // Agrupar filas de venta por sucursal
+        $grouped = $salesRows->groupBy('branch_id')->map(function ($rows, $branchId) use ($branches, $returnsByBranch) {
+            $branch = $branches->get($branchId);
+            $returnCount = $returnsByBranch->get($branchId)?->return_count ?? 0;
+
+            $paymentMethods = $rows->map(fn($r) => [
+                'payment_method' => $r->payment_method,
+                'sale_count'     => (int) $r->sale_count,
+                'revenue'        => (float) $r->revenue,
+                'total_received' => (float) $r->total_received,
+                'total_change'   => (float) $r->total_change,
+            ])->values();
+
+            $cashRow   = $rows->firstWhere('payment_method', 'cash');
+            $netCash   = $cashRow ? (float)$cashRow->revenue - (float)$cashRow->total_change : 0;
+            $totalRevenue = $rows->sum('revenue');
+
+            return [
+                'branch_id'     => $branchId,
+                'branch_name'   => $branch?->name ?? "Sucursal #{$branchId}",
+                'return_count'  => (int) $returnCount,
+                'payment_rows'  => $paymentMethods,
+                'net_cash'      => $netCash,
+                'total_revenue' => (float) $totalRevenue,
+            ];
+        })->values();
+
+        return Inertia::render('reports/cash-balance', [
+            'data'              => $grouped,
+            'filters'           => ['date' => $date, 'branch_id' => $branchFilter],
+            'availableBranches' => $availableBranches,
+            'isAdmin'           => $user->isAdmin(),
+        ]);
+    }
+
+    /**
     {
         try {
             $filters = $this->getFilters($request);

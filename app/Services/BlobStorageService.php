@@ -96,6 +96,18 @@ class BlobStorageService
             throw new RuntimeException('Could not read image file.');
         }
 
+        // Convert palette (indexed) images to truecolor — required for WebP
+        if (imageistruecolor($source) === false) {
+            $truecolor = imagecreatetruecolor(imagesx($source), imagesy($source));
+            imagealphablending($truecolor, false);
+            imagesavealpha($truecolor, true);
+            $transparent = imagecolorallocatealpha($truecolor, 0, 0, 0, 127);
+            imagefilledrectangle($truecolor, 0, 0, imagesx($source), imagesy($source), $transparent);
+            imagecopy($truecolor, $source, 0, 0, 0, 0, imagesx($source), imagesy($source));
+            imagedestroy($source);
+            $source = $truecolor;
+        }
+
         // Preserve alpha channel (PNG logos with transparency)
         imagesavealpha($source, true);
 

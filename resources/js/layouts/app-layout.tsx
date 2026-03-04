@@ -6,10 +6,11 @@ import { Toaster } from 'react-hot-toast';
 interface AppLayoutProps {
     children: ReactNode;
     breadcrumbs?: BreadcrumbItem[];
+    headerActions?: ReactNode;
 }
 
-export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => (
-    <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
+export default ({ children, breadcrumbs, headerActions, ...props }: AppLayoutProps) => (
+    <AppLayoutTemplate breadcrumbs={breadcrumbs} headerActions={headerActions} {...props}>
         {children}
         <Toaster position="top-right" />
     </AppLayoutTemplate>

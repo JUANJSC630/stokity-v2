@@ -102,18 +102,20 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        $isPending = $request->input('status') === 'pending';
+
         // Obtener códigos de métodos de pago activos para validación
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
-        
+
         $validated = $request->validate([
             'branch_id'      => 'required|exists:branches,id',
             'client_id'      => 'required|exists:clients,id',
             'seller_id'      => 'required|exists:users,id',
             'net'            => 'required|numeric|min:0',
             'total'          => 'required|numeric|min:0',
-            'amount_paid'    => 'required|numeric|min:0',
-            'change_amount'  => 'required|numeric',
-            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
+            'amount_paid'    => $isPending ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'change_amount'  => $isPending ? 'nullable|numeric' : 'required|numeric',
+            'payment_method' => $isPending ? 'nullable|string' : 'required|string|in:' . implode(',', $activePaymentMethods),
             'date'           => 'required|date',
             'status'         => 'required|string|in:completed,pending,cancelled',
             'discount_type'  => 'required|string|in:none,percentage,fixed',
@@ -137,7 +139,7 @@ class SaleController extends Controller
                     "products.{$index}.quantity" => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
                 ])->withInput();
             }
-            
+
             // Calcular impuesto por producto
             $productTax = $product->tax ?? 0;
             $productTaxAmount = $prod['subtotal'] * ($productTax / 100);
@@ -158,16 +160,172 @@ class SaleController extends Controller
         $validated['discount_amount'] = $discountAmount;
         $validated['total']           = max(0, $gross - $discountAmount);
 
+        // For pending sales, replace null payment fields with safe defaults
+        if ($isPending) {
+            $validated['payment_method'] = $validated['payment_method'] ?? '';
+            $validated['amount_paid']    = $validated['amount_paid']    ?? 0;
+            $validated['change_amount']  = $validated['change_amount']  ?? 0;
+        }
+
         $products = $validated['products'];
         unset($validated['products']);
 
         $saleId   = null;
         $saleCode = null;
-        DB::transaction(function () use ($validated, $products, &$saleId, &$saleCode) {
+        DB::transaction(function () use ($validated, $products, $isPending, &$saleId, &$saleCode) {
             $sale     = Sale::create($validated);
             $saleId   = $sale->id;
             $saleCode = $sale->code;
 
+            foreach ($products as $prod) {
+                $sale->saleProducts()->create([
+                    'product_id' => $prod['id'],
+                    'quantity'   => $prod['quantity'],
+                    'price'      => $prod['price'],
+                    'subtotal'   => $prod['subtotal'],
+                ]);
+
+                // Solo descontar stock en ventas completadas
+                if (!$isPending) {
+                    $product = Product::find($prod['id']);
+                    if ($product) {
+                        $previousStock = $product->stock;
+                        $product->stock -= $prod['quantity'];
+                        $product->save();
+
+                        $this->stockMovements->record(
+                            product: $product,
+                            type: 'out',
+                            quantity: $prod['quantity'],
+                            previousStock: $previousStock,
+                            newStock: $product->stock,
+                            branchId: $sale->branch_id,
+                            userId: Auth::id(),
+                            reference: $sale->code,
+                            notes: "Venta #{$sale->code}",
+                        );
+                    }
+                }
+            }
+        });
+
+        // Si la venta viene del POS, redirigir al POS
+        if ($request->input('source') === 'pos') {
+            if ($isPending) {
+                return redirect()->route('pos.index')
+                    ->with('success', 'Cotización guardada exitosamente.');
+            }
+            return redirect()->route('pos.index')
+                ->with('last_sale_id', $saleId)
+                ->with('last_sale_code', $saleCode)
+                ->with('success', 'Venta registrada exitosamente.');
+        }
+
+        return redirect()->route('sales.index')->with('success', 'Venta creada exitosamente.');
+    }
+
+    /**
+     * Return pending sales for the current user's branch (JSON).
+     */
+    public function pendingForBranch(Request $request)
+    {
+        $user = Auth::user();
+
+        $query = Sale::with(['client:id,name', 'saleProducts.product:id,name,tax,stock,image'])
+            ->where('status', 'pending');
+
+        if (!$user->isAdmin() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        $sales = $query->orderBy('created_at', 'desc')->get()
+            ->map(fn($sale) => [
+                'id'            => $sale->id,
+                'code'          => $sale->code,
+                'client_id'     => $sale->client_id,
+                'client_name'   => $sale->client?->name ?? 'Consumidor Final',
+                'discount_type'  => $sale->discount_type,
+                'discount_value' => $sale->discount_value,
+                'product_count' => $sale->saleProducts->count(),
+                'net'           => $sale->net,
+                'total'         => $sale->total,
+                'notes'         => $sale->notes,
+                'created_at'    => $sale->created_at,
+                'products'      => $sale->saleProducts->map(fn($sp) => [
+                    'product_id'   => $sp->product_id,
+                    'product_name' => $sp->product?->name,
+                    'quantity'     => $sp->quantity,
+                    'price'        => $sp->price,
+                    'subtotal'     => $sp->subtotal,
+                    'tax'          => $sp->product?->tax ?? 0,
+                    'stock'        => $sp->product?->stock,
+                    'image_url'    => $sp->product?->image_url ?? null,
+                ]),
+            ]);
+
+        return response()->json($sales);
+    }
+
+    /**
+     * Complete a pending sale (charge it).
+     */
+    public function completePending(Request $request, Sale $sale)
+    {
+        if ($sale->status !== 'pending') {
+            abort(422, 'Esta venta ya fue procesada.');
+        }
+
+        $user = Auth::user();
+        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+            abort(403, 'No tienes acceso a esta cotización.');
+        }
+
+        $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
+
+        $validated = $request->validate([
+            'payment_method'      => 'required|string|in:' . implode(',', $activePaymentMethods),
+            'amount_paid'         => 'required|numeric|min:0',
+            'change_amount'       => 'required|numeric',
+            'net'                 => 'required|numeric|min:0',
+            'total'               => 'required|numeric|min:0',
+            'discount_type'       => 'nullable|string|in:none,percentage,fixed',
+            'discount_value'      => 'nullable|numeric|min:0',
+            'products'            => 'required|array|min:1',
+            'products.*.id'       => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.price'    => 'required|numeric|min:0',
+            'products.*.subtotal' => 'required|numeric|min:0',
+        ], [
+            'payment_method.in' => 'El método de pago seleccionado no es válido.',
+        ]);
+
+        $products = $validated['products'];
+
+        // Verificar stock con los productos actuales del carrito
+        foreach ($products as $prod) {
+            $product = Product::find($prod['id']);
+            if (!$product || $product->stock < $prod['quantity']) {
+                return back()->withErrors([
+                    'stock' => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($sale, $validated, $products) {
+            $sale->update([
+                'payment_method' => $validated['payment_method'],
+                'amount_paid'    => $validated['amount_paid'],
+                'change_amount'  => $validated['change_amount'],
+                'net'            => $validated['net'],
+                'total'          => $validated['total'],
+                'discount_type'  => $validated['discount_type'] ?? 'none',
+                'discount_value' => $validated['discount_value'] ?? 0,
+                'status'         => 'completed',
+                'date'           => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
+            ]);
+
+            // Replace products with current cart
+            $sale->saleProducts()->delete();
             foreach ($products as $prod) {
                 $sale->saleProducts()->create([
                     'product_id' => $prod['id'],
@@ -197,15 +355,79 @@ class SaleController extends Controller
             }
         });
 
-        // Si la venta viene del POS, redirigir al POS con el ID para auto-imprimir
-        if ($request->input('source') === 'pos') {
-            return redirect()->route('pos.index')
-                ->with('last_sale_id', $saleId)
-                ->with('last_sale_code', $saleCode)
-                ->with('success', 'Venta registrada exitosamente.');
+        return redirect()->route('pos.index')
+            ->with('last_sale_id', $sale->id)
+            ->with('last_sale_code', $sale->code)
+            ->with('success', 'Venta completada exitosamente.');
+    }
+
+    /**
+     * Update products of an existing pending sale (quote).
+     */
+    public function updatePending(Request $request, Sale $sale)
+    {
+        if ($sale->status !== 'pending') {
+            abort(422, 'Solo se pueden editar cotizaciones pendientes.');
         }
 
-        return redirect()->route('sales.index')->with('success', 'Venta creada exitosamente.');
+        $user = Auth::user();
+        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+            abort(403, 'No tienes acceso a esta cotización.');
+        }
+
+        $validated = $request->validate([
+            'net'            => 'required|numeric|min:0',
+            'total'          => 'required|numeric|min:0',
+            'discount_type'  => 'nullable|string|in:none,percentage,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
+            'products'       => 'required|array|min:1',
+            'products.*.id'       => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+            'products.*.price'    => 'required|numeric|min:0',
+            'products.*.subtotal' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($sale, $validated) {
+            $sale->update([
+                'net'            => $validated['net'],
+                'total'          => $validated['total'],
+                'discount_type'  => $validated['discount_type'] ?? 'none',
+                'discount_value' => $validated['discount_value'] ?? 0,
+            ]);
+
+            // Replace products
+            $sale->saleProducts()->delete();
+            foreach ($validated['products'] as $prod) {
+                $sale->saleProducts()->create([
+                    'product_id' => $prod['id'],
+                    'quantity'   => $prod['quantity'],
+                    'price'      => $prod['price'],
+                    'subtotal'   => $prod['subtotal'],
+                ]);
+            }
+        });
+
+        return redirect()->route('pos.index')->with('success', 'Cotización actualizada.');
+    }
+
+    /**
+     * Delete a pending sale (quote).
+     */
+    public function destroyPending(Sale $sale)
+    {
+        if ($sale->status !== 'pending') {
+            abort(422, 'Solo se pueden eliminar cotizaciones pendientes.');
+        }
+
+        $user = Auth::user();
+        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+            abort(403, 'No tienes acceso a esta cotización.');
+        }
+
+        $sale->saleProducts()->delete();
+        $sale->forceDelete();
+
+        return redirect()->route('pos.index')->with('success', 'Cotización eliminada.');
     }
 
     /**

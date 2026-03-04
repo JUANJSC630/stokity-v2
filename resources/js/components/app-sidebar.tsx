@@ -20,6 +20,7 @@ import {
     UserRound,
     Users,
     Users2,
+    Vault,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -115,6 +116,11 @@ const allNavItems: NavItem[] = [
                 href: '/reports/branches',
                 icon: Building,
                 roles: ['administrador'], // Only admin
+            },
+            {
+                title: 'Balance de Caja',
+                href: '/reports/cash-balance',
+                icon: Vault,
             },
             {
                 title: 'Devoluciones',

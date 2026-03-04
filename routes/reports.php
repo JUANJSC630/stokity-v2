@@ -30,6 +30,9 @@ Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(fu
         Route::get('/branches/export/pdf', [ReportController::class, 'exportBranchesPdf'])->name('branches.export.pdf');
         Route::get('/branches/export/excel', [ReportController::class, 'exportBranchesExcel'])->name('branches.export.excel');
         
+        // Balance de caja por sucursal
+        Route::get('/cash-balance', [ReportController::class, 'cashBalance'])->name('cash-balance');
+
         // Reporte de devoluciones
         Route::get('/returns', [ReportController::class, 'returnsReport'])->name('returns');
         Route::get('/returns/export/pdf', [ReportController::class, 'exportReturnsPdf'])->name('returns.export.pdf');

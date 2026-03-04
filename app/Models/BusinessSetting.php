@@ -9,6 +9,7 @@ class BusinessSetting extends Model
     protected $fillable = [
         'name',
         'logo',
+        'default_product_image',
         'nit',
         'phone',
         'email',
@@ -42,7 +43,7 @@ class BusinessSetting extends Model
         return array_merge(self::TICKET_DEFAULTS, $this->ticket_config ?? []);
     }
 
-    protected $appends = ['logo_url'];
+    protected $appends = ['logo_url', 'default_product_image_url'];
 
     /**
      * Returns the single business settings row, creating it with defaults if it doesn't exist.
@@ -53,6 +54,24 @@ class BusinessSetting extends Model
             'name'            => config('app.name', 'Mi Negocio'),
             'currency_symbol' => '$',
         ]);
+    }
+
+    /**
+     * Get the public URL for the default product image.
+     */
+    public function getDefaultProductImageUrlAttribute(): ?string
+    {
+        if ($this->default_product_image) {
+            return $this->default_product_image;
+        }
+
+        // Legacy local file fallback
+        $path = public_path('uploads/default-product.png');
+        if (file_exists($path)) {
+            return asset('uploads/default-product.png');
+        }
+
+        return null;
     }
 
     /**

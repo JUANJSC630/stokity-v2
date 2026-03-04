@@ -92,9 +92,10 @@ class Product extends Model
             }
         }
 
-        $defaultPath = 'uploads/default-product.png';
-        if (file_exists(public_path($defaultPath))) {
-            return asset($defaultPath);
+        // Use default product image from business settings (blob or local legacy)
+        $settings = \App\Models\BusinessSetting::getSettings();
+        if ($settings->default_product_image_url) {
+            return $settings->default_product_image_url;
         }
 
         return asset('stokity-icon.png');

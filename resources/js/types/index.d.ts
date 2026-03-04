@@ -28,6 +28,8 @@ export interface BusinessSetting {
     name: string;
     logo: string | null;
     logo_url: string;
+    default_product_image: string | null;
+    default_product_image_url: string | null;
     nit: string | null;
     phone: string | null;
     email: string | null;
