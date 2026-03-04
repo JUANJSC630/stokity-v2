@@ -23,6 +23,7 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
         email: business.email ?? '',
         address: business.address ?? '',
         currency_symbol: business.currency_symbol ?? '$',
+        require_cash_session: business.require_cash_session ?? false,
         logo: null as File | null,
         _method: 'POST',
     });
@@ -143,6 +144,27 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                                 className="max-w-24"
                             />
                             <InputError message={form.errors.currency_symbol} />
+                        </div>
+
+                        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                            <p className="mb-3 text-sm font-medium text-neutral-900 dark:text-neutral-100">Configuración de Caja</p>
+                            <label className="flex cursor-pointer items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-medium">Requerir apertura de caja</p>
+                                    <p className="text-xs text-muted-foreground">Bloquea el cobro en el POS hasta que el cajero abra una sesión</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={form.data.require_cash_session}
+                                    onClick={() => form.setData('require_cash_session', !form.data.require_cash_session)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 ${form.data.require_cash_session ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${form.data.require_cash_session ? 'translate-x-5' : 'translate-x-0'}`}
+                                    />
+                                </button>
+                            </label>
                         </div>
 
                         <div className="flex items-center gap-4">

@@ -180,6 +180,22 @@ export async function printReceipt(saleId: number, printerName: string, paperWid
 }
 
 /**
+ * Fetch ESC/POS cash session arqueo report from the server and send to printer.
+ */
+export async function printCashSession(sessionId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
+    const res = await fetch(`/print/cash-session/${sessionId}?width=${paperWidth}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    if (!res.ok) {
+        throw new Error(`Cash session report fetch failed: ${res.status}`);
+    }
+
+    const { data } = (await res.json()) as { data: string };
+    await printBase64(printerName, data);
+}
+
+/**
  * Fetch ESC/POS return receipt bytes from the server and send to printer.
  */
 export async function printReturn(saleReturnId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {

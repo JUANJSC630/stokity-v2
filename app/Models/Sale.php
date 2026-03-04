@@ -12,6 +12,7 @@ class Sale extends Model
 
     protected $fillable = [
         'branch_id',
+        'session_id',
         'code',
         'client_id',
         'seller_id',
@@ -53,6 +54,11 @@ class Sale extends Model
     public function seller()
     {
         return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    public function cashSession()
+    {
+        return $this->belongsTo(CashSession::class, 'session_id');
     }
 
     public function saleProducts()

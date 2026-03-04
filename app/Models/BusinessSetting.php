@@ -15,6 +15,7 @@ class BusinessSetting extends Model
         'email',
         'address',
         'currency_symbol',
+        'require_cash_session',
         'ticket_config',
     ];
 

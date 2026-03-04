@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BusinessSetting;
+use App\Models\CashSession;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use Illuminate\Http\Request;
@@ -85,6 +86,138 @@ class PrintController extends Controller
     }
 
     /**
+     * Generate ESC/POS arqueo report for a cash session, base64-encoded.
+     */
+    public function cashSessionReport(Request $request, CashSession $session)
+    {
+        $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name', 'movements']);
+
+        $business     = BusinessSetting::getSettings();
+        $config       = $business->getTicketConfig();
+        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $charsPerLine = $paperWidth >= 80 ? 48 : 32;
+
+        $sep  = str_repeat('-', $charsPerLine);
+        $sep2 = str_repeat('=', $charsPerLine);
+
+        $connector = new DummyPrintConnector();
+        $printer   = new Printer($connector);
+
+        try {
+            $p = $printer;
+            // No ESC @ — causes paper retraction on many thermal printers.
+            $p->setEmphasis(false);
+            $p->setTextSize(1, 1);
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+
+            // Business name
+            $p->setEmphasis(true);
+            $p->text($this->truncate($business->name, $charsPerLine) . "\n");
+            $p->setEmphasis(false);
+
+            $p->text($sep2 . "\n");
+            $p->setEmphasis(true);
+            $p->text("ARQUEO DE CAJA\n");
+            $p->setEmphasis(false);
+            $p->text($sep . "\n");
+
+            $p->setJustification(Printer::JUSTIFY_LEFT);
+
+            $tz = 'America/Bogota';
+            $openedAt = \Carbon\Carbon::parse($session->opened_at)->setTimezone($tz);
+            $closedAt = $session->closed_at ? \Carbon\Carbon::parse($session->closed_at)->setTimezone($tz) : null;
+
+            $p->setEmphasis(true); $p->text('Turno:   '); $p->setEmphasis(false);
+            $p->text('#' . $session->id . "\n");
+
+            if ($session->branch) {
+                $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
+                $p->text(' ' . $this->truncate($session->branch->name, $charsPerLine - 10) . "\n");
+            }
+            if ($session->openedBy) {
+                $p->setEmphasis(true); $p->text('Cajero:  '); $p->setEmphasis(false);
+                $p->text($this->truncate($session->openedBy->name, $charsPerLine - 9) . "\n");
+            }
+
+            $p->setEmphasis(true); $p->text('Apertura:'); $p->setEmphasis(false);
+            $p->text(' ' . $openedAt->format('d/m/Y H:i') . "\n");
+
+            if ($closedAt) {
+                $p->setEmphasis(true); $p->text('Cierre:  '); $p->setEmphasis(false);
+                $p->text($closedAt->format('d/m/Y H:i') . "\n");
+            }
+
+            $p->text($sep . "\n");
+
+            // Sales summary
+            $salesByMethod = Sale::where('session_id', $session->id)
+                ->where('status', 'completed')
+                ->selectRaw('payment_method, SUM(total) as total, COUNT(*) as count')
+                ->groupBy('payment_method')
+                ->get();
+
+            if ($salesByMethod->isNotEmpty()) {
+                $p->setEmphasis(true);
+                $p->text("VENTAS\n");
+                $p->setEmphasis(false);
+                $totalSales = 0;
+                foreach ($salesByMethod as $row) {
+                    $name  = ucfirst($row->payment_method);
+                    $total = (float) $row->total;
+                    $totalSales += $total;
+                    $this->printTotalRow($p, $name . ' (' . $row->count . '):', $this->formatMoney($total), $charsPerLine);
+                }
+                $p->text($sep . "\n");
+                $p->setEmphasis(true);
+                $this->printTotalRow($p, 'Total ventas:', $this->formatMoney($totalSales), $charsPerLine);
+                $p->setEmphasis(false);
+            }
+
+            // Cash movements
+            $movements = $session->movements;
+            if ($movements->isNotEmpty()) {
+                $p->text($sep . "\n");
+                $p->setEmphasis(true); $p->text("MOVIMIENTOS\n"); $p->setEmphasis(false);
+                foreach ($movements as $m) {
+                    $label = ($m->type === 'cash_in' ? '+' : '-') . ' ' . $this->truncate($m->concept, $charsPerLine - 12);
+                    $this->printTotalRow($p, $label . ':', $this->formatMoney($m->amount), $charsPerLine);
+                }
+            }
+
+            // Cuadre (only for closed sessions)
+            if ($session->status === 'closed') {
+                $p->text($sep2 . "\n");
+                $p->setEmphasis(true); $p->text("CUADRE DE CAJA\n"); $p->setEmphasis(false);
+                $p->text($sep . "\n");
+                $this->printTotalRow($p, 'Fondo inicial:', $this->formatMoney($session->opening_amount), $charsPerLine);
+                $this->printTotalRow($p, 'Ventas efectivo:', $this->formatMoney($session->total_sales_cash), $charsPerLine);
+                $this->printTotalRow($p, 'Ingresos manuales:', $this->formatMoney($session->total_cash_in), $charsPerLine);
+                $this->printTotalRow($p, 'Egresos manuales:', $this->formatMoney($session->total_cash_out), $charsPerLine);
+                $p->text($sep . "\n");
+                $p->setEmphasis(true);
+                $this->printTotalRow($p, 'Esperado:', $this->formatMoney($session->expected_cash), $charsPerLine);
+                $this->printTotalRow($p, 'Contado:', $this->formatMoney($session->closing_amount_declared), $charsPerLine);
+                $p->setEmphasis(false);
+                $p->text($sep2 . "\n");
+                $disc = (float) $session->discrepancy;
+                $discStr = ($disc >= 0 ? '+' : '') . $this->formatMoney($disc);
+                $p->setEmphasis(true);
+                $this->printTotalRow($p, 'DIFERENCIA:', $discStr, $charsPerLine);
+                $p->setEmphasis(false);
+            }
+
+            $p->text($sep . "\n");
+            $p->feed(4);
+            $p->cut();
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
+
+        return response()->json(['data' => base64_encode($bytes)]);
+    }
+
+    /**
      * Generate ESC/POS return receipt bytes for a sale return, base64-encoded.
      */
     public function returnReceipt(Request $request, SaleReturn $saleReturn)
@@ -108,7 +241,9 @@ class PrintController extends Controller
             $sale = $saleReturn->sale;
             $biz  = $business;
 
-            $p->initialize();
+            // No ESC @ here — same reason as printReceipt (causes paper retraction).
+            $p->setEmphasis(false);
+            $p->setTextSize(1, 1);
             $p->setJustification(Printer::JUSTIFY_CENTER);
 
             // Business name
@@ -336,7 +471,12 @@ class PrintController extends Controller
         $sep2 = str_repeat('=', $cols);
 
         // ── Header ──────────────────────────────────────────────────────────
-        $p->initialize();
+        // Do NOT send ESC @ (initialize) here — many thermal printers retract
+        // paper when they receive that command, undoing any manual positioning
+        // and making the top of the receipt disappear inside the printer.
+        // Reset only the settings we need manually instead.
+        $p->setEmphasis(false);
+        $p->setTextSize(1, 1);
         $p->setJustification(Printer::JUSTIFY_CENTER);
 
         // Logo (optional)
@@ -344,14 +484,8 @@ class PrintController extends Controller
             $tmpFile = null;
             try {
                 if (str_starts_with($biz->logo, 'http')) {
-                    $imgData = @file_get_contents($biz->logo);
-                    if ($imgData !== false) {
-                        // Keep extension so GdEscposImage can detect format
-                        $urlExt  = strtolower(pathinfo(parse_url($biz->logo, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
-                        $tmpFile = tempnam(sys_get_temp_dir(), 'stokity_logo_') . '.' . $urlExt;
-                        file_put_contents($tmpFile, $imgData);
-                        $logoPath = $tmpFile;
-                    }
+                    $logoPath = $this->downloadToTempFile($biz->logo);
+                    $tmpFile  = $logoPath; // track for cleanup
                 } else {
                     $logoPath = public_path('uploads/business/' . $biz->logo);
                 }
@@ -604,6 +738,60 @@ class PrintController extends Controller
             return str_pad($text, $cols, ' ', STR_PAD_BOTH);
         }
         return mb_substr($text, 0, $cols);
+    }
+
+    /**
+     * Download a remote URL to a temp file and return its path, or null on failure.
+     * Uses cURL when available (more reliable on servers where allow_url_fopen is off).
+     * The caller is responsible for unlinking the temp file.
+     */
+    private function downloadToTempFile(string $url): ?string
+    {
+        $tmpFile = null;
+        try {
+            if (function_exists('curl_init')) {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_TIMEOUT        => 10,
+                    CURLOPT_SSL_VERIFYPEER => true,
+                ]);
+                $imgData    = curl_exec($ch);
+                $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+                curl_close($ch);
+
+                if ($imgData === false || $httpCode !== 200) {
+                    return null;
+                }
+
+                // Derive extension from Content-Type header for GD detection
+                $ext = match (true) {
+                    str_contains((string) $contentType, 'webp') => 'webp',
+                    str_contains((string) $contentType, 'png')  => 'png',
+                    str_contains((string) $contentType, 'gif')  => 'gif',
+                    default                                      => 'jpg',
+                };
+            } else {
+                // Fallback: file_get_contents (requires allow_url_fopen)
+                $imgData = @file_get_contents($url);
+                if ($imgData === false) {
+                    return null;
+                }
+                $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
+            }
+
+            // Write to a temp file with the correct extension so mime_content_type works
+            $tmpFile = sys_get_temp_dir() . '/stokity_logo_' . uniqid() . '.' . $ext;
+            file_put_contents($tmpFile, $imgData);
+            return $tmpFile;
+        } catch (\Throwable) {
+            if ($tmpFile && file_exists($tmpFile)) {
+                @unlink($tmpFile);
+            }
+            return null;
+        }
     }
 
     /**

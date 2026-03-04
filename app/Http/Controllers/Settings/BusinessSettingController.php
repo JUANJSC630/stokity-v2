@@ -30,7 +30,8 @@ class BusinessSettingController extends Controller
             'email'           => 'nullable|email|max:100',
             'address'         => 'nullable|string|max:255',
             'currency_symbol' => 'nullable|string|max:5',
-            'logo'            => 'nullable|image|max:4096',
+            'logo'                 => 'nullable|image|max:4096',
+            'require_cash_session' => 'nullable|boolean',
         ]);
 
         $settings = BusinessSetting::getSettings();

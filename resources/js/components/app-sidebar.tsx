@@ -7,6 +7,7 @@ import {
     Activity,
     Banknote,
     BarChart3,
+    BookOpen,
     Building,
     Building2,
     CreditCard,
@@ -66,6 +67,12 @@ const allNavItems: NavItem[] = [
         title: 'POS',
         href: '/pos',
         icon: ScanLine,
+    },
+    {
+        title: 'Historial de Caja',
+        href: '/cash-sessions',
+        icon: BookOpen,
+        roles: ['administrador', 'encargado', 'vendedor'],
     },
     {
         title: 'Ventas',

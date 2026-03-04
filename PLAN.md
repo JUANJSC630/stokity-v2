@@ -23,6 +23,7 @@
 | Notas en ventas | ✅ Resuelto |
 | Historial de compras del cliente | ✅ Resuelto |
 | Tests automatizados | ❌ Vacío |
+| Apertura/Cierre de Caja (turnos) | ✅ Implementado |
 
 ---
 
@@ -97,3 +98,10 @@
 - Métodos de pago dinámicos configurables
 - `ArchivedUser` para auditoría de usuarios eliminados
 - Paginación en todos los listados
+
+## Problema con imprecion 
+
+ - Antes: initialize() → feed() → contenido. El initialize() (ESC @) le dice a la impresora "reinicia todo" y en muchos modelos eso incluye retraer el papel a su posición base — deshaciendo cualquier avance previo.   
+- Ahora: sin initialize(). La impresora queda exactamente donde estaba (donde terminó el corte anterior), y el contenido empieza a imprimir desde ahí sin que nadie mueva el papel.
+
+(no sirvio , sigue danado)

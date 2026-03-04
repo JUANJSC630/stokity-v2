@@ -35,6 +35,45 @@ export interface BusinessSetting {
     email: string | null;
     address: string | null;
     currency_symbol: string;
+    require_cash_session: boolean;
+}
+
+export interface CashSession {
+    id: number;
+    branch_id: number;
+    opened_by_user_id: number;
+    closed_by_user_id: number | null;
+    status: 'open' | 'closed';
+    opening_amount: number;
+    opening_notes: string | null;
+    opened_at: string;
+    closing_amount_declared: number | null;
+    closing_notes: string | null;
+    closed_at: string | null;
+    total_sales_cash: number;
+    total_sales_card: number;
+    total_sales_transfer: number;
+    total_sales_other: number;
+    total_cash_in: number;
+    total_cash_out: number;
+    total_refunds_cash: number;
+    expected_cash: number | null;
+    discrepancy: number | null;
+    opened_by?: { id: number; name: string };
+    closed_by?: { id: number; name: string } | null;
+    branch?: { id: number; name: string };
+}
+
+export interface CashMovement {
+    id: number;
+    session_id: number;
+    user_id: number;
+    type: 'cash_in' | 'cash_out';
+    amount: number;
+    concept: string;
+    notes: string | null;
+    created_at: string;
+    user?: { id: number; name: string };
 }
 
 export interface SharedData {

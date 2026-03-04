@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Branch;
+use App\Models\BusinessSetting;
+use App\Models\CashSession;
 use App\Models\Client;
 use App\Models\Product;
 use App\Models\Sale;
@@ -104,6 +106,15 @@ class SaleController extends Controller
     {
         $isPending = $request->input('status') === 'pending';
 
+        // Validar sesión de caja si está habilitado (solo para ventas completadas)
+        if (!$isPending) {
+            $settings    = BusinessSetting::getSettings();
+            $openSession = CashSession::getOpenForUser(Auth::id(), (int) $request->branch_id);
+            if (!$openSession && $settings->require_cash_session) {
+                return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
+            }
+        }
+
         // Obtener códigos de métodos de pago activos para validación
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
@@ -165,6 +176,12 @@ class SaleController extends Controller
             $validated['payment_method'] = $validated['payment_method'] ?? '';
             $validated['amount_paid']    = $validated['amount_paid']    ?? 0;
             $validated['change_amount']  = $validated['change_amount']  ?? 0;
+        }
+
+        // Attach open cash session if available
+        if (!$isPending) {
+            $openSession = $openSession ?? CashSession::getOpenForUser(Auth::id(), (int) $validated['branch_id']);
+            $validated['session_id'] = $openSession?->id;
         }
 
         $products = $validated['products'];
@@ -301,6 +318,13 @@ class SaleController extends Controller
 
         $products = $validated['products'];
 
+        // Validar sesión de caja si está habilitado
+        $settings    = BusinessSetting::getSettings();
+        $openSession = CashSession::getOpenForUser(Auth::id(), $sale->branch_id);
+        if (!$openSession && $settings->require_cash_session) {
+            return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
+        }
+
         // Verificar stock con los productos actuales del carrito
         foreach ($products as $prod) {
             $product = Product::find($prod['id']);
@@ -311,7 +335,7 @@ class SaleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($sale, $validated, $products) {
+        DB::transaction(function () use ($sale, $validated, $products, $openSession) {
             $sale->update([
                 'payment_method' => $validated['payment_method'],
                 'amount_paid'    => $validated['amount_paid'],
@@ -322,6 +346,7 @@ class SaleController extends Controller
                 'discount_value' => $validated['discount_value'] ?? 0,
                 'status'         => 'completed',
                 'date'           => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
+                'session_id'     => $openSession?->id,
             ]);
 
             // Replace products with current cart
