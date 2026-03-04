@@ -35,7 +35,7 @@ export default function Login({ status }: LoginProps) {
     };
 
     return (
-        <AuthLayout title="Stokity" description="¡Ingresa al sistema para gestionar tu negocio!">
+        <AuthLayout description="¡Ingresa al sistema para gestionar tu negocio!">
             <Head title="Iniciar sesión">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700" rel="stylesheet" />
