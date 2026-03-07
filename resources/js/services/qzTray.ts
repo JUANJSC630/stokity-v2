@@ -95,7 +95,13 @@ export async function printBase64(printerName: string, base64Data: string): Prom
     await connectQZ();
     const qz = await getQZ();
 
-    const config = qz.configs.create(printerName);
+    // altPrinting / forceRaw: bypass the OS print driver and send raw bytes
+    // directly to the USB port. Without this, macOS CUPS (and some Windows
+    // drivers) inject their own ESC @ initialization before our data, which
+    // retracts the paper and cuts off the top of the receipt.
+    // altPrinting works on all QZ Tray versions; forceRaw was added in 2.2+.
+    // Both have no effect on platforms that don't need them.
+    const config = qz.configs.create(printerName, { altPrinting: true, forceRaw: true });
     const data = [{ type: 'raw', format: 'base64', data: base64Data }];
 
     await qz.print(config, data);
@@ -117,8 +123,15 @@ function buildTestTicket(paperWidth: 58 | 80): string {
     const w  = (...b: number[]) => bytes.push(...b);
     const t  = (text: string) => bytes.push(...encodeText(text));
 
-    // Initialize printer
-    w(0x1b, 0x40);
+    // Do NOT send ESC @ (0x1b 0x40) — it retracts paper on thermal printers.
+
+    // ESC 2: reset line spacing to default (previous job may have left it tiny)
+    w(0x1b, 0x32);
+    // Top margin: 14 × ESC J 24 = 336 dots ≈ 42mm past dead zone
+    for (let i = 0; i < 14; i++) {
+        w(0x1b, 0x4a, 0x18); // ESC J 24
+    }
+
     // Center alignment
     w(0x1b, 0x61, 0x01);
     // Double height + width

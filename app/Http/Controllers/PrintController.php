@@ -70,7 +70,7 @@ class PrintController extends Controller
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
         $connector = new DummyPrintConnector();
-        $printer   = new Printer($connector);
+        $printer   = $this->createPrinter($connector);
 
         try {
             $this->printReceipt($printer, $sale, $business, $charsPerLine, $config);
@@ -94,33 +94,30 @@ class PrintController extends Controller
 
         $business     = BusinessSetting::getSettings();
         $config       = $business->getTicketConfig();
-        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
         $sep  = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
         $connector = new DummyPrintConnector();
-        $printer   = new Printer($connector);
+        $printer   = $this->createPrinter($connector);
 
         try {
             $p = $printer;
-            // No ESC @ — causes paper retraction on many thermal printers.
-            $p->setEmphasis(false);
-            $p->setTextSize(1, 1);
-            $p->setJustification(Printer::JUSTIFY_CENTER);
 
-            // Business name
-            $p->setEmphasis(true);
-            $p->text($this->truncate($business->name, $charsPerLine) . "\n");
-            $p->setEmphasis(false);
+            // ── Header (same style as sale receipts) ─────────────────────────
+            $this->printBusinessHeader($p, $business, $charsPerLine, $cfg);
 
             $p->text($sep2 . "\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
             $p->text("ARQUEO DE CAJA\n");
             $p->setEmphasis(false);
             $p->text($sep . "\n");
 
+            // ── Session info ─────────────────────────────────────────────────
             $p->setJustification(Printer::JUSTIFY_LEFT);
 
             $tz = 'America/Bogota';
@@ -149,7 +146,7 @@ class PrintController extends Controller
 
             $p->text($sep . "\n");
 
-            // Sales summary
+            // ── Sales summary ────────────────────────────────────────────────
             $salesByMethod = Sale::where('session_id', $session->id)
                 ->where('status', 'completed')
                 ->selectRaw('payment_method, SUM(total) as total, COUNT(*) as count')
@@ -173,7 +170,7 @@ class PrintController extends Controller
                 $p->setEmphasis(false);
             }
 
-            // Cash movements
+            // ── Cash movements ───────────────────────────────────────────────
             $movements = $session->movements;
             if ($movements->isNotEmpty()) {
                 $p->text($sep . "\n");
@@ -184,7 +181,7 @@ class PrintController extends Controller
                 }
             }
 
-            // Cuadre (only for closed sessions)
+            // ── Cuadre (only for closed sessions) ────────────────────────────
             if ($session->status === 'closed') {
                 $p->text($sep2 . "\n");
                 $p->setEmphasis(true); $p->text("CUADRE DE CAJA\n"); $p->setEmphasis(false);
@@ -206,9 +203,8 @@ class PrintController extends Controller
                 $p->setEmphasis(false);
             }
 
-            $p->text($sep . "\n");
-            $p->feed(4);
-            $p->cut();
+            // ── Footer (same style as sale receipts) ─────────────────────────
+            $this->printFooter($p, $charsPerLine, $cfg);
         } finally {
             $bytes = $connector->getData();
             $printer->close();
@@ -226,45 +222,22 @@ class PrintController extends Controller
 
         $business     = BusinessSetting::getSettings();
         $config       = $business->getTicketConfig();
-        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $cfg  = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
         $sep  = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
         $connector = new DummyPrintConnector();
-        $printer   = new Printer($connector);
+        $printer   = $this->createPrinter($connector);
 
         try {
             $p    = $printer;
             $sale = $saleReturn->sale;
-            $biz  = $business;
 
-            // No ESC @ here — same reason as printReceipt (causes paper retraction).
-            $p->setEmphasis(false);
-            $p->setTextSize(1, 1);
-            $p->setJustification(Printer::JUSTIFY_CENTER);
-
-            // Business name
-            if ($cfg['header_size'] === 'large') {
-                $p->setTextSize(2, 2);
-                $p->text($this->truncate($biz->name, (int) ($charsPerLine / 2)) . "\n");
-                $p->setTextSize(1, 1);
-            } else {
-                $p->setEmphasis(true);
-                $p->text($this->truncate($biz->name, $charsPerLine) . "\n");
-                $p->setEmphasis(false);
-            }
-            if ($cfg['show_nit'] && $biz->nit) {
-                $p->text('NIT: ' . $biz->nit . "\n");
-            }
-            if ($cfg['show_address'] && $biz->address) {
-                $p->text($this->wrapCenter($biz->address, $charsPerLine) . "\n");
-            }
-            if ($cfg['show_phone'] && $biz->phone) {
-                $p->text('Tel: ' . $biz->phone . "\n");
-            }
+            // ── Header (same style as sale receipts) ─────────────────────────
+            $this->printBusinessHeader($p, $business, $charsPerLine, $cfg);
 
             $p->text($sep2 . "\n");
             $p->setJustification(Printer::JUSTIFY_CENTER);
@@ -273,6 +246,7 @@ class PrintController extends Controller
             $p->setEmphasis(false);
             $p->text($sep . "\n");
 
+            // ── Return info ──────────────────────────────────────────────────
             $p->setJustification(Printer::JUSTIFY_LEFT);
             $p->setEmphasis(true); $p->text('Devol.:  '); $p->setEmphasis(false);
             $p->text(($saleReturn->id) . "\n");
@@ -302,7 +276,7 @@ class PrintController extends Controller
 
             $p->text($sep . "\n");
 
-            // Products header
+            // ── Products ─────────────────────────────────────────────────────
             if ($charsPerLine < 40) {
                 $qtyW = 4; $priceW = 8; $subW = 8;
             } else {
@@ -338,6 +312,8 @@ class PrintController extends Controller
             }
 
             $p->text($sep . "\n");
+
+            // ── Totals ───────────────────────────────────────────────────────
             $this->printTotalRow($p, 'Subtotal:', $this->formatMoney($net), $charsPerLine);
             if ($cfg['show_tax'] && $tax > 0) {
                 $this->printTotalRow($p, 'Impuesto:', $this->formatMoney($tax), $charsPerLine);
@@ -350,12 +326,8 @@ class PrintController extends Controller
             $p->setEmphasis(false);
             $p->text($sep2 . "\n");
 
-            $p->setJustification(Printer::JUSTIFY_CENTER);
-            if ($cfg['footer_line1']) $p->text($cfg['footer_line1'] . "\n");
-            if ($cfg['footer_line2']) $p->text($cfg['footer_line2'] . "\n");
-
-            $p->feed(4);
-            $p->cut();
+            // ── Footer ───────────────────────────────────────────────────────
+            $this->printFooter($p, $charsPerLine, $cfg);
         } finally {
             $bytes = $connector->getData();
             $printer->close();
@@ -374,37 +346,51 @@ class PrintController extends Controller
     {
         $business     = BusinessSetting::getSettings();
         $config       = $business->getTicketConfig();
-        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
-
-        $connector = new DummyPrintConnector();
-        $printer   = new Printer($connector);
 
         $sep  = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
-        $printer->initialize();
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setTextSize(2, 2);
-        $printer->text("Stokity POS\n");
-        $printer->setTextSize(1, 1);
-        $printer->text("Prueba de impresora\n");
-        $printer->text($sep2 . "\n");
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        $printer->text("Ancho: {$paperWidth} mm   Cols: {$charsPerLine}\n");
-        $printer->text("Fecha: " . now()->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
-        $printer->text($sep . "\n");
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->setEmphasis(true);
-        $printer->text("Si ves este recibo,\n");
-        $printer->text("la impresora funciona!\n");
-        $printer->setEmphasis(false);
-        $printer->text($sep2 . "\n");
-        $printer->feed(4);
-        $printer->cut();
+        $connector = new DummyPrintConnector();
+        $printer   = $this->createPrinter($connector);
 
-        $bytes = $connector->getData();
-        $printer->close();
+        try {
+            $p = $printer;
+
+            $p->setLineSpacing();  // ESC 2: reset to default
+            $p->setEmphasis(false);
+            $p->setTextSize(1, 1);
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+
+            // Top margin: ESC J × 8 = 192 dots ≈ 24mm past dead zone
+            $conn = $p->getPrintConnector();
+            for ($i = 0; $i < 8; $i++) {
+                $conn->write("\x1b\x4a\x18"); // ESC J 24
+            }
+
+            $p->setTextSize(2, 2);
+            $p->text("Stokity POS\n");
+            $p->setTextSize(1, 1);
+            $p->text("Prueba de impresora\n");
+            $p->text($sep2 . "\n");
+            $p->setJustification(Printer::JUSTIFY_LEFT);
+            $p->text("Ancho: {$paperWidth} mm   Cols: {$charsPerLine}\n");
+            $p->text("Fecha: " . now()->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
+            $p->text($sep . "\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->setEmphasis(true);
+            $p->text("Si ves este recibo,\n");
+            $p->text("la impresora funciona!\n");
+            $p->setEmphasis(false);
+            $p->text($sep2 . "\n");
+            $p->feed(4);
+            $p->cut();
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
 
         return response()->json(['data' => base64_encode($bytes)]);
     }
@@ -448,12 +434,14 @@ class PrintController extends Controller
         ]);
 
         $connector = new DummyPrintConnector();
-        $printer   = new Printer($connector);
+        $printer   = $this->createPrinter($connector);
 
-        $this->printReceipt($printer, $sale, $business, $charsPerLine, $config);
-
-        $bytes = $connector->getData();
-        $printer->close();
+        try {
+            $this->printReceipt($printer, $sale, $business, $charsPerLine, $config);
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
 
         return response()->json(['data' => base64_encode($bytes)]);
     }
@@ -462,82 +450,52 @@ class PrintController extends Controller
     // Private helpers
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function printReceipt(Printer $p, object $sale, BusinessSetting $biz, int $cols, array $config = []): void
+    /**
+     * Create a Printer instance with a clean byte buffer.
+     *
+     * The Printer constructor always calls initialize() which sends ESC @
+     * (0x1B 0x40). On many thermal printers this command retracts the paper,
+     * pulling the top of the receipt into the dead zone between the print head
+     * and the cutter blade — causing the header to be cut off on subsequent
+     * prints. We clear the DummyPrintConnector buffer immediately after
+     * construction to strip those bytes from the output.
+     */
+    private function createPrinter(DummyPrintConnector $connector): Printer
     {
-        // Merge defaults so we never have undefined keys
-        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $printer = new Printer($connector);
+        $connector->clear();
 
-        $sep  = str_repeat('-', $cols);
-        $sep2 = str_repeat('=', $cols);
+        return $printer;
+    }
 
-        // ── Header ──────────────────────────────────────────────────────────
-        // Do NOT send ESC @ (initialize) here — many thermal printers retract
-        // paper when they receive that command, undoing any manual positioning
-        // and making the top of the receipt disappear inside the printer.
-        // Reset only the settings we need manually instead.
+    /**
+     * Print the standardized business header: logo, name, NIT, address, phone.
+     * Used by all receipt types to ensure a consistent look.
+     */
+    private function printBusinessHeader(Printer $p, BusinessSetting $biz, int $cols, array $cfg): void
+    {
+        // Full manual reset — since we removed ESC @ (which retracts paper),
+        // we must explicitly reset ALL relevant settings. The previous print
+        // job may have left line spacing at a tiny value (e.g. 16 dots from
+        // logo column-format printing), making LF feeds nearly useless.
+        $p->setLineSpacing();  // ESC 2: reset to default (~30 dots per line)
         $p->setEmphasis(false);
         $p->setTextSize(1, 1);
         $p->setJustification(Printer::JUSTIFY_CENTER);
 
-        // Logo (optional)
-        if (!empty($cfg['show_logo']) && $biz->logo) {
-            $tmpFile = null;
-            try {
-                if (str_starts_with($biz->logo, 'http')) {
-                    $logoPath = $this->downloadToTempFile($biz->logo);
-                    $tmpFile  = $logoPath; // track for cleanup
-                } else {
-                    $logoPath = public_path('uploads/business/' . $biz->logo);
-                }
-                if (!empty($logoPath) && file_exists($logoPath)) {
-                    // Only print if we can produce a clean B&W resized PNG.
-                    // Never fall back to the original — it may be huge and cause
-                    // many blank ESC* passes, wasting paper.
-                    $resized = $this->resizeLogoForPrint($logoPath);
-                    if ($resized !== null) {
-                        $image = EscposImage::load($resized, false);
-                        // Print logo using ESC * (column format) with correct 24-dot line spacing.
-                        //
-                        // Why NOT bitImage() (GS v 0 raster): many 58mm printers don't support
-                        // this command and print the raw bytes as garbled text characters instead.
-                        //
-                        // Why NOT the library's bitImageColumnFormat(): it hardcodes
-                        //   setLineSpacing(16) inside, but each band is 24 dots tall,
-                        //   leaving 8-dot white gaps (horizontal lines) between bands.
-                        //
-                        // Fix: write ESC * bytes manually with ESC 3 24 (line spacing = 24 dots)
-                        // so each line feed advances exactly one band height — no gaps.
-                        try {
-                            $colData   = $image->toColumnFormat(true); // high-density 24-dot bands
-                            $imgWidth  = $image->getWidth();
-                            $nL        = $imgWidth & 0xFF;
-                            $nH        = ($imgWidth >> 8) & 0xFF;
-                            $escHeader = "\x1b\x2a\x21" . chr($nL) . chr($nH); // ESC * 33 nL nH
-                            $conn      = $p->getPrintConnector();
-                            // The printer ignores ESC 3 in column format mode.
-                            // Use ESC J n (immediate paper feed, n dots) instead of \n,
-                            // bypassing the line spacing setting entirely.
-                            foreach ($colData as $rowData) {
-                                $conn->write($escHeader . $rowData . "\x1b\x4a\x18");
-                                // ESC J 24 = feed exactly 24 dots (matches 24-dot band height)
-                            }
-                        } catch (\Throwable) {
-                            // Last resort fallback — image may have horizontal lines
-                            $p->bitImageColumnFormat($image, Printer::IMG_DEFAULT);
-                        }
-                        $p->text("\n");
-                        @unlink($resized);
-                    }
-                }
-            } catch (\Throwable $e) {
-                // Silently skip if image can't be printed
-            } finally {
-                if ($tmpFile && file_exists($tmpFile)) {
-                    unlink($tmpFile);
-                }
-            }
+        // Top margin: push past the dead zone between print head and cutter.
+        // ESC J 24 = feed 24 dots per command. 14 × 24 = 336 dots ≈ 42mm.
+        $conn = $p->getPrintConnector();
+        for ($i = 0; $i < 14; $i++) {
+            $conn->write("\x1b\x4a\x18"); // ESC J 24
         }
 
+        // Logo (optional)
+        if (!empty($cfg['show_logo']) && $biz->logo) {
+            $this->printLogo($p, $biz->logo);
+        }
+
+        // Business name
         if ($cfg['header_size'] === 'large') {
             $p->setTextSize(2, 2);
             $p->text($this->truncate($biz->name, (int) ($cols / 2)) . "\n");
@@ -557,6 +515,112 @@ class PrintController extends Controller
         if ($cfg['show_phone'] && $biz->phone) {
             $p->text('Tel: ' . $biz->phone . "\n");
         }
+    }
+
+    /**
+     * Print a logo image using ESC * column format with correct 24-dot spacing.
+     */
+    private function printLogo(Printer $p, string $logo): void
+    {
+        $tmpFile = null;
+        try {
+            if (str_starts_with($logo, 'http')) {
+                $logoPath = $this->downloadToTempFile($logo);
+                $tmpFile  = $logoPath;
+            } else {
+                $logoPath = public_path('uploads/business/' . $logo);
+            }
+
+            if (empty($logoPath) || !file_exists($logoPath)) {
+                return;
+            }
+
+            // Only print if we can produce a clean B&W resized PNG.
+            // Never fall back to the original — it may be huge and cause
+            // many blank ESC* passes, wasting paper.
+            $resized = $this->resizeLogoForPrint($logoPath);
+            if ($resized === null) {
+                return;
+            }
+
+            $image = EscposImage::load($resized, false);
+
+            // Print logo using ESC * (column format) with correct 24-dot line spacing.
+            //
+            // Why NOT bitImage() (GS v 0 raster): many 58mm printers don't support
+            // this command and print the raw bytes as garbled text characters instead.
+            //
+            // Why NOT the library's bitImageColumnFormat(): it hardcodes
+            //   setLineSpacing(16) inside, but each band is 24 dots tall,
+            //   leaving 8-dot white gaps (horizontal lines) between bands.
+            //
+            // Fix: write ESC * bytes manually with ESC J 24 (immediate paper feed)
+            // so each band advances exactly 24 dots — no gaps.
+            try {
+                $colData   = $image->toColumnFormat(true); // high-density 24-dot bands
+                $imgWidth  = $image->getWidth();
+                $nL        = $imgWidth & 0xFF;
+                $nH        = ($imgWidth >> 8) & 0xFF;
+                $escHeader = "\x1b\x2a\x21" . chr($nL) . chr($nH); // ESC * 33 nL nH
+                $conn      = $p->getPrintConnector();
+
+                foreach ($colData as $rowData) {
+                    $conn->write($escHeader . $rowData . "\x1b\x4a\x18");
+                    // ESC J 24 = feed exactly 24 dots (matches 24-dot band height)
+                }
+            } catch (\Throwable) {
+                // Last resort fallback — image may have horizontal lines
+                $p->bitImageColumnFormat($image, Printer::IMG_DEFAULT);
+            }
+
+            $p->text("\n");
+            @unlink($resized);
+        } catch (\Throwable $e) {
+            \Log::warning('printLogo failed: ' . $e->getMessage(), ['logo' => $logo]);
+        } finally {
+            if ($tmpFile && file_exists($tmpFile)) {
+                @unlink($tmpFile);
+            }
+        }
+    }
+
+    /**
+     * Print the standardized footer: separator, footer lines, feed and cut.
+     * Used by all receipt types to ensure a consistent ending.
+     */
+    private function printFooter(Printer $p, int $cols, array $cfg): void
+    {
+        $sep = str_repeat('-', $cols);
+
+        $p->text($sep . "\n");
+        $p->setJustification(Printer::JUSTIFY_CENTER);
+
+        $footer1 = $cfg['footer_line1'] ?? '¡Gracias por su compra!';
+        $footer2 = $cfg['footer_line2'] ?? 'Vuelva pronto';
+
+        if ($footer1) {
+            $p->text($footer1 . "\n");
+        }
+        if ($footer2) {
+            $p->text($footer2 . "\n");
+        }
+
+        $p->feed(4);
+        $p->cut();
+    }
+
+    /**
+     * Generate a complete sale receipt on the given Printer.
+     */
+    private function printReceipt(Printer $p, object $sale, BusinessSetting $biz, int $cols, array $config = []): void
+    {
+        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+
+        $sep  = str_repeat('-', $cols);
+        $sep2 = str_repeat('=', $cols);
+
+        // ── Header ──────────────────────────────────────────────────────────
+        $this->printBusinessHeader($p, $biz, $cols, $cfg);
 
         $p->text($sep2 . "\n");
 
@@ -600,13 +664,11 @@ class PrintController extends Controller
 
         // ── Products ─────────────────────────────────────────────────────────
         if ($cols < 40) {
-            // 58mm compact layout
             $qtyW   = 4;
             $priceW = 8;
             $subW   = 8;
             $nameW  = $cols - $qtyW - $priceW - $subW - 2;
         } else {
-            // 80mm layout
             $qtyW   = 5;
             $priceW = 10;
             $subW   = 10;
@@ -652,7 +714,6 @@ class PrintController extends Controller
             $label = 'Descuento:';
             if ($sale->discount_type === 'percentage') {
                 $pct = number_format($sale->discount_value, 0);
-                // Keep label short on 58mm
                 $label = $cols < 40 ? "Descto ({$pct}%):" : "Descuento ({$pct}%):";
             }
             $this->printTotalRow($p, $label, '- ' . $this->formatMoney($sale->discount_amount), $cols);
@@ -668,14 +729,12 @@ class PrintController extends Controller
 
         // ── Payment info ─────────────────────────────────────────────────────
         $payLabel = $sale->payment_method ?? '';
-        // Translate common codes to readable names
         $payNames = ['cash' => 'Efectivo', 'nequi' => 'Nequi', 'card' => 'Tarjeta'];
         $payLabel = $payNames[strtolower($payLabel)] ?? ucfirst($payLabel);
 
         $this->printTotalRow($p, 'Metodo pago:', $payLabel, $cols);
 
         if (strtolower($sale->payment_method ?? '') === 'cash' && (float) $sale->amount_paid > 0) {
-            // Short label on 58mm to avoid wrapping
             $recLabel = $cols < 40 ? 'Efectivo:' : 'Efectivo recibido:';
             $this->printTotalRow($p, $recLabel, $this->formatMoney($sale->amount_paid), $cols);
 
@@ -692,24 +751,11 @@ class PrintController extends Controller
 
         // ── Footer ───────────────────────────────────────────────────────────
         $p->text($sep2 . "\n");
-        $p->setJustification(Printer::JUSTIFY_CENTER);
-
-        $footer1 = $cfg['footer_line1'] ?? '¡Gracias por su compra!';
-        $footer2 = $cfg['footer_line2'] ?? 'Vuelva pronto';
-
-        if ($footer1) $p->text($footer1 . "\n");
-        if ($footer2) $p->text($footer2 . "\n");
-
-        $p->text($sep . "\n");
-
-        // Feed and cut
-        $p->feed(4);
-        $p->cut();
+        $this->printFooter($p, $cols, $cfg);
     }
 
     private function printTotalRow(Printer $p, string $label, string $value, int $cols): void
     {
-        // 58mm: narrower value column so labels don't wrap
         $valueW = $cols >= 40 ? 18 : 13;
         $labelW = $cols - $valueW;
         $p->text(
@@ -742,8 +788,6 @@ class PrintController extends Controller
 
     /**
      * Download a remote URL to a temp file and return its path, or null on failure.
-     * Uses cURL when available (more reliable on servers where allow_url_fopen is off).
-     * The caller is responsible for unlinking the temp file.
      */
     private function downloadToTempFile(string $url): ?string
     {
@@ -766,7 +810,6 @@ class PrintController extends Controller
                     return null;
                 }
 
-                // Derive extension from Content-Type header for GD detection
                 $ext = match (true) {
                     str_contains((string) $contentType, 'webp') => 'webp',
                     str_contains((string) $contentType, 'png')  => 'png',
@@ -774,7 +817,6 @@ class PrintController extends Controller
                     default                                      => 'jpg',
                 };
             } else {
-                // Fallback: file_get_contents (requires allow_url_fopen)
                 $imgData = @file_get_contents($url);
                 if ($imgData === false) {
                     return null;
@@ -782,7 +824,6 @@ class PrintController extends Controller
                 $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
             }
 
-            // Write to a temp file with the correct extension so mime_content_type works
             $tmpFile = sys_get_temp_dir() . '/stokity_logo_' . uniqid() . '.' . $ext;
             file_put_contents($tmpFile, $imgData);
             return $tmpFile;
@@ -797,10 +838,6 @@ class PrintController extends Controller
     /**
      * Resize, dither and threshold a logo image for ESC/POS printing.
      * Returns path to a temporary 1-bit-style PNG, or null on failure.
-     *
-     * @param string $srcPath  Source image file (must have a known extension)
-     * @param int    $maxWidth Max width in pixels (should be ≤ printable dots)
-     * @param int    $maxHeight Max height in pixels (limits paper waste)
      */
     private function resizeLogoForPrint(string $srcPath, int $maxWidth = 360, int $maxHeight = 140): ?string
     {
@@ -823,9 +860,7 @@ class PrintController extends Controller
             $origW = imagesx($src);
             $origH = imagesy($src);
 
-            // Scale to fit within maxWidth × maxHeight, never upscale
             $scale = min(1.0, $maxWidth / $origW, $maxHeight / $origH);
-            // Width must be multiple of 8 (ESC/POS requirement)
             $newW  = (int) (ceil($origW * $scale / 8) * 8);
             $newH  = max(1, (int) round($origH * $scale));
 
@@ -833,18 +868,14 @@ class PrintController extends Controller
             $white = imagecolorallocate($dst, 255, 255, 255);
             $black = imagecolorallocate($dst, 0, 0, 0);
 
-            // White background (handles transparency)
             imagefill($dst, 0, 0, $white);
             imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
             imagedestroy($src);
 
-            // Convert to grayscale then boost contrast before thresholding
             imagefilter($dst, IMG_FILTER_GRAYSCALE);
             imagefilter($dst, IMG_FILTER_BRIGHTNESS, -20);
-            imagefilter($dst, IMG_FILTER_CONTRAST, -70); // negative = more contrast in PHP
+            imagefilter($dst, IMG_FILTER_CONTRAST, -70);
 
-            // Explicit threshold: pixels darker than 160/255 → black, rest → white
-            // This ensures the PNG is true 1-bit, avoiding escpos dither issues
             for ($y = 0; $y < $newH; $y++) {
                 for ($x = 0; $x < $newW; $x++) {
                     $c = imagecolorat($dst, $x, $y);

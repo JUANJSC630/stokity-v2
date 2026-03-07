@@ -60,6 +60,8 @@ interface SaleTicketProps {
     };
     businessName?: string | null;
     businessNit?: string | null;
+    businessAddress?: string | null;
+    businessPhone?: string | null;
     businessLogoUrl?: string | null;
     ticketConfig?: TicketConfig;
 }
@@ -89,7 +91,7 @@ const PAYMENT_LABELS: Record<string, string> = {
     other: 'Otro',
 };
 
-const SaleTicket: React.FC<SaleTicketProps> = ({ sale, businessName, businessNit, businessLogoUrl, ticketConfig }) => {
+const SaleTicket: React.FC<SaleTicketProps> = ({ sale, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }) => {
     const config = ticketConfig ?? DEFAULT_CONFIG;
     const is58 = config.paper_width === 58;
     const chars = is58 ? 32 : 48;
@@ -149,8 +151,8 @@ const SaleTicket: React.FC<SaleTicketProps> = ({ sale, businessName, businessNit
                     {businessName ?? sale.branch?.business_name ?? sale.branch?.name}
                 </div>
                 {config.show_nit && businessNit && <div style={mono}>NIT: {businessNit}</div>}
-                {config.show_address && sale.branch?.address && <div style={mono}>{sale.branch.address}</div>}
-                {config.show_phone && sale.branch?.phone && <div style={mono}>Tel: {sale.branch.phone}</div>}
+                {config.show_address && businessAddress && <div style={mono}>{businessAddress}</div>}
+                {config.show_phone && businessPhone && <div style={mono}>Tel: {businessPhone}</div>}
             </div>
 
             <Sep double />

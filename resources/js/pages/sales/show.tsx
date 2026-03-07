@@ -33,11 +33,13 @@ interface Props {
     sale: Sale;
     businessName?: string | null;
     businessNit?: string | null;
+    businessAddress?: string | null;
+    businessPhone?: string | null;
     businessLogoUrl?: string | null;
     ticketConfig?: TicketConfig;
 }
 
-export default function Show({ sale, businessName, businessNit, businessLogoUrl, ticketConfig }: Props) {
+export default function Show({ sale, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
     const printer = usePrinter();
 
@@ -244,7 +246,7 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                 if (rootDiv) {
                     clearInterval(interval);
                     ReactDOM.createRoot(rootDiv).render(
-                        <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />,
+                        <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />,
                     );
                     setTimeout(() => {
                         printWindow.focus();
@@ -274,9 +276,9 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
             <Head title={`Venta: ${sale.code}`} />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="no-print mb-4 flex flex-wrap gap-2">
-                    <Button onClick={handlePrintTicket} variant="default">
+                    {/* <Button onClick={handlePrintTicket} variant="default">
                         Imprimir Ticket
-                    </Button>
+                    </Button> */}
                     <Button
                         onClick={handleThermalPrint}
                         variant="outline"
@@ -285,7 +287,7 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                         disabled={printer.status !== 'connected'}
                     >
                         <Printer className="size-4" />
-                        Térmica
+                        Imprimir Ticket
                     </Button>
                     <Button onClick={() => setShowTicketPreview(true)} variant="outline" className="flex gap-1" title="Visualizar factura">
                         <Eye className="size-4" />
@@ -310,8 +312,8 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                                 Visualización del ticket de venta antes de imprimir
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex max-h-[70vh] justify-center overflow-auto py-2">
-                            <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
+                        <div className="flex max-h-[70vh] justify-center overflow-auto p-4">
+                            <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                         </div>
                         <DialogClose asChild>
                             <Button variant="outline" className="mt-4 w-full">
@@ -322,7 +324,7 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                 </Dialog>
                 {/* Ticket para impresión térmica, solo visible al imprimir */}
                 <div className="hidden print:block">
-                    <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
+                    <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                 </div>
 
                 <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
@@ -762,6 +764,8 @@ export default function Show({ sale, businessName, businessNit, businessLogoUrl,
                                                         sale={sale}
                                                         businessName={businessName}
                                                         businessNit={businessNit}
+                                                        businessAddress={businessAddress}
+                                                        businessPhone={businessPhone}
                                                         businessLogoUrl={businessLogoUrl}
                                                         ticketConfig={ticketConfig}
                                                     />

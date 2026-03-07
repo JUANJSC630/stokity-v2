@@ -543,6 +543,8 @@ class SaleController extends Controller
             'sale'             => $saleData,
             'businessName'     => $business->name,
             'businessNit'      => $business->nit,
+            'businessAddress'  => $business->address,
+            'businessPhone'    => $business->phone,
             'businessLogoUrl'  => $business->logo_url,
             'ticketConfig'     => $business->getTicketConfig(),
         ]);

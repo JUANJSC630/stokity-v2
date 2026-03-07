@@ -37,6 +37,8 @@ interface SaleReturnTicketProps {
     };
     businessName?: string | null;
     businessNit?: string | null;
+    businessAddress?: string | null;
+    businessPhone?: string | null;
     businessLogoUrl?: string | null;
     ticketConfig?: TicketConfig;
 }
@@ -80,6 +82,8 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
     sale,
     businessName,
     businessNit,
+    businessAddress,
+    businessPhone,
     businessLogoUrl,
     ticketConfig,
 }) => {
@@ -147,8 +151,8 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
                     {name}
                 </div>
                 {config.show_nit && businessNit && <div style={mono}>NIT: {businessNit}</div>}
-                {config.show_address && sale.branch?.address && <div style={mono}>{sale.branch.address}</div>}
-                {config.show_phone && sale.branch?.phone && <div style={mono}>Tel: {sale.branch.phone}</div>}
+                {config.show_address && businessAddress && <div style={mono}>{businessAddress}</div>}
+                {config.show_phone && businessPhone && <div style={mono}>Tel: {businessPhone}</div>}
             </div>
 
             <Sep double />
