@@ -1,13 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
-
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 type LoginForm = {
     email: string;
@@ -20,12 +15,14 @@ interface LoginProps {
     canResetPassword: boolean;
 }
 
-export default function Login({ status }: LoginProps) {
+export default function Login({ status, canResetPassword }: LoginProps) {
     const { data, setData, post, processing, errors, reset } = useForm<Required<LoginForm>>({
         email: '',
         password: '',
         remember: false,
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -35,29 +32,29 @@ export default function Login({ status }: LoginProps) {
     };
 
     return (
-        <AuthLayout description="¡Ingresa al sistema para gestionar tu negocio!">
-            <Head title="Iniciar sesión">
-                <link rel="preconnect" href="https://fonts.bunny.net" />
-                <link href="https://fonts.bunny.net/css?family=poppins:400,500,600,700" rel="stylesheet" />
-            </Head>
+        <AuthLayout description="Ingresa al sistema para gestionar tu negocio" backHref={route('home')}>
+            <Head title="Iniciar sesión" />
 
             {status && (
-                <div className="mb-4 rounded bg-red-100 p-3 text-center text-sm font-medium text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                <div className="mb-5 rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-600">
                     {status}
                 </div>
             )}
 
             <form className="flex flex-col gap-4" onSubmit={submit}>
-                <div className="grid gap-4">
-                    <div className="grid gap-2">
-                        <div className="flex items-center">
-                            <Label htmlFor="email" className="dark:text-gray-200">
-                                Correo electrónico
-                            </Label>
-                        </div>
-                        <Input
+
+                {/* ── Email ──────────────────────────────────────────────── */}
+                <div className="welcome-animate welcome-d5 flex flex-col gap-2">
+                    <label htmlFor="email" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                        Correo electrónico
+                    </label>
+                    <div className="auth-input-wrapper">
+                        <Mail className="auth-input-icon" />
+                        <input
                             id="email"
                             type="email"
+                            className="auth-input"
+                            placeholder="tu@correo.com"
                             required
                             autoFocus
                             tabIndex={1}
@@ -65,57 +62,81 @@ export default function Login({ status }: LoginProps) {
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}
                         />
-                        <InputError message={errors.email} />
                     </div>
+                    <InputError message={errors.email} />
+                </div>
 
-                    <div className="grid gap-2">
-                        <div className="flex items-center">
-                            <Label htmlFor="password" className="dark:text-gray-200">
-                                Contraseña
-                            </Label>
-                        </div>
-                        <Input
+                {/* ── Password ───────────────────────────────────────────── */}
+                <div className="welcome-animate welcome-d6 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="password" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                            Contraseña
+                        </label>
+                        {canResetPassword && (
+                            <Link
+                                href={route('password.request')}
+                                className="text-xs transition-colors duration-200 hover:text-[#C75B7A]"
+                                style={{ color: 'oklch(0.52 0.02 30)' }}
+                                tabIndex={5}
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        )}
+                    </div>
+                    <div className="auth-input-wrapper">
+                        <Lock className="auth-input-icon" />
+                        <input
                             id="password"
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
+                            className="auth-input has-toggle"
+                            placeholder="••••••••"
                             required
                             tabIndex={2}
                             autoComplete="current-password"
                             value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
                         />
-                        <InputError message={errors.password} />
+                        <button
+                            type="button"
+                            className="auth-toggle-btn"
+                            tabIndex={-1}
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                     </div>
+                    <InputError message={errors.password} />
+                </div>
 
-                    <div className="flex items-center space-x-3">
-                        <Checkbox
-                            id="remember"
-                            name="remember"
-                            checked={data.remember}
-                            onClick={() => setData('remember', !data.remember)}
-                            tabIndex={3}
-                        />
-                        <Label htmlFor="remember" className="dark:text-gray-200">
-                            Recordarme
-                        </Label>
-                    </div>
-
-                    <Button
-                        type="submit"
-                        className="mt-3 flex h-12 w-full items-center justify-center rounded-xl text-base font-medium text-white shadow-md transition-all duration-200"
-                        tabIndex={4}
-                        disabled={processing}
-                        style={{
-                            background: 'linear-gradient(90deg, #C850C0 0%, #FFCC70 100%)',
-                            border: 'none',
-                            boxShadow: '0 6px 18px 0 rgba(200, 80, 192, 0.2)',
-                        }}
+                {/* ── Remember me ────────────────────────────────────────── */}
+                <div className="welcome-animate welcome-d7 auth-checkbox-wrapper">
+                    <input
+                        id="remember"
+                        type="checkbox"
+                        className="auth-checkbox"
+                        checked={data.remember}
+                        onChange={(e) => setData('remember', e.target.checked)}
+                        tabIndex={3}
+                    />
+                    <label
+                        htmlFor="remember"
+                        className="cursor-pointer select-none text-sm"
+                        style={{ color: 'oklch(0.52 0.02 30)' }}
                     >
-                        {processing ? <LoaderCircle className="mr-2 h-5 w-5 animate-spin" /> : null}
-                        Iniciar sesión 🚀
-                    </Button>
+                        Recordarme
+                    </label>
+                </div>
+
+                {/* ── Submit ─────────────────────────────────────────────── */}
+                <div className="welcome-animate welcome-d7 mt-1">
+                    <button type="submit" className="btn-auth group" tabIndex={4} disabled={processing}>
+                        {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                        Iniciar sesión
+                        {!processing && <ArrowRight className="btn-arrow h-4 w-4" />}
+                    </button>
                 </div>
             </form>
-            {status && <div className="mb-4 text-center text-sm font-medium text-green-600 dark:text-green-400">{status}</div>}
         </AuthLayout>
     );
 }
