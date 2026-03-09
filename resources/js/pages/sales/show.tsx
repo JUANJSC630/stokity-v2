@@ -274,538 +274,388 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Venta: ${sale.code}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="no-print mb-4 flex flex-wrap gap-2">
-                    {/* <Button onClick={handlePrintTicket} variant="default">
-                        Imprimir Ticket
-                    </Button> */}
-                    <Button
-                        onClick={handleThermalPrint}
-                        variant="outline"
-                        className="flex gap-1"
-                        title="Impresora térmica vía QZ Tray"
-                        disabled={printer.status !== 'connected'}
-                    >
-                        <Printer className="size-4" />
-                        Imprimir Ticket
-                    </Button>
-                    <Button onClick={() => setShowTicketPreview(true)} variant="outline" className="flex gap-1" title="Visualizar factura">
-                        <Eye className="size-4" />
-                        Ver factura
-                    </Button>
-                    <Button
-                        onClick={() => setShowReturnForm(true)}
-                        variant="outline"
-                        className="flex gap-1"
-                        disabled={remainingSaleProducts.length === 0}
-                    >
-                        <RotateCcw className="size-4" />
-                        Hacer devolución
-                    </Button>
+            <div className="flex h-full flex-1 flex-col gap-5 p-6">
+
+                {/* Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href={route('sales.index')}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Link>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h1 className="max-w-[260px] truncate text-lg font-bold leading-tight sm:max-w-none">{sale.code}</h1>
+                                {getStatusBadge(sale.status)}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{formatDateToLocal(sale.date)}</p>
+                        </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            onClick={handleThermalPrint}
+                            disabled={printer.status !== 'connected'}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                        >
+                            <Printer className="h-3.5 w-3.5" />
+                            Imprimir
+                        </button>
+                        <button
+                            onClick={() => setShowTicketPreview(true)}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <Eye className="h-3.5 w-3.5" />
+                            Ver factura
+                        </button>
+                        <button
+                            onClick={() => setShowReturnForm(true)}
+                            disabled={remainingSaleProducts.length === 0}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                        >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Devolución
+                        </button>
+                        {sale.id && isAdmin && (
+                            <Link href={route('sales.edit', sale.id)}>
+                                <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                    <Edit className="h-3.5 w-3.5" />
+                                    Editar
+                                </button>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
+                {/* Dialogs */}
                 <Dialog open={showTicketPreview} onOpenChange={setShowTicketPreview}>
                     <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle>Vista previa de la factura</DialogTitle>
-                            <DialogDescription>
-                                Visualización del ticket de venta antes de imprimir
-                            </DialogDescription>
+                            <DialogDescription>Visualización del ticket de venta antes de imprimir</DialogDescription>
                         </DialogHeader>
                         <div className="flex max-h-[70vh] justify-center overflow-auto p-4">
                             <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                         </div>
                         <DialogClose asChild>
-                            <Button variant="outline" className="mt-4 w-full">
-                                Cerrar
-                            </Button>
+                            <Button variant="outline" className="mt-4 w-full">Cerrar</Button>
                         </DialogClose>
                     </DialogContent>
                 </Dialog>
-                {/* Ticket para impresión térmica, solo visible al imprimir */}
+
                 <div className="hidden print:block">
                     <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
                 </div>
 
-                <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-                    <div className="flex items-center gap-2">
-                        <Link href={route('sales.index')}>
-                            <Button variant="outline" size="icon" className="h-8 w-8">
-                                <ChevronLeft className="size-4" />
-                            </Button>
-                        </Link>
-                        <h1 className="text-xl font-bold break-all md:text-2xl">Venta: {sale.code}</h1>
-                    </div>
-                    <div className="mt-2 w-fit sm:mt-0 sm:ml-2">{getStatusBadge(sale.status)}</div>
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Detalles de la Venta</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Main info + QR */}
+                <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                    <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Detalles</p>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
                             <div>
-                                <h3 className="text-lg font-medium">Información General</h3>
-                                <dl className="mt-3 grid grid-cols-1 gap-4">
-                                    <div className="flex flex-col items-start gap-4">
-                                        {/* QR del código de la venta */}
-                                        <div className="mx-auto mb-2 w-24 max-w-full md:w-32">
-                                            <QRCode
-                                                size={220}
-                                                style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                                value={sale.code}
-                                                viewBox={`0 0 256 256`}
-                                            />
-                                        </div>
-                                        <div>
-                                            <dt className="text-sm font-medium text-muted-foreground">Código</dt>
-                                            <dd className="mt-1 text-lg break-all">{sale.code}</dd>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Fecha</dt>
-                                        <dd className="mt-1 text-lg">{formatDateToLocal(sale.date)}</dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Sucursal</dt>
-                                        <dd className="mt-1 text-lg">
-                                            {sale.branch ? sale.branch.name : <span className="text-neutral-400">N/A</span>}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Método de Pago</dt>
-                                        <dd className="mt-1 text-lg">{getPaymentMethodText(sale.payment_method)}</dd>
-                                    </div>
-                                </dl>
+                                <p className="text-xs text-muted-foreground">Sucursal</p>
+                                <p className="text-sm font-medium">{sale.branch?.name ?? '—'}</p>
                             </div>
                             <div>
-                                <h3 className="text-lg font-medium">Personas</h3>
-                                <dl className="mt-3 grid grid-cols-1 gap-4">
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Cliente</dt>
-                                        <dd className="mt-1 text-lg">
-                                            {sale.client ? (
-                                                <Link
-                                                    href={route('clients.show', sale.client_id) + `?fromSale=${sale.id}`}
-                                                    className="text-blue-600 hover:underline dark:text-blue-400"
-                                                >
-                                                    {sale.client.name}
-                                                </Link>
-                                            ) : (
-                                                <span className="text-neutral-400">N/A</span>
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt className="text-sm font-medium text-muted-foreground">Vendedor</dt>
-                                        <dd className="mt-1 text-lg">
-                                            {sale.seller ? sale.seller.name : <span className="text-neutral-400">N/A</span>}
-                                        </dd>
-                                    </div>
-                                </dl>
+                                <p className="text-xs text-muted-foreground">Método de pago</p>
+                                <p className="text-sm font-medium">{getPaymentMethodText(sale.payment_method)}</p>
                             </div>
-                        </div>
-
-                        <div className="mt-8">
-                            <h3 className="text-lg font-medium">Valores Originales de la Venta</h3>
-                            <div className="mt-3 overflow-x-auto rounded-md border">
-                                <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
-                                    <div className="grid grid-cols-2 font-semibold">
-                                        <div>Concepto</div>
-                                        <div className="text-right">Monto</div>
-                                    </div>
-                                </div>
-                                <div className="divide-y">
-                                    <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                        <div>Subtotal</div>
-                                        <div className="text-right">{formatCurrency(originalNetValue)}</div>
-                                    </div>
-                                    <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                        <div>Impuesto</div>
-                                        <div className="text-right">{formatCurrency(originalTaxValue)}</div>
-                                    </div>
-                                    {sale.discount_amount > 0 && (
-                                        <div className="grid grid-cols-2 px-2 py-2 text-red-600 md:px-4 md:py-3 dark:text-red-400">
-                                            <div>
-                                                Descuento
-                                                {sale.discount_type === 'percentage' && (
-                                                    <span className="ml-1 text-xs">({sale.discount_value}%)</span>
-                                                )}
-                                            </div>
-                                            <div className="text-right">− {formatCurrency(sale.discount_amount)}</div>
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
-                                        <div>Total</div>
-                                        <div className="text-right">{formatCurrency(sale.total)}</div>
-                                    </div>
-                                </div>
-                                {sale.notes && (
-                                    <div className="border-t px-2 py-3 md:px-4">
-                                        <span className="text-sm font-medium text-muted-foreground">Notas: </span>
-                                        <span className="text-sm">{sale.notes}</span>
-                                    </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Cliente</p>
+                                {sale.client ? (
+                                    <Link
+                                        href={route('clients.show', sale.client_id) + `?fromSale=${sale.id}`}
+                                        className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                                    >
+                                        {sale.client.name}
+                                    </Link>
+                                ) : (
+                                    <p className="text-sm font-medium text-muted-foreground">—</p>
                                 )}
                             </div>
-                        </div>
-
-                        {/* Sección de Pago y Cambio */}
-                        {sale.payment_method === 'cash' && sale.amount_paid && sale.change_amount !== undefined && (
-                            <div className="mt-8">
-                                <h3 className="text-lg font-medium">Información de Pago</h3>
-                                <div className="mt-3 overflow-x-auto rounded-md border">
-                                    <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
-                                        <div className="grid grid-cols-2 font-semibold">
-                                            <div>Concepto</div>
-                                            <div className="text-right">Monto</div>
-                                        </div>
-                                    </div>
-                                    <div className="divide-y">
-                                        <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                            <div>Total a Pagar</div>
-                                            <div className="text-right">{formatCurrency(originalTotalValue)}</div>
-                                        </div>
-                                        <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                            <div>Con Cuánto Pagó</div>
-                                            <div className="text-right">{formatCurrency(sale.amount_paid)}</div>
-                                        </div>
-                                        <div
-                                            className={`grid grid-cols-2 px-2 py-2 font-semibold md:px-4 md:py-3 ${
-                                                sale.change_amount >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'
-                                            }`}
-                                        >
-                                            <div>Cambio</div>
-                                            <div
-                                                className={`text-right ${
-                                                    sale.change_amount >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                                                }`}
-                                            >
-                                                {formatCurrency(sale.change_amount)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground">Vendedor</p>
+                                <p className="text-sm font-medium">{sale.seller?.name ?? '—'}</p>
                             </div>
-                        )}
-
-                        <div className="mt-8">
-                            <h3 className="text-lg font-medium">Productos Vendidos (Originales)</h3>
-                            <div className="mt-3 flex flex-col gap-3 md:gap-0">
-                                {/* Vista tipo cards en móvil */}
-                                <div className="block md:hidden">
-                                    {(sale.saleProducts ?? []).length > 0 ? (
-                                        <div className="flex flex-col gap-3">
-                                            {(sale.saleProducts ?? []).map((sp) => {
-                                                const returned = getReturnedQuantity(sp.product_id);
-                                                const isReturned = returned > 0;
-                                                return (
-                                                    <div
-                                                        key={sp.id}
-                                                        className={`rounded-lg border bg-card p-3 shadow-sm ${isReturned ? 'opacity-60' : ''}`}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="text-base font-semibold">{sp.product?.name || 'Producto eliminado'}</div>
-                                                            <div className="text-xs text-muted-foreground">x{sp.quantity}</div>
-                                                        </div>
-                                                        <div className="mt-2 flex justify-between text-sm">
-                                                            <span className="text-muted-foreground">Precio:</span>
-                                                            <span>{formatCurrency(sp.price)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-muted-foreground">Subtotal:</span>
-                                                            <span>{formatCurrency(sp.price * sp.quantity)}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-muted-foreground">Impuesto:</span>
-                                                            <span>
-                                                                {formatCurrency(((sp.product?.tax || 0) * sp.price * sp.quantity) / 100)}
-                                                                {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex justify-between text-sm font-semibold">
-                                                            <span>Total con Impuesto:</span>
-                                                            <span>
-                                                                {formatCurrency(
-                                                                    sp.price * sp.quantity + ((sp.product?.tax || 0) * sp.price * sp.quantity) / 100,
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                        {isReturned && (
-                                                            <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
-                                                                Devuelto: {returned} unidades
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className="p-4 text-center text-neutral-400">No hay productos registrados en esta venta</div>
-                                    )}
+                            {sale.notes && (
+                                <div className="col-span-2">
+                                    <p className="text-xs text-muted-foreground">Notas</p>
+                                    <p className="text-sm font-medium">{sale.notes}</p>
                                 </div>
-                                {/* Tabla en escritorio */}
-                                <div className="hidden md:block">
-                                    <div className="overflow-x-auto rounded-md border">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50">
-                                                <tr>
-                                                    <th className="px-2 py-2 text-left font-semibold whitespace-nowrap md:px-4 md:py-2">Producto</th>
-                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">
-                                                        Cantidad Original
-                                                    </th>
-                                                    <th className="px-2 py-2 text-center font-semibold whitespace-nowrap md:px-4 md:py-2">
-                                                        Devuelto
-                                                    </th>
-                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Precio</th>
-                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Impuesto</th>
-                                                    <th className="px-2 py-2 text-right font-semibold whitespace-nowrap md:px-4 md:py-2">Subtotal</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y">
-                                                {(sale.saleProducts ?? []).length > 0 ? (
-                                                    (sale.saleProducts ?? []).map((sp) => {
-                                                        const returned = getReturnedQuantity(sp.product_id);
-                                                        const isReturned = returned > 0;
-                                                        return (
-                                                            <tr key={sp.id} className={isReturned ? 'opacity-60' : ''}>
-                                                                <td className="px-4 py-3">{sp.product?.name || 'Producto eliminado'}</td>
-                                                                <td className="px-4 py-3 text-center">{sp.quantity}</td>
-                                                                <td className="px-4 py-3 text-center">
-                                                                    {returned > 0 ? (
-                                                                        <span className="text-orange-600 dark:text-orange-400">{returned}</span>
-                                                                    ) : (
-                                                                        <span className="text-muted-foreground">-</span>
-                                                                    )}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-right">{formatCurrency(sp.price)}</td>
-                                                                <td className="px-4 py-3 text-right">
-                                                                    {formatCurrency(((sp.product?.tax || 0) * sp.price * sp.quantity) / 100)}
-                                                                    {sp.product?.tax ? ` (${sp.product.tax}%)` : ''}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-right">{formatCurrency(sp.price * sp.quantity)}</td>
-                                                            </tr>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan={6} className="p-4 text-center text-neutral-400">
-                                                            No hay productos registrados en esta venta
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                            <tfoot className="bg-muted/20">
-                                                <tr>
-                                                    <td className="px-2 py-2 font-semibold md:px-4 md:py-2" colSpan={4}>
-                                                        Subtotal Neto
-                                                    </td>
-                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
-                                                        {formatCurrency(originalTaxValue)}
-                                                    </td>
-                                                    <td className="px-2 py-2 text-right font-semibold md:px-4 md:py-2">
-                                                        {formatCurrency(originalNetValue)}
-                                                    </td>
-                                                </tr>
-                                                <tr className="border-t border-gray-300 dark:border-gray-700">
-                                                    <td className="px-2 py-2 text-lg font-bold md:px-4 md:py-2" colSpan={5}>
-                                                        Total con Impuesto
-                                                    </td>
-                                                    <td className="px-2 py-2 text-right text-lg font-bold md:px-4 md:py-2">
-                                                        {formatCurrency(originalTotalValue)}
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4 border-t px-4 py-4 md:flex-row md:justify-between md:gap-0 md:px-6">
-                        <div className="text-sm text-muted-foreground">
-                            <p>Creado: {new Date(sale.created_at).toLocaleDateString()}</p>
-                            <p>Última actualización: {new Date(sale.updated_at).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex gap-2 self-end md:self-center">
-                            {sale.id && isAdmin && (
-                                <Link href={route('sales.edit', sale.id)}>
-                                    <Button variant="outline" className="flex gap-1">
-                                        <Edit className="size-4" />
-                                        <span>Editar</span>
-                                    </Button>
-                                </Link>
                             )}
                         </div>
-                    </CardFooter>
-                </Card>
-                {/* Resumen de devoluciones */}
-                {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
-                    <div className="mt-8">
-                        <h3 className="text-lg font-medium">Resumen de Devoluciones</h3>
-                        <div className="mt-3 overflow-x-auto rounded-md border">
-                            <div className="bg-muted/50 px-2 py-2 md:px-4 md:py-3">
-                                <div className="grid grid-cols-2 font-semibold">
-                                    <div>Concepto</div>
-                                    <div className="text-right">Monto</div>
-                                </div>
+                    </div>
+
+                    {/* QR */}
+                    <div className="flex items-center justify-center rounded-xl border border-border/60 bg-card p-4">
+                        <QRCode
+                            size={88}
+                            style={{ height: 'auto', maxWidth: '88px', width: '88px' }}
+                            value={sale.code}
+                            viewBox="0 0 256 256"
+                        />
+                    </div>
+                </div>
+
+                {/* Totals */}
+                <div className="rounded-xl border border-border/60 bg-card">
+                    <div className="px-5 py-4">
+                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Resumen</p>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Subtotal</span>
+                                <span className="text-sm tabular-nums">{formatCurrency(originalNetValue)}</span>
                             </div>
-                            <div className="divide-y">
-                                <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                    <div>Total Original de la Venta</div>
-                                    <div className="text-right">{formatCurrency(originalTotalValue)}</div>
+                            {originalTaxValue > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">Impuesto</span>
+                                    <span className="text-sm tabular-nums">{formatCurrency(originalTaxValue)}</span>
                                 </div>
-                                <div className="grid grid-cols-2 px-2 py-2 md:px-4 md:py-3">
-                                    <div>Total Devuelto</div>
-                                    <div className="text-right text-red-600 dark:text-red-400">-{formatCurrency(calculateTotalReturned())}</div>
+                            )}
+                            {sale.discount_amount > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                        Descuento{sale.discount_type === 'percentage' && ` (${sale.discount_value}%)`}
+                                    </span>
+                                    <span className="text-sm text-red-500 tabular-nums dark:text-red-400">−{formatCurrency(sale.discount_amount)}</span>
                                 </div>
-                                <div className="grid grid-cols-2 bg-muted/20 px-2 py-2 font-semibold md:px-4 md:py-3">
-                                    <div>Valor Neto Restante</div>
-                                    <div className="text-right">{formatCurrency(originalTotalValue - calculateTotalReturned())}</div>
-                                </div>
+                            )}
+                            {sale.payment_method === 'cash' && sale.amount_paid && (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Pagó con</span>
+                                        <span className="text-sm tabular-nums">{formatCurrency(sale.amount_paid)}</span>
+                                    </div>
+                                    {sale.change_amount !== undefined && (
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-muted-foreground">Cambio</span>
+                                            <span className={`text-sm font-medium tabular-nums ${sale.change_amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                                                {formatCurrency(sale.change_amount)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                                <span className="text-sm font-semibold">Total</span>
+                                <span className="text-sm font-bold tabular-nums">{formatCurrency(sale.total)}</span>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
-                {/* Historial de devoluciones */}
-                {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
-                    <div className="mt-8">
-                        <h3 className="text-lg font-medium">Historial de Devoluciones</h3>
-                        <div className="mt-3 flex flex-col gap-3">
-                            {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).map((ret) => (
-                                <div key={ret.id} className="rounded-lg border bg-card p-3 shadow-sm">
-                                    <div className="font-semibold">Fecha: {new Date(ret.created_at).toLocaleString()}</div>
-                                    <div>Motivo: {ret.reason || 'Sin motivo'}</div>
-                                    <div>
-                                        Productos devueltos:
-                                        <ul className="ml-4 list-disc">
-                                            {Array.isArray(ret.products) && ret.products.length > 0
-                                                ? ret.products.map((p) => (
-                                                      <li key={p.id}>
-                                                          {p.name} - Cantidad: {p.pivot.quantity}
-                                                      </li>
-                                                  ))
-                                                : null}
-                                        </ul>
+                {/* Products */}
+                <div className="rounded-xl border border-border/60 bg-card">
+                    <div className="px-5 py-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Productos</p>
+                    </div>
+
+                    {/* Desktop table */}
+                    <div className="hidden border-t border-border/60 md:block">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-border/40 bg-muted/20">
+                                    <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Producto</th>
+                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Cant.</th>
+                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Dev.</th>
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Precio</th>
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Impuesto</th>
+                                    <th className="px-5 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(sale.saleProducts ?? []).length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted-foreground">Sin productos registrados</td>
+                                    </tr>
+                                ) : (
+                                    (sale.saleProducts ?? []).map((sp, idx) => {
+                                        const returned = getReturnedQuantity(sp.product_id);
+                                        return (
+                                            <tr key={sp.id} className={`transition-colors hover:bg-muted/20 ${idx !== 0 ? 'border-t border-border/40' : ''} ${returned > 0 ? 'opacity-60' : ''}`}>
+                                                <td className="px-5 py-3 text-sm font-medium">{sp.product?.name ?? 'Producto eliminado'}</td>
+                                                <td className="px-4 py-3 text-center text-sm tabular-nums">{sp.quantity}</td>
+                                                <td className="px-4 py-3 text-center text-sm">
+                                                    {returned > 0 ? <span className="text-amber-600 dark:text-amber-400">{returned}</span> : <span className="text-muted-foreground/40">—</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-sm tabular-nums">{formatCurrency(sp.price)}</td>
+                                                <td className="px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">
+                                                    {sp.product?.tax ? `${formatCurrency(((sp.product.tax) * sp.price * sp.quantity) / 100)} (${sp.product.tax}%)` : '—'}
+                                                </td>
+                                                <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(sp.price * sp.quantity)}</td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                            <tfoot className="border-t border-border/40 bg-muted/10">
+                                <tr>
+                                    <td colSpan={5} className="px-5 py-2.5 text-xs font-semibold">Total</td>
+                                    <td className="px-5 py-2.5 text-right text-xs font-bold tabular-nums">{formatCurrency(sale.total)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="divide-y divide-border/40 border-t border-border/60 md:hidden">
+                        {(sale.saleProducts ?? []).map((sp) => {
+                            const returned = getReturnedQuantity(sp.product_id);
+                            return (
+                                <div key={sp.id} className={`px-5 py-3 ${returned > 0 ? 'opacity-60' : ''}`}>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-xs font-medium">{sp.product?.name ?? 'Producto eliminado'}</p>
+                                        <span className="flex-shrink-0 text-xs tabular-nums text-muted-foreground">×{sp.quantity}</span>
                                     </div>
-                                    <div className="mt-2 flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => setShowReturnReceipt({ open: true, returnId: ret.id })}>
-                                            Ver recibo de devolución
-                                        </Button>
-                                        <Button variant="default" size="sm" onClick={() => handlePrintReturnReceipt(ret.id)}>
-                                            Imprimir recibo
-                                        </Button>
+                                    <div className="mt-1 flex justify-between">
+                                        <span className="text-[11px] text-muted-foreground">{formatCurrency(sp.price)} c/u</span>
+                                        <span className="text-xs font-semibold tabular-nums">{formatCurrency(sp.price * sp.quantity)}</span>
+                                    </div>
+                                    {returned > 0 && <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">Devuelto: {returned} uds</p>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Returns summary */}
+                {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
+                    <div className="rounded-xl border border-border/60 bg-card">
+                        <div className="px-5 py-4">
+                            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Devoluciones</p>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Total original</span>
+                                    <span className="text-xs tabular-nums">{formatCurrency(originalTotalValue)}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Total devuelto</span>
+                                    <span className="text-xs text-red-500 tabular-nums dark:text-red-400">−{formatCurrency(calculateTotalReturned())}</span>
+                                </div>
+                                <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                                    <span className="text-sm font-semibold">Valor neto</span>
+                                    <span className="text-sm font-bold tabular-nums">{formatCurrency(originalTotalValue - calculateTotalReturned())}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Return entries */}
+                        <div className="divide-y divide-border/40 border-t border-border/60">
+                            {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).map((ret) => (
+                                <div key={ret.id} className="px-5 py-3">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-xs font-medium">{new Date(ret.created_at).toLocaleString()}</p>
+                                            <p className="mt-0.5 text-[11px] text-muted-foreground">{ret.reason || 'Sin motivo'}</p>
+                                            {Array.isArray(ret.products) && ret.products.length > 0 && (
+                                                <ul className="mt-1 space-y-0.5">
+                                                    {ret.products.map((p) => (
+                                                        <li key={p.id} className="text-[11px] text-muted-foreground">
+                                                            {p.name} × {p.pivot.quantity}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-shrink-0 gap-1.5">
+                                            <button
+                                                onClick={() => setShowReturnReceipt({ open: true, returnId: ret.id })}
+                                                className="flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+                                            >
+                                                <Eye className="h-3 w-3" />
+                                                Ver
+                                            </button>
+                                            <button
+                                                onClick={() => handlePrintReturnReceipt(ret.id)}
+                                                className="flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted"
+                                            >
+                                                <Printer className="h-3 w-3" />
+                                                Imprimir
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
-                            {/* Modal para recibo de devolución */}
-                            <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt({ open })}>
-                                <DialogContent className="max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Recibo de devolución</DialogTitle>
-                                        <DialogDescription>
-                                            Visualización del recibo de devolución de productos
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div
-                                        className="flex justify-center bg-white p-4 dark:bg-neutral-900"
-                                        style={{
-                                            maxWidth: '58mm',
-                                            width: '58mm',
-                                            margin: '0 auto',
-                                            boxShadow: '0 0 8px #ccc',
-                                            borderRadius: 8,
-                                            maxHeight: '80vh',
-                                            overflow: 'auto',
-                                        }}
-                                    >
-                                        {showReturnReceipt.open &&
-                                            showReturnReceipt.returnId &&
-                                            (() => {
-                                                const ret = (sale.saleReturns ?? []).find((r) => r.id === showReturnReceipt.returnId);
-                                                if (!ret) return null;
-                                                // Enrich products for receipt
-                                                const enrichedProducts = Array.isArray(ret.products)
-                                                    ? ret.products.map((rp) => {
-                                                          const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
-                                                          return {
-                                                              code: saleProd?.product?.code ?? '',
-                                                              description: saleProd?.product?.description ?? '',
-                                                              purchase_price: saleProd?.product?.purchase_price ?? 0,
-                                                              sale_price: saleProd?.product?.sale_price ?? 0,
-                                                              stock: saleProd?.product?.stock ?? 0,
-                                                              min_stock: saleProd?.product?.min_stock ?? 0,
-                                                              category_id: saleProd?.product?.category_id ?? 0,
-                                                              branch_id: saleProd?.product?.branch_id ?? 0,
-                                                              created_at: saleProd?.product?.created_at ?? '',
-                                                              updated_at: saleProd?.product?.updated_at ?? '',
-                                                              image: saleProd?.product?.image ?? '',
-                                                              image_url: saleProd?.product?.image_url ?? '',
-                                                              status: Boolean(saleProd?.product?.status),
-                                                              deleted_at: saleProd?.product?.deleted_at ?? null,
-                                                              // Additional fields from SaleReturnProduct
-                                                              ...rp,
-                                                              id: rp.id,
-                                                              name: saleProd?.product?.name ?? 'Producto eliminado',
-                                                              price: saleProd?.price ?? 0,
-                                                              quantity: rp.pivot?.quantity ?? 0, // Add quantity at top-level
-                                                              tax: saleProd?.product?.tax ?? 19, // Add tax field
-                                                          };
-                                                      })
-                                                    : [];
-                                                return (
-                                                    <SaleReturnTicket
-                                                        saleReturn={{
-                                                            ...ret,
-                                                            reason: ret.reason ?? undefined,
-                                                            products: enrichedProducts,
-                                                        }}
-                                                        sale={sale}
-                                                        businessName={businessName}
-                                                        businessNit={businessNit}
-                                                        businessAddress={businessAddress}
-                                                        businessPhone={businessPhone}
-                                                        businessLogoUrl={businessLogoUrl}
-                                                        ticketConfig={ticketConfig}
-                                                    />
-                                                );
-                                            })()}
-                                    </div>
-
-                                    <DialogClose asChild>
-                                        <Button variant="outline" className="mt-4 w-full">
-                                            Cerrar
-                                        </Button>
-                                    </DialogClose>
-                                </DialogContent>
-                            </Dialog>
                         </div>
+
+                        {/* Return receipt dialog */}
+                        <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt({ open })}>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Recibo de devolución</DialogTitle>
+                                    <DialogDescription>Visualización del recibo de devolución de productos</DialogDescription>
+                                </DialogHeader>
+                                <div
+                                    className="flex justify-center bg-white p-4 dark:bg-neutral-900"
+                                    style={{ maxWidth: '58mm', width: '58mm', margin: '0 auto', boxShadow: '0 0 8px #ccc', borderRadius: 8, maxHeight: '80vh', overflow: 'auto' }}
+                                >
+                                    {showReturnReceipt.open && showReturnReceipt.returnId && (() => {
+                                        const ret = (sale.saleReturns ?? []).find((r) => r.id === showReturnReceipt.returnId);
+                                        if (!ret) return null;
+                                        const enrichedProducts = Array.isArray(ret.products)
+                                            ? ret.products.map((rp) => {
+                                                  const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
+                                                  return {
+                                                      code: saleProd?.product?.code ?? '',
+                                                      description: saleProd?.product?.description ?? '',
+                                                      purchase_price: saleProd?.product?.purchase_price ?? 0,
+                                                      sale_price: saleProd?.product?.sale_price ?? 0,
+                                                      stock: saleProd?.product?.stock ?? 0,
+                                                      min_stock: saleProd?.product?.min_stock ?? 0,
+                                                      category_id: saleProd?.product?.category_id ?? 0,
+                                                      branch_id: saleProd?.product?.branch_id ?? 0,
+                                                      created_at: saleProd?.product?.created_at ?? '',
+                                                      updated_at: saleProd?.product?.updated_at ?? '',
+                                                      image: saleProd?.product?.image ?? '',
+                                                      image_url: saleProd?.product?.image_url ?? '',
+                                                      status: Boolean(saleProd?.product?.status),
+                                                      deleted_at: saleProd?.product?.deleted_at ?? null,
+                                                      ...rp,
+                                                      id: rp.id,
+                                                      name: saleProd?.product?.name ?? 'Producto eliminado',
+                                                      price: saleProd?.price ?? 0,
+                                                      quantity: rp.pivot?.quantity ?? 0,
+                                                      tax: saleProd?.product?.tax ?? 19,
+                                                  };
+                                              })
+                                            : [];
+                                        return (
+                                            <SaleReturnTicket
+                                                saleReturn={{ ...ret, reason: ret.reason ?? undefined, products: enrichedProducts }}
+                                                sale={sale}
+                                                businessName={businessName}
+                                                businessNit={businessNit}
+                                                businessAddress={businessAddress}
+                                                businessPhone={businessPhone}
+                                                businessLogoUrl={businessLogoUrl}
+                                                ticketConfig={ticketConfig}
+                                            />
+                                        );
+                                    })()}
+                                </div>
+                                <DialogClose asChild>
+                                    <Button variant="outline" className="mt-4 w-full">Cerrar</Button>
+                                </DialogClose>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 )}
 
-                {/* Formulario de devolución */}
+                {/* Return form */}
                 <SaleReturnForm
                     saleId={sale.id}
                     products={(sale.saleProducts ?? [])
                         .map((sp) => {
                             const returned = getReturnedQuantity(sp.product_id);
-                            return {
-                                id: sp.product_id,
-                                name: sp.product?.name || 'Producto eliminado',
-                                quantity: sp.quantity,
-                                alreadyReturned: returned,
-                                remaining: sp.quantity - returned,
-                            };
+                            return { id: sp.product_id, name: sp.product?.name || 'Producto eliminado', quantity: sp.quantity, alreadyReturned: returned, remaining: sp.quantity - returned };
                         })
                         .filter((sp) => sp.remaining > 0)}
                     open={showReturnForm}
                     onClose={() => setShowReturnForm(false)}
-                    onSuccess={() => {
-                        // Actualizar los datos de la venta después de la devolución
-                        updateSaleData();
-                        setShowReturnForm(false);
-                    }}
+                    onSuccess={() => { updateSaleData(); setShowReturnForm(false); }}
                 />
             </div>
         </AppLayout>

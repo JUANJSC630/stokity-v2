@@ -1,11 +1,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, Edit, ShoppingBag } from 'lucide-react';
+import { CalendarDays, ChevronLeft, Mail, MapPin, Pencil, Phone, Receipt, ShoppingBag, User } from 'lucide-react';
 import { useState } from 'react';
 
 interface Client {
@@ -62,10 +61,10 @@ function formatCOP(value: number) {
     }).format(value);
 }
 
-const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-    completed: { label: 'Completada', variant: 'default' },
-    pending: { label: 'Pendiente', variant: 'secondary' },
-    cancelled: { label: 'Cancelada', variant: 'destructive' },
+const STATUS_MAP: Record<string, { label: string; className: string }> = {
+    completed: { label: 'Completada', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800' },
+    pending:   { label: 'Pendiente',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800' },
+    cancelled: { label: 'Cancelada',  className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
 };
 
 export default function Show({ client, sales, stats }: Props) {
@@ -86,207 +85,217 @@ export default function Show({ client, sales, stats }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Cliente: ${client.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+            <div className="flex h-full flex-1 flex-col gap-5 p-6">
+
                 {/* Header */}
-                <div className="flex items-center gap-2">
-                    {fromSale ? (
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => (window.location.href = `/sales/${fromSale}`)}>
-                            <ChevronLeft className="size-4" />
-                        </Button>
-                    ) : (
-                        <Link href={route('clients.index')}>
-                            <Button variant="outline" size="icon" className="h-8 w-8">
-                                <ChevronLeft className="size-4" />
-                            </Button>
-                        </Link>
-                    )}
-                    <h1 className="text-2xl font-bold">{client.name}</h1>
-                </div>
-
-                {/* Información del cliente */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Información del Cliente</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Nombre</dt>
-                                <dd className="mt-1 text-lg">{client.name}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Documento</dt>
-                                <dd className="mt-1 text-lg">{client.document}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Teléfono</dt>
-                                <dd className="mt-1 text-lg">{client.phone || '—'}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Correo Electrónico</dt>
-                                <dd className="mt-1 text-lg">{client.email || '—'}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Dirección</dt>
-                                <dd className="mt-1 text-lg">{client.address || '—'}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-muted-foreground">Fecha de Nacimiento</dt>
-                                <dd className="mt-1 text-lg">
-                                    {client.birthdate ? new Date(client.birthdate).toLocaleDateString('es-CO') : '—'}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4 border-t px-6 py-4 md:flex-row md:justify-between md:gap-0">
-                        <div className="text-sm text-muted-foreground">
-                            <p>Creado: {new Date(client.created_at).toLocaleDateString('es-CO')}</p>
-                            <p>Última actualización: {new Date(client.updated_at).toLocaleDateString('es-CO')}</p>
-                        </div>
-                        <div className="flex gap-2 self-end md:self-center">
-                            <Link href={route('clients.edit', client.id)}>
-                                <Button variant="outline" className="flex gap-1">
-                                    <Edit className="size-4" />
-                                    <span>Editar</span>
-                                </Button>
-                            </Link>
-                        </div>
-                    </CardFooter>
-                </Card>
-
-                {/* Resumen de compras */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <Card className="border-blue-100 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/10">
-                        <CardContent className="pt-4">
-                            <p className="text-sm text-muted-foreground">Total compras</p>
-                            <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.total_sales}</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-green-100 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10">
-                        <CardContent className="pt-4">
-                            <p className="text-sm text-muted-foreground">Total gastado</p>
-                            <p className="mt-1 text-2xl font-bold text-green-700 dark:text-green-300">{formatCOP(stats.total_spent)}</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-purple-100 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/10">
-                        <CardContent className="pt-4">
-                            <p className="text-sm text-muted-foreground">Última compra</p>
-                            <p className="mt-1 text-2xl font-bold text-purple-700 dark:text-purple-300">
-                                {stats.last_purchase
-                                    ? new Date(stats.last_purchase).toLocaleDateString('es-CO')
-                                    : '—'}
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Historial de compras */}
-                <Card>
-                    <CardHeader className="flex flex-row items-center gap-2 pb-3">
-                        <ShoppingBag className="size-5 text-muted-foreground" />
-                        <CardTitle>Historial de Compras</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {sales.data.length === 0 ? (
-                            <p className="px-6 py-8 text-center text-muted-foreground">Este cliente no tiene ventas registradas.</p>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {fromSale ? (
+                            <button
+                                onClick={() => (window.location.href = `/sales/${fromSale}`)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
                         ) : (
-                            <>
-                                {/* Tabla desktop */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <table className="w-full text-sm">
-                                        <thead className="border-b bg-muted/40">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left font-semibold">Código</th>
-                                                <th className="px-4 py-3 text-left font-semibold">Fecha</th>
-                                                <th className="px-4 py-3 text-left font-semibold">Vendedor</th>
-                                                <th className="px-4 py-3 text-right font-semibold">Descuento</th>
-                                                <th className="px-4 py-3 text-right font-semibold">Total</th>
-                                                <th className="px-4 py-3 text-center font-semibold">Estado</th>
-                                                <th className="px-4 py-3"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                            {sales.data.map((sale) => {
-                                                const status = STATUS_LABELS[sale.status] ?? { label: sale.status, variant: 'outline' as const };
-                                                return (
-                                                    <tr key={sale.id} className="hover:bg-muted/20">
-                                                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{sale.code}</td>
-                                                        <td className="px-4 py-3">
-                                                            {new Date(sale.created_at).toLocaleDateString('es-CO')}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-muted-foreground">{sale.seller?.name ?? '—'}</td>
-                                                        <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
-                                                            {sale.discount_amount > 0 ? `− ${formatCOP(sale.discount_amount)}` : '—'}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">
-                                                            {formatCOP(sale.total)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            <Badge variant={status.variant}>{status.label}</Badge>
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <Link href={route('sales.show', sale.id)}>
-                                                                <Button variant="ghost" size="sm">Ver</Button>
-                                                            </Link>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Cards móvil */}
-                                <div className="flex flex-col divide-y md:hidden">
-                                    {sales.data.map((sale) => {
-                                        const status = STATUS_LABELS[sale.status] ?? { label: sale.status, variant: 'outline' as const };
-                                        return (
-                                            <div key={sale.id} className="flex items-center justify-between px-4 py-3">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-mono text-xs text-muted-foreground">{sale.code}</span>
-                                                    <span className="text-sm font-semibold text-green-700 dark:text-green-300">
-                                                        {formatCOP(sale.total)}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {new Date(sale.created_at).toLocaleDateString('es-CO')}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <Badge variant={status.variant}>{status.label}</Badge>
-                                                    <Link href={route('sales.show', sale.id)}>
-                                                        <Button variant="ghost" size="sm">Ver</Button>
-                                                    </Link>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Paginación */}
-                                {sales.last_page > 1 && (
-                                    <div className="flex items-center justify-between border-t px-4 py-3">
-                                        <p className="text-sm text-muted-foreground">
-                                            {sales.from}–{sales.to} de {sales.total} ventas
-                                        </p>
-                                        <div className="flex gap-1">
-                                            {sales.links
-                                                .filter((l) => l.url)
-                                                .map((link, i) => (
-                                                    <Link key={i} href={link.url!} preserveScroll>
-                                                        <Button
-                                                            variant={link.active ? 'default' : 'outline'}
-                                                            size="sm"
-                                                            dangerouslySetInnerHTML={{ __html: link.label }}
-                                                        />
-                                                    </Link>
-                                                ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
+                            <Link
+                                href={route('clients.index')}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Link>
                         )}
-                    </CardContent>
-                </Card>
+                        <div>
+                            <h1 className="text-xl font-bold leading-tight">{client.name}</h1>
+                            <p className="text-xs text-muted-foreground">Desde {new Date(client.created_at).toLocaleDateString('es-CO')}</p>
+                        </div>
+                    </div>
+                    <Link href={route('clients.edit', client.id)}>
+                        <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                            <Pencil className="h-3 w-3" />
+                            Editar
+                        </button>
+                    </Link>
+                </div>
+
+                {/* Info + Stats row */}
+                <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+
+                    {/* Client info card */}
+                    <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Información</p>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
+                            <div className="flex items-start gap-2">
+                                <User className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Documento</p>
+                                    <p className="truncate text-xs font-medium">{client.document}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Phone className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Teléfono</p>
+                                    <p className="truncate text-xs font-medium">{client.phone || '—'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Correo</p>
+                                    <p className="truncate text-xs font-medium">{client.email || '—'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Dirección</p>
+                                    <p className="truncate text-xs font-medium">{client.address || '—'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <CalendarDays className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Nacimiento</p>
+                                    <p className="truncate text-xs font-medium">
+                                        {client.birthdate ? new Date(client.birthdate).toLocaleDateString('es-CO') : '—'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Stats — vertical stack */}
+                    <div className="flex gap-3 lg:flex-col">
+                        <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3 lg:min-w-[160px]">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Compras</p>
+                            <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums">{stats.total_sales}</p>
+                        </div>
+                        <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Facturado</p>
+                            <p className="mt-1.5 text-lg font-bold leading-none tabular-nums">{formatCOP(stats.total_spent)}</p>
+                        </div>
+                        <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Última compra</p>
+                            <p className="mt-1.5 text-sm font-semibold leading-none">
+                                {stats.last_purchase ? new Date(stats.last_purchase).toLocaleDateString('es-CO') : '—'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Purchase history */}
+                <div className="rounded-xl border border-border/60 bg-card">
+                    <div className="flex items-center gap-1.5 px-5 py-4">
+                        <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground/50" />
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Historial de compras
+                            {sales.total > 0 && <span className="ml-1.5 text-muted-foreground/60">({sales.total})</span>}
+                        </p>
+                    </div>
+
+                    {sales.data.length === 0 ? (
+                        <p className="px-5 pb-6 text-center text-sm text-muted-foreground">Sin ventas registradas</p>
+                    ) : (
+                        <>
+                            {/* Desktop table */}
+                            <div className="hidden border-t border-border/60 md:block">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-border/40 bg-muted/20">
+                                            <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Código</th>
+                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Fecha</th>
+                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Vendedor</th>
+                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Dcto.</th>
+                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</th>
+                                            <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Estado</th>
+                                            <th className="px-4 py-2.5"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sales.data.map((sale, idx) => {
+                                            const status = STATUS_MAP[sale.status] ?? { label: sale.status, className: 'bg-muted text-muted-foreground border-border' };
+                                            return (
+                                                <tr key={sale.id} className={`transition-colors hover:bg-muted/30 ${idx !== 0 ? 'border-t border-border/40' : ''}`}>
+                                                    <td className="px-5 py-2.5 font-mono text-[11px] text-muted-foreground">{sale.code}</td>
+                                                    <td className="px-4 py-2.5 text-xs">{new Date(sale.created_at).toLocaleDateString('es-CO')}</td>
+                                                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{sale.seller?.name ?? '—'}</td>
+                                                    <td className="px-4 py-2.5 text-right text-xs text-red-500 dark:text-red-400">
+                                                        {sale.discount_amount > 0 ? `−${formatCOP(sale.discount_amount)}` : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">
+                                                        {formatCOP(sale.total)}
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-center">
+                                                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
+                                                            {status.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-right">
+                                                        <Link
+                                                            href={route('sales.show', sale.id)}
+                                                            className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                                                        >
+                                                            <Receipt className="h-3 w-3" />
+                                                            Ver
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile cards */}
+                            <div className="divide-y divide-border/40 border-t border-border/60 md:hidden">
+                                {sales.data.map((sale) => {
+                                    const status = STATUS_MAP[sale.status] ?? { label: sale.status, className: 'bg-muted text-muted-foreground border-border' };
+                                    return (
+                                        <div key={sale.id} className="flex items-center justify-between px-5 py-3">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="font-mono text-[11px] text-muted-foreground">{sale.code}</span>
+                                                <span className="text-xs font-semibold tabular-nums">{formatCOP(sale.total)}</span>
+                                                <span className="text-[11px] text-muted-foreground">{new Date(sale.created_at).toLocaleDateString('es-CO')}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1.5">
+                                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
+                                                    {status.label}
+                                                </span>
+                                                <Link href={route('sales.show', sale.id)} className="text-[11px] text-muted-foreground hover:text-foreground">
+                                                    Ver
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Pagination */}
+                            {sales.last_page > 1 && (
+                                <div className="flex items-center justify-between border-t border-border/40 px-5 py-3">
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {sales.from}–{sales.to} de {sales.total}
+                                    </p>
+                                    <div className="flex gap-1">
+                                        {sales.links
+                                            .filter((l) => l.url)
+                                            .map((link, i) => (
+                                                <Link key={i} href={link.url!} preserveScroll>
+                                                    <Button
+                                                        variant={link.active ? 'default' : 'outline'}
+                                                        size="sm"
+                                                        className="h-7 min-w-7 px-2 text-xs"
+                                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                                    />
+                                                </Link>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -298,12 +307,8 @@ export default function Show({ client, sales, stats }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                            Cancelar
-                        </Button>
-                        <Button variant="destructive" onClick={handleDelete}>
-                            Eliminar
-                        </Button>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
+                        <Button variant="destructive" onClick={handleDelete}>Eliminar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
