@@ -336,7 +336,7 @@ export default function ProductMovements({ product, movements }: Props) {
                                             </div>
                                             <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                 Sucursal:{' '}
-                                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{movement.branch.name}</span>
+                                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{movement.branch?.name ?? 'N/A'}</span>
                                             </div>
                                         </div>
 

@@ -54,7 +54,11 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
         unit_cost: '',
         reference: '',
         notes: '',
-        movement_date: new Date().toISOString().split('T')[0],
+        movement_date: (() => {
+            const now = new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        })(),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -261,10 +265,10 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
 
                             {/* Fecha del movimiento */}
                             <div>
-                                <Label htmlFor="movement_date">Fecha del Movimiento *</Label>
+                                <Label htmlFor="movement_date">Fecha y hora del Movimiento *</Label>
                                 <Input
                                     id="movement_date"
-                                    type="date"
+                                    type="datetime-local"
                                     value={data.movement_date}
                                     onChange={(e) => setData('movement_date', e.target.value)}
                                 />
