@@ -36,7 +36,7 @@ interface StockMovement {
     branch: {
         id: number;
         name: string;
-    };
+    } | null;
 }
 
 interface Props {
@@ -181,7 +181,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'branch',
             title: 'Sucursal',
-            render: (value, row) => row.branch.name,
+            render: (value, row) => row.branch?.name ?? '—',
         },
     ];
 
@@ -380,7 +380,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                             </div>
                                             <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                 Sucursal:{' '}
-                                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{movement.branch.name}</span>
+                                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{movement.branch?.name ?? '—'}</span>
                                             </div>
                                         </div>
 
