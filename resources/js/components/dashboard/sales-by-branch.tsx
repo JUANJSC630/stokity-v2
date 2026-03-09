@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building2 } from 'lucide-react';
 
 interface SalesByBranch {
@@ -14,51 +13,55 @@ interface SalesByBranchProps {
     branches: SalesByBranch[];
 }
 
-export function SalesByBranch({ branches }: SalesByBranchProps) {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
+export function SalesByBranch({ branches }: SalesByBranchProps) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <Building2 className="h-5 w-5 text-blue-500" />
-                    Ventas por Sucursal (Mes Actual)
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {branches.length === 0 ? (
-                        <div className="py-8 text-center text-muted-foreground">
-                            <p>No hay datos de ventas por sucursal</p>
-                        </div>
-                    ) : (
-                        branches.map((branch, index) => (
-                            <div key={branch.id} className="flex items-center justify-between rounded-lg border p-3">
-                                <div className="flex items-center space-x-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-600">
-                                        #{index + 1}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium">{branch.name}</p>
-                                        {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-medium">{branch.total_sales} ventas</p>
-                                    <p className="text-xs text-muted-foreground">{formatCurrency(branch.total_amount)}</p>
-                                    <p className="text-xs text-muted-foreground">Promedio: {formatCurrency(branch.average_sale)}</p>
-                                </div>
+        <div className="rounded-xl border border-border/60 bg-card">
+            {/* Header */}
+            <div className="flex items-center gap-1.5 px-5 py-4">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground/50" />
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Ventas por Sucursal — Mes Actual
+                </p>
+            </div>
+
+            {/* Rows */}
+            {branches.length === 0 ? (
+                <p className="px-5 pb-5 text-center text-sm text-muted-foreground">Sin datos de sucursales</p>
+            ) : (
+                <div>
+                    {branches.map((branch, index) => (
+                        <div
+                            key={branch.id}
+                            className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : 'border-t border-border/60'}`}
+                        >
+                            {/* Rank */}
+                            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                {index + 1}
                             </div>
-                        ))
-                    )}
+
+                            {/* Name */}
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-medium">{branch.name}</p>
+                                {branch.business_name && (
+                                    <p className="truncate text-[11px] text-muted-foreground">{branch.business_name}</p>
+                                )}
+                            </div>
+
+                            {/* Stats */}
+                            <div className="flex-shrink-0 text-right">
+                                <p className="text-xs font-semibold tabular-nums">{branch.total_sales} ventas</p>
+                                <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(branch.total_amount)}</p>
+                                <p className="text-[11px] text-muted-foreground/70 tabular-nums">
+                                    prom. {formatCurrency(branch.average_sale)}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            </CardContent>
-        </Card>
+            )}
+        </div>
     );
 }

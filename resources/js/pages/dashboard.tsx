@@ -1,8 +1,8 @@
-import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, SalesChart, TopProducts } from '@/components/dashboard';
+import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { AlertTriangle, DollarSign, Package, ShoppingCart, TrendingUp, UserRound, Users } from 'lucide-react';
+import { DollarSign, Package, ShoppingCart, UserRound, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -93,7 +93,6 @@ export default function Dashboard({
     salesByBranch,
     recentSales,
     lowStockProducts,
-    dailySales,
     userRole,
     userName,
 }: DashboardProps) {
@@ -109,29 +108,14 @@ export default function Dashboard({
 
     const getGreeting = () => {
         const hour = new Date().getHours();
-
-        if (hour >= 5 && hour < 12) {
-            return 'Buenos días';
-        } else if (hour >= 12 && hour < 19) {
-            return 'Buenas tardes';
-        } else {
-            return 'Buenas noches';
-        }
+        if (hour >= 5 && hour < 12) return 'Buenos días';
+        if (hour >= 12 && hour < 19) return 'Buenas tardes';
+        return 'Buenas noches';
     };
 
-    // Actualizar el saludo cada hora
     useEffect(() => {
-        const updateGreeting = () => {
-            setCurrentGreeting(getGreeting());
-        };
-
-        // Establecer el saludo inicial
-        updateGreeting();
-
-        // Actualizar cada hora
-        const interval = setInterval(updateGreeting, 3600000);
-
-        // Limpiar el intervalo cuando el componente se desmonte
+        setCurrentGreeting(getGreeting());
+        const interval = setInterval(() => setCurrentGreeting(getGreeting()), 3600000);
         return () => clearInterval(interval);
     }, []);
 
@@ -139,89 +123,67 @@ export default function Dashboard({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inicio" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+
                 {/* Header */}
-                <div className="space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">
                         {currentGreeting}, {userName}!
                     </h1>
-                    <p className="text-muted-foreground">
-                        Bienvenido al panel de control de Stokity. Aquí puedes ver un resumen de las métricas más importantes.
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Aquí tienes el resumen de hoy.
                     </p>
                 </div>
 
-                {/* Métricas principales */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {/* Low-stock alert banner — shown only when there are affected products */}
+                <LowStockProducts products={lowStockProducts} />
+
+                {/* Metric cards */}
+                <div className={`grid gap-4 md:grid-cols-2 ${userRole === 'administrador' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
                     <MetricCard
                         title="Ventas Hoy"
                         value={metrics.total_sales_today}
                         description="Transacciones del día"
                         icon={<ShoppingCart className="h-4 w-4" />}
-                        trend={{
-                            value: growth.sales_growth,
-                            isPositive: growth.sales_growth >= 0,
-                        }}
+                        trend={{ value: growth.sales_growth, isPositive: growth.sales_growth >= 0 }}
                     />
                     <MetricCard
                         title="Ingresos Hoy"
                         value={formatCurrency(metrics.total_revenue_today)}
                         description="Total facturado hoy"
                         icon={<DollarSign className="h-4 w-4" />}
-                        trend={{
-                            value: growth.revenue_growth,
-                            isPositive: growth.revenue_growth >= 0,
-                        }}
-                    />
-                    <MetricCard title="Productos" value={metrics.total_products} description="En inventario" icon={<Package className="h-4 w-4" />} />
-                    <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
-                </div>
-
-                {/* Métricas secundarias */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    <MetricCard
-                        title="Promedio de Venta"
-                        value={formatCurrency(metrics.average_sale_today)}
-                        description="Por transacción hoy"
-                        icon={<TrendingUp className="h-4 w-4" />}
+                        trend={{ value: growth.revenue_growth, isPositive: growth.revenue_growth >= 0 }}
                     />
                     <MetricCard
-                        title="Productos Bajo Stock"
-                        value={metrics.low_stock_products}
-                        description="Requieren atención"
-                        icon={<AlertTriangle className="h-4 w-4" />}
+                        title="Ingresos del Mes"
+                        value={formatCurrency(metrics.total_revenue_month)}
+                        description={`${metrics.total_sales_month} transacciones`}
+                        icon={<DollarSign className="h-4 w-4" />}
+                    />
+                    <MetricCard
+                        title="Clientes"
+                        value={metrics.total_clients}
+                        description="Registrados"
+                        icon={<UserRound className="h-4 w-4" />}
                     />
                     {userRole === 'administrador' && (
                         <MetricCard
-                            title="Usuarios Activos"
-                            value={metrics.total_users}
-                            description="En el sistema"
-                            icon={<Users className="h-4 w-4" />}
+                            title="Productos"
+                            value={metrics.total_products}
+                            description="En inventario"
+                            icon={<Package className="h-4 w-4" />}
                         />
                     )}
                 </div>
 
-                {/* Gráficos y listas */}
+                {/* Main content */}
                 <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Gráfico de ventas */}
-                    <SalesChart sales={dailySales} />
-
-                    {/* Productos más vendidos */}
+                    <RecentSales sales={recentSales} />
                     <TopProducts products={topProducts} />
                 </div>
 
-                {/* Listas de información */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Ventas recientes */}
-                    <RecentSales sales={recentSales} />
-
-                    {/* Productos con bajo stock */}
-                    <LowStockProducts products={lowStockProducts} />
-                </div>
-
-                {/* Ventas por sucursal (solo para administradores) */}
+                {/* Ventas por sucursal — admins only */}
                 {userRole === 'administrador' && salesByBranch.length > 0 && (
-                    <div className="grid gap-6">
-                        <SalesByBranch branches={salesByBranch} />
-                    </div>
+                    <SalesByBranch branches={salesByBranch} />
                 )}
             </div>
         </AppLayout>

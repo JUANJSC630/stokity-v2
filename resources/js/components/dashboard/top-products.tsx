@@ -15,53 +15,56 @@ interface TopProductsProps {
     products: TopProduct[];
 }
 
-export function TopProducts({ products }: TopProductsProps) {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
+const RANK_COLORS = [
+    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+    'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+    'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
+];
+
+export function TopProducts({ products }: TopProductsProps) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    Productos Más Vendidos
+            <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                    Más Vendidos
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {products.length === 0 ? (
-                        <div className="py-8 text-center text-muted-foreground">
-                            <p>No hay datos de productos vendidos</p>
-                        </div>
-                    ) : (
-                        products.map((product, index) => (
-                            <div key={product.id} className="flex items-center justify-between rounded-lg border p-3">
-                                <div className="flex items-center space-x-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                                        #{index + 1}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-medium">{product.name}</p>
-                                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                                            <span>{product.code}</span>
-                                            <span>•</span>
-                                            <span>{product.sales_count} ventas</span>
-                                        </div>
-                                    </div>
+            <CardContent className="p-0">
+                {products.length === 0 ? (
+                    <p className="px-6 py-8 text-center text-sm text-muted-foreground">Sin datos de ventas</p>
+                ) : (
+                    <div>
+                        {products.map((product, index) => (
+                            <div
+                                key={product.id}
+                                className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}
+                            >
+                                {/* Rank */}
+                                <div className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}>
+                                    {index + 1}
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-medium">{product.total_quantity} unidades</p>
-                                    <p className="text-xs text-muted-foreground">{formatCurrency(product.total_amount)}</p>
+
+                                {/* Product info */}
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-xs font-medium leading-tight">{product.name}</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {product.code} · {product.sales_count} {product.sales_count === 1 ? 'venta' : 'ventas'}
+                                    </p>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex-shrink-0 text-right">
+                                    <p className="text-xs font-semibold tabular-nums">{product.total_quantity} uds</p>
+                                    <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>
                                 </div>
                             </div>
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

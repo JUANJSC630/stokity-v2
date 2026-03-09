@@ -89,8 +89,8 @@ class DashboardController extends Controller
         // Últimas ventas
         $recentSales = $this->getRecentSales($branchFilter, 5);
 
-        // Productos con bajo stock
-        $lowStockProducts = $this->getLowStockProductsList($branchFilter, 5);
+        // Productos con bajo stock (sin límite — se muestran todos)
+        $lowStockProducts = $this->getLowStockProductsList($branchFilter);
 
         // Ventas por día (últimos 7 días)
         $dailySales = $this->getDailySales(7, $branchFilter);
@@ -302,13 +302,13 @@ class DashboardController extends Controller
     /**
      * Get low stock products list
      */
-        private function getLowStockProductsList($branchId = null, $limit = 5)
+        private function getLowStockProductsList($branchId = null)
     {
         $query = Product::with(['category', 'branch'])
             ->where('status', true)
             ->whereRaw('stock <= min_stock')
-            ->orderBy('stock', 'asc')
-            ->limit($limit);
+            ->orderByRaw('stock = 0 DESC')   // sin stock primero
+            ->orderBy('stock', 'asc');
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
