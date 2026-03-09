@@ -90,9 +90,9 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
                                         <p className="text-xs text-amber-500/70 dark:text-amber-500/50">mín {product.min_stock}</p>
                                     </div>
                                     <Link
-                                        href={route('products.edit', product.id)}
+                                        href={route('products.show', product.id)}
                                         className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/60"
-                                        title="Editar producto"
+                                        title="Ver producto"
                                     >
                                         <ExternalLink className="h-3 w-3" />
                                     </Link>
