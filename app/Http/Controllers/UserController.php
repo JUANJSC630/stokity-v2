@@ -207,7 +207,6 @@ class UserController extends Controller
             ],
             'role' => 'required|in:administrador,encargado,vendedor',
             'branch_id' => [
-                Rule::requiredIf(fn() => $request->role !== 'administrador'),
                 'nullable',
                 'exists:branches,id',
             ],
@@ -270,7 +269,7 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
-            'branch_id' => $validated['role'] === 'administrador' ? null : $validated['branch_id'],
+            'branch_id' => $validated['branch_id'] ?? null,
             'status' => $validated['status'] ?? $user->status,
         ];
 

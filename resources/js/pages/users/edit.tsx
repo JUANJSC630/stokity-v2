@@ -63,21 +63,9 @@ export default function EditUser({ user, branches, roles }: Props) {
         _method: 'PUT',
     });
 
-    // Handle the branch field visibility based on role
-    const [showBranchField, setShowBranchField] = useState(user.role !== 'administrador');
-
     // Manejar la lógica de cambio de rol
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newRole = e.target.value;
-        form.setData('role', newRole);
-
-        // Si el rol es administrador, ocultar campo de sucursal y limpiar su valor
-        if (newRole === 'administrador') {
-            setShowBranchField(false);
-            form.setData('branch_id', '');
-        } else {
-            setShowBranchField(true);
-        }
+        form.setData('role', e.target.value);
     };
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url || null);
@@ -278,29 +266,27 @@ export default function EditUser({ user, branches, roles }: Props) {
                                     {form.errors.role && <p className="mt-1 text-xs text-red-500">{form.errors.role}</p>}
                                 </div>
 
-                                {/* Sucursal - Solo visible si el rol no es "administrador" */}
-                                {showBranchField && (
-                                    <div>
-                                        <Label htmlFor="branch_id">Sucursal</Label>
-                                        <div className={form.errors.branch_id ? 'border-red-500' : ''}>
-                                            <select
-                                                id="branch_id"
-                                                value={form.data.branch_id}
-                                                onChange={(e) => form.setData('branch_id', e.target.value)}
-                                                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
-                                                disabled={form.processing}
-                                            >
-                                                <option value="">Seleccionar sucursal</option>
-                                                {branches.map((branch) => (
-                                                    <option key={branch.id} value={String(branch.id)}>
-                                                        {branch.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        {form.errors.branch_id && <p className="mt-1 text-xs text-red-500">{form.errors.branch_id}</p>}
+                                {/* Sucursal */}
+                                <div>
+                                    <Label htmlFor="branch_id">Sucursal</Label>
+                                    <div className={form.errors.branch_id ? 'border-red-500' : ''}>
+                                        <select
+                                            id="branch_id"
+                                            value={form.data.branch_id}
+                                            onChange={(e) => form.setData('branch_id', e.target.value)}
+                                            className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
+                                            disabled={form.processing}
+                                        >
+                                            <option value="">Sin sucursal asignada</option>
+                                            {branches.map((branch) => (
+                                                <option key={branch.id} value={String(branch.id)}>
+                                                    {branch.name}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
-                                )}
+                                    {form.errors.branch_id && <p className="mt-1 text-xs text-red-500">{form.errors.branch_id}</p>}
+                                </div>
 
                                 <hr className="my-2" />
                                 <p className="text-sm text-muted-foreground">Dejar en blanco para mantener la contraseña actual</p>
@@ -315,6 +301,7 @@ export default function EditUser({ user, branches, roles }: Props) {
                                         onChange={(e) => form.setData('password', e.target.value)}
                                         className={form.errors.password ? 'border-red-500' : ''}
                                         disabled={form.processing}
+                                        autoComplete="new-password"
                                     />
                                     {form.errors.password && <p className="mt-1 text-xs text-red-500">{form.errors.password}</p>}
                                 </div>
