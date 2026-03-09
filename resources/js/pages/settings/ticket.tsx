@@ -231,6 +231,7 @@ export default function TicketSettings({ config, business }: Props) {
     const printer = usePrinter();
     const [printing, setPrinting] = useState(false);
 
+    // @ts-expect-error — TicketConfig values are all primitives; Inertia's FormDataType requires an index signature
     const { data, setData, post, processing } = useForm<TicketConfig>(config);
 
     const handleSave = (e: React.FormEvent) => {

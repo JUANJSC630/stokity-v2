@@ -14,7 +14,7 @@ export default function PaymentMethodsCreate() {
         name: '',
         code: '',
         description: '',
-        is_active: true,
+        is_active: true as boolean,
         sort_order: 0,
     });
 
@@ -114,7 +114,7 @@ export default function PaymentMethodsCreate() {
                                 <Switch
                                     id="is_active"
                                     checked={form.data.is_active}
-                                    onCheckedChange={(checked) => form.setData('is_active', checked as boolean)}
+                                    onCheckedChange={(checked) => form.setData('is_active', checked === true)}
                                 />
                                 <Label htmlFor="is_active">Método de pago activo</Label>
                             </div>
