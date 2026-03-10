@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
@@ -62,9 +61,15 @@ function formatCOP(value: number) {
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-    completed: { label: 'Completada', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800' },
-    pending:   { label: 'Pendiente',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800' },
-    cancelled: { label: 'Cancelada',  className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
+    completed: {
+        label: 'Completada',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
+    },
+    pending: {
+        label: 'Pendiente',
+        className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
+    },
+    cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
 };
 
 export default function Show({ client, sales, stats }: Props) {
@@ -86,7 +91,6 @@ export default function Show({ client, sales, stats }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Cliente: ${client.name}`} />
             <div className="flex h-full flex-1 flex-col gap-5 p-6">
-
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -106,7 +110,7 @@ export default function Show({ client, sales, stats }: Props) {
                             </Link>
                         )}
                         <div>
-                            <h1 className="text-xl font-bold leading-tight">{client.name}</h1>
+                            <h1 className="text-xl leading-tight font-bold">{client.name}</h1>
                             <p className="text-xs text-muted-foreground">Desde {new Date(client.created_at).toLocaleDateString('es-CO')}</p>
                         </div>
                     </div>
@@ -120,10 +124,9 @@ export default function Show({ client, sales, stats }: Props) {
 
                 {/* Info + Stats row */}
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-
                     {/* Client info card */}
                     <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
-                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Información</p>
+                        <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Información</p>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
                             <div className="flex items-start gap-2">
                                 <User className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
@@ -168,16 +171,16 @@ export default function Show({ client, sales, stats }: Props) {
                     {/* Stats — vertical stack */}
                     <div className="flex gap-3 lg:flex-col">
                         <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3 lg:min-w-[160px]">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Compras</p>
-                            <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums">{stats.total_sales}</p>
+                            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Compras</p>
+                            <p className="mt-1.5 text-2xl leading-none font-bold tabular-nums">{stats.total_sales}</p>
                         </div>
                         <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Facturado</p>
-                            <p className="mt-1.5 text-lg font-bold leading-none tabular-nums">{formatCOP(stats.total_spent)}</p>
+                            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Facturado</p>
+                            <p className="mt-1.5 text-lg leading-none font-bold tabular-nums">{formatCOP(stats.total_spent)}</p>
                         </div>
                         <div className="flex-1 rounded-xl border border-border/60 bg-card px-4 py-3">
-                            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Última compra</p>
-                            <p className="mt-1.5 text-sm font-semibold leading-none">
+                            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Última compra</p>
+                            <p className="mt-1.5 text-sm leading-none font-semibold">
                                 {stats.last_purchase ? new Date(stats.last_purchase).toLocaleDateString('es-CO') : '—'}
                             </p>
                         </div>
@@ -188,7 +191,7 @@ export default function Show({ client, sales, stats }: Props) {
                 <div className="rounded-xl border border-border/60 bg-card">
                     <div className="flex items-center gap-1.5 px-5 py-4">
                         <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground/50" />
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
                             Historial de compras
                             {sales.total > 0 && <span className="ml-1.5 text-muted-foreground/60">({sales.total})</span>}
                         </p>
@@ -203,20 +206,38 @@ export default function Show({ client, sales, stats }: Props) {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-border/40 bg-muted/20">
-                                            <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Código</th>
-                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Fecha</th>
-                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Vendedor</th>
-                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Dcto.</th>
-                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</th>
-                                            <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Estado</th>
+                                            <th className="px-5 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Código
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Fecha
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Vendedor
+                                            </th>
+                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Dcto.
+                                            </th>
+                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Total
+                                            </th>
+                                            <th className="px-4 py-2.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                                Estado
+                                            </th>
                                             <th className="px-4 py-2.5"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {sales.data.map((sale, idx) => {
-                                            const status = STATUS_MAP[sale.status] ?? { label: sale.status, className: 'bg-muted text-muted-foreground border-border' };
+                                            const status = STATUS_MAP[sale.status] ?? {
+                                                label: sale.status,
+                                                className: 'bg-muted text-muted-foreground border-border',
+                                            };
                                             return (
-                                                <tr key={sale.id} className={`transition-colors hover:bg-muted/30 ${idx !== 0 ? 'border-t border-border/40' : ''}`}>
+                                                <tr
+                                                    key={sale.id}
+                                                    className={`transition-colors hover:bg-muted/30 ${idx !== 0 ? 'border-t border-border/40' : ''}`}
+                                                >
                                                     <td className="px-5 py-2.5 font-mono text-[11px] text-muted-foreground">{sale.code}</td>
                                                     <td className="px-4 py-2.5 text-xs">{new Date(sale.created_at).toLocaleDateString('es-CO')}</td>
                                                     <td className="px-4 py-2.5 text-xs text-muted-foreground">{sale.seller?.name ?? '—'}</td>
@@ -227,7 +248,9 @@ export default function Show({ client, sales, stats }: Props) {
                                                         {formatCOP(sale.total)}
                                                     </td>
                                                     <td className="px-4 py-2.5 text-center">
-                                                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
+                                                        <span
+                                                            className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}
+                                                        >
                                                             {status.label}
                                                         </span>
                                                     </td>
@@ -250,19 +273,27 @@ export default function Show({ client, sales, stats }: Props) {
                             {/* Mobile cards */}
                             <div className="divide-y divide-border/40 border-t border-border/60 md:hidden">
                                 {sales.data.map((sale) => {
-                                    const status = STATUS_MAP[sale.status] ?? { label: sale.status, className: 'bg-muted text-muted-foreground border-border' };
+                                    const status = STATUS_MAP[sale.status] ?? {
+                                        label: sale.status,
+                                        className: 'bg-muted text-muted-foreground border-border',
+                                    };
                                     return (
                                         <div key={sale.id} className="flex items-center justify-between px-5 py-3">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="font-mono text-[11px] text-muted-foreground">{sale.code}</span>
                                                 <span className="text-xs font-semibold tabular-nums">{formatCOP(sale.total)}</span>
-                                                <span className="text-[11px] text-muted-foreground">{new Date(sale.created_at).toLocaleDateString('es-CO')}</span>
+                                                <span className="text-[11px] text-muted-foreground">
+                                                    {new Date(sale.created_at).toLocaleDateString('es-CO')}
+                                                </span>
                                             </div>
                                             <div className="flex flex-col items-end gap-1.5">
                                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
                                                     {status.label}
                                                 </span>
-                                                <Link href={route('sales.show', sale.id)} className="text-[11px] text-muted-foreground hover:text-foreground">
+                                                <Link
+                                                    href={route('sales.show', sale.id)}
+                                                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                                                >
                                                     Ver
                                                 </Link>
                                             </div>
@@ -302,13 +333,15 @@ export default function Show({ client, sales, stats }: Props) {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Eliminar Cliente</DialogTitle>
-                        <DialogDescription>
-                            ¿Estás seguro de que deseas eliminar a {client.name}? Esta acción no se puede deshacer.
-                        </DialogDescription>
+                        <DialogDescription>¿Estás seguro de que deseas eliminar a {client.name}? Esta acción no se puede deshacer.</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={handleDelete}>Eliminar</Button>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete}>
+                            Eliminar
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

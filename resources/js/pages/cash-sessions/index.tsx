@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Branch, type CashSession, type PaginatedData, type User } from '@/types';
+import { type Branch, type BreadcrumbItem, type CashSession, type PaginatedData } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -26,9 +26,7 @@ function formatCOP(value: number | string | null | undefined) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(num as number);
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Historial de Caja', href: '/cash-sessions' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Historial de Caja', href: '/cash-sessions' }];
 
 export default function CashSessionIndex({ sessions, filters, availableBranches }: Props) {
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
@@ -36,11 +34,15 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
     const [branchId, setBranchId] = useState(filters.branch_id ?? '');
 
     function applyFilters() {
-        router.get(route('cash-sessions.index'), {
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-            branch_id: branchId || undefined,
-        }, { preserveState: true });
+        router.get(
+            route('cash-sessions.index'),
+            {
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+                branch_id: branchId || undefined,
+            },
+            { preserveState: true },
+        );
     }
 
     function clearFilters() {
@@ -63,7 +65,7 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                             type="date"
                             value={dateFrom}
                             onChange={(e) => setDateFrom(e.target.value)}
-                            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                         />
                     </div>
                     <div>
@@ -72,7 +74,7 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                             type="date"
                             value={dateTo}
                             onChange={(e) => setDateTo(e.target.value)}
-                            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                         />
                     </div>
                     {availableBranches.length > 1 && (
@@ -81,11 +83,13 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                             <select
                                 value={branchId}
                                 onChange={(e) => setBranchId(e.target.value)}
-                                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                             >
                                 <option value="">Todas</option>
                                 {availableBranches.map((b) => (
-                                    <option key={b.id} value={String(b.id)}>{b.name}</option>
+                                    <option key={b.id} value={String(b.id)}>
+                                        {b.name}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -134,7 +138,11 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                     </tr>
                                 )}
                                 {sessions.data.map((s) => {
-                                    const totalSales = Number(s.total_sales_cash) + Number(s.total_sales_card) + Number(s.total_sales_transfer) + Number(s.total_sales_other);
+                                    const totalSales =
+                                        Number(s.total_sales_cash) +
+                                        Number(s.total_sales_card) +
+                                        Number(s.total_sales_transfer) +
+                                        Number(s.total_sales_other);
                                     const disc = Number(s.discrepancy ?? 0);
                                     const discColor = disc === 0 ? 'text-green-600' : disc < 0 ? 'text-red-600' : 'text-amber-600';
                                     return (
@@ -158,14 +166,20 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                             <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">
                                                 {formatCOP(totalSales)}
                                             </td>
-                                            <td className={`px-4 py-3 text-right font-semibold ${s.status === 'open' ? 'text-muted-foreground' : discColor}`}>
+                                            <td
+                                                className={`px-4 py-3 text-right font-semibold ${s.status === 'open' ? 'text-muted-foreground' : discColor}`}
+                                            >
                                                 {s.status === 'open' ? '—' : (disc > 0 ? '+' : '') + formatCOP(disc)}
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 {s.status === 'open' ? (
-                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Abierta</Badge>
+                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                                        Abierta
+                                                    </Badge>
                                                 ) : (
-                                                    <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">Cerrada</Badge>
+                                                    <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                                                        Cerrada
+                                                    </Badge>
                                                 )}
                                             </td>
                                         </tr>

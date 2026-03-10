@@ -11,9 +11,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { Camera } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Negocio', href: '/settings/business' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocio', href: '/settings/business' }];
 
 export default function BusinessSettings({ business }: { business: BusinessSetting }) {
     const form = useForm({
@@ -80,23 +78,13 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                     <form onSubmit={submit} className="space-y-5">
                         <div className="grid gap-2">
                             <Label htmlFor="name">Nombre del negocio</Label>
-                            <Input
-                                id="name"
-                                value={form.data.name}
-                                onChange={(e) => form.setData('name', e.target.value)}
-                                required
-                            />
+                            <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
                             <InputError message={form.errors.name} />
                         </div>
 
                         <div className="grid gap-2">
                             <Label htmlFor="nit">NIT / RUT</Label>
-                            <Input
-                                id="nit"
-                                value={form.data.nit}
-                                onChange={(e) => form.setData('nit', e.target.value)}
-                                placeholder="900.123.456-7"
-                            />
+                            <Input id="nit" value={form.data.nit} onChange={(e) => form.setData('nit', e.target.value)} placeholder="900.123.456-7" />
                             <InputError message={form.errors.nit} />
                         </div>
 
@@ -158,7 +146,7 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                                     role="switch"
                                     aria-checked={form.data.require_cash_session}
                                     onClick={() => form.setData('require_cash_session', !form.data.require_cash_session)}
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 ${form.data.require_cash_session ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:outline-none ${form.data.require_cash_session ? 'bg-orange-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
                                 >
                                     <span
                                         className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${form.data.require_cash_session ? 'translate-x-5' : 'translate-x-0'}`}

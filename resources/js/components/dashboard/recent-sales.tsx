@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -21,9 +20,15 @@ interface RecentSalesProps {
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-    completed: { label: 'Completada', className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800' },
-    pending:   { label: 'Pendiente',  className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800' },
-    cancelled: { label: 'Cancelada',  className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
+    completed: {
+        label: 'Completada',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
+    },
+    pending: {
+        label: 'Pendiente',
+        className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
+    },
+    cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
 };
 
 const formatCurrency = (amount: number) =>
@@ -33,9 +38,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
     return (
         <Card>
             <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Ventas Recientes
-                </CardTitle>
+                <CardTitle className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Ventas Recientes</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
                 {sales.length === 0 ? (
@@ -43,7 +46,10 @@ export function RecentSales({ sales }: RecentSalesProps) {
                 ) : (
                     <div>
                         {sales.map((sale, idx) => {
-                            const status = STATUS_MAP[sale.status] ?? { label: sale.status, className: 'bg-muted text-muted-foreground border-border' };
+                            const status = STATUS_MAP[sale.status] ?? {
+                                label: sale.status,
+                                className: 'bg-muted text-muted-foreground border-border',
+                            };
                             return (
                                 <Link
                                     key={sale.id}
@@ -57,11 +63,9 @@ export function RecentSales({ sales }: RecentSalesProps) {
 
                                     {/* Main info */}
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-xs font-medium leading-tight">
-                                            {sale.client?.name || 'Consumidor Final'}
-                                        </p>
+                                        <p className="truncate text-xs leading-tight font-medium">{sale.client?.name || 'Consumidor Final'}</p>
                                         <p className="truncate text-[11px] text-muted-foreground">
-                                            {format(new Date(sale.date), "d MMM, HH:mm", { locale: es })}
+                                            {format(new Date(sale.date), 'd MMM, HH:mm', { locale: es })}
                                             {sale.seller && <> · {sale.seller.name}</>}
                                         </p>
                                     </div>

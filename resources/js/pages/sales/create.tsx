@@ -182,10 +182,9 @@ export default function Create({ branches, clients }: Props) {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
             try {
-                const res = await fetch(
-                    route('api.products.search') + '?' + new URLSearchParams({ q: productSearch }),
-                    { signal: abortRef.current.signal },
-                );
+                const res = await fetch(route('api.products.search') + '?' + new URLSearchParams({ q: productSearch }), {
+                    signal: abortRef.current.signal,
+                });
                 if (res.ok) setSearchResults(await res.json());
             } catch (err) {
                 if ((err as Error).name !== 'AbortError') console.error(err);
@@ -251,10 +250,7 @@ export default function Create({ branches, clients }: Props) {
         setSaleProducts((prev) => prev.map((sp) => (sp.product.id === id ? { ...sp, quantity: qty, subtotal: qty * sp.product.sale_price } : sp)));
     }
 
-    function recalculateTotals(
-        discountType = form.data.discount_type,
-        discountVal = form.data.discount_value,
-    ) {
+    function recalculateTotals(discountType = form.data.discount_type, discountVal = form.data.discount_value) {
         const net = saleProducts.reduce((sum, sp) => sum + sp.subtotal, 0);
 
         // Calcular impuesto por producto
@@ -266,11 +262,7 @@ export default function Create({ branches, clients }: Props) {
         const gross = net + tax;
         const dVal = parseFloat(discountVal) || 0;
         const discountAmount =
-            discountType === 'percentage'
-                ? Math.round(gross * (dVal / 100) * 100) / 100
-                : discountType === 'fixed'
-                  ? Math.min(dVal, gross)
-                  : 0;
+            discountType === 'percentage' ? Math.round(gross * (dVal / 100) * 100) / 100 : discountType === 'fixed' ? Math.min(dVal, gross) : 0;
 
         const total = Math.max(0, gross - discountAmount);
 

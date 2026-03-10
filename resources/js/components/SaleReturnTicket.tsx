@@ -158,9 +158,7 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
             <Sep double />
 
             {/* ── Return header ── */}
-            <div style={{ textAlign: 'center', fontWeight: 'bold', ...mono, marginBottom: '2px' }}>
-                RECIBO DE DEVOLUCIÓN
-            </div>
+            <div style={{ textAlign: 'center', fontWeight: 'bold', ...mono, marginBottom: '2px' }}>RECIBO DE DEVOLUCIÓN</div>
 
             <Sep />
 

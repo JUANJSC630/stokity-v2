@@ -53,10 +53,8 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                             onClick={() => {
                                 if (link.url) {
                                     // Ensure HTTPS if the current page is HTTPS
-                                    const url = window.location.protocol === 'https:' 
-                                        ? link.url.replace(/^http:/, 'https:') 
-                                        : link.url;
-                                    
+                                    const url = window.location.protocol === 'https:' ? link.url.replace(/^http:/, 'https:') : link.url;
+
                                     router.visit(url, {
                                         preserveState: true,
                                         preserveScroll: true,

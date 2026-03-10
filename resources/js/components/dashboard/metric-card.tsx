@@ -18,12 +18,12 @@ export function MetricCard({ title, value, description, icon, trend, className }
         <div className={cn('rounded-xl border border-border/60 bg-card px-5 py-4', className)}>
             {/* Title + icon */}
             <div className="flex items-center justify-between">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
                 {icon && <span className="text-muted-foreground/50">{icon}</span>}
             </div>
 
             {/* Value */}
-            <p className="mt-3 text-2xl font-bold tracking-tight leading-none">{value}</p>
+            <p className="mt-3 text-2xl leading-none font-bold tracking-tight">{value}</p>
 
             {/* Description + trend */}
             <div className="mt-2 flex items-center gap-2">
@@ -46,7 +46,8 @@ export function MetricCard({ title, value, description, icon, trend, className }
                         ) : (
                             <TrendingDown className="h-2.5 w-2.5" />
                         )}
-                        {trend.value > 0 ? '+' : ''}{trend.value}% hoy
+                        {trend.value > 0 ? '+' : ''}
+                        {trend.value}% hoy
                     </span>
                 )}
             </div>

@@ -2,7 +2,7 @@ import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, TopProducts }
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { DollarSign, Package, ShoppingCart, UserRound, Users } from 'lucide-react';
+import { DollarSign, Package, ShoppingCart, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -123,15 +123,12 @@ export default function Dashboard({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inicio" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
-
                 {/* Header */}
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">
                         {currentGreeting}, {userName}!
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        Aquí tienes el resumen de hoy.
-                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">Aquí tienes el resumen de hoy.</p>
                 </div>
 
                 {/* Low-stock alert banner — shown only when there are affected products */}
@@ -159,12 +156,7 @@ export default function Dashboard({
                         description={`${metrics.total_sales_month} transacciones`}
                         icon={<DollarSign className="h-4 w-4" />}
                     />
-                    <MetricCard
-                        title="Clientes"
-                        value={metrics.total_clients}
-                        description="Registrados"
-                        icon={<UserRound className="h-4 w-4" />}
-                    />
+                    <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
                     {userRole === 'administrador' && (
                         <MetricCard
                             title="Productos"
@@ -182,9 +174,7 @@ export default function Dashboard({
                 </div>
 
                 {/* Ventas por sucursal — admins only */}
-                {userRole === 'administrador' && salesByBranch.length > 0 && (
-                    <SalesByBranch branches={salesByBranch} />
-                )}
+                {userRole === 'administrador' && salesByBranch.length > 0 && <SalesByBranch branches={salesByBranch} />}
             </div>
         </AppLayout>
     );

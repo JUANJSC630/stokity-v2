@@ -92,11 +92,15 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                                     Cierre: {closedAt.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
                                 </p>
                             )}
-                            <p className="text-sm text-muted-foreground">
-                                Duración: {formatDuration(session.opened_at, session.closed_at)}
-                            </p>
+                            <p className="text-sm text-muted-foreground">Duración: {formatDuration(session.opened_at, session.closed_at)}</p>
                         </div>
-                        <Badge className={session.status === 'open' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}>
+                        <Badge
+                            className={
+                                session.status === 'open'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
+                            }
+                        >
                             {session.status === 'open' ? 'Abierta' : 'Cerrada'}
                         </Badge>
                     </div>
@@ -146,14 +150,17 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                             {movements.map((m) => (
                                 <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
                                     <div>
-                                        <span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        <span
+                                            className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                                        >
                                             {m.type === 'cash_in' ? 'INGRESO' : 'EGRESO'}
                                         </span>
                                         {m.concept}
                                         {m.user && <span className="text-xs text-muted-foreground"> · {m.user.name}</span>}
                                     </div>
                                     <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                        {m.type === 'cash_in' ? '+' : '-'}{formatCOP(m.amount)}
+                                        {m.type === 'cash_in' ? '+' : '-'}
+                                        {formatCOP(m.amount)}
                                     </span>
                                 </div>
                             ))}
@@ -199,7 +206,8 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                             <div className="flex justify-between py-2">
                                 <span className="font-bold">Diferencia</span>
                                 <span className={`text-lg font-bold ${discrepancyColor}`}>
-                                    {discrepancy > 0 ? '+' : ''}{formatCOP(discrepancy)}
+                                    {discrepancy > 0 ? '+' : ''}
+                                    {formatCOP(discrepancy)}
                                 </span>
                             </div>
                         </div>

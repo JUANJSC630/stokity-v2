@@ -62,7 +62,10 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
                     </div>
                 </div>
                 <ChevronDown
-                    className={cn('ml-2 h-4 w-4 flex-shrink-0 text-amber-600 transition-transform duration-200 dark:text-amber-400', expanded && 'rotate-180')}
+                    className={cn(
+                        'ml-2 h-4 w-4 flex-shrink-0 text-amber-600 transition-transform duration-200 dark:text-amber-400',
+                        expanded && 'rotate-180',
+                    )}
                 />
             </button>
 
@@ -84,7 +87,12 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
                                 </div>
                                 <div className="ml-3 flex flex-shrink-0 items-center gap-2">
                                     <div className="text-right">
-                                        <p className={cn('text-xs font-bold', product.stock === 0 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400')}>
+                                        <p
+                                            className={cn(
+                                                'text-xs font-bold',
+                                                product.stock === 0 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400',
+                                            )}
+                                        >
                                             {product.stock === 0 ? 'Sin stock' : `${product.stock} uds`}
                                         </p>
                                         <p className="text-xs text-amber-500/70 dark:text-amber-500/50">mín {product.min_stock}</p>

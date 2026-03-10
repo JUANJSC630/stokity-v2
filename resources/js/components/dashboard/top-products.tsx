@@ -28,7 +28,7 @@ export function TopProducts({ products }: TopProductsProps) {
     return (
         <Card>
             <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                <CardTitle className="flex items-center gap-1.5 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
                     Más Vendidos
                 </CardTitle>
@@ -39,18 +39,17 @@ export function TopProducts({ products }: TopProductsProps) {
                 ) : (
                     <div>
                         {products.map((product, index) => (
-                            <div
-                                key={product.id}
-                                className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}
-                            >
+                            <div key={product.id} className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}>
                                 {/* Rank */}
-                                <div className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}>
+                                <div
+                                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}
+                                >
                                     {index + 1}
                                 </div>
 
                                 {/* Product info */}
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs font-medium leading-tight">{product.name}</p>
+                                    <p className="truncate text-xs leading-tight font-medium">{product.name}</p>
                                     <p className="text-[11px] text-muted-foreground">
                                         {product.code} · {product.sales_count} {product.sales_count === 1 ? 'venta' : 'ventas'}
                                     </p>

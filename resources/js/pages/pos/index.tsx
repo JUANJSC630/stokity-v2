@@ -8,7 +8,22 @@ import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowDownCircle, ArrowUpCircle, ClipboardList, DoorOpen, Keyboard, Minus, Plus, Printer, Search, ShoppingCart, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import {
+    ArrowDownCircle,
+    ArrowUpCircle,
+    ClipboardList,
+    DoorOpen,
+    Keyboard,
+    Minus,
+    Plus,
+    Printer,
+    Search,
+    ShoppingCart,
+    Trash2,
+    Wifi,
+    WifiOff,
+    X,
+} from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -88,9 +103,7 @@ function CashSessionWidget({
         return () => document.removeEventListener('mousedown', handleClick);
     }, [open]);
 
-    const openTime = session
-        ? new Date(session.opened_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
-        : null;
+    const openTime = session ? new Date(session.opened_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : null;
 
     if (!session) {
         return (
@@ -117,10 +130,13 @@ function CashSessionWidget({
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-neutral-200 bg-white py-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="absolute top-full right-0 z-50 mt-1 w-52 rounded-xl border border-neutral-200 bg-white py-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
                     <button
                         type="button"
-                        onClick={() => { onMovement('cash_in'); setOpen(false); }}
+                        onClick={() => {
+                            onMovement('cash_in');
+                            setOpen(false);
+                        }}
                         className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                         <ArrowDownCircle className="h-4 w-4 text-green-600" />
@@ -128,7 +144,10 @@ function CashSessionWidget({
                     </button>
                     <button
                         type="button"
-                        onClick={() => { onMovement('cash_out'); setOpen(false); }}
+                        onClick={() => {
+                            onMovement('cash_out');
+                            setOpen(false);
+                        }}
                         className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     >
                         <ArrowUpCircle className="h-4 w-4 text-red-500" />
@@ -137,7 +156,10 @@ function CashSessionWidget({
                     <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
                     <button
                         type="button"
-                        onClick={() => { router.visit(route('cash-sessions.close.form', session.id)); setOpen(false); }}
+                        onClick={() => {
+                            router.visit(route('cash-sessions.close.form', session.id));
+                            setOpen(false);
+                        }}
                         className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                     >
                         <DoorOpen className="h-4 w-4" />
@@ -150,11 +172,7 @@ function CashSessionWidget({
 }
 
 // ─── Printer status indicator ────────────────────────────────────────────────
-function PrinterStatusBadge({ status, selectedPrinter, onConnect }: {
-    status: string;
-    selectedPrinter: string;
-    onConnect: () => void;
-}) {
+function PrinterStatusBadge({ status, selectedPrinter, onConnect }: { status: string; selectedPrinter: string; onConnect: () => void }) {
     if (status === 'connected' && selectedPrinter) {
         return (
             <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
@@ -204,21 +222,12 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
 
     return (
         <div ref={ref} className="relative">
-            <button
-                type="button"
-                onClick={() => setOpen((v) => !v)}
-                className="flex h-8 items-center"
-                title="Configurar impresora"
-            >
-                <PrinterStatusBadge
-                    status={printer.status}
-                    selectedPrinter={printer.selectedPrinter}
-                    onConnect={printer.connect}
-                />
+            <button type="button" onClick={() => setOpen((v) => !v)} className="flex h-8 items-center" title="Configurar impresora">
+                <PrinterStatusBadge status={printer.status} selectedPrinter={printer.selectedPrinter} onConnect={printer.connect} />
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="absolute top-full right-0 z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
                     <p className="mb-2 text-xs font-semibold text-muted-foreground">Impresora</p>
 
                     {printer.status === 'unavailable' && (
@@ -237,7 +246,9 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
                             </SelectTrigger>
                             <SelectContent>
                                 {printer.printers.map((name) => (
-                                    <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                                    <SelectItem key={name} value={name} className="text-xs">
+                                        {name}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -271,7 +282,13 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
     );
 }
 
-export default function PosIndex({ branches, clients, pendingSalesCount: initialPendingCount, currentSession: initialSession, requireCashSession }: Props) {
+export default function PosIndex({
+    branches,
+    clients,
+    pendingSalesCount: initialPendingCount,
+    currentSession: initialSession,
+    requireCashSession,
+}: Props) {
     const { auth } = usePage<SharedData>().props;
 
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
@@ -330,11 +347,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
     const gross = net + tax;
     const dVal = parseFloat(discountValue) || 0;
     const discountAmount =
-        discountType === 'percentage'
-            ? Math.round(gross * (dVal / 100) * 100) / 100
-            : discountType === 'fixed'
-              ? Math.min(dVal, gross)
-              : 0;
+        discountType === 'percentage' ? Math.round(gross * (dVal / 100) * 100) / 100 : discountType === 'fixed' ? Math.min(dVal, gross) : 0;
     const total = Math.max(0, gross - discountAmount);
     const change = Math.max(0, amountPaid - total);
 
@@ -354,13 +367,16 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
         printerRef.current.printReceipt(saleId).catch((err: Error) => {
             toast.error('Error al imprimir: ' + err.message);
         });
-    // Run whenever printer connects OR a new sale flash arrives
+        // Run whenever printer connects OR a new sale flash arrives
     }, [flash?.last_sale_id, printer.status, printer.selectedPrinter]);
 
     // --- Product search ---
     useEffect(() => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
-        if (!query || query.trim().length < 2) { setResults([]); return; }
+        if (!query || query.trim().length < 2) {
+            setResults([]);
+            return;
+        }
         setSearching(true);
         searchTimeout.current = setTimeout(async () => {
             if (abortRef.current) abortRef.current.abort();
@@ -380,7 +396,10 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
 
     // --- Cart helpers ---
     const addToCart = useCallback((product: Product, qty = 1) => {
-        if (product.stock <= 0) { toast.error('Sin stock disponible'); return; }
+        if (product.stock <= 0) {
+            toast.error('Sin stock disponible');
+            return;
+        }
         setCart((prev) => {
             const idx = prev.findIndex((i) => i.product.id === product.id);
             if (idx !== -1) {
@@ -447,8 +466,14 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
 
     // --- Submit ---
     const handleSubmit = useCallback(() => {
-        if (cart.length === 0) { toast.error('Agrega al menos un producto'); return; }
-        if (!paymentMethod) { toast.error('Selecciona un método de pago'); return; }
+        if (cart.length === 0) {
+            toast.error('Agrega al menos un producto');
+            return;
+        }
+        if (!paymentMethod) {
+            toast.error('Selecciona un método de pago');
+            return;
+        }
         if (!currentSession && requireCashSession) {
             toast.error('Debes abrir la caja antes de registrar una venta');
             setShowOpenSessionModal(true);
@@ -542,8 +567,22 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
             },
             { onSuccess, onError, onFinish: () => setSubmitting(false) },
         );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [cart, paymentMethod, amountPaid, total, change, discountType, discountValue, activePendingId, defaultBranchId, defaultClientId, clientId, currentSession, requireCashSession]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        cart,
+        paymentMethod,
+        amountPaid,
+        total,
+        change,
+        discountType,
+        discountValue,
+        activePendingId,
+        defaultBranchId,
+        defaultClientId,
+        clientId,
+        currentSession,
+        requireCashSession,
+    ]);
 
     // --- Keyboard shortcuts ---
     useEffect(() => {
@@ -576,10 +615,14 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
     }, [results, addToCart, cart, paymentMethod, amountPaid, total, handleSubmit]);
 
     // Auto-focus search on mount
-    useEffect(() => { searchRef.current?.focus(); }, []);
+    useEffect(() => {
+        searchRef.current?.focus();
+    }, []);
 
     // Sync currentSession when Inertia reloads page props
-    useEffect(() => { setCurrentSession(initialSession); }, [initialSession]);
+    useEffect(() => {
+        setCurrentSession(initialSession);
+    }, [initialSession]);
 
     // --- Pending sales (cotizaciones) ---
     async function fetchPendingSales() {
@@ -653,7 +696,10 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
     }
 
     function handleSaveQuote() {
-        if (cart.length === 0) { toast.error('Agrega al menos un producto'); return; }
+        if (cart.length === 0) {
+            toast.error('Agrega al menos un producto');
+            return;
+        }
 
         const resetCart = () => {
             setCart([]);
@@ -745,7 +791,10 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                 session={currentSession}
                 requireCashSession={requireCashSession}
                 onOpen={() => setShowOpenSessionModal(true)}
-                onMovement={(type) => { setMovementType(type); setShowMovementModal(true); }}
+                onMovement={(type) => {
+                    setMovementType(type);
+                    setShowMovementModal(true);
+                }}
             />
             <PrinterWidget printer={printer} />
         </>
@@ -771,7 +820,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     value={openingAmount}
                                     onChange={(e) => setOpeningAmount(e.target.value)}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -780,7 +829,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     value={openingNotes}
                                     onChange={(e) => setOpeningNotes(e.target.value)}
                                     rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <button
@@ -801,7 +850,11 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-neutral-900">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="font-semibold">{movementType === 'cash_in' ? 'Ingreso de efectivo' : 'Egreso de efectivo'}</h2>
-                            <button type="button" onClick={() => setShowMovementModal(false)} className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <button
+                                type="button"
+                                onClick={() => setShowMovementModal(false)}
+                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            >
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -812,9 +865,13 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                         key={t}
                                         type="button"
                                         onClick={() => setMovementType(t)}
-                                        className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${movementType === t
-                                            ? t === 'cash_in' ? 'border-green-400 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                            : 'border-neutral-200 text-muted-foreground hover:bg-neutral-50 dark:border-neutral-700'}`}
+                                        className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+                                            movementType === t
+                                                ? t === 'cash_in'
+                                                    ? 'border-green-400 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                    : 'border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                                : 'border-neutral-200 text-muted-foreground hover:bg-neutral-50 dark:border-neutral-700'
+                                        }`}
                                     >
                                         {t === 'cash_in' ? 'Ingreso' : 'Egreso'}
                                     </button>
@@ -830,7 +887,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     onChange={(e) => setMovementAmount(e.target.value)}
                                     required
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -841,7 +898,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     onChange={(e) => setMovementConcept(e.target.value)}
                                     required
                                     placeholder="Ej: Pago proveedor"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -850,7 +907,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     value={movementNotes}
                                     onChange={(e) => setMovementNotes(e.target.value)}
                                     rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <button
@@ -871,7 +928,11 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                     <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="font-semibold">Abrir caja</h2>
-                            <button type="button" onClick={() => setShowOpenSessionModal(false)} className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <button
+                                type="button"
+                                onClick={() => setShowOpenSessionModal(false)}
+                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            >
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -885,7 +946,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     value={openingAmount}
                                     onChange={(e) => setOpeningAmount(e.target.value)}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -894,7 +955,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     value={openingNotes}
                                     onChange={(e) => setOpeningNotes(e.target.value)}
                                     rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <button
@@ -924,9 +985,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="h-11 pl-9 text-base"
                             />
-                            {searching && (
-                                <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-orange-500">Buscando...</span>
-                            )}
+                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-orange-500">Buscando...</span>}
                         </div>
                         {/* Keyboard hints */}
                         <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
@@ -1020,7 +1079,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                         >
                             <ClipboardList className="h-4 w-4" />
                             {pendingCount > 0 && (
-                                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
                                     {pendingCount}
                                 </span>
                             )}
@@ -1047,9 +1106,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                     {/* Active pending sale banner */}
                     {activePendingId && (
                         <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
-                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                                Completando cotización
-                            </span>
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Completando cotización</span>
                             <button
                                 type="button"
                                 onClick={cancelActivePending}
@@ -1136,9 +1193,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     placeholder="0"
                                 />
                             )}
-                            {discountAmount > 0 && (
-                                <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>
-                            )}
+                            {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
                         </div>
 
                         {/* Totals */}
@@ -1190,7 +1245,10 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => { setAmountPaid(total); setAmountPaidDisplay(formatNumber(total)); }}
+                                        onClick={() => {
+                                            setAmountPaid(total);
+                                            setAmountPaidDisplay(formatNumber(total));
+                                        }}
                                         className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
                                     >
                                         Exacto
@@ -1213,7 +1271,9 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                                 disabled={submitting || cart.length === 0}
                                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C850C0] to-[#FFCC70] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
                             >
-                                {submitting ? 'Procesando...' : (
+                                {submitting ? (
+                                    'Procesando...'
+                                ) : (
                                     <>
                                         Cobrar {total > 0 && formatCOP(total)}
                                         <kbd className="rounded border border-white/40 bg-white/20 px-1.5 py-0.5 text-xs font-normal">F9</kbd>
@@ -1237,10 +1297,7 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
             {showPendingPanel && (
                 <div className="fixed inset-0 z-50 flex justify-end">
                     {/* Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/40"
-                        onClick={() => setShowPendingPanel(false)}
-                    />
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowPendingPanel(false)} />
                     {/* Panel */}
                     <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl dark:bg-neutral-900">
                         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
@@ -1255,53 +1312,48 @@ export default function PosIndex({ branches, clients, pendingSalesCount: initial
                         </div>
 
                         <div className="min-h-0 flex-1 overflow-y-auto">
-                            {loadingPending && (
-                                <p className="px-4 py-8 text-center text-sm text-muted-foreground">Cargando...</p>
-                            )}
+                            {loadingPending && <p className="px-4 py-8 text-center text-sm text-muted-foreground">Cargando...</p>}
                             {!loadingPending && pendingSales.length === 0 && (
                                 <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                                     <ClipboardList className="h-10 w-10 opacity-20" />
                                     <p className="text-sm">No hay cotizaciones pendientes</p>
                                 </div>
                             )}
-                            {!loadingPending && pendingSales.map((sale) => (
-                                <div key={sale.id} className="border-b border-neutral-100 p-4 dark:border-neutral-800">
-                                    <div className="mb-2 flex items-start justify-between">
-                                        <div>
-                                            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                                                {sale.client_name}
-                                            </p>
-                                            <p className="font-mono text-[11px] text-muted-foreground">#{sale.code.slice(-8)}</p>
+                            {!loadingPending &&
+                                pendingSales.map((sale) => (
+                                    <div key={sale.id} className="border-b border-neutral-100 p-4 dark:border-neutral-800">
+                                        <div className="mb-2 flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{sale.client_name}</p>
+                                                <p className="font-mono text-[11px] text-muted-foreground">#{sale.code.slice(-8)}</p>
+                                            </div>
+                                            <span className="text-sm font-bold text-green-700 dark:text-green-300">{formatCOP(sale.total)}</span>
                                         </div>
-                                        <span className="text-sm font-bold text-green-700 dark:text-green-300">
-                                            {formatCOP(sale.total)}
-                                        </span>
+                                        <p className="mb-1 text-xs text-muted-foreground">
+                                            {sale.product_count} producto{sale.product_count !== 1 ? 's' : ''}
+                                            {' · '}
+                                            {new Date(sale.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => loadPendingSale(sale)}
+                                                className="flex-1 rounded-lg bg-amber-500 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
+                                            >
+                                                Cargar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (confirm('¿Eliminar esta cotización?')) deletePendingSale(sale.id);
+                                                }}
+                                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <p className="mb-1 text-xs text-muted-foreground">
-                                        {sale.product_count} producto{sale.product_count !== 1 ? 's' : ''}
-                                        {' · '}
-                                        {new Date(sale.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => loadPendingSale(sale)}
-                                            className="flex-1 rounded-lg bg-amber-500 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
-                                        >
-                                            Cargar
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (confirm('¿Eliminar esta cotización?')) deletePendingSale(sale.id);
-                                            }}
-                                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
                         </div>
                     </div>
                 </div>

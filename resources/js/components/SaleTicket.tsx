@@ -91,7 +91,15 @@ const PAYMENT_LABELS: Record<string, string> = {
     other: 'Otro',
 };
 
-const SaleTicket: React.FC<SaleTicketProps> = ({ sale, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }) => {
+const SaleTicket: React.FC<SaleTicketProps> = ({
+    sale,
+    businessName,
+    businessNit,
+    businessAddress,
+    businessPhone,
+    businessLogoUrl,
+    ticketConfig,
+}) => {
     const config = ticketConfig ?? DEFAULT_CONFIG;
     const is58 = config.paper_width === 58;
     const chars = is58 ? 32 : 48;

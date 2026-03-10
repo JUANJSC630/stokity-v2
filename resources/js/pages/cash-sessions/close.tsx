@@ -63,7 +63,8 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                             <p className="text-sm text-muted-foreground">
                                 Abierta a las {openedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                                 {' · '}
-                                Duración: {hours > 0 ? `${hours}h ` : ''}{mins}m
+                                Duración: {hours > 0 ? `${hours}h ` : ''}
+                                {mins}m
                             </p>
                         </div>
                         <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Abierta</Badge>
@@ -114,14 +115,17 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                             {movements.map((m) => (
                                 <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
                                     <div>
-                                        <span className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        <span
+                                            className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                                        >
                                             {m.type === 'cash_in' ? 'INGRESO' : 'EGRESO'}
                                         </span>
                                         {m.concept}
                                         {m.notes && <span className="text-xs text-muted-foreground"> · {m.notes}</span>}
                                     </div>
                                     <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                        {m.type === 'cash_in' ? '+' : '-'}{formatCOP(m.amount)}
+                                        {m.type === 'cash_in' ? '+' : '-'}
+                                        {formatCOP(m.amount)}
                                     </span>
                                 </div>
                             ))}
@@ -152,9 +156,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
 
                     <form onSubmit={submit} className="space-y-3">
                         <div>
-                            <label className="mb-1 block text-sm font-medium">
-                                Efectivo contado físicamente *
-                            </label>
+                            <label className="mb-1 block text-sm font-medium">Efectivo contado físicamente *</label>
                             <input
                                 type="number"
                                 min={0}
@@ -163,7 +165,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                 onChange={(e) => form.setData('closing_amount_declared', e.target.value)}
                                 required
                                 placeholder="0"
-                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                             />
                             {form.errors.closing_amount_declared && (
                                 <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>
@@ -175,7 +177,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                 value={form.data.closing_notes}
                                 onChange={(e) => form.setData('closing_notes', e.target.value)}
                                 rows={2}
-                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 dark:border-neutral-700 dark:bg-neutral-800"
+                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                             />
                         </div>
                         <button

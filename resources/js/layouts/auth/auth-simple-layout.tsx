@@ -13,8 +13,8 @@ interface AuthLayoutProps {
 export default function AuthSimpleLayout({ children, description, backHref }: PropsWithChildren<AuthLayoutProps>) {
     const { business } = usePage<{ business: BusinessSetting }>().props;
 
-    const logoSrc      = business?.logo_url || '/stokity-icon.png';
-    const businessName = business?.name     || 'Stokity';
+    const logoSrc = business?.logo_url || '/stokity-icon.png';
+    const businessName = business?.name || 'Stokity';
 
     return (
         <div
@@ -46,7 +46,6 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
 
             {/* ── Content (no card — same as welcome) ──────────────────────── */}
             <div className="relative z-10 w-full max-w-[400px]">
-
                 {/* Back link */}
                 {backHref && (
                     <Link
@@ -61,18 +60,17 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
 
                 {/* Logo with pulse rings */}
                 <div className="mb-6 flex flex-col items-center text-center">
-                    <div
-                        className="welcome-animate welcome-d2 relative mb-5 flex items-center justify-center"
-                        style={{ width: 96, height: 96 }}
-                    >
-                        <div className="logo-ring" style={{ width: 102, height: 102, animationDelay: '0s'   }} />
+                    <div className="welcome-animate welcome-d2 relative mb-5 flex items-center justify-center" style={{ width: 96, height: 96 }}>
+                        <div className="logo-ring" style={{ width: 102, height: 102, animationDelay: '0s' }} />
                         <div className="logo-ring" style={{ width: 102, height: 102, animationDelay: '1.4s' }} />
                         <img
                             src={logoSrc}
                             alt={businessName}
                             className="relative z-10 rounded-xl object-contain"
                             style={{ width: 96, height: 96, boxShadow: '0 8px 28px rgba(199,91,122,0.15)' }}
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/stokity-icon.png'; }}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/stokity-icon.png';
+                            }}
                         />
                     </div>
 
@@ -85,7 +83,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
 
                     {description && (
                         <p
-                            className="welcome-animate welcome-d4 mt-2 text-sm text-balance leading-relaxed"
+                            className="welcome-animate welcome-d4 mt-2 text-sm leading-relaxed text-balance"
                             style={{ color: 'oklch(0.52 0.02 30)', maxWidth: 300 }}
                         >
                             {description}
@@ -103,10 +101,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                 {children}
 
                 {/* Copyright */}
-                <p
-                    className="welcome-animate welcome-d8 mt-8 text-center text-xs"
-                    style={{ color: 'oklch(0.65 0.02 30)' }}
-                >
+                <p className="welcome-animate welcome-d8 mt-8 text-center text-xs" style={{ color: 'oklch(0.65 0.02 30)' }}>
                     <AllRightsReserved />
                 </p>
             </div>

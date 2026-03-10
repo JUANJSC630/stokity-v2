@@ -3,7 +3,6 @@ import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
@@ -246,7 +245,15 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                 if (rootDiv) {
                     clearInterval(interval);
                     ReactDOM.createRoot(rootDiv).render(
-                        <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />,
+                        <SaleTicket
+                            sale={sale}
+                            businessName={businessName}
+                            businessNit={businessNit}
+                            businessAddress={businessAddress}
+                            businessPhone={businessPhone}
+                            businessLogoUrl={businessLogoUrl}
+                            ticketConfig={ticketConfig}
+                        />,
                     );
                     setTimeout(() => {
                         printWindow.focus();
@@ -275,7 +282,6 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Venta: ${sale.code}`} />
             <div className="flex h-full flex-1 flex-col gap-5 p-6">
-
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -287,7 +293,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                         </Link>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="max-w-[260px] truncate text-lg font-bold leading-tight sm:max-w-none">{sale.code}</h1>
+                                <h1 className="max-w-[260px] truncate text-lg leading-tight font-bold sm:max-w-none">{sale.code}</h1>
                                 {getStatusBadge(sale.status)}
                             </div>
                             <p className="text-xs text-muted-foreground">{formatDateToLocal(sale.date)}</p>
@@ -338,22 +344,40 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             <DialogDescription>Visualización del ticket de venta antes de imprimir</DialogDescription>
                         </DialogHeader>
                         <div className="flex max-h-[70vh] justify-center overflow-auto p-4">
-                            <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
+                            <SaleTicket
+                                sale={sale}
+                                businessName={businessName}
+                                businessNit={businessNit}
+                                businessAddress={businessAddress}
+                                businessPhone={businessPhone}
+                                businessLogoUrl={businessLogoUrl}
+                                ticketConfig={ticketConfig}
+                            />
                         </div>
                         <DialogClose asChild>
-                            <Button variant="outline" className="mt-4 w-full">Cerrar</Button>
+                            <Button variant="outline" className="mt-4 w-full">
+                                Cerrar
+                            </Button>
                         </DialogClose>
                     </DialogContent>
                 </Dialog>
 
                 <div className="hidden print:block">
-                    <SaleTicket sale={sale} businessName={businessName} businessNit={businessNit} businessAddress={businessAddress} businessPhone={businessPhone} businessLogoUrl={businessLogoUrl} ticketConfig={ticketConfig} />
+                    <SaleTicket
+                        sale={sale}
+                        businessName={businessName}
+                        businessNit={businessNit}
+                        businessAddress={businessAddress}
+                        businessPhone={businessPhone}
+                        businessLogoUrl={businessLogoUrl}
+                        ticketConfig={ticketConfig}
+                    />
                 </div>
 
                 {/* Main info + QR */}
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
                     <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
-                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Detalles</p>
+                        <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Detalles</p>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
                             <div>
                                 <p className="text-xs text-muted-foreground">Sucursal</p>
@@ -391,19 +415,14 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
 
                     {/* QR */}
                     <div className="flex items-center justify-center rounded-xl border border-border/60 bg-card p-4">
-                        <QRCode
-                            size={88}
-                            style={{ height: 'auto', maxWidth: '88px', width: '88px' }}
-                            value={sale.code}
-                            viewBox="0 0 256 256"
-                        />
+                        <QRCode size={88} style={{ height: 'auto', maxWidth: '88px', width: '88px' }} value={sale.code} viewBox="0 0 256 256" />
                     </div>
                 </div>
 
                 {/* Totals */}
                 <div className="rounded-xl border border-border/60 bg-card">
                     <div className="px-5 py-4">
-                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Resumen</p>
+                        <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Resumen</p>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">Subtotal</span>
@@ -420,7 +439,9 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                     <span className="text-sm text-muted-foreground">
                                         Descuento{sale.discount_type === 'percentage' && ` (${sale.discount_value}%)`}
                                     </span>
-                                    <span className="text-sm text-red-500 tabular-nums dark:text-red-400">−{formatCurrency(sale.discount_amount)}</span>
+                                    <span className="text-sm text-red-500 tabular-nums dark:text-red-400">
+                                        −{formatCurrency(sale.discount_amount)}
+                                    </span>
                                 </div>
                             )}
                             {sale.payment_method === 'cash' && sale.amount_paid && (
@@ -432,7 +453,9 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                     {sale.change_amount !== undefined && (
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-muted-foreground">Cambio</span>
-                                            <span className={`text-sm font-medium tabular-nums ${sale.change_amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+                                            <span
+                                                className={`text-sm font-medium tabular-nums ${sale.change_amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}
+                                            >
                                                 {formatCurrency(sale.change_amount)}
                                             </span>
                                         </div>
@@ -450,7 +473,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                 {/* Products */}
                 <div className="rounded-xl border border-border/60 bg-card">
                     <div className="px-5 py-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Productos</p>
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Productos</p>
                     </div>
 
                     {/* Desktop table */}
@@ -458,34 +481,59 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border/40 bg-muted/20">
-                                    <th className="px-5 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Producto</th>
-                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Cant.</th>
-                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Dev.</th>
-                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Precio</th>
-                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Impuesto</th>
-                                    <th className="px-5 py-2.5 text-right text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Subtotal</th>
+                                    <th className="px-5 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Producto
+                                    </th>
+                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Cant.
+                                    </th>
+                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Dev.
+                                    </th>
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Precio
+                                    </th>
+                                    <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Impuesto
+                                    </th>
+                                    <th className="px-5 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                                        Subtotal
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(sale.saleProducts ?? []).length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted-foreground">Sin productos registrados</td>
+                                        <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted-foreground">
+                                            Sin productos registrados
+                                        </td>
                                     </tr>
                                 ) : (
                                     (sale.saleProducts ?? []).map((sp, idx) => {
                                         const returned = getReturnedQuantity(sp.product_id);
                                         return (
-                                            <tr key={sp.id} className={`transition-colors hover:bg-muted/20 ${idx !== 0 ? 'border-t border-border/40' : ''} ${returned > 0 ? 'opacity-60' : ''}`}>
+                                            <tr
+                                                key={sp.id}
+                                                className={`transition-colors hover:bg-muted/20 ${idx !== 0 ? 'border-t border-border/40' : ''} ${returned > 0 ? 'opacity-60' : ''}`}
+                                            >
                                                 <td className="px-5 py-3 text-sm font-medium">{sp.product?.name ?? 'Producto eliminado'}</td>
                                                 <td className="px-4 py-3 text-center text-sm tabular-nums">{sp.quantity}</td>
                                                 <td className="px-4 py-3 text-center text-sm">
-                                                    {returned > 0 ? <span className="text-amber-600 dark:text-amber-400">{returned}</span> : <span className="text-muted-foreground/40">—</span>}
+                                                    {returned > 0 ? (
+                                                        <span className="text-amber-600 dark:text-amber-400">{returned}</span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground/40">—</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-3 text-right text-sm tabular-nums">{formatCurrency(sp.price)}</td>
-                                                <td className="px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">
-                                                    {sp.product?.tax ? `${formatCurrency(((sp.product.tax) * sp.price * sp.quantity) / 100)} (${sp.product.tax}%)` : '—'}
+                                                <td className="px-4 py-3 text-right text-sm text-muted-foreground tabular-nums">
+                                                    {sp.product?.tax
+                                                        ? `${formatCurrency((sp.product.tax * sp.price * sp.quantity) / 100)} (${sp.product.tax}%)`
+                                                        : '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(sp.price * sp.quantity)}</td>
+                                                <td className="px-5 py-3 text-right text-sm font-medium tabular-nums">
+                                                    {formatCurrency(sp.price * sp.quantity)}
+                                                </td>
                                             </tr>
                                         );
                                     })
@@ -493,7 +541,9 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             </tbody>
                             <tfoot className="border-t border-border/40 bg-muted/10">
                                 <tr>
-                                    <td colSpan={5} className="px-5 py-2.5 text-xs font-semibold">Total</td>
+                                    <td colSpan={5} className="px-5 py-2.5 text-xs font-semibold">
+                                        Total
+                                    </td>
                                     <td className="px-5 py-2.5 text-right text-xs font-bold tabular-nums">{formatCurrency(sale.total)}</td>
                                 </tr>
                             </tfoot>
@@ -508,7 +558,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                 <div key={sp.id} className={`px-5 py-3 ${returned > 0 ? 'opacity-60' : ''}`}>
                                     <div className="flex items-start justify-between gap-2">
                                         <p className="text-xs font-medium">{sp.product?.name ?? 'Producto eliminado'}</p>
-                                        <span className="flex-shrink-0 text-xs tabular-nums text-muted-foreground">×{sp.quantity}</span>
+                                        <span className="flex-shrink-0 text-xs text-muted-foreground tabular-nums">×{sp.quantity}</span>
                                     </div>
                                     <div className="mt-1 flex justify-between">
                                         <span className="text-[11px] text-muted-foreground">{formatCurrency(sp.price)} c/u</span>
@@ -525,7 +575,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                 {(Array.isArray(sale.saleReturns) ? sale.saleReturns : []).length > 0 && (
                     <div className="rounded-xl border border-border/60 bg-card">
                         <div className="px-5 py-4">
-                            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Devoluciones</p>
+                            <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Devoluciones</p>
                             <div className="space-y-1.5">
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs text-muted-foreground">Total original</span>
@@ -533,11 +583,15 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs text-muted-foreground">Total devuelto</span>
-                                    <span className="text-xs text-red-500 tabular-nums dark:text-red-400">−{formatCurrency(calculateTotalReturned())}</span>
+                                    <span className="text-xs text-red-500 tabular-nums dark:text-red-400">
+                                        −{formatCurrency(calculateTotalReturned())}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between border-t border-border/40 pt-2">
                                     <span className="text-sm font-semibold">Valor neto</span>
-                                    <span className="text-sm font-bold tabular-nums">{formatCurrency(originalTotalValue - calculateTotalReturned())}</span>
+                                    <span className="text-sm font-bold tabular-nums">
+                                        {formatCurrency(originalTotalValue - calculateTotalReturned())}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -590,54 +644,66 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                 </DialogHeader>
                                 <div
                                     className="flex justify-center bg-white p-4 dark:bg-neutral-900"
-                                    style={{ maxWidth: '58mm', width: '58mm', margin: '0 auto', boxShadow: '0 0 8px #ccc', borderRadius: 8, maxHeight: '80vh', overflow: 'auto' }}
+                                    style={{
+                                        maxWidth: '58mm',
+                                        width: '58mm',
+                                        margin: '0 auto',
+                                        boxShadow: '0 0 8px #ccc',
+                                        borderRadius: 8,
+                                        maxHeight: '80vh',
+                                        overflow: 'auto',
+                                    }}
                                 >
-                                    {showReturnReceipt.open && showReturnReceipt.returnId && (() => {
-                                        const ret = (sale.saleReturns ?? []).find((r) => r.id === showReturnReceipt.returnId);
-                                        if (!ret) return null;
-                                        const enrichedProducts = Array.isArray(ret.products)
-                                            ? ret.products.map((rp) => {
-                                                  const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
-                                                  return {
-                                                      code: saleProd?.product?.code ?? '',
-                                                      description: saleProd?.product?.description ?? '',
-                                                      purchase_price: saleProd?.product?.purchase_price ?? 0,
-                                                      sale_price: saleProd?.product?.sale_price ?? 0,
-                                                      stock: saleProd?.product?.stock ?? 0,
-                                                      min_stock: saleProd?.product?.min_stock ?? 0,
-                                                      category_id: saleProd?.product?.category_id ?? 0,
-                                                      branch_id: saleProd?.product?.branch_id ?? 0,
-                                                      created_at: saleProd?.product?.created_at ?? '',
-                                                      updated_at: saleProd?.product?.updated_at ?? '',
-                                                      image: saleProd?.product?.image ?? '',
-                                                      image_url: saleProd?.product?.image_url ?? '',
-                                                      status: Boolean(saleProd?.product?.status),
-                                                      deleted_at: saleProd?.product?.deleted_at ?? null,
-                                                      ...rp,
-                                                      id: rp.id,
-                                                      name: saleProd?.product?.name ?? 'Producto eliminado',
-                                                      price: saleProd?.price ?? 0,
-                                                      quantity: rp.pivot?.quantity ?? 0,
-                                                      tax: saleProd?.product?.tax ?? 19,
-                                                  };
-                                              })
-                                            : [];
-                                        return (
-                                            <SaleReturnTicket
-                                                saleReturn={{ ...ret, reason: ret.reason ?? undefined, products: enrichedProducts }}
-                                                sale={sale}
-                                                businessName={businessName}
-                                                businessNit={businessNit}
-                                                businessAddress={businessAddress}
-                                                businessPhone={businessPhone}
-                                                businessLogoUrl={businessLogoUrl}
-                                                ticketConfig={ticketConfig}
-                                            />
-                                        );
-                                    })()}
+                                    {showReturnReceipt.open &&
+                                        showReturnReceipt.returnId &&
+                                        (() => {
+                                            const ret = (sale.saleReturns ?? []).find((r) => r.id === showReturnReceipt.returnId);
+                                            if (!ret) return null;
+                                            const enrichedProducts = Array.isArray(ret.products)
+                                                ? ret.products.map((rp) => {
+                                                      const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === rp.id);
+                                                      return {
+                                                          code: saleProd?.product?.code ?? '',
+                                                          description: saleProd?.product?.description ?? '',
+                                                          purchase_price: saleProd?.product?.purchase_price ?? 0,
+                                                          sale_price: saleProd?.product?.sale_price ?? 0,
+                                                          stock: saleProd?.product?.stock ?? 0,
+                                                          min_stock: saleProd?.product?.min_stock ?? 0,
+                                                          category_id: saleProd?.product?.category_id ?? 0,
+                                                          branch_id: saleProd?.product?.branch_id ?? 0,
+                                                          created_at: saleProd?.product?.created_at ?? '',
+                                                          updated_at: saleProd?.product?.updated_at ?? '',
+                                                          image: saleProd?.product?.image ?? '',
+                                                          image_url: saleProd?.product?.image_url ?? '',
+                                                          status: Boolean(saleProd?.product?.status),
+                                                          deleted_at: saleProd?.product?.deleted_at ?? null,
+                                                          ...rp,
+                                                          id: rp.id,
+                                                          name: saleProd?.product?.name ?? 'Producto eliminado',
+                                                          price: saleProd?.price ?? 0,
+                                                          quantity: rp.pivot?.quantity ?? 0,
+                                                          tax: saleProd?.product?.tax ?? 19,
+                                                      };
+                                                  })
+                                                : [];
+                                            return (
+                                                <SaleReturnTicket
+                                                    saleReturn={{ ...ret, reason: ret.reason ?? undefined, products: enrichedProducts }}
+                                                    sale={sale}
+                                                    businessName={businessName}
+                                                    businessNit={businessNit}
+                                                    businessAddress={businessAddress}
+                                                    businessPhone={businessPhone}
+                                                    businessLogoUrl={businessLogoUrl}
+                                                    ticketConfig={ticketConfig}
+                                                />
+                                            );
+                                        })()}
                                 </div>
                                 <DialogClose asChild>
-                                    <Button variant="outline" className="mt-4 w-full">Cerrar</Button>
+                                    <Button variant="outline" className="mt-4 w-full">
+                                        Cerrar
+                                    </Button>
                                 </DialogClose>
                             </DialogContent>
                         </Dialog>
@@ -650,12 +716,21 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                     products={(sale.saleProducts ?? [])
                         .map((sp) => {
                             const returned = getReturnedQuantity(sp.product_id);
-                            return { id: sp.product_id, name: sp.product?.name || 'Producto eliminado', quantity: sp.quantity, alreadyReturned: returned, remaining: sp.quantity - returned };
+                            return {
+                                id: sp.product_id,
+                                name: sp.product?.name || 'Producto eliminado',
+                                quantity: sp.quantity,
+                                alreadyReturned: returned,
+                                remaining: sp.quantity - returned,
+                            };
                         })
                         .filter((sp) => sp.remaining > 0)}
                     open={showReturnForm}
                     onClose={() => setShowReturnForm(false)}
-                    onSuccess={() => { updateSaleData(); setShowReturnForm(false); }}
+                    onSuccess={() => {
+                        updateSaleData();
+                        setShowReturnForm(false);
+                    }}
                 />
             </div>
         </AppLayout>

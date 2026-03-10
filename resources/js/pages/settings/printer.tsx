@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
-import { usePrinter } from '@/hooks/use-printer';
 import { Head } from '@inertiajs/react';
 import { CheckCircle, Download, ExternalLink, Monitor, Printer, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
@@ -26,8 +26,7 @@ const steps = [
         title: 'Descargar e instalar QZ Tray',
         description: (
             <span>
-                QZ Tray es un programa gratuito que permite imprimir desde el navegador a impresoras locales (USB, Bluetooth, red).
-                Descárgalo desde{' '}
+                QZ Tray es un programa gratuito que permite imprimir desde el navegador a impresoras locales (USB, Bluetooth, red). Descárgalo desde{' '}
                 <a
                     href="https://qz.io/download"
                     target="_blank"
@@ -46,8 +45,8 @@ const steps = [
         description: (
             <span>
                 Haz clic en el botón <strong>"Descargar certificado"</strong> que aparece abajo. Guarda el archivo{' '}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">stokity-qztray.pem</code> en un lugar fácil de encontrar (por ejemplo,
-                el Escritorio).
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">stokity-qztray.pem</code> en un lugar fácil de encontrar (por ejemplo, el
+                Escritorio).
             </span>
         ),
     },
@@ -56,8 +55,8 @@ const steps = [
         title: 'Abrir QZ Tray Site Manager',
         description: (
             <span>
-                Haz clic derecho en el ícono de QZ Tray en la barra de tareas y selecciona{' '}
-                <strong>"Site Manager"</strong>. Se abrirá una ventana con pestañas.
+                Haz clic derecho en el ícono de QZ Tray en la barra de tareas y selecciona <strong>"Site Manager"</strong>. Se abrirá una ventana con
+                pestañas.
             </span>
         ),
     },
@@ -66,10 +65,9 @@ const steps = [
         title: 'Agregar el certificado',
         description: (
             <span>
-                En Site Manager, ve a la pestaña <strong>"Allowed"</strong>. Haz clic en el botón <strong>"+"</strong> (esquina inferior
-                izquierda). Busca y selecciona el archivo{' '}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">stokity-qztray.pem</code> que descargaste. Verás que aparece{' '}
-                <strong>"Stokity POS — Verified by QZ Industries, LLC"</strong>.
+                En Site Manager, ve a la pestaña <strong>"Allowed"</strong>. Haz clic en el botón <strong>"+"</strong> (esquina inferior izquierda).
+                Busca y selecciona el archivo <code className="rounded bg-muted px-1 py-0.5 text-xs">stokity-qztray.pem</code> que descargaste. Verás
+                que aparece <strong>"Stokity POS — Verified by QZ Industries, LLC"</strong>.
             </span>
         ),
     },
@@ -78,8 +76,8 @@ const steps = [
         title: '¡Listo! Conecta y selecciona tu impresora',
         description: (
             <span>
-                Regresa a Stokity. En el POS o en esta página verás el estado de la impresora. Selecciona tu impresora de la lista y
-                configura el ancho de papel (58 mm o 80 mm). A partir de ahora, cada venta se imprimirá automáticamente.
+                Regresa a Stokity. En el POS o en esta página verás el estado de la impresora. Selecciona tu impresora de la lista y configura el
+                ancho de papel (58 mm o 80 mm). A partir de ahora, cada venta se imprimirá automáticamente.
             </span>
         ),
     },
@@ -110,7 +108,11 @@ export default function PrinterSettings() {
                     </Badge>
                 );
             case 'connecting':
-                return <Badge variant="outline" className="gap-1">Buscando QZ Tray…</Badge>;
+                return (
+                    <Badge variant="outline" className="gap-1">
+                        Buscando QZ Tray…
+                    </Badge>
+                );
             case 'unavailable':
                 return (
                     <Badge variant="outline" className="gap-1 text-muted-foreground">
@@ -132,10 +134,7 @@ export default function PrinterSettings() {
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall
-                        title="Impresora térmica"
-                        description="Configura la impresión ESC/POS para tu impresora local"
-                    />
+                    <HeadingSmall title="Impresora térmica" description="Configura la impresión ESC/POS para tu impresora local" />
 
                     {/* Estado actual */}
                     <Card>
@@ -160,8 +159,8 @@ export default function PrinterSettings() {
                                     <Separator />
                                     <Alert>
                                         <AlertDescription className="text-xs text-muted-foreground">
-                                            QZ Tray está activo. La lista de impresoras proviene del sistema operativo — incluye
-                                            impresoras apagadas o desconectadas. Asegúrate de que la impresora esté
+                                            QZ Tray está activo. La lista de impresoras proviene del sistema operativo — incluye impresoras apagadas o
+                                            desconectadas. Asegúrate de que la impresora esté
                                             <strong> encendida y conectada</strong> antes de imprimir.
                                         </AlertDescription>
                                     </Alert>
@@ -169,9 +168,7 @@ export default function PrinterSettings() {
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-muted-foreground">Impresora seleccionada</span>
                                             <span className="text-sm font-medium">
-                                                {printer.selectedPrinter ?? (
-                                                    <span className="italic text-muted-foreground">Ninguna</span>
-                                                )}
+                                                {printer.selectedPrinter ?? <span className="text-muted-foreground italic">Ninguna</span>}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
@@ -196,9 +193,7 @@ export default function PrinterSettings() {
                                                         >
                                                             <Printer className="mr-1 size-3" />
                                                             {name}
-                                                            {printer.selectedPrinter === name && (
-                                                                <CheckCircle className="ml-1 size-3" />
-                                                            )}
+                                                            {printer.selectedPrinter === name && <CheckCircle className="ml-1 size-3" />}
                                                         </Button>
                                                     ))}
                                                 </div>
@@ -239,8 +234,8 @@ export default function PrinterSettings() {
                             {printer.status === 'unavailable' && (
                                 <Alert>
                                     <AlertDescription className="text-sm">
-                                        QZ Tray no está ejecutándose en este equipo. Instálalo y ábrelo para habilitar la impresión
-                                        térmica. Sigue la guía de configuración a continuación.
+                                        QZ Tray no está ejecutándose en este equipo. Instálalo y ábrelo para habilitar la impresión térmica. Sigue la
+                                        guía de configuración a continuación.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -256,8 +251,8 @@ export default function PrinterSettings() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-muted-foreground">
-                                QZ Tray requiere un certificado para autorizar a Stokity a enviar trabajos de impresión. Descarga este
-                                archivo y agrégalo una sola vez en el Site Manager de QZ Tray (ver guía abajo).
+                                QZ Tray requiere un certificado para autorizar a Stokity a enviar trabajos de impresión. Descarga este archivo y
+                                agrégalo una sola vez en el Site Manager de QZ Tray (ver guía abajo).
                             </p>
                             <a href="/qz/certificate/download" download="stokity-qztray.pem">
                                 <Button variant="outline" className="gap-2">
@@ -285,7 +280,7 @@ export default function PrinterSettings() {
                                         </div>
                                         <div className="space-y-1 pt-0.5">
                                             <p className="text-sm font-semibold">{step.title}</p>
-                                            <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                                            <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
                                         </div>
                                     </li>
                                 ))}

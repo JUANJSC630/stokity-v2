@@ -1,8 +1,16 @@
+import {
+    connectQZ,
+    isConnected,
+    listPrinters,
+    printCashSession as qzPrintCashSession,
+    printReceipt as qzPrintReceipt,
+    printReturn as qzPrintReturn,
+    printTest as qzPrintTest,
+} from '@/services/qzTray';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { connectQZ, isConnected, listPrinters, printCashSession as qzPrintCashSession, printReceipt as qzPrintReceipt, printReturn as qzPrintReturn, printTest as qzPrintTest } from '@/services/qzTray';
 
-const STORAGE_PRINTER_KEY  = 'stokity_printer_name';
-const STORAGE_WIDTH_KEY    = 'stokity_printer_width';
+const STORAGE_PRINTER_KEY = 'stokity_printer_name';
+const STORAGE_WIDTH_KEY = 'stokity_printer_width';
 
 type PrinterStatus = 'idle' | 'connecting' | 'connected' | 'error' | 'unavailable';
 
@@ -22,16 +30,12 @@ export interface PrinterState {
 }
 
 export function usePrinter(): PrinterState {
-    const [status, setStatus]                 = useState<PrinterStatus>('idle');
-    const [printers, setPrinters]             = useState<string[]>([]);
-    const [selectedPrinter, setSelectedPrinterState] = useState<string>(
-        () => localStorage.getItem(STORAGE_PRINTER_KEY) ?? '',
-    );
-    const [paperWidth, setPaperWidthState]    = useState<58 | 80>(
-        () => (Number(localStorage.getItem(STORAGE_WIDTH_KEY)) as 58 | 80) || 80,
-    );
-    const [errorMessage, setErrorMessage]     = useState<string | null>(null);
-    const didAutoConnect                      = useRef(false);
+    const [status, setStatus] = useState<PrinterStatus>('idle');
+    const [printers, setPrinters] = useState<string[]>([]);
+    const [selectedPrinter, setSelectedPrinterState] = useState<string>(() => localStorage.getItem(STORAGE_PRINTER_KEY) ?? '');
+    const [paperWidth, setPaperWidthState] = useState<58 | 80>(() => (Number(localStorage.getItem(STORAGE_WIDTH_KEY)) as 58 | 80) || 80);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const didAutoConnect = useRef(false);
 
     const setSelectedPrinter = useCallback((name: string) => {
         setSelectedPrinterState(name);
@@ -71,16 +75,18 @@ export function usePrinter(): PrinterState {
         if (didAutoConnect.current) return;
         didAutoConnect.current = true;
 
-        isConnected().then((active) => {
-            if (active) {
-                setStatus('connected');
-                listPrinters().then(setPrinters);
-            } else {
+        isConnected()
+            .then((active) => {
+                if (active) {
+                    setStatus('connected');
+                    listPrinters().then(setPrinters);
+                } else {
+                    connect();
+                }
+            })
+            .catch(() => {
                 connect();
-            }
-        }).catch(() => {
-            connect();
-        });
+            });
     }, [connect]);
 
     // No disconnect on unmount — QZ Tray WebSocket is a singleton that should

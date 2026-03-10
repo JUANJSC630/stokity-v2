@@ -46,10 +46,14 @@ interface Props {
 // ── Sample data ───────────────────────────────────────────────────────────────
 const now = new Date();
 const SAMPLE_DATE =
-    String(now.getDate()).padStart(2, '0') + '/' +
-    String(now.getMonth() + 1).padStart(2, '0') + '/' +
-    now.getFullYear() + ' ' +
-    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getDate()).padStart(2, '0') +
+    '/' +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    '/' +
+    now.getFullYear() +
+    ' ' +
+    String(now.getHours()).padStart(2, '0') +
+    ':' +
     String(now.getMinutes()).padStart(2, '0');
 
 const SAMPLE = {
@@ -60,8 +64,8 @@ const SAMPLE = {
     branch: 'Sucursal Principal',
     products: [
         { name: 'Chocolate Bon Bon', qty: 2, price: 7500, subtotal: 15000 },
-        { name: 'Gaseosa 2L',        qty: 1, price: 5000, subtotal: 5000  },
-        { name: 'Chicle Trident',    qty: 3, price: 1500, subtotal: 4500  },
+        { name: 'Gaseosa 2L', qty: 1, price: 5000, subtotal: 5000 },
+        { name: 'Chicle Trident', qty: 3, price: 1500, subtotal: 4500 },
     ],
     net: 24500,
     tax: 1500,
@@ -79,9 +83,9 @@ function fmt(n: number) {
 
 // ── Receipt preview — visually matches physical print ─────────────────────────
 function TicketPreview({ config, business }: { config: TicketConfig; business: Business }) {
-    const is58   = config.paper_width === 58;
-    const width  = is58 ? 260 : 368;
-    const chars  = is58 ? 32  : 48;
+    const is58 = config.paper_width === 58;
+    const width = is58 ? 260 : 368;
+    const chars = is58 ? 32 : 48;
 
     const mono: React.CSSProperties = {
         fontFamily: "'Courier New', Courier, monospace",
@@ -90,8 +94,7 @@ function TicketPreview({ config, business }: { config: TicketConfig; business: B
 
     /** Character-based separator — matches what the printer outputs */
     const Sep = ({ double = false }: { double?: boolean }) => (
-        <div style={{ ...mono, fontSize: '10px', overflow: 'hidden', whiteSpace: 'nowrap',
-            color: '#555', margin: '3px 0', letterSpacing: '0px' }}>
+        <div style={{ ...mono, fontSize: '10px', overflow: 'hidden', whiteSpace: 'nowrap', color: '#555', margin: '3px 0', letterSpacing: '0px' }}>
             {(double ? '=' : '-').repeat(chars)}
         </div>
     );
@@ -105,48 +108,43 @@ function TicketPreview({ config, business }: { config: TicketConfig; business: B
     );
 
     return (
-        <div style={{
-            ...mono,
-            lineHeight: '1.6',
-            color: '#111',
-            backgroundColor: '#fff',
-            padding: '16px 14px',
-            width: width + 'px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-            borderRadius: '4px',
-        }}>
+        <div
+            style={{
+                ...mono,
+                lineHeight: '1.6',
+                color: '#111',
+                backgroundColor: '#fff',
+                padding: '16px 14px',
+                width: width + 'px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                borderRadius: '4px',
+            }}
+        >
             {/* ── Header ── */}
             <div style={{ textAlign: 'center', marginBottom: '2px' }}>
                 {config.show_logo && business.logo_url && (
                     <img
                         src={business.logo_url}
                         alt="Logo"
-                        style={{ maxWidth: is58 ? '80px' : '110px', height: 'auto',
-                            display: 'block', margin: '0 auto 4px' }}
+                        style={{ maxWidth: is58 ? '80px' : '110px', height: 'auto', display: 'block', margin: '0 auto 4px' }}
                     />
                 )}
-                <div style={{
-                    fontWeight: 'bold',
-                    fontSize: config.header_size === 'large' ? '22px' : '14px',
-                    lineHeight: 1.2,
-                    marginBottom: '3px',
-                }}>
+                <div
+                    style={{
+                        fontWeight: 'bold',
+                        fontSize: config.header_size === 'large' ? '22px' : '14px',
+                        lineHeight: 1.2,
+                        marginBottom: '3px',
+                    }}
+                >
                     {business.name}
                 </div>
-                {config.show_nit && (
-                    <div style={{ ...mono, color: business.nit ? '#111' : '#aaa' }}>
-                        NIT: {business.nit ?? '(no configurado)'}
-                    </div>
-                )}
+                {config.show_nit && <div style={{ ...mono, color: business.nit ? '#111' : '#aaa' }}>NIT: {business.nit ?? '(no configurado)'}</div>}
                 {config.show_address && (
-                    <div style={{ ...mono, color: business.address ? '#111' : '#aaa' }}>
-                        {business.address ?? '(dirección no configurada)'}
-                    </div>
+                    <div style={{ ...mono, color: business.address ? '#111' : '#aaa' }}>{business.address ?? '(dirección no configurada)'}</div>
                 )}
                 {config.show_phone && (
-                    <div style={{ ...mono, color: business.phone ? '#111' : '#aaa' }}>
-                        Tel: {business.phone ?? '(no configurado)'}
-                    </div>
+                    <div style={{ ...mono, color: business.phone ? '#111' : '#aaa' }}>Tel: {business.phone ?? '(no configurado)'}</div>
                 )}
             </div>
 
@@ -169,9 +167,18 @@ function TicketPreview({ config, business }: { config: TicketConfig; business: B
             <Sep />
 
             {/* ── Products table ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto',
-                gap: '0 8px', fontWeight: 'bold', ...mono,
-                borderBottom: '1px dashed #999', paddingBottom: '3px', marginBottom: '3px' }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0 8px',
+                    fontWeight: 'bold',
+                    ...mono,
+                    borderBottom: '1px dashed #999',
+                    paddingBottom: '3px',
+                    marginBottom: '3px',
+                }}
+            >
                 <span>Producto</span>
                 <span style={{ textAlign: 'right' }}>Cant</span>
                 <span style={{ textAlign: 'right' }}>Precio</span>
@@ -179,11 +186,8 @@ function TicketPreview({ config, business }: { config: TicketConfig; business: B
             </div>
 
             {SAMPLE.products.map((p, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto',
-                    gap: '0 8px', ...mono }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {p.name}
-                    </span>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 8px', ...mono }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                     <span style={{ textAlign: 'right' }}>{p.qty}</span>
                     <span style={{ textAlign: 'right' }}>{fmt(p.price)}</span>
                     <span style={{ textAlign: 'right' }}>{fmt(p.subtotal)}</span>
@@ -195,15 +199,25 @@ function TicketPreview({ config, business }: { config: TicketConfig; business: B
             {/* ── Totals ── */}
             <Row label="Subtotal:" value={fmt(SAMPLE.net)} />
             {config.show_tax && <Row label="Impuesto:" value={fmt(SAMPLE.tax)} />}
-            <Row label={is58 ? `Descto (${SAMPLE.discount_pct}%):` : `Descuento (${SAMPLE.discount_pct})%:`}
-                 value={`- ${fmt(SAMPLE.discount_amount)}`} />
+            <Row
+                label={is58 ? `Descto (${SAMPLE.discount_pct}%):` : `Descuento (${SAMPLE.discount_pct})%:`}
+                value={`- ${fmt(SAMPLE.discount_amount)}`}
+            />
 
             <Sep double />
 
             {/* ── TOTAL (double height in real print) ── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between',
-                fontWeight: 'bold', fontSize: '20px', lineHeight: 1.3,
-                fontFamily: "'Courier New', Courier, monospace", margin: '2px 0' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    lineHeight: 1.3,
+                    fontFamily: "'Courier New', Courier, monospace",
+                    margin: '2px 0',
+                }}
+            >
                 <span>TOTAL:</span>
                 <span>{fmt(SAMPLE.total)}</span>
             </div>
@@ -265,17 +279,13 @@ export default function TicketSettings({ config, business }: Props) {
         }
     };
 
-    const toggle = (key: keyof TicketConfig) => () =>
-        setData(key, !data[key] as never);
+    const toggle = (key: keyof TicketConfig) => () => setData(key, !data[key] as never);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Plantilla del ticket" />
             <SettingsLayout>
-                <HeadingSmall
-                    title="Plantilla del ticket"
-                    description="Personaliza el diseño del recibo térmico"
-                />
+                <HeadingSmall title="Plantilla del ticket" description="Personaliza el diseño del recibo térmico" />
 
                 <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
                     {/* ── Left: config panel ── */}
@@ -328,18 +338,21 @@ export default function TicketSettings({ config, business }: Props) {
                             <CardContent className="space-y-3">
                                 <p className="text-xs text-muted-foreground">
                                     Estos datos vienen de{' '}
-                                    <a href="/settings/business" className="underline">Configuración → Negocio</a>.
-                                    Si un campo está vacío aparecerá en gris en la vista previa y{' '}
-                                    <strong>no se imprimirá</strong> en el ticket.
+                                    <a href="/settings/business" className="underline">
+                                        Configuración → Negocio
+                                    </a>
+                                    . Si un campo está vacío aparecerá en gris en la vista previa y <strong>no se imprimirá</strong> en el ticket.
                                 </p>
                                 {[
-                                    { key: 'show_logo',    label: 'Mostrar logo' },
-                                    { key: 'show_nit',     label: 'Mostrar NIT' },
+                                    { key: 'show_logo', label: 'Mostrar logo' },
+                                    { key: 'show_nit', label: 'Mostrar NIT' },
                                     { key: 'show_address', label: 'Mostrar dirección' },
-                                    { key: 'show_phone',   label: 'Mostrar teléfono' },
+                                    { key: 'show_phone', label: 'Mostrar teléfono' },
                                 ].map(({ key, label }) => (
                                     <div key={key} className="flex items-center justify-between">
-                                        <Label htmlFor={key} className="text-sm">{label}</Label>
+                                        <Label htmlFor={key} className="text-sm">
+                                            {label}
+                                        </Label>
                                         <Switch
                                             id={key}
                                             checked={data[key as keyof TicketConfig] as boolean}
@@ -358,10 +371,12 @@ export default function TicketSettings({ config, business }: Props) {
                                 {[
                                     { key: 'show_seller', label: 'Mostrar vendedor' },
                                     { key: 'show_branch', label: 'Mostrar sucursal' },
-                                    { key: 'show_tax',    label: 'Mostrar impuesto' },
+                                    { key: 'show_tax', label: 'Mostrar impuesto' },
                                 ].map(({ key, label }) => (
                                     <div key={key} className="flex items-center justify-between">
-                                        <Label htmlFor={key} className="text-sm">{label}</Label>
+                                        <Label htmlFor={key} className="text-sm">
+                                            {label}
+                                        </Label>
                                         <Switch
                                             id={key}
                                             checked={data[key as keyof TicketConfig] as boolean}
@@ -420,7 +435,10 @@ export default function TicketSettings({ config, business }: Props) {
                         {printer.status !== 'connected' && (
                             <p className="text-xs text-muted-foreground">
                                 Para imprimir, activa QZ Tray en{' '}
-                                <a href="/settings/printer" className="underline">Configuración → Impresora</a>.
+                                <a href="/settings/printer" className="underline">
+                                    Configuración → Impresora
+                                </a>
+                                .
                             </p>
                         )}
                     </form>

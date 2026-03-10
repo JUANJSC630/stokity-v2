@@ -194,7 +194,7 @@
     gap: 0.5rem;
     width: 100%;
     padding: 0.875rem 2rem;
-    background: linear-gradient(to right, #C75B7A, #E8998D);
+    background: linear-gradient(to right, #c75b7a, #e8998d);
     color: white;
     font-weight: 500;
     border-radius: 0.75rem;
@@ -213,7 +213,7 @@
     left: -100%;
     width: 60%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
     transition: left 0.55s ease;
 }
 
@@ -266,11 +266,11 @@
     color: oklch(0.22 0.02 30);
     outline: none;
     transition: all 200ms;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .auth-input:focus {
-    border-color: #C75B7A;
+    border-color: #c75b7a;
     box-shadow: 0 0 0 3px rgba(199, 91, 122, 0.12);
 }
 
@@ -293,7 +293,7 @@
 }
 
 .auth-toggle-btn:hover {
-    color: #C75B7A;
+    color: #c75b7a;
 }
 
 .auth-checkbox-wrapper {
@@ -321,8 +321,8 @@
 }
 
 .auth-checkbox:checked {
-    background-color: #C75B7A;
-    border-color: #C75B7A;
+    background-color: #c75b7a;
+    border-color: #c75b7a;
 }
 
 .auth-checkbox:checked::after {
@@ -340,39 +340,81 @@
 
 /* ── Welcome page ───────────────────────────────────────────────────────── */
 @keyframes welcome-fade-up {
-    from { opacity: 0; transform: translateY(22px); }
-    to   { opacity: 1; transform: translateY(0);    }
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes orb-drift-1 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    40%      { transform: translate(40px, -30px) scale(1.06); }
-    70%      { transform: translate(-20px, 20px) scale(0.96); }
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    40% {
+        transform: translate(40px, -30px) scale(1.06);
+    }
+    70% {
+        transform: translate(-20px, 20px) scale(0.96);
+    }
 }
 
 @keyframes orb-drift-2 {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    35%      { transform: translate(-35px, 25px) scale(1.04); }
-    65%      { transform: translate(25px, -20px) scale(0.97); }
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    35% {
+        transform: translate(-35px, 25px) scale(1.04);
+    }
+    65% {
+        transform: translate(25px, -20px) scale(0.97);
+    }
 }
 
 @keyframes ring-pulse {
-    0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.55; }
-    100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0;    }
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.55;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.9);
+        opacity: 0;
+    }
 }
 
 .welcome-animate {
     opacity: 0;
     animation: welcome-fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
-.welcome-d1 { animation-delay: 0.05s; }
-.welcome-d2 { animation-delay: 0.18s; }
-.welcome-d3 { animation-delay: 0.32s; }
-.welcome-d4 { animation-delay: 0.46s; }
-.welcome-d5 { animation-delay: 0.60s; }
-.welcome-d6 { animation-delay: 0.74s; }
-.welcome-d7 { animation-delay: 0.88s; }
-.welcome-d8 { animation-delay: 1.02s; }
+.welcome-d1 {
+    animation-delay: 0.05s;
+}
+.welcome-d2 {
+    animation-delay: 0.18s;
+}
+.welcome-d3 {
+    animation-delay: 0.32s;
+}
+.welcome-d4 {
+    animation-delay: 0.46s;
+}
+.welcome-d5 {
+    animation-delay: 0.6s;
+}
+.welcome-d6 {
+    animation-delay: 0.74s;
+}
+.welcome-d7 {
+    animation-delay: 0.88s;
+}
+.welcome-d8 {
+    animation-delay: 1.02s;
+}
 
 .logo-ring {
     position: absolute;
@@ -399,7 +441,7 @@ input:-webkit-autofill:active {
     font-size: 12px;
     font-weight: 500;
     background: rgba(199, 91, 122, 0.08);
-    color: #C75B7A;
+    color: #c75b7a;
     border: 1px solid rgba(199, 91, 122, 0.18);
     white-space: nowrap;
     letter-spacing: 0.01em;

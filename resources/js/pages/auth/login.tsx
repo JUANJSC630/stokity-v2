@@ -35,14 +35,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         <AuthLayout description="Ingresa al sistema para gestionar tu negocio" backHref={route('home')}>
             <Head title="Iniciar sesión" />
 
-            {status && (
-                <div className="mb-5 rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-600">
-                    {status}
-                </div>
-            )}
+            {status && <div className="mb-5 rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-600">{status}</div>}
 
             <form className="flex flex-col gap-4" onSubmit={submit}>
-
                 {/* ── Email ──────────────────────────────────────────────── */}
                 <div className="welcome-animate welcome-d5 flex flex-col gap-2">
                     <label htmlFor="email" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
@@ -119,11 +114,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         onChange={(e) => setData('remember', e.target.checked)}
                         tabIndex={3}
                     />
-                    <label
-                        htmlFor="remember"
-                        className="cursor-pointer select-none text-sm"
-                        style={{ color: 'oklch(0.52 0.02 30)' }}
-                    >
+                    <label htmlFor="remember" className="cursor-pointer text-sm select-none" style={{ color: 'oklch(0.52 0.02 30)' }}>
                         Recordarme
                     </label>
                 </div>

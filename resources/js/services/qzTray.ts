@@ -33,15 +33,12 @@ async function ensureSigning() {
 
     qz.security.setSignatureAlgorithm('SHA512');
 
-    qz.security.setSignaturePromise(
-        (toSign: string) =>
-            (resolve: (v: string) => void, reject: (e: unknown) => void) => {
-                fetch('/qz/sign?request=' + encodeURIComponent(toSign))
-                    .then((r) => r.text())
-                    .then(resolve)
-                    .catch(reject);
-            },
-    );
+    qz.security.setSignaturePromise((toSign: string) => (resolve: (v: string) => void, reject: (e: unknown) => void) => {
+        fetch('/qz/sign?request=' + encodeURIComponent(toSign))
+            .then((r) => r.text())
+            .then(resolve)
+            .catch(reject);
+    });
 
     _signingReady = true;
 }
@@ -115,13 +112,13 @@ function encodeText(text: string): number[] {
 
 function buildTestTicket(paperWidth: 58 | 80): string {
     const cols = paperWidth >= 80 ? 48 : 32;
-    const sep  = '='.repeat(cols);
+    const sep = '='.repeat(cols);
     const line = '-'.repeat(cols);
 
     const bytes: number[] = [];
 
-    const w  = (...b: number[]) => bytes.push(...b);
-    const t  = (text: string) => bytes.push(...encodeText(text));
+    const w = (...b: number[]) => bytes.push(...b);
+    const t = (text: string) => bytes.push(...encodeText(text));
 
     // Do NOT send ESC @ (0x1b 0x40) — it retracts paper on thermal printers.
 

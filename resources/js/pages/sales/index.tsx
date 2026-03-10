@@ -462,32 +462,32 @@ export default function Index({ sales, filters }: PageProps) {
                         ) : (
                             <div className="flex flex-col gap-4 p-2">
                                 {sales.data.map((sale) => (
-                                        <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <div className="text-base font-semibold">{sale.code}</div>
-                                                <Link href={route('sales.show', sale.id)}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                                        <Eye className="size-4" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
-                                            </div>
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
-                                            </div>
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
-                                            </div>
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
-                                            </div>
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
-                                            </div>
+                                    <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <div className="text-base font-semibold">{sale.code}</div>
+                                            <Link href={route('sales.show', sale.id)}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                    <Eye className="size-4" />
+                                                </Button>
+                                            </Link>
                                         </div>
-                                    ))}
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                        </div>
+                                        <div className="mb-1 text-sm text-muted-foreground">
+                                            <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

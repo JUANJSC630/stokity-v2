@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
-import { type SharedData, type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -81,7 +81,11 @@ export default function Appearance() {
                                             {imagePreview ? (
                                                 <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
                                             ) : business.default_product_image_url ? (
-                                                <img src={business.default_product_image_url} alt="Imagen por defecto actual" className="h-full w-full object-cover" />
+                                                <img
+                                                    src={business.default_product_image_url}
+                                                    alt="Imagen por defecto actual"
+                                                    className="h-full w-full object-cover"
+                                                />
                                             ) : (
                                                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
                                                     <UserCircle className="size-12" strokeWidth={1.5} />
@@ -94,7 +98,13 @@ export default function Appearance() {
                                         >
                                             <Upload className="size-4" />
                                             Subir imagen
-                                            <input id="image" type="file" className="sr-only" accept="image/jpeg,image/png,image/gif,image/webp" onChange={handleImageChange} />
+                                            <input
+                                                id="image"
+                                                type="file"
+                                                className="sr-only"
+                                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                                onChange={handleImageChange}
+                                            />
                                         </label>
                                         {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
                                         <p className="text-center text-xs text-muted-foreground">

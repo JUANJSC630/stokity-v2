@@ -5,16 +5,16 @@ import { ArrowRight, BarChart2, Package, ShoppingCart, Wallet } from 'lucide-rea
 
 const FEATURES = [
     { icon: ShoppingCart, label: 'Ventas' },
-    { icon: Package,      label: 'Inventario' },
-    { icon: Wallet,       label: 'Caja' },
-    { icon: BarChart2,    label: 'Reportes' },
+    { icon: Package, label: 'Inventario' },
+    { icon: Wallet, label: 'Caja' },
+    { icon: BarChart2, label: 'Reportes' },
 ];
 
 export default function Welcome() {
     const { auth, business } = usePage<SharedData & { business: BusinessSetting }>().props;
 
-    const logoSrc    = business?.logo_url || '/stokity-icon.png';
-    const businessName = business?.name   || 'Stokity';
+    const logoSrc = business?.logo_url || '/stokity-icon.png';
+    const businessName = business?.name || 'Stokity';
 
     return (
         <>
@@ -50,10 +50,9 @@ export default function Welcome() {
 
                 {/* ── Content ──────────────────────────────────────────────── */}
                 <div className="relative z-10 flex max-w-lg flex-col items-center text-center">
-
                     {/* Badge */}
                     <div
-                        className="welcome-animate welcome-d1 mb-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-widest"
+                        className="welcome-animate welcome-d1 mb-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
                         style={{ background: 'rgba(199,91,122,0.09)', color: '#C75B7A', border: '1px solid rgba(199,91,122,0.2)' }}
                     >
                         <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#C75B7A' }} />
@@ -62,7 +61,7 @@ export default function Welcome() {
 
                     {/* Logo with pulse rings */}
                     <div className="welcome-animate welcome-d2 relative mb-7 flex items-center justify-center" style={{ width: 128, height: 128 }}>
-                        <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '0s'   }} />
+                        <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '0s' }} />
                         <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '0.93s' }} />
                         <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '1.86s' }} />
                         <img
@@ -70,7 +69,9 @@ export default function Welcome() {
                             alt={businessName}
                             className="relative z-10 rounded-2xl object-contain"
                             style={{ width: 128, height: 128, boxShadow: '0 12px 40px rgba(199,91,122,0.18)' }}
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/stokity-icon.png'; }}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/stokity-icon.png';
+                            }}
                         />
                     </div>
 
@@ -90,7 +91,7 @@ export default function Welcome() {
 
                     {/* Tagline */}
                     <p
-                        className="welcome-animate welcome-d4 text-balance leading-relaxed"
+                        className="welcome-animate welcome-d4 leading-relaxed text-balance"
                         style={{ fontSize: 16, color: 'oklch(0.5 0.02 30)', maxWidth: 340, margin: '0 auto 36px' }}
                     >
                         Tu punto de venta profesional, listo para crecer con tu negocio
@@ -121,7 +122,7 @@ export default function Welcome() {
 
                 {/* Copyright */}
                 <p
-                    className="welcome-animate welcome-d7 absolute bottom-6 left-0 right-0 text-center text-xs"
+                    className="welcome-animate welcome-d7 absolute right-0 bottom-6 left-0 text-center text-xs"
                     style={{ color: 'oklch(0.65 0.02 30)' }}
                 >
                     <AllRightsReserved />
