@@ -93,8 +93,13 @@ class BranchController extends Controller
     {
         $branch->load('manager:id,name,email');
 
+        $managers = User::whereIn('role', ['encargado', 'administrador'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
         return Inertia::render('branches/edit', [
-            'branch' => $branch,
+            'branch'   => $branch,
+            'managers' => $managers,
         ]);
     }
 

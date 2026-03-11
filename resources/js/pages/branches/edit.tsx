@@ -152,21 +152,15 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Ninguno</SelectItem>
-                                            {managers.length > 0 ? (
-                                                managers.map((manager) => (
-                                                    <SelectItem key={manager.id} value={manager.id.toString()}>
-                                                        {manager.name}
-                                                    </SelectItem>
-                                                ))
-                                            ) : (
-                                                <SelectItem value="none" disabled>
-                                                    No hay usuarios con rol de encargado disponibles
+                                            {managers.map((manager) => (
+                                                <SelectItem key={manager.id} value={manager.id.toString()}>
+                                                    {manager.name}
                                                 </SelectItem>
-                                            )}
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
-                                        Solo usuarios con rol de "Encargado" pueden ser asignados como responsables de una sucursal
+                                        Usuarios con rol de "Encargado" o "Administrador" pueden ser responsables de una sucursal
                                     </p>
                                     {errors.manager_id && <p className="text-sm text-destructive">{errors.manager_id}</p>}
                                 </div>
