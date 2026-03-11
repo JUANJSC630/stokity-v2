@@ -1,4 +1,5 @@
 import { type Branch } from '@/types';
+import QRCode from 'react-qr-code';
 import React from 'react';
 
 interface TicketConfig {
@@ -8,11 +9,20 @@ interface TicketConfig {
     show_nit: boolean;
     show_address: boolean;
     show_phone: boolean;
-    show_seller: boolean;
-    show_branch: boolean;
-    show_tax: boolean;
-    footer_line1: string;
-    footer_line2: string;
+    // Sale fields (present but unused in return ticket)
+    show_seller?: boolean;
+    show_branch?: boolean;
+    show_tax?: boolean;
+    footer_line1?: string;
+    footer_line2?: string;
+    sale_code_graphic?: 'none' | 'qr' | 'barcode';
+    // Return-specific fields
+    return_show_seller: boolean;
+    return_show_branch: boolean;
+    return_show_reason: boolean;
+    return_footer_line1: string;
+    return_footer_line2: string;
+    return_code_graphic: 'none' | 'qr' | 'barcode';
 }
 
 interface SaleReturnTicketProps {
@@ -50,11 +60,12 @@ const DEFAULT_CONFIG: TicketConfig = {
     show_nit: true,
     show_address: true,
     show_phone: true,
-    show_seller: true,
-    show_branch: true,
-    show_tax: true,
-    footer_line1: '¡Gracias por su compra!',
-    footer_line2: 'Vuelva pronto',
+    return_show_seller: true,
+    return_show_branch: true,
+    return_show_reason: true,
+    return_footer_line1: 'Devolución procesada.',
+    return_footer_line2: 'Gracias por su preferencia.',
+    return_code_graphic: 'none',
 };
 
 function fmt(n: number): string {
@@ -118,6 +129,14 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
 
     const name = businessName ?? sale.branch?.business_name ?? sale.branch?.name;
 
+    // Return-specific config with fallbacks
+    const returnShowSeller  = config.return_show_seller  ?? true;
+    const returnShowBranch  = config.return_show_branch  ?? true;
+    const returnShowReason  = config.return_show_reason  ?? true;
+    const returnFooter1     = config.return_footer_line1 ?? 'Devolución procesada.';
+    const returnFooter2     = config.return_footer_line2 ?? 'Gracias por su preferencia.';
+    const returnCodeGraphic = config.return_code_graphic ?? 'none';
+
     return (
         <div
             style={{
@@ -168,9 +187,9 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
                 { label: 'Venta:   ', value: sale.code },
                 { label: 'Fecha:   ', value: fmtDate(saleReturn.created_at) },
                 { label: 'Cliente: ', value: sale.client?.name ?? 'Consumidor Final' },
-                ...(config.show_seller && sale.seller ? [{ label: 'Vendedor:', value: ' ' + sale.seller.name }] : []),
-                ...(config.show_branch && sale.branch ? [{ label: 'Sucursal:', value: ' ' + sale.branch.name }] : []),
-                ...(saleReturn.reason ? [{ label: 'Motivo:  ', value: saleReturn.reason }] : []),
+                ...(returnShowSeller && sale.seller ? [{ label: 'Vendedor:', value: ' ' + sale.seller.name }] : []),
+                ...(returnShowBranch && sale.branch ? [{ label: 'Sucursal:', value: ' ' + sale.branch.name }] : []),
+                ...(returnShowReason && saleReturn.reason ? [{ label: 'Motivo:  ', value: saleReturn.reason }] : []),
             ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', ...mono }}>
                     <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>{label}</span>
@@ -213,7 +232,7 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
 
             {/* ── Totals ── */}
             <Row label="Subtotal:" value={fmt(net)} />
-            {config.show_tax && tax > 0 && <Row label="Impuesto:" value={fmt(tax)} />}
+            {(config.show_tax ?? true) && tax > 0 && <Row label="Impuesto:" value={fmt(tax)} />}
 
             <Sep double />
 
@@ -235,10 +254,38 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
 
             <Sep double />
 
+            {/* ── Code graphic ── */}
+            {returnCodeGraphic !== 'none' && (
+                <>
+                    <Sep />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '6px 0' }}>
+                        {returnCodeGraphic === 'qr' ? (
+                            <>
+                                <QRCode size={80} value={String(saleReturn.id)} viewBox="0 0 256 256" />
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 3 }}>
+                                    Devol. #{saleReturn.id}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', gap: '1px', height: 40, alignItems: 'stretch' }}>
+                                    {[3,1,2,1,3,2,1,2,3,1,2,1,3,2,1,3,1,2,1,3].map((w, i) => (
+                                        <div key={i} style={{ width: w * 2, background: i % 2 === 0 ? '#222' : '#fff' }} />
+                                    ))}
+                                </div>
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 2 }}>
+                                    Devol. #{saleReturn.id}
+                                </span>
+                            </>
+                        )}
+                    </div>
+                </>
+            )}
+
             {/* ── Footer ── */}
             <div style={{ textAlign: 'center', marginTop: '4px', ...mono }}>
-                {config.footer_line1 && <div>{config.footer_line1}</div>}
-                {config.footer_line2 && <div>{config.footer_line2}</div>}
+                {returnFooter1 && <div>{returnFooter1}</div>}
+                {returnFooter2 && <div>{returnFooter2}</div>}
             </div>
         </div>
     );

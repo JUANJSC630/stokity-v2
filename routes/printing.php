@@ -14,5 +14,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('print/return-receipt/{saleReturn}', [PrintController::class, 'returnReceipt'])->name('print.return-receipt');
     Route::get('print/cash-session/{session}', [PrintController::class, 'cashSessionReport'])->name('print.cash-session');
     Route::get('print/test', [PrintController::class, 'test'])->name('print.test');
-    Route::get('print/test-template', [PrintController::class, 'testTemplate'])->name('print.test-template');
+    Route::match(['get', 'post'], 'print/test-template', [PrintController::class, 'testTemplate'])->name('print.test-template');
 });

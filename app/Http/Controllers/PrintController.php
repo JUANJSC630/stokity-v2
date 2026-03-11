@@ -261,15 +261,15 @@ class PrintController extends Controller
                 $p->setEmphasis(true); $p->text('Cliente: '); $p->setEmphasis(false);
                 $p->text($this->truncate($sale->client->name, $charsPerLine - 9) . "\n");
             }
-            if ($cfg['show_seller'] && $sale->seller) {
+            if ($cfg['return_show_seller'] && $sale->seller) {
                 $p->setEmphasis(true); $p->text('Vendedor:'); $p->setEmphasis(false);
                 $p->text(' ' . $this->truncate($sale->seller->name, $charsPerLine - 10) . "\n");
             }
-            if ($cfg['show_branch'] && $sale->branch) {
+            if ($cfg['return_show_branch'] && $sale->branch) {
                 $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
                 $p->text(' ' . $this->truncate($sale->branch->name, $charsPerLine - 10) . "\n");
             }
-            if ($saleReturn->reason) {
+            if (($cfg['return_show_reason'] ?? true) && $saleReturn->reason) {
                 $p->setEmphasis(true); $p->text('Motivo:  '); $p->setEmphasis(false);
                 $p->text($this->truncate($saleReturn->reason, $charsPerLine - 9) . "\n");
             }
@@ -326,7 +326,16 @@ class PrintController extends Controller
             $p->setEmphasis(false);
             $p->text($sep2 . "\n");
 
-            // ── Footer ───────────────────────────────────────────────────────
+            // ── Code graphic (QR or barcode) ──────────────────────────────────
+            $returnCodeGraphic = $cfg['return_code_graphic'] ?? 'none';
+            if ($returnCodeGraphic !== 'none') {
+                $p->text(str_repeat('-', $charsPerLine) . "\n");
+                $this->printCodeGraphic($p, (string) $saleReturn->id, $returnCodeGraphic);
+            }
+
+            // ── Footer (return-specific lines) ────────────────────────────────
+            $cfg['footer_line1'] = $cfg['return_footer_line1'] ?? 'Devolución procesada.';
+            $cfg['footer_line2'] = $cfg['return_footer_line2'] ?? 'Gracias por su preferencia.';
             $this->printFooter($p, $charsPerLine, $cfg);
         } finally {
             $bytes = $connector->getData();
@@ -397,12 +406,33 @@ class PrintController extends Controller
 
     /**
      * Generate ESC/POS with sample data to preview the ticket template.
+     *
+     * When called via POST (from the settings page "Imprimir prueba" button),
+     * the request body may contain the full unsaved config from the form.
+     * Those values override the DB config so the user can preview changes
+     * before saving. When called via GET (legacy / test), only ?width= is used.
      */
     public function testTemplate(Request $request)
     {
-        $business     = BusinessSetting::getSettings();
-        $config       = $business->getTicketConfig();
-        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $business  = BusinessSetting::getSettings();
+        $dbConfig  = $business->getTicketConfig();
+
+        // Merge form config (POST body) over DB config — allows preview of
+        // unsaved changes. Only recognised keys are merged; unknown keys ignored.
+        $formConfig = [];
+        if ($request->isMethod('POST')) {
+            $allowed    = array_keys(BusinessSetting::TICKET_DEFAULTS);
+            $bodyValues = $request->only($allowed);
+            // Remove nulls (keys the form did not send) so DB values fill the gaps.
+            // Keep false booleans — they are intentional "hide" settings.
+            $formConfig = array_filter($bodyValues, fn($v) => $v !== null);
+            if (isset($formConfig['paper_width'])) {
+                $formConfig['paper_width'] = (int) $formConfig['paper_width'];
+            }
+        }
+
+        $config       = array_merge($dbConfig, $formConfig);
+        $paperWidth   = (int) ($config['paper_width'] ?? $dbConfig['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
         // Build a fake sale using a plain object
@@ -749,9 +779,164 @@ class PrintController extends Controller
             $p->text('Nota: ' . $this->truncate($sale->notes, $cols - 6) . "\n");
         }
 
+        // ── Code graphic (QR or barcode) ──────────────────────────────────────
+        $saleCodeGraphic = $cfg['sale_code_graphic'] ?? 'none';
+        if ($saleCodeGraphic !== 'none') {
+            $p->text($sep . "\n");
+            $this->printCodeGraphic($p, (string) $sale->code, $saleCodeGraphic);
+        }
+
         // ── Footer ───────────────────────────────────────────────────────────
         $p->text($sep2 . "\n");
         $this->printFooter($p, $cols, $cfg);
+    }
+
+    /**
+     * Print a QR code (as a raster bitmap via ESC *) or a CODE128 barcode.
+     *
+     * QR codes are software-rendered with chillerlan/php-qrcode and sent as
+     * ESC * column-format bands — the same technique used for logos.  This
+     * avoids relying on the printer's native GS ( k command, which many cheap
+     * 58 mm printers silently ignore or do not implement.
+     *
+     * CODE128 still uses the native GS k command (widely supported).
+     */
+    private function printCodeGraphic(Printer $p, string $code, string $type): void
+    {
+        if ($type === 'none' || $code === '') {
+            return;
+        }
+
+        $p->setJustification(Printer::JUSTIFY_CENTER);
+
+        if ($type === 'qr') {
+            $this->printQrBitmap($p, $code);
+        } elseif ($type === 'barcode') {
+            $this->printBarcodeBitmap($p, $code);
+        }
+
+        $p->text("\n");
+        $p->setJustification(Printer::JUSTIFY_LEFT);
+    }
+
+    /**
+     * Render a QR code as a 1-bit ESC * (column-format) bitmap.
+     *
+     * Uses chillerlan/php-qrcode to generate a clean black-on-white PNG,
+     * then pushes each 24-dot band using the same manual ESC * + ESC J 24
+     * approach that works for logos on this printer model.
+     */
+    private function printQrBitmap(Printer $p, string $data): void
+    {
+        if (!class_exists(\chillerlan\QRCode\QRCode::class) || !extension_loaded('gd')) {
+            // Fallback: try native QR command (may not work on all printers)
+            try {
+                $p->qrCode($data, Printer::QR_ECLEVEL_M, 6, Printer::QR_MODEL_2);
+            } catch (\Throwable) {}
+            return;
+        }
+
+        try {
+            $options = new \chillerlan\QRCode\QROptions([
+                'outputType'    => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel'      => \chillerlan\QRCode\QRCode::ECC_M,
+                'scale'         => 8,           // 8 px/module → ~240 px for typical codes
+                'outputBase64'  => false,
+                'addQuietzone'  => true,
+                'quietzoneSize' => 2,
+            ]);
+
+            $pngData = (new \chillerlan\QRCode\QRCode($options))->render($data);
+
+            // Save to a temp file so resizeLogoForPrint() can process it
+            $tmpQr = tempnam(sys_get_temp_dir(), 'stokity_qr_') . '.png';
+            file_put_contents($tmpQr, $pngData);
+
+            // Convert to 1-bit (grayscale + threshold), capped at 360 × 360 px
+            $processed = $this->resizeLogoForPrint($tmpQr, 360, 360);
+            @unlink($tmpQr);
+
+            if ($processed === null) {
+                return;
+            }
+
+            // Print via ESC * column format (same as logo, gap-free with ESC J 24).
+            // IMPORTANT: EscposImage uses lazy loading — getWidth() returns 0 until
+            // toColumnFormat() (or similar) forces the image to be read from disk.
+            // Always call toColumnFormat() first, then getWidth().
+            $image   = EscposImage::load($processed, false);
+            $colData = $image->toColumnFormat(true); // forces image load, caches result
+            $imgWidth = $image->getWidth();
+            $nL       = $imgWidth & 0xFF;
+            $nH       = ($imgWidth >> 8) & 0xFF;
+            $header   = "\x1b\x2a\x21" . chr($nL) . chr($nH); // ESC * 33 nL nH
+            $conn     = $p->getPrintConnector();
+
+            foreach ($colData as $rowData) {
+                $conn->write($header . $rowData . "\x1b\x4a\x18"); // ESC J 24 per band
+            }
+
+            @unlink($processed);
+        } catch (\Throwable $e) {
+            \Log::warning('printQrBitmap failed: ' . $e->getMessage(), ['data' => $data]);
+        }
+    }
+
+    /**
+     * Render a CODE128 barcode as a 1-bit ESC * (column-format) bitmap.
+     *
+     * Uses picqer/php-barcode-generator to build a PNG, then converts it to
+     * a B&W raster and sends it via the same ESC * + ESC J 24 band approach
+     * used for logos and QR codes.  The barcode number is also printed as
+     * plain text below for readability.
+     */
+    private function printBarcodeBitmap(Printer $p, string $data): void
+    {
+        if (!class_exists(\Picqer\Barcode\BarcodeGeneratorPNG::class) || !extension_loaded('gd')) {
+            return;
+        }
+
+        try {
+            $gen     = new \Picqer\Barcode\BarcodeGeneratorPNG();
+            // widthFactor=2 → ~290 px wide (fits 58mm); height=80 px ≈ 10 mm (scannable)
+            $pngData = $gen->getBarcode(
+                $data,
+                \Picqer\Barcode\BarcodeGenerator::TYPE_CODE_128,
+                2,   // widthFactor
+                80,  // height (px)
+                [0, 0, 0]
+            );
+
+            $tmpBar = tempnam(sys_get_temp_dir(), 'stokity_bar_') . '.png';
+            file_put_contents($tmpBar, $pngData);
+
+            // Convert to 1-bit, capped at 360 × 120 px to preserve bar height
+            $processed = $this->resizeLogoForPrint($tmpBar, 360, 120);
+            @unlink($tmpBar);
+
+            if ($processed === null) {
+                return;
+            }
+
+            $image    = EscposImage::load($processed, false);
+            $colData  = $image->toColumnFormat(true); // force load FIRST
+            $imgWidth = $image->getWidth();
+            $nL       = $imgWidth & 0xFF;
+            $nH       = ($imgWidth >> 8) & 0xFF;
+            $header   = "\x1b\x2a\x21" . chr($nL) . chr($nH);
+            $conn     = $p->getPrintConnector();
+
+            foreach ($colData as $rowData) {
+                $conn->write($header . $rowData . "\x1b\x4a\x18");
+            }
+
+            @unlink($processed);
+
+            // Print the code as text below the barcode for readability
+            $p->text($data . "\n");
+        } catch (\Throwable $e) {
+            \Log::warning('printBarcodeBitmap failed: ' . $e->getMessage(), ['data' => $data]);
+        }
     }
 
     private function printTotalRow(Printer $p, string $label, string $value, int $cols): void

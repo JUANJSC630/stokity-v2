@@ -1,4 +1,5 @@
 import { type Branch } from '@/types';
+import QRCode from 'react-qr-code';
 import React from 'react';
 
 interface TicketConfig {
@@ -13,6 +14,14 @@ interface TicketConfig {
     show_tax: boolean;
     footer_line1: string;
     footer_line2: string;
+    sale_code_graphic: 'none' | 'qr' | 'barcode';
+    // Return fields (present in ticketConfig but unused here)
+    return_show_seller?: boolean;
+    return_show_branch?: boolean;
+    return_show_reason?: boolean;
+    return_footer_line1?: string;
+    return_footer_line2?: string;
+    return_code_graphic?: 'none' | 'qr' | 'barcode';
 }
 
 const DEFAULT_CONFIG: TicketConfig = {
@@ -27,6 +36,7 @@ const DEFAULT_CONFIG: TicketConfig = {
     show_tax: true,
     footer_line1: '¡Gracias por su compra!',
     footer_line2: 'Vuelva pronto',
+    sale_code_graphic: 'none',
 };
 
 function fmt(n: number): string {
@@ -252,6 +262,31 @@ const SaleTicket: React.FC<SaleTicketProps> = ({
             <Row label="Metodo pago:" value={paymentLabel} />
             {isCash && sale.amount_paid != null && <Row label="Efectivo:" value={fmt(sale.amount_paid)} />}
             {isCash && sale.change_amount != null && <Row label="Cambio:" value={fmt(sale.change_amount)} />}
+
+            {/* ── Code graphic ── */}
+            {config.sale_code_graphic !== 'none' && (
+                <>
+                    <Sep />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '6px 0' }}>
+                        {config.sale_code_graphic === 'qr' ? (
+                            <>
+                                <QRCode size={80} value={sale.code} viewBox="0 0 256 256" />
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 3 }}>{sale.code}</span>
+                            </>
+                        ) : (
+                            // Barcode placeholder (browser print — actual barcode printed via ESC/POS)
+                            <>
+                                <div style={{ display: 'flex', gap: '1px', height: 40, alignItems: 'stretch' }}>
+                                    {[3,1,2,1,3,2,1,2,3,1,2,1,3,2,1,3,1,2,1,3].map((w, i) => (
+                                        <div key={i} style={{ width: w * 2, background: i % 2 === 0 ? '#222' : '#fff' }} />
+                                    ))}
+                                </div>
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 2 }}>{sale.code}</span>
+                            </>
+                        )}
+                    </div>
+                </>
+            )}
 
             <Sep double />
 

@@ -21,11 +21,20 @@ interface TicketConfig {
     show_nit: boolean;
     show_address: boolean;
     show_phone: boolean;
+    // Sale
     show_seller: boolean;
     show_branch: boolean;
     show_tax: boolean;
     footer_line1: string;
     footer_line2: string;
+    sale_code_graphic: 'none' | 'qr' | 'barcode';
+    // Return
+    return_show_seller: boolean;
+    return_show_branch: boolean;
+    return_show_reason: boolean;
+    return_footer_line1: string;
+    return_footer_line2: string;
+    return_code_graphic: 'none' | 'qr' | 'barcode';
 }
 
 interface Props {

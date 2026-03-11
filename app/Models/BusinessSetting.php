@@ -25,17 +25,27 @@ class BusinessSetting extends Model
 
     /** Default ticket template configuration. */
     public const TICKET_DEFAULTS = [
-        'paper_width'  => 58,
-        'header_size'  => 'large',
-        'show_logo'    => false,
-        'show_nit'     => true,
-        'show_address' => true,
-        'show_phone'   => true,
-        'show_seller'  => true,
-        'show_branch'  => true,
-        'show_tax'     => true,
-        'footer_line1' => '¡Gracias por su compra!',
-        'footer_line2' => 'Vuelva pronto',
+        // ── Shared (header) ───────────────────────────────────────────────────
+        'paper_width'         => 58,
+        'header_size'         => 'large',
+        'show_logo'           => false,
+        'show_nit'            => true,
+        'show_address'        => true,
+        'show_phone'          => true,
+        // ── Sale ticket ───────────────────────────────────────────────────────
+        'show_seller'         => true,
+        'show_branch'         => true,
+        'show_tax'            => true,
+        'footer_line1'        => '¡Gracias por su compra!',
+        'footer_line2'        => 'Vuelva pronto',
+        'sale_code_graphic'   => 'none',   // none | qr | barcode
+        // ── Return ticket ─────────────────────────────────────────────────────
+        'return_show_seller'  => true,
+        'return_show_branch'  => true,
+        'return_show_reason'  => true,
+        'return_footer_line1' => 'Devolución procesada.',
+        'return_footer_line2' => 'Gracias por su preferencia.',
+        'return_code_graphic' => 'none',   // none | qr | barcode
     ];
 
     /** Returns the merged ticket config (DB values override defaults). */

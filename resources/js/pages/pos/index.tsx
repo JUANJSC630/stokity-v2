@@ -254,24 +254,17 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
                         </Select>
                     )}
 
-                    <div className="mt-2 flex items-center gap-2">
-                        <Label className="text-xs text-muted-foreground">Ancho papel:</Label>
-                        <div className="flex gap-1">
-                            {([58, 80] as const).map((w) => (
-                                <button
-                                    key={w}
-                                    type="button"
-                                    onClick={() => printer.setPaperWidth(w)}
-                                    className={`rounded border px-2 py-0.5 text-xs transition-colors ${printer.paperWidth === w ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' : 'border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800'}`}
-                                >
-                                    {w}mm
-                                </button>
-                            ))}
-                        </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                            Ancho del papel:{' '}
+                            <a href="/settings/ticket" className="font-medium text-blue-600 underline dark:text-blue-400">
+                                Configurar
+                            </a>
+                        </p>
                         <button
                             type="button"
                             onClick={() => printer.connect()}
-                            className="ml-auto text-xs text-blue-600 hover:underline dark:text-blue-400"
+                            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
                         >
                             Reconectar
                         </button>

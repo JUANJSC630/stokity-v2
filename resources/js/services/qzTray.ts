@@ -176,8 +176,10 @@ export async function printTest(printerName: string, paperWidth: 58 | 80 = 80): 
 /**
  * Fetch ESC/POS receipt bytes from the server and send to printer.
  */
-export async function printReceipt(saleId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
-    const res = await fetch(`/print/receipt/${saleId}?width=${paperWidth}`, {
+export async function printReceipt(saleId: number, printerName: string): Promise<void> {
+    // paper_width is read from ticket_config in DB — single source of truth.
+    const res = await fetch(`/print/receipt/${saleId}`, {
+        cache: 'no-cache',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
 
@@ -192,8 +194,9 @@ export async function printReceipt(saleId: number, printerName: string, paperWid
 /**
  * Fetch ESC/POS cash session arqueo report from the server and send to printer.
  */
-export async function printCashSession(sessionId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
-    const res = await fetch(`/print/cash-session/${sessionId}?width=${paperWidth}`, {
+export async function printCashSession(sessionId: number, printerName: string): Promise<void> {
+    const res = await fetch(`/print/cash-session/${sessionId}`, {
+        cache: 'no-cache',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
 
@@ -208,8 +211,9 @@ export async function printCashSession(sessionId: number, printerName: string, p
 /**
  * Fetch ESC/POS return receipt bytes from the server and send to printer.
  */
-export async function printReturn(saleReturnId: number, printerName: string, paperWidth: 58 | 80 = 80): Promise<void> {
-    const res = await fetch(`/print/return-receipt/${saleReturnId}?width=${paperWidth}`, {
+export async function printReturn(saleReturnId: number, printerName: string): Promise<void> {
+    const res = await fetch(`/print/return-receipt/${saleReturnId}`, {
+        cache: 'no-cache',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });
 

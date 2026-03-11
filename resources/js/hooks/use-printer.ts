@@ -99,9 +99,9 @@ export function usePrinter(): PrinterState {
             if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
             if (status !== 'connected') throw new Error('QZ Tray no está conectado');
 
-            await qzPrintReceipt(saleId, selectedPrinter, paperWidth);
+            await qzPrintReceipt(saleId, selectedPrinter);
         },
-        [selectedPrinter, paperWidth, status],
+        [selectedPrinter, status],
     );
 
     const printReturn = useCallback(
@@ -109,9 +109,9 @@ export function usePrinter(): PrinterState {
             if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
             if (status !== 'connected') throw new Error('QZ Tray no está conectado');
 
-            await qzPrintReturn(saleReturnId, selectedPrinter, paperWidth);
+            await qzPrintReturn(saleReturnId, selectedPrinter);
         },
-        [selectedPrinter, paperWidth, status],
+        [selectedPrinter, status],
     );
 
     const printCashSession = useCallback(
@@ -119,9 +119,9 @@ export function usePrinter(): PrinterState {
             if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
             if (status !== 'connected') throw new Error('QZ Tray no está conectado');
 
-            await qzPrintCashSession(sessionId, selectedPrinter, paperWidth);
+            await qzPrintCashSession(sessionId, selectedPrinter);
         },
-        [selectedPrinter, paperWidth, status],
+        [selectedPrinter, status],
     );
 
     const printTest = useCallback(async () => {
