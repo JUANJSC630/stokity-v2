@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { downloadFile } from '@/lib/download';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
+import toast from 'react-hot-toast';
 import { Award, Calendar, Download, TrendingUp, Users2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -106,7 +108,7 @@ export default function SellersReport({
         });
     };
 
-    const exportReport = (type: 'excel' | 'pdf' = 'excel') => {
+    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
         const filters = {
             ...localFilters,
             date_from: dateRange.from,
@@ -116,7 +118,6 @@ export default function SellersReport({
         if (filters.branch_id === 'all') delete filters.branch_id;
         if (filters.category_id === 'all') delete filters.category_id;
 
-        // Para usuarios no administradores, forzar el filtro de sucursal
         if (!user?.is_admin && user?.branch_id) {
             filters.branch_id = user.branch_id.toString();
         }
@@ -128,7 +129,11 @@ export default function SellersReport({
             }
         });
 
-        window.open(url.toString(), '_blank');
+        try {
+            await downloadFile(url.toString());
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
+        }
     };
 
     const formatCurrency = (amount: number | null | undefined) => {

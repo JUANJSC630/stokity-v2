@@ -6,17 +6,16 @@ use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnProduct;
 use App\Models\Product;
+use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Mike42\Escpos\Printer;
-use Mike42\Escpos\PrintConnectors\FilePrintConnector;
-use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
-use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 
 class SaleReturnController extends Controller
 {
-  public function store(Request $request, $saleId)
+    public function __construct(private StockMovementService $stockMovements) {}
+
+    public function store(Request $request, $saleId)
   {
     $request->validate([
       'products' => 'required|array',
@@ -56,9 +55,23 @@ class SaleReturnController extends Controller
           'product_id' => $item['product_id'],
           'quantity' => $item['quantity'],
         ]);
-        // Actualizar stock
+        // Actualizar stock y registrar movimiento
         $product = Product::find($item['product_id']);
-        $product->increment('stock', $item['quantity']);
+        $previousStock = $product->stock;
+        $product->stock += $item['quantity'];
+        $product->save();
+
+        $this->stockMovements->record(
+            product: $product,
+            type: 'in',
+            quantity: $item['quantity'],
+            previousStock: $previousStock,
+            newStock: $product->stock,
+            branchId: $sale->branch_id,
+            userId: Auth::id(),
+            reference: $sale->code,
+            notes: "Devolución venta #{$sale->code}",
+        );
       }
       // Verificar si todos los productos han sido devueltos
       $allReturned = true;

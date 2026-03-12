@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { downloadFile } from '@/lib/download';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
+import toast from 'react-hot-toast';
 import { Award, Building, Calendar, Download, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
@@ -98,7 +100,7 @@ export default function BranchesReport({
         });
     };
 
-    const exportReport = (type: 'excel' | 'pdf' = 'excel') => {
+    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
         const filters = {
             ...localFilters,
             date_from: dateRange.from,
@@ -115,7 +117,11 @@ export default function BranchesReport({
             }
         });
 
-        window.open(url.toString(), '_blank');
+        try {
+            await downloadFile(url.toString());
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
+        }
     };
 
     const formatCurrency = (amount: number) => {

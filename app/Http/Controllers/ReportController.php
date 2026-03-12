@@ -112,14 +112,14 @@ class ReportController extends Controller
 
         try {
             $pdf = \PDF::loadHTML($html);
-            $pdf->setPaper('a4', 'portrait');
+            $pdf->setPaper('a4', 'landscape');
 
             \Log::info('PDF generado exitosamente', ['file_name' => $filename]);
 
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error generando PDF', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Error generando el PDF');
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
         }
     }
 
@@ -153,7 +153,7 @@ class ReportController extends Controller
                 ->header('Expires', '0');
         } catch (\Exception $e) {
             \Log::error('Error generando CSV', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Error generando el CSV');
+            return response()->json(['error' => 'Error al generar el CSV'], 500);
         }
     }
 
@@ -377,7 +377,7 @@ class ReportController extends Controller
 
             // Generar PDF
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHtml($html);
-            $pdf->setPaper('A4', 'portrait');
+            $pdf->setPaper('A4', 'landscape');
 
             // Generar nombre del archivo con timestamp
             $fileName = 'reporte-ventas-' . now()->format('Y-m-d-H-i-s') . '.pdf';
@@ -1210,6 +1210,23 @@ class ReportController extends Controller
     }
 
     /**
+     * Convierte un array 2D a CSV con BOM UTF-8 y separador punto y coma.
+     */
+    private function arrayToCsv(array $rows): string
+    {
+        $output = fopen('php://temp', 'r+');
+        foreach ($rows as $row) {
+            $cleanRow = array_map(fn($v) => is_null($v) ? '' : (string) $v, $row);
+            fputcsv($output, $cleanRow, ';');
+        }
+        rewind($output);
+        $content = stream_get_contents($output);
+        fclose($output);
+
+        return "\xEF\xBB\xBF" . $content;
+    }
+
+    /**
      * Obtener filtros de la request
      */
     private function getFilters(Request $request)
@@ -1301,195 +1318,129 @@ class ReportController extends Controller
      */
     private function generateCsvContent($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods)
     {
-        $csv = [];
-
-        // Encabezado del reporte con formato mejorado
-        $csv[] = ['REPORTE DE VENTAS - STOKITY V2'];
-        $csv[] = ['Sistema de Gestión de Inventario y Ventas'];
-        $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
-        $csv[] = ['Usuario: ' . auth()->user()->name];
-        $csv[] = [];
-
-        // Resumen ejecutivo
         $totalSales = collect($salesData)->sum('total_sales');
         $totalAmount = collect($salesData)->sum('total_amount');
         $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
-        $csv[] = ['RESUMEN EJECUTIVO'];
-        $csv[] = ['Total de Ventas:', $totalSales];
-        $csv[] = ['Monto Total:', '$ ' . number_format($totalAmount, 2, ',', '.')];
-        $csv[] = ['Promedio por Venta:', '$ ' . number_format($avgSale, 2, ',', '.')];
+        // ── Hoja 1: Ventas por período ──────────────────────────────────────
+        $csv = [];
+        $csv[] = ['Reporte', 'Ventas General'];
+        $csv[] = ['Generado', now()->format('d/m/Y H:i:s')];
+        $csv[] = ['Usuario', auth()->user()->name];
+        $csv[] = ['Fecha desde', $filters['date_from'] ?? 'Todas'];
+        $csv[] = ['Fecha hasta', $filters['date_to'] ?? 'Todas'];
+        $csv[] = ['Total ventas', $totalSales, 'Monto total', round($totalAmount, 2), 'Promedio', round($avgSale, 2)];
         $csv[] = [];
 
-        // Filtros aplicados
-        $csv[] = ['FILTROS APLICADOS'];
-        $hasFilters = false;
-        if ($filters['date_from']) {
-            $csv[] = ['Fecha desde:', $filters['date_from']];
-            $hasFilters = true;
-        }
-        if ($filters['date_to']) {
-            $csv[] = ['Fecha hasta:', $filters['date_to']];
-            $hasFilters = true;
-        }
-        if ($filters['branch_id']) {
-            $csv[] = ['Sucursal ID:', $filters['branch_id']];
-            $hasFilters = true;
-        }
-        if ($filters['category_id']) {
-            $csv[] = ['Categoría ID:', $filters['category_id']];
-            $hasFilters = true;
-        }
-        if (!$hasFilters) {
-            $csv[] = ['Sin filtros aplicados (todos los datos)'];
-        }
-        $csv[] = [];
-
-        // Ventas por período con formato mejorado
         if (count($salesData) > 0) {
-            $csv[] = ['VENTAS POR PERÍODO'];
             $csv[] = [
                 'Fecha',
-                'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Imp. Completadas', 'Prom. Completadas',
-                'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Imp. Canceladas', 'Prom. Canceladas',
-                'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Imp. Pendientes', 'Prom. Pendientes',
+                'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Impuesto Completadas', 'Promedio Completadas',
+                'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Impuesto Canceladas', 'Promedio Canceladas',
+                'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Impuesto Pendientes', 'Promedio Pendientes',
             ];
             foreach ($salesData as $sale) {
                 $csv[] = [
                     $sale['period'],
                     $sale['completed']['total_sales'],
-                    '$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.'),
+                    round($sale['completed']['total_amount'], 2),
+                    round($sale['completed']['net_amount'], 2),
+                    round($sale['completed']['tax_amount'], 2),
+                    round($sale['completed']['average_sale'], 2),
                     $sale['cancelled']['total_sales'],
-                    '$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.'),
+                    round($sale['cancelled']['total_amount'], 2),
+                    round($sale['cancelled']['net_amount'], 2),
+                    round($sale['cancelled']['tax_amount'], 2),
+                    round($sale['cancelled']['average_sale'], 2),
                     $sale['pending']['total_sales'],
-                    '$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.'),
+                    round($sale['pending']['total_amount'], 2),
+                    round($sale['pending']['net_amount'], 2),
+                    round($sale['pending']['tax_amount'], 2),
+                    round($sale['pending']['average_sale'], 2),
                 ];
             }
             $csv[] = [];
         }
 
-        // Productos más vendidos con formato mejorado
+        // ── Productos más vendidos ──────────────────────────────────────────
         if (count($topProducts) > 0) {
-            $csv[] = ['PRODUCTOS MÁS VENDIDOS'];
-            $csv[] = ['Código', 'Nombre del Producto', 'Cantidad Vendida', 'Monto Total', 'Número de Ventas'];
-            $csv[] = ['', '', '', '', ''];
-
+            $csv[] = [];
+            $csv[] = ['--- PRODUCTOS MÁS VENDIDOS ---'];
+            $csv[] = ['Código', 'Producto', 'Cantidad Vendida', 'Monto Total', 'Num. Ventas'];
             foreach ($topProducts as $product) {
                 $csv[] = [
                     $product->code,
                     $product->name,
                     $product->total_quantity,
-                    '$ ' . number_format($product->total_amount, 2, ',', '.'),
-                    $product->sales_count
+                    round($product->total_amount, 2),
+                    $product->sales_count,
                 ];
             }
-            $csv[] = [];
         }
 
-        // Ventas por sucursal con formato mejorado
+        // ── Ventas por sucursal ─────────────────────────────────────────────
         if (count($salesByBranch) > 0) {
-            $csv[] = ['VENTAS POR SUCURSAL'];
-            $csv[] = ['ID', 'Nombre de Sucursal', 'Nombre Comercial', 'Total Ventas', 'Monto Total', 'Promedio por Venta'];
-            $csv[] = ['', '', '', '', '', ''];
-
+            $csv[] = [];
+            $csv[] = ['--- VENTAS POR SUCURSAL ---'];
+            $csv[] = ['Sucursal', 'Nombre Comercial', 'Num. Ventas', 'Monto Total', 'Promedio por Venta'];
             foreach ($salesByBranch as $branch) {
                 $csv[] = [
-                    $branch->id,
                     $branch->name,
-                    $branch->business_name ?? 'N/A',
+                    $branch->business_name ?? '',
                     $branch->total_sales,
-                    '$ ' . number_format($branch->total_amount, 2, ',', '.'),
-                    '$ ' . number_format($branch->average_sale, 2, ',', '.')
+                    round($branch->total_amount, 2),
+                    round($branch->average_sale, 2),
                 ];
             }
-            $csv[] = [];
         }
 
-        // Ventas por vendedor con formato mejorado
+        // ── Ventas por vendedor ─────────────────────────────────────────────
         if (count($salesBySeller) > 0) {
-            $csv[] = ['VENTAS POR VENDEDOR'];
-            $csv[] = ['ID', 'Nombre del Vendedor', 'Email', 'Total Ventas', 'Monto Total', 'Promedio por Venta'];
-            $csv[] = ['', '', '', '', '', ''];
-
+            $csv[] = [];
+            $csv[] = ['--- VENTAS POR VENDEDOR ---'];
+            $csv[] = ['Vendedor', 'Email', 'Num. Ventas', 'Monto Total', 'Promedio por Venta'];
             foreach ($salesBySeller as $seller) {
                 $csv[] = [
-                    $seller->id,
                     $seller->name,
                     $seller->email,
                     $seller->total_sales,
-                    '$ ' . number_format($seller->total_amount, 2, ',', '.'),
-                    '$ ' . number_format($seller->average_sale, 2, ',', '.')
+                    round($seller->total_amount, 2),
+                    round($seller->average_sale, 2),
                 ];
             }
-            $csv[] = [];
         }
 
-        // Devoluciones por producto con formato mejorado
+        // ── Devoluciones por producto ───────────────────────────────────────
         if (count($returnsData) > 0) {
-            $csv[] = ['DEVOLUCIONES POR PRODUCTO'];
-            $csv[] = ['ID', 'Código', 'Nombre del Producto', 'Cantidad Devuelta', 'Número de Devoluciones'];
-            $csv[] = ['', '', '', '', ''];
-
+            $csv[] = [];
+            $csv[] = ['--- DEVOLUCIONES POR PRODUCTO ---'];
+            $csv[] = ['Código', 'Producto', 'Cantidad Devuelta', 'Num. Devoluciones'];
             foreach ($returnsData as $return) {
                 $csv[] = [
-                    $return->id,
                     $return->code,
                     $return->name,
                     $return->returned_quantity,
-                    $return->return_count
+                    $return->return_count,
                 ];
             }
-            $csv[] = [];
         }
 
-        // Métodos de pago con formato mejorado
+        // ── Métodos de pago ─────────────────────────────────────────────────
         if (count($paymentMethods) > 0) {
-            $csv[] = ['MÉTODOS DE PAGO'];
-            $csv[] = ['Método de Pago', 'Número de Transacciones', 'Monto Total', 'Promedio por Transacción'];
-            $csv[] = ['', '', '', ''];
-
+            $csv[] = [];
+            $csv[] = ['--- MÉTODOS DE PAGO ---'];
+            $csv[] = ['Método de Pago', 'Num. Transacciones', 'Monto Total', 'Promedio por Transacción'];
             foreach ($paymentMethods as $method) {
                 $csv[] = [
                     ucfirst(str_replace('_', ' ', $method->payment_method)),
                     $method->transaction_count,
-                    '$ ' . number_format($method->total_amount, 2, ',', '.'),
-                    '$ ' . number_format($method->average_amount, 2, ',', '.')
+                    round($method->total_amount, 2),
+                    round($method->average_amount, 2),
                 ];
             }
-            $csv[] = [];
         }
 
-        // Pie de página
-        $csv[] = ['FIN DEL REPORTE'];
-        $csv[] = ['Este reporte fue generado automáticamente por Stokity V2'];
-        $csv[] = ['Para más información, contacte al administrador del sistema'];
-
-        // Convertir array a CSV con formato mejorado
-        $output = fopen('php://temp', 'r+');
-        foreach ($csv as $row) {
-            // Asegurar que todos los valores sean strings y manejar caracteres especiales
-            $cleanRow = array_map(function ($value) {
-                if (is_null($value)) return '';
-                if (is_numeric($value)) return (string)$value;
-                return (string)$value;
-            }, $row);
-            fputcsv($output, $cleanRow, ';'); // Usar punto y coma como separador para Excel
-        }
-        rewind($output);
-        $csvContent = stream_get_contents($output);
-        fclose($output);
-
-        // Asegurar que el contenido tenga BOM para UTF-8
-        return "\xEF\xBB\xBF" . $csvContent;
+        return $this->arrayToCsv($csv);
     }
 
     /**
@@ -1514,14 +1465,14 @@ class ReportController extends Controller
                 .header p { margin: 5px 0; color: #7f8c8d; }
                 .summary { background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; }
                 .summary h2 { color: #2c3e50; margin: 0 0 15px 0; font-size: 18px; }
-                .summary-grid { display: flex; justify-content: space-between; }
-                .summary-item { text-align: center; flex: 1; }
+                .summary-grid { display: table; width: 100%; }
+                .summary-item { display: table-cell; text-align: center; }
                 .summary-item strong { display: block; font-size: 20px; color: #27ae60; }
                 .section { margin: 30px 0; }
                 .section h3 { color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
-                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-                th { background: #34495e; color: white; padding: 12px; text-align: left; }
-                td { padding: 10px; border-bottom: 1px solid #ddd; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9px; }
+                th { background: #34495e; color: white; padding: 5px 4px; text-align: left; font-size: 9px; }
+                td { padding: 5px 4px; border-bottom: 1px solid #ddd; font-size: 9px; }
                 tr:nth-child(even) { background: #f8f9fa; }
                 .filters { background: #ecf0f1; padding: 15px; margin: 20px 0; border-radius: 5px; }
                 .filters h3 { margin: 0 0 10px 0; color: #2c3e50; }
@@ -1849,14 +1800,14 @@ class ReportController extends Controller
                 .header p { margin: 5px 0; color: #7f8c8d; }
                 .summary { background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; }
                 .summary h2 { color: #2c3e50; margin: 0 0 15px 0; font-size: 18px; }
-                .summary-grid { display: flex; justify-content: space-between; }
-                .summary-item { text-align: center; flex: 1; }
+                .summary-grid { display: table; width: 100%; }
+                .summary-item { display: table-cell; text-align: center; }
                 .summary-item strong { display: block; font-size: 20px; color: #27ae60; }
                 .section { margin: 30px 0; }
                 .section h3 { color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
-                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-                th { background: #34495e; color: white; padding: 12px; text-align: left; }
-                td { padding: 10px; border-bottom: 1px solid #ddd; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 9px; }
+                th { background: #34495e; color: white; padding: 5px 4px; text-align: left; font-size: 9px; }
+                td { padding: 5px 4px; border-bottom: 1px solid #ddd; font-size: 9px; }
                 tr:nth-child(even) { background: #f8f9fa; }
                 .filters { background: #ecf0f1; padding: 15px; margin: 20px 0; border-radius: 5px; }
                 .filters h3 { margin: 0 0 10px 0; color: #2c3e50; }
@@ -2001,98 +1952,45 @@ class ReportController extends Controller
     {
         $csv = [];
 
-        // Encabezado del reporte con formato mejorado
-        $csv[] = ['REPORTE DETALLADO DE VENTAS - STOKITY V2'];
-        $csv[] = ['Sistema de Gestión de Inventario y Ventas'];
-        $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
-        $csv[] = ['Usuario: ' . auth()->user()->name];
+        // Fila de metadatos
+        $csv[] = ['Reporte', 'Detalle de Ventas'];
+        $csv[] = ['Generado', now()->format('d/m/Y H:i:s')];
+        $csv[] = ['Usuario', auth()->user()->name];
+        $csv[] = ['Fecha desde', $filters['date_from'] ?? 'Todas'];
+        $csv[] = ['Fecha hasta', $filters['date_to'] ?? 'Todas'];
+        $csv[] = ['Total ventas', $totalSales, 'Monto total', round($totalAmount, 2), 'Promedio', round($averageSale, 2)];
         $csv[] = [];
 
-        // Resumen ejecutivo
-        $csv[] = ['RESUMEN EJECUTIVO'];
-        $csv[] = ['Total de Ventas:', $totalSales];
-        $csv[] = ['Monto Total:', '$ ' . number_format($totalAmount, 2, ',', '.')];
-        $csv[] = ['Promedio por Venta:', '$ ' . number_format($averageSale, 2, ',', '.')];
-        $csv[] = [];
+        // Encabezados de columnas (tabla contable)
+        $csv[] = [
+            'Fecha',
+            'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Impuesto Completadas', 'Promedio Completadas',
+            'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Impuesto Canceladas', 'Promedio Canceladas',
+            'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Impuesto Pendientes', 'Promedio Pendientes',
+        ];
 
-        // Filtros aplicados
-        $csv[] = ['FILTROS APLICADOS'];
-        $hasFilters = false;
-        if ($filters['date_from']) {
-            $csv[] = ['Fecha desde:', $filters['date_from']];
-            $hasFilters = true;
-        }
-        if ($filters['date_to']) {
-            $csv[] = ['Fecha hasta:', $filters['date_to']];
-            $hasFilters = true;
-        }
-        if ($filters['branch_id']) {
-            $csv[] = ['Sucursal ID:', $filters['branch_id']];
-            $hasFilters = true;
-        }
-        if ($filters['category_id']) {
-            $csv[] = ['Categoría ID:', $filters['category_id']];
-            $hasFilters = true;
-        }
-        if (!$hasFilters) {
-            $csv[] = ['Sin filtros aplicados (todos los datos)'];
-        }
-        $csv[] = [];
-
-        // Ventas por período con formato mejorado
-        if (count($salesData) > 0) {
-            $csv[] = ['VENTAS POR PERÍODO'];
+        foreach ($salesData as $sale) {
             $csv[] = [
-                'Fecha',
-                'Ventas Completadas', 'Monto Completadas', 'Neto Completadas', 'Imp. Completadas', 'Prom. Completadas',
-                'Ventas Canceladas', 'Monto Canceladas', 'Neto Canceladas', 'Imp. Canceladas', 'Prom. Canceladas',
-                'Ventas Pendientes', 'Monto Pendientes', 'Neto Pendientes', 'Imp. Pendientes', 'Prom. Pendientes',
+                $sale['period'],
+                $sale['completed']['total_sales'],
+                round($sale['completed']['total_amount'], 2),
+                round($sale['completed']['net_amount'], 2),
+                round($sale['completed']['tax_amount'], 2),
+                round($sale['completed']['average_sale'], 2),
+                $sale['cancelled']['total_sales'],
+                round($sale['cancelled']['total_amount'], 2),
+                round($sale['cancelled']['net_amount'], 2),
+                round($sale['cancelled']['tax_amount'], 2),
+                round($sale['cancelled']['average_sale'], 2),
+                $sale['pending']['total_sales'],
+                round($sale['pending']['total_amount'], 2),
+                round($sale['pending']['net_amount'], 2),
+                round($sale['pending']['tax_amount'], 2),
+                round($sale['pending']['average_sale'], 2),
             ];
-            foreach ($salesData as $sale) {
-                $csv[] = [
-                    $sale['period'],
-                    $sale['completed']['total_sales'],
-                    '$ ' . number_format($sale['completed']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['completed']['average_sale'], 2, ',', '.'),
-                    $sale['cancelled']['total_sales'],
-                    '$ ' . number_format($sale['cancelled']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['cancelled']['average_sale'], 2, ',', '.'),
-                    $sale['pending']['total_sales'],
-                    '$ ' . number_format($sale['pending']['total_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['net_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['tax_amount'], 2, ',', '.'),
-                    '$ ' . number_format($sale['pending']['average_sale'], 2, ',', '.'),
-                ];
-            }
-            $csv[] = [];
         }
 
-        // Pie de página
-        $csv[] = ['FIN DEL REPORTE'];
-        $csv[] = ['Este reporte fue generado automáticamente por Stokity V2'];
-        $csv[] = ['Para más información, contacte al administrador del sistema'];
-
-        // Convertir array a CSV con formato mejorado
-        $output = fopen('php://temp', 'r+');
-        foreach ($csv as $row) {
-            // Asegurar que todos los valores sean strings y manejar caracteres especiales
-            $cleanRow = array_map(function ($value) {
-                if (is_null($value)) return '';
-                if (is_numeric($value)) return (string)$value;
-                return (string)$value;
-            }, $row);
-            fputcsv($output, $cleanRow, ';'); // Usar punto y coma como separador para Excel
-        }
-        rewind($output);
-        $csvContent = stream_get_contents($output);
-        fclose($output);
-
-        // Asegurar que el contenido tenga BOM para UTF-8
-        return "\xEF\xBB\xBF" . $csvContent;
+        return $this->arrayToCsv($csv);
     }
 
     // Métodos de exportación específicos para cada reporte
@@ -2117,7 +2015,7 @@ class ReportController extends Controller
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de productos: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el PDF');
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
         }
     }
 
@@ -2143,7 +2041,7 @@ class ReportController extends Controller
                 ->header('Expires', '0');
         } catch (\Exception $e) {
             \Log::error('Error exportando Excel de productos: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el Excel');
+            return response()->json(['error' => 'Error al generar el CSV'], 500);
         }
     }
 
@@ -2166,7 +2064,7 @@ class ReportController extends Controller
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de vendedores: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el PDF');
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
         }
     }
 
@@ -2191,13 +2089,32 @@ class ReportController extends Controller
                 ->header('Expires', '0');
         } catch (\Exception $e) {
             \Log::error('Error exportando Excel de vendedores: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el Excel');
+            return response()->json(['error' => 'Error al generar el CSV'], 500);
         }
     }
 
     /**
      * Exportar reporte de sucursales a PDF
      */
+    public function exportBranchesPdf(Request $request)
+    {
+        try {
+            $filters = $this->getFilters($request);
+            $branchesData = $this->getBranchesPerformance($filters);
+            $branchesComparison = $this->getBranchesComparison($filters);
+
+            $html = $this->generateBranchesPdfHtml($filters, $branchesData, $branchesComparison, collect());
+
+            $pdf = \PDF::loadHTML($html);
+            $filename = 'reporte_sucursales_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            \Log::error('Error exportando PDF de sucursales: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
+        }
+    }
+
     /**
      * Balance de caja por sucursal (resumen diario de efectivo)
      */
@@ -2298,7 +2215,7 @@ class ReportController extends Controller
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de sucursales: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el PDF');
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
         }
     }
 
@@ -2323,7 +2240,7 @@ class ReportController extends Controller
                 ->header('Expires', '0');
         } catch (\Exception $e) {
             \Log::error('Error exportando Excel de sucursales: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el Excel');
+            return response()->json(['error' => 'Error al generar el CSV'], 500);
         }
     }
 
@@ -2347,7 +2264,7 @@ class ReportController extends Controller
             return $pdf->download($filename);
         } catch (\Exception $e) {
             \Log::error('Error exportando PDF de devoluciones: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el PDF');
+            return response()->json(['error' => 'Error al generar el PDF'], 500);
         }
     }
 
@@ -2373,7 +2290,7 @@ class ReportController extends Controller
                 ->header('Expires', '0');
         } catch (\Exception $e) {
             \Log::error('Error exportando Excel de devoluciones: ' . $e->getMessage());
-            return back()->with('error', 'Error al generar el Excel');
+            return response()->json(['error' => 'Error al generar el CSV'], 500);
         }
     }
 
@@ -2533,10 +2450,10 @@ class ReportController extends Controller
             foreach ($sellersData as $seller) {
                 $html .= '
                         <tr>
-                            <td>' . $seller->name . '</td>
-                            <td>' . $seller->total_sales . '</td>
-                            <td>$ ' . number_format($seller->total_amount, 2, ',', '.') . '</td>
-                            <td>$ ' . number_format($seller->average_sale, 2, ',', '.') . '</td>
+                            <td>' . $seller['name'] . '</td>
+                            <td>' . $seller['total_sales'] . '</td>
+                            <td>$ ' . number_format($seller['total_amount'], 2, ',', '.') . '</td>
+                            <td>$ ' . number_format($seller['average_sale'], 2, ',', '.') . '</td>
                         </tr>';
             }
 
@@ -2561,40 +2478,25 @@ class ReportController extends Controller
     {
         $csv = [];
 
-        $csv[] = ['REPORTE DE VENDEDORES - STOKITY V2'];
-        $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
-        $csv[] = ['Usuario: ' . auth()->user()->name];
+        $csv[] = ['Reporte', 'Vendedores'];
+        $csv[] = ['Generado', now()->format('d/m/Y H:i:s')];
+        $csv[] = ['Usuario', auth()->user()->name];
+        $csv[] = ['Fecha desde', $filters['date_from'] ?? 'Todas'];
+        $csv[] = ['Fecha hasta', $filters['date_to'] ?? 'Todas'];
         $csv[] = [];
 
-        if (count($sellersData) > 0) {
-            $csv[] = ['RENDIMIENTO DE VENDEDORES'];
-            $csv[] = ['Vendedor', 'Ventas', 'Monto', 'Promedio'];
+        $csv[] = ['Vendedor', 'Num. Ventas', 'Monto Total', 'Promedio por Venta'];
 
-            foreach ($sellersData as $seller) {
-                $csv[] = [
-                    $seller->name,
-                    $seller->total_sales,
-                    '$ ' . number_format($seller->total_amount, 2, ',', '.'),
-                    '$ ' . number_format($seller->average_sale, 2, ',', '.')
-                ];
-            }
-            $csv[] = [];
+        foreach ($sellersData as $seller) {
+            $csv[] = [
+                $seller['name'],
+                $seller['total_sales'],
+                round($seller['total_amount'], 2),
+                round($seller['average_sale'], 2),
+            ];
         }
 
-        $csv[] = ['FIN DEL REPORTE'];
-
-        $output = fopen('php://temp', 'r+');
-        foreach ($csv as $row) {
-            $cleanRow = array_map(function ($value) {
-                return is_null($value) ? '' : (string)$value;
-            }, $row);
-            fputcsv($output, $cleanRow, ';');
-        }
-        rewind($output);
-        $csvContent = stream_get_contents($output);
-        fclose($output);
-
-        return "\xEF\xBB\xBF" . $csvContent;
+        return $this->arrayToCsv($csv);
     }
 
     private function generateBranchesPdfHtml($filters, $branchesData, $branchesComparison, $branchesByRegion)
@@ -2671,40 +2573,27 @@ class ReportController extends Controller
     {
         $csv = [];
 
-        $csv[] = ['REPORTE DE SUCURSALES - STOKITY V2'];
-        $csv[] = ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')];
-        $csv[] = ['Usuario: ' . auth()->user()->name];
+        $csv[] = ['Reporte', 'Sucursales'];
+        $csv[] = ['Generado', now()->format('d/m/Y H:i:s')];
+        $csv[] = ['Usuario', auth()->user()->name];
+        $csv[] = ['Fecha desde', $filters['date_from'] ?? 'Todas'];
+        $csv[] = ['Fecha hasta', $filters['date_to'] ?? 'Todas'];
         $csv[] = [];
 
-        if (count($branchesData) > 0) {
-            $csv[] = ['RENDIMIENTO DE SUCURSALES'];
-            $csv[] = ['Sucursal', 'Ventas', 'Monto', 'Promedio'];
+        $csv[] = ['Sucursal', 'Nombre Comercial', 'Num. Ventas', 'Vendedores Activos', 'Monto Total', 'Promedio por Venta'];
 
-            foreach ($branchesData as $branch) {
-                $csv[] = [
-                    $branch->name,
-                    $branch->total_sales,
-                    '$ ' . number_format($branch->total_amount, 2, ',', '.'),
-                    '$ ' . number_format($branch->average_sale, 2, ',', '.')
-                ];
-            }
-            $csv[] = [];
+        foreach ($branchesData as $branch) {
+            $csv[] = [
+                $branch->name,
+                $branch->business_name ?? '',
+                $branch->total_sales,
+                $branch->active_sellers,
+                round($branch->total_amount, 2),
+                round($branch->average_sale, 2),
+            ];
         }
 
-        $csv[] = ['FIN DEL REPORTE'];
-
-        $output = fopen('php://temp', 'r+');
-        foreach ($csv as $row) {
-            $cleanRow = array_map(function ($value) {
-                return is_null($value) ? '' : (string)$value;
-            }, $row);
-            fputcsv($output, $cleanRow, ';');
-        }
-        rewind($output);
-        $csvContent = stream_get_contents($output);
-        fclose($output);
-
-        return "\xEF\xBB\xBF" . $csvContent;
+        return $this->arrayToCsv($csv);
     }
 
     private function generateReturnsPdfHtml($filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend)
