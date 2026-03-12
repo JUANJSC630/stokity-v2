@@ -302,12 +302,13 @@ class ProductController extends Controller
             'set'      => $request->stock,
             'add'      => $previousStock + $request->stock,
             'subtract' => max(0, $previousStock - $request->stock),
+            default    => $previousStock,
         };
 
         $quantity = match ($request->operation) {
             'add'      => $request->stock,
             'subtract' => $previousStock - $newStock,
-            'set'      => abs($newStock - $previousStock),
+            default    => abs($newStock - $previousStock),
         };
 
         DB::transaction(function () use ($product, $previousStock, $newStock, $quantity, $request) {
@@ -319,7 +320,7 @@ class ProductController extends Controller
                 type: match ($request->operation) {
                     'add'      => 'in',
                     'subtract' => 'out',
-                    'set'      => 'adjustment',
+                    default    => 'adjustment',
                 },
                 quantity: $quantity,
                 previousStock: $previousStock,
@@ -373,7 +374,7 @@ class ProductController extends Controller
         $maxAttempts = 20; // Aumentamos los intentos para mayor seguridad
         do {
             // Generar un número aleatorio de 8 dígitos
-            $code = str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
+            $code = str_pad((string) rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
             $exists = Product::where('code', $code)->exists();
             $maxAttempts--;
         } while ($exists && $maxAttempts > 0);

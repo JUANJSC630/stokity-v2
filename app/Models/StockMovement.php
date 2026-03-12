@@ -13,7 +13,7 @@ class StockMovement extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'product_id',
@@ -107,7 +107,7 @@ class StockMovement extends Model
             'in' => 'Entrada',
             'out' => 'Salida',
             'adjustment' => 'Ajuste',
-            default => 'Desconocido'
+            default => 'Desconocido',
         };
     }
 
@@ -120,7 +120,7 @@ class StockMovement extends Model
             'in' => 'green',
             'out' => 'red',
             'adjustment' => 'yellow',
-            default => 'gray'
+            default => 'gray',
         };
     }
 

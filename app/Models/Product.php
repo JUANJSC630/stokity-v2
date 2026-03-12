@@ -7,6 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $code
+ * @property int $stock
+ * @property int $min_stock
+ * @property float $sale_price
+ * @property float $purchase_price
+ * @property float $tax
+ * @property string|null $image
+ * @property string $image_url
+ * @property bool $status
+ * @property int $category_id
+ * @property int $branch_id
+ * @property \App\Models\Category|null $category
+ * @property \App\Models\Branch|null $branch
+ */
 class Product extends Model
 {
     use HasFactory, SoftDeletes;
@@ -14,7 +31,7 @@ class Product extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -48,7 +65,7 @@ class Product extends Model
     /**
      * The accessors to append to the model's array form.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $appends = [
         'image_url',

@@ -1,0 +1,25 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 5
+
+    # Reducir falsos positivos de tipos derivados de PHPDoc (recomendado por PHPStan para Laravel)
+    treatPhpDocTypesAsCertain: false
+
+    paths:
+        - app
+
+    # Excluir archivos generados o de migración del análisis
+    excludePaths:
+        - app/Http/Controllers/ReportController.php  # archivo masivo, analizar por separado
+        - app/Http/Kernel.php  # remanente de Laravel < 11, clases de middleware movidas al core
+
+    ignoreErrors:
+        # pivot es accesible en modelos cargados via belongsToMany pero Larastan no lo detecta
+        - '#Access to an undefined property App\\Models\\(Product|SaleProduct)::\$pivot#'
+        # nullsafe defensivo en FormRequest y controllers — correcto en runtime
+        - '#Using nullsafe property access "\?->id" on left side of \?\? is unnecessary#'
+        - '#Using nullsafe property access "\?->name" on left side of \?\? is unnecessary#'
+        - '#Using nullsafe property access "\?->tax" on left side of \?\? is unnecessary#'
+        - '#Using nullsafe property access "\?->image_url" on left side of \?\? is unnecessary#'

@@ -229,10 +229,8 @@ class CashSessionController extends Controller
             $q->where('session_id', $session->id)
               ->whereIn('payment_method', self::CASH_CODES);
         })->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
-          ->selectRaw('sale_returns.id')
           ->distinct()
-          ->get()
-          ->count() > 0
+          ->exists()
             ? SaleReturn::whereHas('sale', function ($q) use ($session) {
                 $q->where('session_id', $session->id)
                   ->whereIn('payment_method', self::CASH_CODES);
@@ -314,7 +312,7 @@ class CashSessionController extends Controller
             ->get();
 
         return $rows->map(function ($row) use ($paymentMethodNames) {
-            $method = $row->payment_method;
+            $method = (string) data_get($row, 'payment_method', '');
             if (in_array($method, self::CASH_CODES)) {
                 $group = 'cash';
             } elseif (in_array($method, self::CARD_CODES)) {
@@ -329,8 +327,8 @@ class CashSessionController extends Controller
                 'method' => $method,
                 'name'   => $paymentMethodNames[$method] ?? ucfirst($method),
                 'group'  => $group,
-                'count'  => (int) $row->count,
-                'total'  => (float) $row->total,
+                'count'  => (int) data_get($row, 'count', 0),
+                'total'  => (float) data_get($row, 'total', 0),
             ];
         })->toArray();
     }

@@ -148,6 +148,9 @@ class StockMovementController extends Controller
                 case 'adjustment':
                     $newStock = $quantity; // Para ajustes, la cantidad es el nuevo valor
                     break;
+                default:
+                    $newStock = $previousStock;
+                    break;
             }
 
             // Crear el movimiento de stock

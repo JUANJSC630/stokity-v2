@@ -6,6 +6,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $branch_id
+ * @property int $opened_by_user_id
+ * @property int|null $closed_by_user_id
+ * @property string $status
+ * @property float $opening_amount
+ * @property float $closing_amount_declared
+ * @property float $expected_cash
+ * @property float $discrepancy
+ * @property float $total_sales_cash
+ * @property float $total_cash_in
+ * @property float $total_cash_out
+ * @property \Illuminate\Support\Carbon $opened_at
+ * @property \Illuminate\Support\Carbon|null $closed_at
+ * @property \App\Models\Branch|null $branch
+ * @property \App\Models\User|null $openedBy
+ * @property \App\Models\User|null $closedBy
+ * @property \Illuminate\Database\Eloquent\Collection<int, \App\Models\Sale> $sales
+ * @property \Illuminate\Database\Eloquent\Collection<int, \App\Models\CashMovement> $movements
+ */
 class CashSession extends Model
 {
     protected $fillable = [

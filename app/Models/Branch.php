@@ -8,6 +8,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string|null $business_name
+ * @property string|null $address
+ * @property string|null $phone
+ * @property string|null $email
+ * @property bool $status
+ * @property \App\Models\User|null $manager
+ */
 class Branch extends Model
 {
     use HasFactory, SoftDeletes;
@@ -15,7 +25,7 @@ class Branch extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',

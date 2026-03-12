@@ -125,33 +125,7 @@ class SaleReturnController extends Controller
     $receiptText .= "Motivo: " . ($saleReturn->reason ?: 'Sin motivo') . "\n";
     $receiptText .= "======================\n\n\n";
 
-    try {
-      // Selecciona el conector adecuado para tu impresora
-      // Ejemplo para Linux USB:
-      // $connector = new FilePrintConnector("/dev/usb/lp0");
-
-      // Ejemplo para impresora de red:
-      // $connector = new NetworkPrintConnector("192.168.0.123", 9100);
-
-      // Ejemplo para Windows:
-      // $connector = new WindowsPrintConnector("YICHIP3121_POS_58_Printer");
-
-      // ----> MODIFICA ESTA LÍNEA SEGÚN TU CASO <----
-      $connector = new FilePrintConnector("/dev/usb/lp0");
-      $connector = new NetworkPrintConnector("192.168.0.123", 9100);
-      $connector = new WindowsPrintConnector("YICHIP3121_POS_58_Printer");
-
-      // Si usas MacOS y tienes impresora de red, usa NetworkPrintConnector.
-      throw new \Exception("Debes configurar el conector de impresora según tu sistema y tipo de conexión.");
-
-      $printer = new Printer($connector);
-      $printer->text($receiptText);
-      $printer->cut();
-      $printer->close();
-
-      return back()->with('success', 'Recibo de devolución enviado a la impresora POS.');
-    } catch (\Exception $e) {
-      return back()->with('error', 'Error al imprimir el recibo POS: ' . $e->getMessage());
-    }
+    // La impresión de devoluciones se maneja vía QZ Tray (PrintController::returnReceipt)
+    return back()->with('success', 'Operación completada.');
   }
 }

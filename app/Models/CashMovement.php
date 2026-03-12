@@ -5,6 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $session_id
+ * @property int $user_id
+ * @property string $type
+ * @property float $amount
+ * @property string $concept
+ * @property string|null $notes
+ */
 class CashMovement extends Model
 {
     protected $fillable = [

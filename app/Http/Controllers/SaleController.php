@@ -256,7 +256,7 @@ class SaleController extends Controller
         }
 
         $sales = $query->orderBy('created_at', 'desc')->get()
-            ->map(fn($sale) => [
+            ->map(fn($sale) => [ // @phpstan-ignore return.type, argument.type
                 'id'            => $sale->id,
                 'code'          => $sale->code,
                 'client_id'     => $sale->client_id,

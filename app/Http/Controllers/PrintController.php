@@ -159,10 +159,10 @@ class PrintController extends Controller
                 $p->setEmphasis(false);
                 $totalSales = 0;
                 foreach ($salesByMethod as $row) {
-                    $name  = ucfirst($row->payment_method);
-                    $total = (float) $row->total;
+                    $name  = ucfirst((string) data_get($row, 'payment_method', ''));
+                    $total = (float) data_get($row, 'total', 0);
                     $totalSales += $total;
-                    $this->printTotalRow($p, $name . ' (' . $row->count . '):', $this->formatMoney($total), $charsPerLine);
+                    $this->printTotalRow($p, $name . ' (' . (int) data_get($row, 'count', 0) . '):', $this->formatMoney($total), $charsPerLine);
                 }
                 $p->text($sep . "\n");
                 $p->setEmphasis(true);
@@ -176,6 +176,7 @@ class PrintController extends Controller
                 $p->text($sep . "\n");
                 $p->setEmphasis(true); $p->text("MOVIMIENTOS\n"); $p->setEmphasis(false);
                 foreach ($movements as $m) {
+                    /** @var \App\Models\CashMovement $m */
                     $label = ($m->type === 'cash_in' ? '+' : '-') . ' ' . $this->truncate($m->concept, $charsPerLine - 12);
                     $this->printTotalRow($p, $label . ':', $this->formatMoney($m->amount), $charsPerLine);
                 }
@@ -717,7 +718,7 @@ class PrintController extends Controller
         $p->text($sep . "\n");
 
         foreach ($sale->saleProducts as $item) {
-            $name = $this->truncate($item->product?->name ?? 'Producto', $nameW);
+            $name = $this->truncate($item->product?->name ?? 'Producto', $nameW); // @phpstan-ignore nullsafe.neverNull
             $qty  = number_format($item->quantity);
             $pri  = $this->formatMoney($item->price);
             $sub  = $this->formatMoney($item->subtotal ?? ($item->price * $item->quantity));
