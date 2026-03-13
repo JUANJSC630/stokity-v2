@@ -21,6 +21,7 @@
 | Historial de compras del cliente | ✅ Funcional |
 | Módulo de impresión QZ Tray | ✅ Funcional |
 | Apertura/Cierre de Caja (turnos) | ✅ Funcional |
+| Cotizaciones / ventas pendientes | ✅ Funcional |
 | Reportes + exportación PDF/Excel | ✅ Funcional |
 | Análisis estático (Larastan nivel 5) | ✅ 0 errores |
 | Tests automatizados | ❌ Vacío |
@@ -63,16 +64,6 @@ En el flujo de pago en efectivo del POS, agregar botones con los billetes y mone
 
 ---
 
-### P2 — Ventas pendientes / cotizaciones
-**Prioridad: Media**
-
-Permitir guardar una venta como borrador antes de cobrar.
-
-- Nuevo estado de venta: `draft` / `pending`
-- El POS puede tener múltiples carritos guardados
-- Listar borradores y poder retomarlos
-- Los borradores no afectan el stock hasta que se confirman
-
 ---
 
 ### P3 — Alertas de stock bajo por email
@@ -83,13 +74,6 @@ Cuando un producto llega a su nivel mínimo de stock, enviar email al administra
 - Campo `min_stock` ya existe en productos
 - Disparar en `StockMovementService` cuando stock cae por debajo del mínimo
 - Email con lista de productos en nivel crítico
-
----
-
-### P4 — Verificar recibo de devoluciones en impresora real
-**Prioridad: Baja** (tarea manual)
-
-Imprimir un recibo de devolución con la impresora térmica real y verificar formato (logo, datos del negocio, productos devueltos, totales, QR).
 
 ---
 

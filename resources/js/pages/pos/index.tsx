@@ -833,6 +833,14 @@ export default function PosIndex({
                                 {submittingSession ? 'Abriendo...' : 'Abrir caja'}
                             </button>
                         </form>
+                        <div className="mt-3 text-center">
+                            <a
+                                href="/dashboard"
+                                className="text-xs text-muted-foreground hover:underline"
+                            >
+                                Ir al inicio
+                            </a>
+                        </div>
                     </div>
                 </div>
             )}
