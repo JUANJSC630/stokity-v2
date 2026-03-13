@@ -12,24 +12,23 @@
 | Multi-sucursal + RBAC | ✅ Funcional |
 | Métodos de pago dinámicos | ✅ Funcional |
 | Devoluciones | ✅ Funcional |
-| Impresión térmica ESC/POS (QZ Tray) | ✅ Funcional (ver bug #2) |
+| Impresión térmica ESC/POS (QZ Tray) | ✅ Funcional (ver bug pendiente) |
 | Validación de stock al vender | ✅ Funcional |
 | Configuración del negocio (logo, NIT, etc.) | ✅ Funcional |
 | Almacenamiento de imágenes (Vercel Blob + WebP) | ✅ Funcional |
 | Búsqueda en tiempo real (POS + productos) | ✅ Funcional |
 | Descuentos y notas en ventas | ✅ Funcional |
 | Historial de compras del cliente | ✅ Funcional |
-| Módulo de impresión QZ Tray | ✅ Funcional |
 | Apertura/Cierre de Caja (turnos) | ✅ Funcional |
 | Cotizaciones / ventas pendientes | ✅ Funcional |
+| Botones de efectivo rápido en POS | ✅ Funcional |
 | Reportes + exportación PDF/Excel | ✅ Funcional |
 | Análisis estático (Larastan nivel 5) | ✅ 0 errores |
-| Botones de efectivo rápido en POS | ✅ Funcional |
 | Tests automatizados | ❌ Vacío |
 
 ---
 
-## Bugs pendientes
+## Bug pendiente
 
 ### Bug #2 — Recibo térmico: corte deja parte superior dentro de la impresora
 **Severidad: Alta**
