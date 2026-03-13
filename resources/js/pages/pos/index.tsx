@@ -1255,6 +1255,21 @@ export default function PosIndex({
                                         Exacto
                                     </button>
                                 </div>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                    {[10000, 20000, 30000, 40000, 50000, 100000].map((bill) => (
+                                        <button
+                                            key={bill}
+                                            type="button"
+                                            onClick={() => {
+                                                setAmountPaid(bill);
+                                                setAmountPaidDisplay(formatNumber(bill));
+                                            }}
+                                            className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                        >
+                                            {formatNumber(bill)}
+                                        </button>
+                                    ))}
+                                </div>
                                 {amountPaid >= total && total > 0 && (
                                     <div className="mt-1 flex justify-between text-sm font-semibold text-green-700 dark:text-green-300">
                                         <span>Cambio:</span>

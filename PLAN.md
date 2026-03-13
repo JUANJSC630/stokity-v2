@@ -24,6 +24,7 @@
 | Cotizaciones / ventas pendientes | ✅ Funcional |
 | Reportes + exportación PDF/Excel | ✅ Funcional |
 | Análisis estático (Larastan nivel 5) | ✅ 0 errores |
+| Botones de efectivo rápido en POS | ✅ Funcional |
 | Tests automatizados | ❌ Vacío |
 
 ---
@@ -46,19 +47,7 @@
 
 ## Funcionalidades pendientes
 
-### P1 — Botones de efectivo rápido en POS
-**Prioridad: Alta**
-
-Botones de billetes colombianos en el flujo de pago en efectivo: 1.000, 2.000, 5.000, 10.000, 20.000, 50.000, 100.000, 200.000.
-
-- Click acumula el monto en el campo de efectivo recibido
-- Mostrar vuelto en tiempo real
-
-**Archivo:** `resources/js/pages/pos/index.tsx` — sección de pago en efectivo
-
----
-
-### P2 — Alertas de stock bajo por email
+### P1 — Alertas de stock bajo por email
 **Prioridad: Media**
 
 Cuando un producto llega a su nivel mínimo de stock, enviar email al administrador/encargado.
