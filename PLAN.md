@@ -33,40 +33,32 @@
 ### Bug #2 — Recibo térmico: corte deja parte superior dentro de la impresora
 **Severidad: Alta**
 
-**Contexto:** Se eliminó `$p->initialize()` (ESC @) de todos los métodos de impresión (`printReceipt`, `returnReceipt`, `cashSessionReport`) y se reemplazó por reset manual + `ESC J 24` para avance de papel. Esto resolvió el problema de retracción del papel.
+**Contexto:** Se eliminó `$p->initialize()` (ESC @) de todos los métodos de impresión y se reemplazó por reset manual + `ESC J 24`. Esto resolvió la retracción del papel.
 
-**Problema actual:** Cuando el contenido del recibo es corto (ej. solo nombre del negocio), el corte deja las primeras líneas dentro de la impresora. Con contenido completo funciona bien.
+**Problema:** En el primer recibo del día el corte deja las primeras líneas dentro de la impresora. Los recibos siguientes funcionan bien porque el corte anterior dejó el papel en posición correcta.
 
-**Hipótesis:** La impresora empieza con el papel en posición "dentro" (sin haber cortado antes). El avance ESC J no es suficiente solo para el primer ticket. Los siguientes funcionan porque el corte anterior dejó el papel en la posición correcta.
+**Restricción:** Aumentar el feed inicial genera papel en blanco excesivo en el primer ticket.
 
-**Contexto adicional:**
-- Aumentar el feed inicial causa papel en blanco excesivo en el primer recibo del día.
-- ⚠️ Requiere máxima precaución — no alterar sin prueba real en producción.
-
-**Archivo:** `app/Http/Controllers/PrintController.php` — todos los métodos de impresión
-**Pendiente:** Desplegar a Railway y verificar comportamiento real para definir la estrategia de fix.
+**Archivo:** `app/Http/Controllers/PrintController.php`
+**Pendiente:** Requiere prueba en producción (Railway) para definir estrategia de fix. ⚠️ No alterar sin prueba real.
 
 ---
 
 ## Funcionalidades pendientes
 
 ### P1 — Botones de efectivo rápido en POS
-**Prioridad: Alta** (mejora directa de la experiencia del vendedor)
+**Prioridad: Alta**
 
-En el flujo de pago en efectivo del POS, agregar botones con los billetes y monedas más comunes de Colombia:
+Botones de billetes colombianos en el flujo de pago en efectivo: 1.000, 2.000, 5.000, 10.000, 20.000, 50.000, 100.000, 200.000.
 
-**Valores:** 1.000, 2.000, 5.000, 10.000, 20.000, 50.000, 100.000, 200.000
-
-- Al hacer clic, el monto se agrega al campo de efectivo recibido
-- Mostrar el vuelto en tiempo real
+- Click acumula el monto en el campo de efectivo recibido
+- Mostrar vuelto en tiempo real
 
 **Archivo:** `resources/js/pages/pos/index.tsx` — sección de pago en efectivo
 
 ---
 
----
-
-### P3 — Alertas de stock bajo por email
+### P2 — Alertas de stock bajo por email
 **Prioridad: Media**
 
 Cuando un producto llega a su nivel mínimo de stock, enviar email al administrador/encargado.
@@ -80,12 +72,7 @@ Cuando un producto llega a su nivel mínimo de stock, enviar email al administra
 ## Calidad y mantenibilidad
 
 - [ ] **Tests básicos** — flujos críticos: crear venta, stock, devoluciones, caja
-  ```bash
-  php artisan make:test SaleTest --pest
-  php artisan make:test ProductStockTest --pest
-  php artisan make:test SaleReturnTest --pest
-  ```
-- [ ] **Refactorizar `ReportController`** — archivo masivo (+2000 líneas). Dividir en servicios por tipo de reporte.
+- [ ] **Refactorizar `ReportController`** — archivo masivo (+2000 líneas), dividir en servicios por tipo de reporte
 - [ ] **Caché** en datos poco cambiantes (métodos de pago, categorías, configuración del negocio)
 
 ---
