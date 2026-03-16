@@ -126,24 +126,16 @@ Dos vendedores en sucursales distintas (o en la misma) pueden vender el último 
 
 ---
 
-### C2 — Devoluciones duplicadas sin protección
-**Severidad: Alta**
+### ✅ C2 — Devoluciones duplicadas sin protección
+**Resuelto (2026-03-16)**
 
-El modal de devolución en `sales/show.tsx` no tiene ningún estado de carga (`loading`). Si el vendedor hace clic en "Confirmar" dos veces seguidas (doble clic, lag de red, o simplemente impaciencia), se envían dos requests `POST /sales/{id}/returns`. Cada request:
-1. Pasa la validación de stock (porque ambas llegan antes de que cualquiera actualice el stock)
-2. Crea un registro en `sale_returns`
-3. Incrementa el stock del producto doble
+**Frontend:** `SaleReturnForm.tsx` ya tenía `loading` state que deshabilita el botón submit durante el request — protege contra doble clic.
 
-El resultado: el cliente recibe el reembolso una sola vez pero el stock se incrementa dos veces.
-
-**Fix a implementar:**
-
-*Frontend (`resources/js/pages/sales/show.tsx`):*
-- Agregar estado `isSubmitting` al botón de confirmar devolución. Al hacer clic, deshabilitar inmediatamente el botón y mostrar spinner hasta que el request resuelva (éxito o error).
-
-*Backend (`app/Http/Controllers/SaleReturnController.php`):*
-- Antes de crear la devolución, verificar si ya existe un `SaleReturn` para esa venta creado en los últimos 60 segundos con los mismos `product_id` y `quantity`. Si existe, retornar un error 422 con mensaje "Ya existe una devolución reciente para esta venta."
-- Alternativa más robusta: agregar un índice único o constraint de lógica de negocio que impida dos devoluciones exactamente iguales el mismo día para la misma venta.
+**Backend (`SaleReturnController::store()`):**
+- **Deduplicación:** antes de crear la devolución, busca un `SaleReturn` para esa venta en los últimos 30 segundos con los mismos `product_id` y `quantity`. Si existe, retorna `back()->with('success', ...)` silenciosamente (idempotente).
+- **`lockForUpdate()`** en `Product::find()` dentro de la transacción — mismo patrón que C1.
+- Migrado de `DB::beginTransaction/commit/rollBack` manual a `DB::transaction()` callback.
+- Excepciones: `\RuntimeException` en lugar de `\Exception` genérica.
 
 ---
 
