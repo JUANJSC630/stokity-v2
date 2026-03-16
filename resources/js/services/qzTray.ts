@@ -124,9 +124,10 @@ function buildTestTicket(paperWidth: 58 | 80): string {
 
     // ESC 2: reset line spacing to default (previous job may have left it tiny)
     w(0x1b, 0x32);
-    // Top margin: 14 × ESC J 24 = 336 dots ≈ 42mm past dead zone
-    for (let i = 0; i < 14; i++) {
-        w(0x1b, 0x4a, 0x18); // ESC J 24
+
+    // Small top margin: 4 × ESC J 24 = 96 dots ≈ 12mm
+    for (let i = 0; i < 4; i++) {
+        w(0x1b, 0x4a, 0x18);
     }
 
     // Center alignment
@@ -154,8 +155,12 @@ function buildTestTicket(paperWidth: 58 | 80): string {
     w(0x1b, 0x45, 0x00);
     t(sep + '\n');
 
-    // Feed + full cut
-    w(0x1b, 0x64, 0x05);
+    // Dead zone feed: 8 × ESC J 24 = 192 dots ≈ 24mm — pushes all content
+    // past the cutter blade so the next receipt starts with no top margin.
+    for (let i = 0; i < 8; i++) {
+        w(0x1b, 0x4a, 0x18); // ESC J 24
+    }
+    // Partial cut
     w(0x1d, 0x56, 0x41, 0x00);
 
     // Convert to base64

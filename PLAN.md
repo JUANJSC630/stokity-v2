@@ -31,14 +31,20 @@
 ## Bug pendiente
 
 ### Recibo térmico: corte deja parte superior dentro de la impresora
-**Severidad: Alta — requiere prueba en producción**
+**Severidad: Alta — requiere prueba local con impresora**
 
-El primer recibo del día queda mocho arriba. Los siguientes funcionan bien porque el corte anterior dejó el papel en posición correcta. El problema es que `ESC @` (initialize) retrae el papel al inicio del comando, antes de que cualquier `feed()` tenga efecto. Sacar el papel manualmente tampoco ayuda por la misma razón.
+**Fix aplicado (2026-03-14, pendiente de prueba local):** Se movió el feed de compensación de la dead zone del INICIO del recibo (margen superior) al FINAL (antes del corte). Esto sigue la práctica estándar ESC/POS documentada por Epson: el feed al final empuja todo el contenido más allá de la cuchilla, y el papel que queda dentro de la impresora es espacio en blanco que se consume como inicio invisible del siguiente recibo.
 
-**Cambio aplicado (NO probado en producción):** Se eliminó `$p->initialize()` de los métodos `printReceipt()`, `returnReceipt()` y `cashSessionReport()`. En su lugar se hace un reset manual: `setEmphasis(false)` + `setTextSize(1,1)` + `setJustification(CENTER)`.
+**Cambios:**
+- `printBusinessHeader()`: eliminado el loop de 14 × ESC J 24 (margen superior de 42mm)
+- `printFooter()`: extraído `feedPastDeadZone()` — 8 × ESC J 24 = 192 dots ≈ 24mm antes del corte
+- `test()` (backend): mismo patrón — feed al final, no al inicio
+- `buildTestTicket()` (frontend `qzTray.ts`): mismo patrón
 
-**Archivo:** `app/Http/Controllers/PrintController.php`
-⚠️ No alterar sin prueba real en Railway. Si el recibo sigue quedando mocho, considerar agregar `ESC J` (paper feed en dots) como primeros bytes antes del contenido.
+**Archivos:** `app/Http/Controllers/PrintController.php`, `resources/js/services/qzTray.ts`
+⚠️ Probar localmente con la impresora térmica antes de desplegar. Si la dead zone de alguna impresora es mayor a 24mm, aumentar el valor en `feedPastDeadZone()`.
+
+Impresora de referencia: POS-5890U-L (58mm, 203 DPI, ESC/POS, USB)
 
 ---
 

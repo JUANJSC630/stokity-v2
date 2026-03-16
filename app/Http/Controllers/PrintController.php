@@ -374,9 +374,9 @@ class PrintController extends Controller
             $p->setTextSize(1, 1);
             $p->setJustification(Printer::JUSTIFY_CENTER);
 
-            // Top margin: ESC J × 8 = 192 dots ≈ 24mm past dead zone
+            // Small top margin (same as printBusinessHeader)
             $conn = $p->getPrintConnector();
-            for ($i = 0; $i < 8; $i++) {
+            for ($i = 0; $i < 4; $i++) {
                 $conn->write("\x1b\x4a\x18"); // ESC J 24
             }
 
@@ -395,7 +395,7 @@ class PrintController extends Controller
             $p->text("la impresora funciona!\n");
             $p->setEmphasis(false);
             $p->text($sep2 . "\n");
-            $p->feed(4);
+            $this->feedPastDeadZone($p);
             $p->cut();
         } finally {
             $bytes = $connector->getData();
@@ -422,7 +422,7 @@ class PrintController extends Controller
         // unsaved changes. Only recognised keys are merged; unknown keys ignored.
         $formConfig = [];
         if ($request->isMethod('POST')) {
-            $allowed    = array_keys(BusinessSetting::TICKET_DEFAULTS);
+            $allowed    = array_merge(array_keys(BusinessSetting::TICKET_DEFAULTS), ['template_type']);
             $bodyValues = $request->only($allowed);
             // Remove nulls (keys the form did not send) so DB values fill the gaps.
             // Keep false booleans — they are intentional "hide" settings.
@@ -432,11 +432,35 @@ class PrintController extends Controller
             }
         }
 
+        $templateType = $formConfig['template_type'] ?? 'sale';
+        unset($formConfig['template_type']);
+
         $config       = array_merge($dbConfig, $formConfig);
         $paperWidth   = (int) ($config['paper_width'] ?? $dbConfig['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        // Build a fake sale using a plain object
+        $connector = new DummyPrintConnector();
+        $printer   = $this->createPrinter($connector);
+
+        try {
+            if ($templateType === 'return') {
+                $this->printReturnTemplate($printer, $business, $charsPerLine, $config);
+            } else {
+                $this->printSaleTemplate($printer, $business, $charsPerLine, $config);
+            }
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
+
+        return response()->json(['data' => base64_encode($bytes)]);
+    }
+
+    /**
+     * Generate a sample sale receipt for template preview.
+     */
+    private function printSaleTemplate(Printer $p, BusinessSetting $biz, int $cols, array $config): void
+    {
         $sale = new \stdClass();
         $sale->code           = '20260303154938742';
         $sale->created_at     = now()->setTimezone('America/Bogota');
@@ -464,17 +488,106 @@ class PrintController extends Controller
                 'product' => (object) ['name' => 'Chicle Trident Pack']],
         ]);
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $this->printReceipt($p, $sale, $biz, $cols, $config);
+    }
 
-        try {
-            $this->printReceipt($printer, $sale, $business, $charsPerLine, $config);
-        } finally {
-            $bytes = $connector->getData();
-            $printer->close();
+    /**
+     * Generate a sample return receipt for template preview.
+     */
+    private function printReturnTemplate(Printer $p, BusinessSetting $biz, int $cols, array $config): void
+    {
+        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+
+        $sep  = str_repeat('-', $cols);
+        $sep2 = str_repeat('=', $cols);
+
+        // ── Header ──────────────────────────────────────────────────────────
+        $this->printBusinessHeader($p, $biz, $cols, $cfg);
+
+        $p->text($sep2 . "\n");
+        $p->setJustification(Printer::JUSTIFY_CENTER);
+        $p->setEmphasis(true);
+        $p->text("RECIBO DE DEVOLUCIÓN\n");
+        $p->setEmphasis(false);
+        $p->text($sep . "\n");
+
+        // ── Return info ──────────────────────────────────────────────────────
+        $p->setJustification(Printer::JUSTIFY_LEFT);
+        $p->setEmphasis(true); $p->text('Devol.:  '); $p->setEmphasis(false);
+        $p->text("42\n");
+
+        $p->setEmphasis(true); $p->text('Venta:   '); $p->setEmphasis(false);
+        $p->text("20260303154938742\n");
+
+        $p->setEmphasis(true); $p->text('Fecha:   '); $p->setEmphasis(false);
+        $p->text(now()->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
+
+        $p->setEmphasis(true); $p->text('Cliente: '); $p->setEmphasis(false);
+        $p->text("Consumidor Final\n");
+
+        if ($cfg['return_show_seller']) {
+            $p->setEmphasis(true); $p->text('Vendedor:'); $p->setEmphasis(false);
+            $p->text(" Administrador User\n");
+        }
+        if ($cfg['return_show_branch']) {
+            $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
+            $p->text(" Sucursal Principal\n");
+        }
+        if ($cfg['return_show_reason'] ?? true) {
+            $p->setEmphasis(true); $p->text('Motivo:  '); $p->setEmphasis(false);
+            $p->text("Producto en mal estado\n");
         }
 
-        return response()->json(['data' => base64_encode($bytes)]);
+        $p->text($sep . "\n");
+
+        // ── Products ─────────────────────────────────────────────────────────
+        if ($cols < 40) {
+            $qtyW = 4; $priceW = 8; $subW = 8;
+        } else {
+            $qtyW = 5; $priceW = 10; $subW = 10;
+        }
+        $nameW = $cols - $qtyW - $priceW - $subW - ($cols < 40 ? 2 : 3);
+
+        $p->setEmphasis(true);
+        $p->text(
+            str_pad('Producto', $nameW)
+            . str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
+            . str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
+            . str_pad('Total', $subW, ' ', STR_PAD_LEFT) . "\n"
+        );
+        $p->setEmphasis(false);
+        $p->text($sep . "\n");
+
+        $p->text(
+            str_pad($this->truncate('Chocolate Bon Bon', $nameW), $nameW)
+            . str_pad('1', $qtyW, ' ', STR_PAD_LEFT)
+            . str_pad($this->formatMoney(7500), $priceW, ' ', STR_PAD_LEFT)
+            . str_pad($this->formatMoney(7500), $subW, ' ', STR_PAD_LEFT) . "\n"
+        );
+
+        $p->text($sep . "\n");
+
+        // ── Totals ───────────────────────────────────────────────────────────
+        $this->printTotalRow($p, 'Subtotal:', $this->formatMoney(7500), $cols);
+        $p->text($sep2 . "\n");
+        $p->setEmphasis(true);
+        $p->setTextSize(1, 2);
+        $this->printTotalRow($p, 'TOTAL:', $this->formatMoney(7500), $cols);
+        $p->setTextSize(1, 1);
+        $p->setEmphasis(false);
+        $p->text($sep2 . "\n");
+
+        // ── Code graphic ──────────────────────────────────────────────────────
+        $returnCodeGraphic = $cfg['return_code_graphic'] ?? 'none';
+        if ($returnCodeGraphic !== 'none') {
+            $p->text($sep . "\n");
+            $this->printCodeGraphic($p, '42', $returnCodeGraphic);
+        }
+
+        // ── Footer ───────────────────────────────────────────────────────────
+        $cfg['footer_line1'] = $cfg['return_footer_line1'] ?? 'Devolución procesada.';
+        $cfg['footer_line2'] = $cfg['return_footer_line2'] ?? 'Gracias por su preferencia.';
+        $this->printFooter($p, $cols, $cfg);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -514,10 +627,16 @@ class PrintController extends Controller
         $p->setTextSize(1, 1);
         $p->setJustification(Printer::JUSTIFY_CENTER);
 
-        // Top margin: push past the dead zone between print head and cutter.
-        // ESC J 24 = feed 24 dots per command. 14 × 24 = 336 dots ≈ 42mm.
+        // Small top margin: 4 × ESC J 24 = 96 dots ≈ 12mm.
+        // This bridges any gap between the previous receipt's bottom feed and
+        // the dead zone (distance between print head and cutter blade, ~20-25mm
+        // on typical 58mm printers). Combined with the ~24mm bottom feed from
+        // feedPastDeadZone() at the end of the previous receipt, this gives
+        // ~36mm of total clearance — enough for any thermal printer.
+        // For the first receipt of the day (no previous bottom feed), this 12mm
+        // ensures at least partial coverage of the dead zone.
         $conn = $p->getPrintConnector();
-        for ($i = 0; $i < 14; $i++) {
+        for ($i = 0; $i < 4; $i++) {
             $conn->write("\x1b\x4a\x18"); // ESC J 24
         }
 
@@ -636,8 +755,32 @@ class PrintController extends Controller
             $p->text($footer2 . "\n");
         }
 
-        $p->feed(4);
+        $this->feedPastDeadZone($p);
         $p->cut();
+    }
+
+    /**
+     * Feed enough paper so all printed content clears the dead zone between
+     * the print head and the cutter blade before cutting.
+     *
+     * On thermal printers, after a cut the paper edge sits at the cutter blade
+     * while the print head is ~20-25mm above it (closer to the roll). If the
+     * next receipt starts printing immediately, its first ~25mm would be hidden
+     * inside the printer body. By feeding generously at the END of each receipt
+     * (before the cut), we push all content past the cutter so it's visible,
+     * and the blank paper that remains inside the printer becomes the (invisible)
+     * top of the next receipt — which starts printing with no wasted space.
+     *
+     * ESC J n feeds n dots immediately (max 255 per command, ~32mm at 203 DPI).
+     * We use 8 × ESC J 24 = 192 dots ≈ 24mm — enough for typical 58mm printers
+     * (~20-25mm dead zone) without excessive paper waste.
+     */
+    private function feedPastDeadZone(Printer $p): void
+    {
+        $conn = $p->getPrintConnector();
+        for ($i = 0; $i < 8; $i++) {
+            $conn->write("\x1b\x4a\x18"); // ESC J 24 = 24 dots per command
+        }
     }
 
     /**

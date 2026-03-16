@@ -490,7 +490,7 @@ export default function TicketSettings({ config, business }: Props) {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-XSRF-TOKEN': xsrfToken,
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify({ ...data, template_type: activeTab === 'return' ? 'return' : 'sale' }),
             });
             if (!res.ok) throw new Error('Error al generar recibo de prueba');
             const { data: b64 } = (await res.json()) as { data: string };
