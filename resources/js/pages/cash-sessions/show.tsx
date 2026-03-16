@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/format';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
@@ -85,11 +86,11 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                             {session.branch && <p className="text-sm text-muted-foreground">Sucursal: {session.branch.name}</p>}
                             {session.opened_by && <p className="text-sm text-muted-foreground">Cajero: {session.opened_by.name}</p>}
                             <p className="text-sm text-muted-foreground">
-                                Apertura: {openedAt.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                                Apertura: {formatDateTime(openedAt)}
                             </p>
                             {closedAt && (
                                 <p className="text-sm text-muted-foreground">
-                                    Cierre: {closedAt.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
+                                    Cierre: {formatDateTime(closedAt)}
                                 </p>
                             )}
                             <p className="text-sm text-muted-foreground">Duración: {formatDuration(session.opened_at, session.closed_at)}</p>

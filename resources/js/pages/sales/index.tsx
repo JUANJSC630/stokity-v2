@@ -1,7 +1,9 @@
 import EyeButton from '@/components/common/EyeButton';
+import { formatDateTime } from '@/lib/format';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -292,17 +294,13 @@ export default function Index({ sales, filters }: PageProps) {
         return methods[method as keyof typeof methods] || method;
     };
 
-    const formatDateToLocal = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString();
-    };
 
     const columns: Column<Sale & { actions: null }>[] = [
         { key: 'code', title: 'Código' },
         { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'N/A' },
         { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
         { key: 'payment_method', title: 'Método de pago', render: (_: unknown, row: Sale) => getPaymentMethodText(row.payment_method) },
-        { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateToLocal(row.date) },
+        { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateTime(row.date) },
         { key: 'status', title: 'Estado', render: (_: unknown, row: Sale) => getStatusBadge(row.status) },
         {
             key: 'actions',
@@ -444,20 +442,29 @@ export default function Index({ sales, filters }: PageProps) {
                 </div>
 
                 <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
                     {/* Tabla solo visible en escritorio */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={sales.data.map((sale) => ({ ...sale, actions: null }))} />
+                        <Table
+                            columns={columns}
+                            data={sales.data.map((sale) => ({ ...sale, actions: null }))}
+                            loading={isSearching}
+                        />
                     </div>
 
                     {/* Tarjetas para móvil */}
                     <div className="block md:hidden">
-                        {sales.data.length === 0 ? (
+                        {isSearching ? (
+                            <div className="flex flex-col gap-4 p-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+                                        <Skeleton className="h-4 w-1/3" />
+                                        <Skeleton className="h-3 w-2/3" />
+                                        <Skeleton className="h-3 w-1/2" />
+                                        <Skeleton className="h-3 w-1/4" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : sales.data.length === 0 ? (
                             <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
                         ) : (
                             <div className="flex flex-col gap-4 p-2">
@@ -481,7 +488,7 @@ export default function Index({ sales, filters }: PageProps) {
                                             <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Fecha:</span> {formatDateToLocal(sale.date)}
+                                            <span className="font-medium">Fecha:</span> {formatDateTime(sale.date)}
                                         </div>
                                         <div className="mb-1 text-sm text-muted-foreground">
                                             <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}

@@ -1,4 +1,5 @@
 import SaleReturnTicket from '@/components/SaleReturnTicket';
+import { formatDateTime } from '@/lib/format';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
@@ -189,10 +190,6 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
         return methods[method as keyof typeof methods] || method;
     };
 
-    const formatDateToLocal = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString();
-    };
 
     // Función para actualizar los datos de la venta después de una devolución
     const updateSaleData = () => {
@@ -305,7 +302,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                 <h1 className="max-w-[260px] truncate text-lg leading-tight font-bold sm:max-w-none">{sale.code}</h1>
                                 {getStatusBadge(sale.status)}
                             </div>
-                            <p className="text-xs text-muted-foreground">{formatDateToLocal(sale.date)}</p>
+                            <p className="text-xs text-muted-foreground">{formatDateTime(sale.date)}</p>
                         </div>
                     </div>
 

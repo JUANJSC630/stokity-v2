@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
 
 export type Column<T> = {
@@ -9,6 +10,8 @@ export type Column<T> = {
 interface TableProps<T> {
     columns: Column<T>[];
     data: T[];
+    loading?: boolean;
+    skeletonRows?: number;
     className?: string;
     theadClassName?: string;
     tbodyClassName?: string;
@@ -22,6 +25,8 @@ interface TableProps<T> {
 export function Table<T extends object>({
     columns,
     data,
+    loading = false,
+    skeletonRows = 8,
     className = 'w-full',
     theadClassName = 'bg-muted/50',
     tbodyClassName = '',
@@ -43,7 +48,17 @@ export function Table<T extends object>({
                 </tr>
             </thead>
             <tbody className={tbodyClassName}>
-                {data.length > 0 ? (
+                {loading ? (
+                    Array.from({ length: skeletonRows }).map((_, i) => (
+                        <tr key={i} className="border-b">
+                            {columns.map((col) => (
+                                <td key={String(col.key)} className={tdClassName}>
+                                    <Skeleton className="h-4 w-full" />
+                                </td>
+                            ))}
+                        </tr>
+                    ))
+                ) : data.length > 0 ? (
                     data.map((row, i) => (
                         <tr key={i} className={trClassName}>
                             {columns.map((col) => (

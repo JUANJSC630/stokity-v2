@@ -193,50 +193,27 @@ El campo `reason` en la tabla `sale_returns` es `nullable`. Sin motivo registrad
 
 ---
 
-### U3 — Formato de fechas inconsistente en la app
-**Prioridad: Baja**
+### ✅ U3 — Formato de fechas inconsistente en la app
+**Resuelto (2026-03-16)**
 
-Hay al menos tres formatos distintos de fecha en la app:
-- `toLocaleString('es-CO', { dateStyle: 'medium' })` → "13 de mar. de 2026"
-- `toLocaleDateString()` sin locale → varía según el navegador del usuario
-- Strings directos del servidor formateados en PHP
-
-Un usuario que abre ventas ve fechas en un formato, abre movimientos de stock y ve otro, abre reportes y ve un tercero. Es confuso y poco profesional.
-
-**Fix a implementar:**
-- Crear archivo `resources/js/lib/format.ts` con funciones utilitarias:
-  - `formatDate(date)` → formato corto: "13 mar 2026"
-  - `formatDateTime(date)` → con hora: "13 mar 2026, 3:45 PM"
-  - `formatCurrency(amount)` → ya existe parcialmente, centralizar aquí también
-- Todas las funciones deben usar `'es-CO'` como locale y manejar `null`/`undefined` retornando `'—'` en lugar de un error.
-- Reemplazar todos los usos dispersos de `toLocaleDateString`, `toLocaleString`, etc. en las vistas por estas funciones.
+- Creado `resources/js/lib/format.ts` con `formatDate`, `formatDateTime`, `formatTime`, `formatCurrency` — todas con locale `es-CO`, timezone `America/Bogota`, retornan `'—'` para null/undefined.
+- Reemplazados los usos inconsistentes en: `sales/index.tsx`, `sales/show.tsx`, `products/show.tsx`, `users/show.tsx`, `cash-sessions/show.tsx`, `cash-sessions/index.tsx`, `cash-sessions/close.tsx`.
 
 ---
 
-### U4 — El código en ficha de producto no tiene descarga ni instrucciones claras
-**Prioridad: Baja**
+### ✅ U4 — El código en ficha de producto no tiene descarga ni instrucciones claras
+**Resuelto (2026-03-16)**
 
-La ficha de producto (`products/show.tsx`) muestra actualmente un QR con el código del producto, pero sin ninguna explicación de para qué sirve ese código. El usuario no puede descargarlo como imagen para imprimir en etiquetas físicas.
-
-**Nota importante:** En el futuro se puede implementar código de barras tradicional (CODE128) en lugar de QR, ya que es más estándar para etiquetas de precio en comercios. El diseño de esta sección debe contemplar que el tipo de código (QR o barras) podría cambiar o ser configurable. El backend ya tiene implementado el render de ambos via ESC/POS (`PrintController`).
-
-**Fix a implementar:**
-- Agregar botón **"Descargar"** debajo del QR/código que exporte la imagen como PNG usando la API del canvas HTML.
-- Agregar un tooltip o texto de ayuda que explique: *"Escanea este código con la cámara del POS para agregar el producto rápidamente."*
-- Preparar el componente para soportar intercambiar entre QR y código de barras según configuración futura — parametrizar el tipo de código en el componente, no hardcodearlo.
+- `products/show.tsx`: QR tiene `id="product-qr"`. Botón "Descargar PNG" usa `XMLSerializer` + `<canvas>` para exportar el SVG como PNG (256×256, fondo blanco).
+- Texto de ayuda: "Escanea para agregar al POS".
 
 ---
 
-### U5 — Sin skeleton loaders en búsquedas y cargas
-**Prioridad: Baja**
+### ✅ U5 — Sin skeleton loaders en búsquedas y cargas
+**Resuelto (2026-03-16)**
 
-Al buscar productos en el POS, al cargar el listado de ventas, o al abrir reportes, la UI solo muestra un spinner pequeño o nada. El usuario no sabe si la pantalla está cargando o si hubo un error. En conexiones lentas (Railway tiene cold starts), esto puede tardar varios segundos y parece que la app se colgó.
-
-**Fix a implementar:**
-- En tablas (ventas, productos, movimientos de stock): mostrar filas "fantasma" con bloques grises animados (shimmer) mientras se cargan los datos. El número de filas fantasma debe coincidir aproximadamente con las filas reales esperadas (ej: 10 filas si la paginación es de 10).
-- En el POS, la lista de productos del carrito y los resultados de búsqueda deben tener skeletons en vez de spinner.
-- En cards de métricas en reportes (total de ventas, etc.): mostrar rectángulos grises del tamaño del número mientras carga.
-- Usar CSS `animate-pulse` de Tailwind para la animación — ya está disponible en el proyecto.
+- `Table` component: nueva prop `loading` (+ `skeletonRows=8`). Cuando `loading=true` renderiza filas skeleton con `<Skeleton className="h-4 w-full" />` por cada celda, en lugar del overlay spinner.
+- `sales/index.tsx` y `products/index.tsx`: removido el overlay spinner, pasado `loading={isSearching}` al Table. También agregadas tarjetas skeleton para la vista móvil.
 
 ---
 

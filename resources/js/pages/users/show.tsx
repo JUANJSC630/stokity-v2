@@ -1,4 +1,5 @@
 import { Avatar } from '@/components/ui/avatar';
+import { formatDateTime } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,16 +79,6 @@ export default function ShowUser({ user }: Props) {
         );
     };
 
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return 'No disponible';
-        return new Date(dateString).toLocaleString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
 
     const handleDelete = () => {
         form.delete(`/users/${user.id}`, {
@@ -182,17 +173,17 @@ export default function ShowUser({ user }: Props) {
                         <CardContent className="space-y-4">
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground">Fecha de Registro</h3>
-                                <p>{formatDate(user.created_at)}</p>
+                                <p>{formatDateTime(user.created_at)}</p>
                             </div>
 
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground">Última Actualización</h3>
-                                <p>{formatDate(user.updated_at)}</p>
+                                <p>{formatDateTime(user.updated_at)}</p>
                             </div>
 
                             <div>
                                 <h3 className="text-sm font-medium text-muted-foreground">Último Acceso</h3>
-                                <p>{formatDate(user.last_login_at)}</p>
+                                <p>{formatDateTime(user.last_login_at)}</p>
                             </div>
                         </CardContent>
                     </Card>

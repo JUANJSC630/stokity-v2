@@ -2,9 +2,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { formatDate } from '@/lib/format';
 import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Edit2 } from 'lucide-react';
+import { ArrowLeft, Download, Edit2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface ProductShowProps {
@@ -12,6 +13,29 @@ interface ProductShowProps {
 }
 
 export default function ProductShow({ product }: ProductShowProps) {
+    const downloadQr = () => {
+        const svg = document.getElementById('product-qr') as SVGSVGElement | null;
+        if (!svg) return;
+        const serialized = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement('canvas');
+        const size = 256;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const img = new Image();
+        img.onload = () => {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            ctx.drawImage(img, 0, 0, size, size);
+            const a = document.createElement('a');
+            a.download = `qr-${product.code}.png`;
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(serialized)));
+    };
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Productos',
@@ -99,14 +123,26 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         <span className="text-sm text-muted-foreground">Código:</span>
                                         <span className="font-medium">{product.code}</span>
                                     </div>
-                                    <div className="flex justify-center py-2">
+                                    <div className="flex flex-col items-center gap-1 py-2">
                                         <QRCode
+                                            id="product-qr"
                                             value={product.code}
                                             size={80}
                                             style={{ height: 'auto', maxWidth: 80, width: '100%' }}
-                                            viewBox={`0 0 256 256`}
+                                            viewBox="0 0 256 256"
                                             className="sm:h-20 sm:w-20"
                                         />
+                                        <p className="text-center text-[10px] text-muted-foreground">
+                                            Escanea para agregar al POS
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={downloadQr}
+                                            className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                                        >
+                                            <Download className="h-3 w-3" />
+                                            Descargar PNG
+                                        </button>
                                     </div>
                                 </div>
 
@@ -191,11 +227,11 @@ export default function ProductShow({ product }: ProductShowProps) {
                             <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2 dark:border-neutral-700">
                                 <div>
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Creado</div>
-                                    <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.created_at).toLocaleDateString()}</div>
+                                    <div className="text-neutral-900 dark:text-neutral-100">{formatDate(product.created_at)}</div>
                                 </div>
                                 <div>
                                     <div className="text-sm text-neutral-500 dark:text-neutral-400">Actualizado</div>
-                                    <div className="text-neutral-900 dark:text-neutral-100">{new Date(product.updated_at).toLocaleDateString()}</div>
+                                    <div className="text-neutral-900 dark:text-neutral-100">{formatDate(product.updated_at)}</div>
                                 </div>
                             </div>
                         </CardContent>

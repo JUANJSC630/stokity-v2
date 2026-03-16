@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
+import { formatTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -61,7 +62,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         <div>
                             <h1 className="text-lg font-bold">Cierre de Caja — Turno #{session.id}</h1>
                             <p className="text-sm text-muted-foreground">
-                                Abierta a las {openedAt.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                Abierta a las {formatTime(openedAt)}
                                 {' · '}
                                 Duración: {hours > 0 ? `${hours}h ` : ''}
                                 {mins}m

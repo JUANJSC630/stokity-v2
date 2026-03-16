@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/format';
 import { type Branch, type BreadcrumbItem, type CashSession, type PaginatedData } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -155,12 +156,10 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                             <td className="px-4 py-3">{s.branch?.name ?? '—'}</td>
                                             <td className="px-4 py-3">{s.opened_by?.name ?? '—'}</td>
                                             <td className="px-4 py-3 text-muted-foreground">
-                                                {new Date(s.opened_at).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
+                                                {formatDateTime(s.opened_at)}
                                             </td>
                                             <td className="px-4 py-3 text-muted-foreground">
-                                                {s.closed_at
-                                                    ? new Date(s.closed_at).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
-                                                    : '—'}
+                                                {s.closed_at ? formatDateTime(s.closed_at) : '—'}
                                             </td>
                                             <td className="px-4 py-3 text-right">{formatCOP(s.opening_amount)}</td>
                                             <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">

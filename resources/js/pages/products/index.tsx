@@ -2,6 +2,7 @@ import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -344,20 +345,31 @@ export default function Products({
                 </div>
 
                 <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
                     {/* Vista tabla en md+ */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={products.data.map((product) => ({ ...product, actions: null }))} />
+                        <Table
+                            columns={columns}
+                            data={products.data.map((product) => ({ ...product, actions: null }))}
+                            loading={isSearching}
+                        />
                     </div>
 
                     {/* Vista tarjetas en móvil */}
                     <div className="block md:hidden">
-                        {products.data.length === 0 ? (
+                        {isSearching ? (
+                            <div className="p-2 space-y-4">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="h-12 w-12 rounded-md" />
+                                            <Skeleton className="h-4 w-2/3" />
+                                        </div>
+                                        <Skeleton className="h-3 w-1/2" />
+                                        <Skeleton className="h-3 w-1/3" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : products.data.length === 0 ? (
                             <div className="p-6 text-center text-muted-foreground">No hay productos que mostrar</div>
                         ) : (
                             products.data.map((product) => (
