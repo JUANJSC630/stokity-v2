@@ -31,18 +31,28 @@ class BusinessSettingController extends Controller
             'address'         => 'nullable|string|max:255',
             'currency_symbol' => 'nullable|string|max:5',
             'logo'                 => 'nullable|image|max:4096',
+            'logo_url'             => 'nullable|url|max:500',
             'require_cash_session' => 'nullable|boolean',
         ]);
 
         $settings = BusinessSetting::getSettings();
 
         if ($request->hasFile('logo')) {
-            if ($settings->logo) {
+            // New file upload — delete old blob and upload the new one.
+            if ($settings->logo && str_starts_with($settings->logo, 'http')) {
                 $this->blob->delete($settings->logo);
             }
             $validated['logo'] = $this->blob->upload($request->file('logo'), 'settings');
+        } elseif (!empty($validated['logo_url'])) {
+            // URL provided directly (e.g. an existing blob URL) — save as-is,
+            // no new upload needed.
+            $validated['logo'] = $validated['logo_url'];
+        } else {
+            // Neither file nor URL — keep the existing logo unchanged.
+            unset($validated['logo']);
         }
 
+        unset($validated['logo_url']);
         $settings->update($validated);
 
         return redirect()->back()->with('success', 'Configuración del negocio actualizada.');

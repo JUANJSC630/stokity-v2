@@ -8,12 +8,15 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem, type BusinessSetting } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
-import { Camera } from 'lucide-react';
+import { Camera, Link } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocio', href: '/settings/business' }];
 
 export default function BusinessSettings({ business }: { business: BusinessSetting }) {
+    // Current blob URL (if already stored) — used as the default logo_url value
+    const currentLogoUrl = business.logo?.startsWith('http') ? business.logo : '';
+
     const form = useForm({
         name: business.name,
         nit: business.nit ?? '',
@@ -23,18 +26,29 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
         currency_symbol: business.currency_symbol ?? '$',
         require_cash_session: business.require_cash_session ?? false,
         logo: null as File | null,
+        logo_url: currentLogoUrl,
         _method: 'POST',
     });
 
     const [logoPreview, setLogoPreview] = useState<string>(business.logo_url);
+    const [showUrlInput, setShowUrlInput] = useState(false);
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (!file) return;
-        form.setData('logo', file);
+        // File upload takes priority — clear any URL
+        form.setData({ ...form.data, logo: file, logo_url: '' });
         const reader = new FileReader();
         reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
         reader.readAsDataURL(file);
+        setShowUrlInput(false);
+    };
+
+    const handleLogoUrlChange = (url: string) => {
+        form.setData({ ...form.data, logo: null, logo_url: url });
+        if (url.startsWith('http')) {
+            setLogoPreview(url);
+        }
     };
 
     const submit: FormEventHandler = (e) => {
@@ -71,7 +85,30 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                                 <input id="logo" type="file" accept="image/*" className="sr-only" onChange={handleLogoChange} />
                             </label>
                         </div>
-                        <span className="text-xs text-muted-foreground">JPG, PNG. Máx 2MB</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">JPG, PNG. Máx 2MB</span>
+                            <span className="text-xs text-muted-foreground">·</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowUrlInput((v) => !v)}
+                                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                                <Link className="h-3 w-3" />
+                                Usar URL
+                            </button>
+                        </div>
+                        {showUrlInput && (
+                            <div className="w-full max-w-xs space-y-1">
+                                <Input
+                                    placeholder="https://..."
+                                    value={form.data.logo_url}
+                                    onChange={(e) => handleLogoUrlChange(e.target.value)}
+                                    className="text-xs"
+                                />
+                                <p className="text-xs text-muted-foreground">Pega la URL de una imagen ya subida al blob</p>
+                                <InputError message={form.errors.logo_url} />
+                            </div>
+                        )}
                         <InputError message={form.errors.logo} />
                     </div>
 
