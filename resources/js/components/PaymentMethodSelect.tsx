@@ -36,8 +36,15 @@ export default function PaymentMethodSelect({
             try {
                 const response = await fetch('/api/payment-methods/active');
                 if (response.ok) {
-                    const data = await response.json();
+                    const data: PaymentMethod[] = await response.json();
                     setPaymentMethods(data);
+
+                    // Auto-select default when no value is set:
+                    // prefer 'cash', otherwise the first available method.
+                    if (!value && data.length > 0) {
+                        const defaultMethod = data.find((m) => m.code === 'cash') ?? data[0];
+                        onValueChange(defaultMethod.code);
+                    }
                 } else {
                     console.error('Error fetching payment methods:', response.statusText);
                 }
