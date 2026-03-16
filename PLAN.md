@@ -374,12 +374,154 @@ El modo "blind close" para vendedores está diseñado para que no vean el efecti
 
 ---
 
+## Módulo de Proveedores (análisis completo — pendiente de implementación)
+
+> **Estado actual (verificado 2026-03-16):** No existe ningún componente del módulo. No hay modelo `Supplier`, no hay tabla, no hay rutas, no hay páginas. El campo `reference` de `stock_movements` acepta texto libre como "Compra proveedor XYZ" pero sin entidad estructurada detrás.
+
+### Infraestructura existente que se puede aprovechar
+
+- `stock_movements.unit_cost` — ya registra costo por unidad en entradas de stock
+- `stock_movements.reference` — campo de texto libre, se migrará a relación FK
+- `products.purchase_price` — precio de compra a nivel de producto (no por proveedor)
+- `StockMovementService` — servicio centralizado que se extenderá con el `supplier_id`
+
+---
+
+### P1 — CRUD de Proveedores (base del módulo)
+**Prioridad: Alta — debe implementarse primero**
+
+**Base de datos — nueva tabla `suppliers`:**
+```sql
+id, name, contact_name, phone, email, tax_id (NIT/RUT),
+address, payment_terms (días), notes, is_active (bool), timestamps
+```
+
+**Archivos a crear:**
+- `app/Models/Supplier.php` — relaciones: `hasMany(StockMovement)`, `belongsToMany(Product)` via pivot
+- `database/migrations/..._create_suppliers_table.php`
+- `app/Http/Controllers/SupplierController.php` — index, create, store, edit, update, destroy
+- `routes/suppliers.php` — rutas resource con middleware `role:administrador,encargado`
+- `resources/js/pages/suppliers/index.tsx` — listado con búsqueda, paginación
+- `resources/js/pages/suppliers/create.tsx` — formulario de alta
+- `resources/js/pages/suppliers/edit.tsx` — formulario de edición
+- `resources/js/pages/suppliers/show.tsx` — detalle con historial de compras y productos asociados
+
+**Sidebar:** Agregar ítem "Proveedores" con ícono `Truck` en el menú, visible para `administrador` y `encargado`.
+
+---
+
+### P2 — Relación Producto ↔ Proveedor
+**Prioridad: Alta — habilita selección de proveedor al recibir mercancía**
+
+**Base de datos — nueva tabla pivot `product_supplier`:**
+```sql
+product_id (FK), supplier_id (FK),
+supplier_sku (string, nullable) — código del producto en el catálogo del proveedor,
+cost_price (decimal 10,2, nullable) — precio acordado con ese proveedor,
+is_preferred (bool, default false) — proveedor preferido para este producto,
+timestamps
+PRIMARY KEY (product_id, supplier_id)
+```
+
+**Archivos a modificar:**
+- `app/Models/Product.php` — agregar `suppliers(): BelongsToMany` con pivot `supplier_sku, cost_price, is_preferred`
+- `app/Models/Supplier.php` — agregar `products(): BelongsToMany`
+- `resources/js/pages/products/edit.tsx` — sección "Proveedores" con selector multi-proveedor, campo de SKU por proveedor y costo acordado
+- `resources/js/pages/suppliers/show.tsx` — tabla de productos asociados con sus SKUs y costos
+
+---
+
+### P3 — Integración con Movimientos de Stock (entradas desde proveedor)
+**Prioridad: Alta — conecta el inventario al proveedor real**
+
+**Base de datos — cambios en `stock_movements`:**
+```sql
+-- Agregar columna:
+supplier_id (FK → suppliers.id, nullable) — solo para type='in' o type='supplier_return'
+
+-- Extender enum type:
+ALTER TABLE stock_movements MODIFY type ENUM('in','out','adjustment','write_off','supplier_return')
+```
+
+**Archivos a modificar:**
+- `database/migrations/..._add_supplier_to_stock_movements.php` — nueva migración (no alterar la original)
+- `app/Models/StockMovement.php`:
+  - Agregar `supplier_id` a `$fillable`
+  - Agregar `supplier(): BelongsTo(Supplier)`
+  - Extender `getTypeLabelAttribute()`: `'write_off' => 'Baja'`, `'supplier_return' => 'Devolución a proveedor'`
+  - Extender `getTypeColorAttribute()`: colores para los nuevos tipos
+- `app/Http/Controllers/StockMovementController.php`:
+  - Validación: `'type' => 'required|in:in,out,adjustment,write_off,supplier_return'`
+  - Validación: `'supplier_id' => 'nullable|exists:suppliers,id'`
+  - En `store()`: pasar `supplier_id` a `StockMovementService::record()`
+- `app/Services/StockMovementService.php` — agregar parámetro `?int $supplierId = null` a `record()`
+- `resources/js/pages/stock-movements/create.tsx`:
+  - Agregar tipo `'supplier_return'` al selector de tipo
+  - Cuando `type === 'in'` o `type === 'supplier_return'`: mostrar selector de proveedor (async search similar al selector de cliente en POS)
+  - El selector busca en `/api/suppliers?q=...` y retorna id + name
+
+**Nuevo endpoint API:**
+```php
+// routes/api.php
+Route::get('/suppliers/search', [SupplierController::class, 'search']); // retorna JSON
+```
+
+---
+
+### P4 — Historial de compras por proveedor
+**Prioridad: Media — visibilidad para el administrador**
+
+**En `suppliers/show.tsx`:**
+- Sección "Historial de compras" con tabla:
+  - Fecha, producto, cantidad, costo unitario, total, registrado por
+  - Filtro por rango de fechas
+  - Total invertido con ese proveedor en el período
+- Sección "Productos asociados" con tabla:
+  - Nombre, SKU del proveedor, costo acordado, proveedor preferido (toggle), stock actual
+- Indicador: "Último pedido hace X días"
+
+**Backend — nuevo método en `SupplierController`:**
+```php
+public function show(Supplier $supplier) {
+    $movements = StockMovement::where('supplier_id', $supplier->id)
+        ->with('product', 'user')
+        ->latest()
+        ->paginate(20);
+    // ...
+}
+```
+
+---
+
+### P5 — Devoluciones al proveedor (integración con F3)
+**Prioridad: Media — permite registrar stock defectuoso que regresa al proveedor**
+
+Este item extiende F3 (baja de inventario) con el contexto del proveedor:
+
+- Cuando el motivo en F3 es "Devolución a proveedor", el campo `supplier_id` pasa a ser **obligatorio**
+- El movimiento se registra como `type='supplier_return'` en lugar de `type='write_off'`
+- En el historial del proveedor aparece como "Devolución" (con ícono distinto, ej: `RotateCcw` rojo)
+- El campo `reference` puede capturar el número de remisión de devolución al proveedor
+- La pantalla de devolución al proveedor es la misma de F3 pero con el campo de proveedor visible y requerido
+
+---
+
+### Orden de implementación recomendado
+
+```
+P1 (CRUD proveedores) → P2 (relación producto-proveedor) → P3 (stock_movements) → F3 (write_off/baja) → P4 (historial) → P5 (devoluciones)
+```
+
+P1 y P2 son independientes del resto del sistema y se pueden desarrollar en paralelo. P3 depende de P1 (necesita supplier_id). F3 puede hacerse antes o después de P3 (solo agrega write_off sin proveedor).
+
+---
+
 ## Roadmap futuro
 
 - [ ] Lector de código de barras (USB/Bluetooth) — búsqueda por código en POS sin teclado
-- [ ] Módulo de compras/proveedores — entrada de mercancía con costo y generación de stock
 - [ ] Cuentas por cobrar — ventas a crédito con seguimiento de pagos parciales
 - [ ] Balance por sucursal — efectivo esperado en caja al cierre del día
 - [ ] PWA / app móvil para vendedores en campo
 - [ ] Factura electrónica DIAN (Colombia)
 - [ ] Búsqueda full-text (Meilisearch) para catálogos grandes
+- [ ] Órdenes de compra (PO) — documentos formales vinculados a proveedores y entradas de stock
