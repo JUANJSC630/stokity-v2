@@ -145,6 +145,7 @@ const SaleTicket: React.FC<SaleTicketProps> = ({
                 backgroundColor: '#fff',
                 padding: '16px 14px',
                 width: is58 ? '260px' : '368px',
+                height: 'fit-content',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
                 borderRadius: '4px',
             }}
