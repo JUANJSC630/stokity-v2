@@ -31,20 +31,80 @@
 ## Bug pendiente
 
 ### Recibo térmico: corte deja parte superior dentro de la impresora
-**Severidad: Alta — requiere prueba local con impresora**
+**Severidad: Alta — sin solución funcional hasta la fecha (2026-03-16)**
 
-**Fix aplicado (2026-03-14, pendiente de prueba local):** Se movió el feed de compensación de la dead zone del INICIO del recibo (margen superior) al FINAL (antes del corte). Esto sigue la práctica estándar ESC/POS documentada por Epson: el feed al final empuja todo el contenido más allá de la cuchilla, y el papel que queda dentro de la impresora es espacio en blanco que se consume como inicio invisible del siguiente recibo.
+**Síntoma confirmado:** El primer recibo tras encender la impresora se imprime perfecto. A partir del segundo recibo, el encabezado ("Lú Accesorios" + separador) queda dentro de la impresora y no es visible. El problema se agrava cuando el recibo incluye QR o barcode.
 
-**Cambios:**
-- `printBusinessHeader()`: eliminado el loop de 14 × ESC J 24 (margen superior de 42mm)
-- `printFooter()`: extraído `feedPastDeadZone()` — 8 × ESC J 24 = 192 dots ≈ 24mm antes del corte
-- `test()` (backend): mismo patrón — feed al final, no al inicio
-- `buildTestTicket()` (frontend `qzTray.ts`): mismo patrón
+**Impresora de referencia:** POS-5890U-L (58mm, 203 DPI, ESC/POS, USB)
 
-**Archivos:** `app/Http/Controllers/PrintController.php`, `resources/js/services/qzTray.ts`
-⚠️ Probar localmente con la impresora térmica antes de desplegar. Si la dead zone de alguna impresora es mayor a 24mm, aumentar el valor en `feedPastDeadZone()`.
+**Archivos relevantes:** `app/Http/Controllers/PrintController.php`, `resources/js/services/qzTray.ts`
 
-Impresora de referencia: POS-5890U-L (58mm, 203 DPI, ESC/POS, USB)
+---
+
+#### Diagnóstico técnico
+
+- **Zona muerta (dead zone):** La impresora tiene ~20-25mm de distancia entre el cabezal de impresión y la cuchilla. Después de un corte, el borde del papel queda en la cuchilla. Al iniciar el siguiente recibo, ese espacio de 20-25mm queda oculto dentro de la impresora.
+
+- **Causa raíz identificada:** La impresora **mantiene estado interno entre trabajos USB** (line spacing, modo gráfico ESC \*). Los comandos ESC \* (usados para imprimir logos, QR y barcodes) dejan el `line spacing` corrupto para el siguiente trabajo. Esto hace que los feeds del siguiente recibo no avancen el papel la cantidad esperada.
+
+- **Comportamiento del corte:** El comando `GS V 0` (corte sin auto-feed) y `GS V 66 3` (corte con auto-feed pequeño) no producen diferencia observable. El corte en sí funciona correctamente.
+
+- **ESC @ (initialize):** Resetea el estado completamente, pero también **retrae el papel ~20-30mm** hacia adentro de la impresora, empeorando el problema si no se compensa con suficiente feed posterior.
+
+---
+
+#### Intentos fallidos (en orden cronológico)
+
+1. **Feed grande ANTES del corte con `$p->text("\n"×N)`:** Dependía del `line spacing`. Si el spacing estaba corrupto por ESC \* del mismo recibo (QR/barcode), las líneas avanzaban menos de lo esperado. Sin QR funcionaba, con QR no.
+
+2. **`feedPastDeadZone()` con raw ESC 2 + `str_repeat(" \n", 12)`:** Se forzó ESC 2 directamente en el conector. No solucionó el problema con QR/barcode. El printer parece ignorar o malinterpretar ESC 2 después de ESC \*.
+
+3. **Feed post-corte (después del `GS V 0`):** La impresora descarta los bytes que recibe durante la acción mecánica del corte. El feed nunca se ejecuta.
+
+4. **ESC J (feed absoluto en dots) en el margen superior:** ESC J no depende del line spacing, pero la impresora también lo ignora cuando el estado del trabajo anterior fue ESC \*. Probado con 10×ESC J 24 = 30mm y sigue fallando.
+
+5. **ESC 3 n (line spacing explícito) en vez de ESC 2:** Mismo resultado. El printer parece estar en un modo donde ignora ciertos comandos entre trabajos.
+
+6. **Estructura "corte + feed post-corte":** Los bytes post-corte se descartan durante el mecanismo físico del corte. No funciona.
+
+7. **ESC @ + ESC J×20 = 60mm (estado actual del código):** ESC @ resetea el estado (resuelve la corrupción del trabajo anterior), y 20×ESC J 24 = 480 dots = 60mm compensa la retracción de ESC @ más la zona muerta. **El primer recibo sale perfecto, pero el segundo sigue cortado.** Causa probable: el `GS V 0` o `$p->cut()` que se usa al final puede retraer el papel después del corte en esta impresora específica.
+
+---
+
+#### Estado actual del código (`PrintController.php`)
+
+```php
+// createPrinter(): NO limpia el buffer — el ESC @ del constructor se envía al printer
+private function createPrinter(DummyPrintConnector $connector): Printer
+{
+    return new Printer($connector); // ESC @ incluido
+}
+
+// printBusinessHeader(): compensa retracción + dead zone con ESC J
+for ($i = 0; $i < 20; $i++) {
+    $conn->write("\x1b\x4a\x18"); // 20 × ESC J 24 = 480 dots ≈ 60mm
+}
+
+// cutReceipt(): feed pre-corte + corte estándar
+for ($i = 0; $i < 8; $i++) {
+    $conn->write("\x1b\x4a\x18"); // 8 × ESC J 24 = 192 dots ≈ 24mm
+}
+$p->cut(Printer::CUT_PARTIAL); // GS V 66 3
+```
+
+---
+
+#### Hipótesis pendientes de probar
+
+- **H1:** El `$p->cut()` (GS V 66 3) en esta impresora puede estar retrayendo el papel después del corte. Probar con `GS V 1` (corte parcial simple, sin auto-feed): `$conn->write("\x1d\x56\x01")`.
+
+- **H2:** El driver macOS/Windows puede estar añadiendo ESC @ antes del job a pesar de `altPrinting: true, forceRaw: true` en QZ Tray. Probar capturando los bytes reales que recibe la impresora con un sniffer USB.
+
+- **H3:** La impresora tiene un comportamiento propietario no documentado en el manual ESC/POS estándar. Revisar el manual específico del POS-5890U-L si está disponible.
+
+- **H4:** Usar `GS V 65 n` (full cut con auto-feed a cuchilla + n dots extra). El valor de n se ajusta para cubrir la zona muerta del siguiente recibo: `$conn->write("\x1d\x56\x41\xc0")` (n=192 dots = 24mm extra).
+
+- **H5 (más prometedora):** Combinar ESC @ + ESC J generoso **Y** usar `GS V 65 n` con n grande para que el corte en sí posicione el papel correctamente para el siguiente recibo, eliminando la dependencia del ESC J al inicio.
 
 ---
 
