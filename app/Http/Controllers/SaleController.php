@@ -189,6 +189,7 @@ class SaleController extends Controller
 
         $saleId   = null;
         $saleCode = null;
+        try {
         DB::transaction(function () use ($validated, $products, $isPending, &$saleId, &$saleCode) {
             $sale     = Sale::create($validated);
             $saleId   = $sale->id;
@@ -204,9 +205,20 @@ class SaleController extends Controller
 
                 // Solo descontar stock en ventas completadas
                 if (!$isPending) {
-                    $product = Product::find($prod['id']);
+                    // lockForUpdate() acquires a row-level DB lock, preventing
+                    // concurrent transactions from reading or modifying this
+                    // product's stock until this transaction commits or rolls back.
+                    $product = Product::lockForUpdate()->find($prod['id']);
                     if ($product) {
-                        $previousStock = $product->stock;
+                        // Re-check stock inside the lock — the pre-check above
+                        // can be stale if another transaction ran concurrently.
+                        if ($product->stock < $prod['quantity']) {
+                            throw new \RuntimeException(
+                                "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                            );
+                        }
+
+                        $previousStock  = $product->stock;
                         $product->stock -= $prod['quantity'];
                         $product->save();
 
@@ -225,6 +237,9 @@ class SaleController extends Controller
                 }
             }
         });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['stock' => $e->getMessage()])->withInput();
+        }
 
         // Si la venta viene del POS, redirigir al POS
         if ($request->input('source') === 'pos') {
@@ -335,6 +350,7 @@ class SaleController extends Controller
             }
         }
 
+        try {
         DB::transaction(function () use ($sale, $validated, $products, $openSession) {
             $sale->update([
                 'payment_method' => $validated['payment_method'],
@@ -359,9 +375,15 @@ class SaleController extends Controller
                     'subtotal'   => $prod['subtotal'],
                 ]);
 
-                $product = Product::find($prod['id']);
+                $product = Product::lockForUpdate()->find($prod['id']);
                 if ($product) {
-                    $previousStock = $product->stock;
+                    if ($product->stock < $prod['quantity']) {
+                        throw new \RuntimeException(
+                            "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                        );
+                    }
+
+                    $previousStock  = $product->stock;
                     $product->stock -= $prod['quantity'];
                     $product->save();
 
@@ -379,6 +401,9 @@ class SaleController extends Controller
                 }
             }
         });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['stock' => $e->getMessage()]);
+        }
 
         return redirect()->route('pos.index')
             ->with('last_sale_id', $sale->id)

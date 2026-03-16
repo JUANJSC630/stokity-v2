@@ -110,7 +110,7 @@ $p->cut(Printer::CUT_PARTIAL); // GS V 66 3
 
 ## Problemas críticos (afectan operación real)
 
-### C1 — Race condition en stock con ventas simultáneas
+### ~~C1 — Race condition en stock con ventas simultáneas~~ ✅ Resuelto
 **Severidad: Alta**
 
 Dos vendedores en sucursales distintas (o en la misma) pueden vender el último producto al mismo tiempo. El flujo actual hace una lectura de stock ANTES de la transacción (`foreach` con `Product::find()`) y luego descuenta dentro del `DB::transaction()`. Entre esas dos lecturas, otro proceso puede vender el mismo producto. El resultado es stock negativo en la base de datos y un movimiento incorrecto en `stock_movements`.
