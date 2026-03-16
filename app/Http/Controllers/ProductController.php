@@ -340,22 +340,37 @@ class ProductController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $request->validate(['q' => 'required|string|min:2|max:100']);
+        $request->validate([
+            'q'           => 'required|string|min:1|max:100',
+            'category_id' => 'nullable|integer|exists:categories,id',
+        ]);
 
         $user = Auth::user();
+        $q    = $request->q;
 
         $query = Product::where('status', true)
-            ->where(function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->q}%")
-                    ->orWhere('code', 'like', "%{$request->q}%");
+            ->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%");
             });
 
         if (!$user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
-        $products = $query->orderBy('name')
-            ->limit(30)
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Ordering priority:
+        //   1. Exact code match (barcode scan)
+        //   2. Name starts with the search term
+        //   3. Alphabetical
+        $products = $query
+            ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [$q])
+            ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [$q . '%'])
+            ->orderBy('name')
+            ->limit(50)
             ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
 
         return response()->json($products);

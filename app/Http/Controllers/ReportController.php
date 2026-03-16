@@ -1200,11 +1200,12 @@ class ReportController extends Controller
                 $q->where('category_id', $filters['category_id']);
             });
         }
-        if ($filters['status']) {
+        if ($filters['status'] && $filters['status'] !== 'all') {
             $query->where('sales.status', $filters['status']);
-        } else {
+        } elseif (!$filters['status']) {
             $query->where('sales.status', 'completed');
         }
+        // 'all' → no filter applied, returns every status
 
         return $query;
     }

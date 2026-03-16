@@ -27,9 +27,15 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
+interface Category {
+    id: number;
+    name: string;
+}
+
 interface Props {
     branches: Branch[];
     clients: Client[];
+    categories: Category[];
     pendingSalesCount: number;
     currentSession: CashSession | null;
     requireCashSession: boolean;
@@ -278,6 +284,7 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
 export default function PosIndex({
     branches,
     clients,
+    categories,
     pendingSalesCount: initialPendingCount,
     currentSession: initialSession,
     requireCashSession,
@@ -309,6 +316,7 @@ export default function PosIndex({
 
     // Search
     const [query, setQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [results, setResults] = useState<Product[]>([]);
     const [searching, setSearching] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
@@ -366,8 +374,9 @@ export default function PosIndex({
     // --- Product search ---
     useEffect(() => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
-        if (!query || query.trim().length < 2) {
+        if (!query || query.trim().length < 1) {
             setResults([]);
+            if (!query) setSelectedCategory('');
             return;
         }
         setSearching(true);
@@ -375,7 +384,9 @@ export default function PosIndex({
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
             try {
-                const res = await fetch(route('api.products.search') + '?' + new URLSearchParams({ q: query }), {
+                const params: Record<string, string> = { q: query };
+                if (selectedCategory) params.category_id = selectedCategory;
+                const res = await fetch(route('api.products.search') + '?' + new URLSearchParams(params), {
                     signal: abortRef.current.signal,
                 });
                 if (res.ok) setResults(await res.json());
@@ -385,7 +396,7 @@ export default function PosIndex({
                 setSearching(false);
             }
         }, 250);
-    }, [query]);
+    }, [query, selectedCategory]);
 
     // --- Cart helpers ---
     const addToCart = useCallback((product: Product, qty = 1) => {
@@ -988,6 +999,36 @@ export default function PosIndex({
                             />
                             {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-orange-500">Buscando...</span>}
                         </div>
+                        {/* Category filter */}
+                        {categories.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCategory('')}
+                                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                        selectedCategory === ''
+                                            ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                    }`}
+                                >
+                                    Todas
+                                </button>
+                                {categories.map((cat) => (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={() => setSelectedCategory(String(cat.id))}
+                                        className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                            selectedCategory === String(cat.id)
+                                                ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                        }`}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         {/* Keyboard hints */}
                         <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1">

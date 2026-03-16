@@ -385,6 +385,27 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
                                                 </SelectContent>
                                             </Select>
                                         </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="status" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                                                Estado
+                                            </Label>
+                                            <Select
+                                                value={localFilters.status || 'completed'}
+                                                onValueChange={(value) =>
+                                                    setLocalFilters((prev) => ({ ...prev, status: value }))
+                                                }
+                                            >
+                                                <SelectTrigger id="status" className="h-8 text-sm">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="completed">Completadas</SelectItem>
+                                                    <SelectItem value="pending">Pendientes</SelectItem>
+                                                    <SelectItem value="cancelled">Canceladas</SelectItem>
+                                                    <SelectItem value="all">Todas</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

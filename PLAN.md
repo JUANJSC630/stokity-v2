@@ -139,7 +139,7 @@ Dos vendedores en sucursales distintas (o en la misma) pueden vender el último 
 
 ---
 
-### C3 — Motivo de devolución no es requerido
+### C3 — Motivo de devolución no es requerido - No Necesario para procesar la devolución, pero crítico para análisis de datos
 **Severidad: Alta**
 
 El campo `reason` en la tabla `sale_returns` es `nullable`. Sin motivo registrado, el administrador no puede analizar qué está fallando: ¿son productos defectuosos?, ¿errores del vendedor al cobrar?, ¿cambios de opinión del cliente? Es imposible tomar decisiones de compra o de proceso basadas en los datos.
@@ -162,62 +162,34 @@ El campo `reason` en la tabla `sale_returns` es `nullable`. Sin motivo registrad
 
 ---
 
-### C4 — Error genérico al completar cotización con stock insuficiente
-**Severidad: Alta**
+### ✅ C4 — Error genérico al completar cotización con stock insuficiente
+**Resuelto (2026-03-16)**
 
-Una cotización puede crearse cuando hay stock disponible pero, al intentar completarla 30 minutos después, el stock ya no alcanza porque otro vendedor vendió esos productos. En este caso el método `completePending()` lanza una excepción genérica. El vendedor ve un mensaje de error sin saber qué producto falló ni en qué cantidad.
+**Backend (`completePending()`):** El pre-check de stock ahora itera todos los productos, recolecta todos los fallos y retorna un error por producto con clave `stock_{product_id}` y mensaje `"Nombre: necesitas N, solo hay M disponible"`. Esto también corrige un bug latente donde `$product->name` podía lanzar fatal error si el producto era null.
 
-El vendedor no tiene forma de ajustar la cotización desde ese punto de error — tiene que ir a buscarla manualmente y editar cada ítem.
-
-**Fix a implementar:**
-
-*Backend (`app/Http/Controllers/SaleController.php` — `completePending()`):*
-- Antes de procesar, iterar todos los productos de la cotización y recolectar los que no tienen stock suficiente.
-- Si hay alguno, retornar una respuesta 422 con un arreglo detallado:
-  ```json
-  {
-    "insufficient_stock": [
-      { "product_id": 5, "name": "Arroz Diana 1kg", "requested": 3, "available": 1 },
-      { "product_id": 12, "name": "Aceite Gourmet 1L", "requested": 2, "available": 0 }
-    ]
-  }
-  ```
-
-*Frontend — modal de completar cotización:*
-- Si la respuesta trae `insufficient_stock`, mostrar un estado de error dentro del modal listando cada producto con el problema: *"Arroz Diana 1kg: solicitaste 3 unidades, solo hay 1 disponible"*.
-- Ofrecer dos opciones al vendedor: **Ajustar cantidades** (editar la cotización) o **Cancelar cotización**.
+**Frontend:** El `onError` del POS ya muestra `Object.values(errors).forEach(toast.error)` — cada producto fallido aparece como un toast individual. El vendedor puede ajustar cantidades directamente en el carrito (ya cargado) o cancelar la cotización con el botón "Cancelar" del banner.
 
 ---
 
 ## Mejoras de UX (día a día del vendedor)
 
-### U1 — Búsqueda de productos limitada a 30 resultados
-**Prioridad: Alta**
+### ✅ U1 — Búsqueda de productos limitada a 30 resultados
+**Resuelto (2026-03-16)**
 
-`ProductController::search()` retorna máximo 30 productos ordenados por nombre. En tiendas con catálogos grandes (200+ productos), si el vendedor escribe un término ambiguo como "leche", los 30 primeros resultados pueden no incluir la variante que busca. Tampoco hay forma de filtrar por categoría en el POS, así que el vendedor queda atascado.
-
-**Archivos afectados:** `app/Http/Controllers/ProductController.php` — método `search()`
-
-**Fix a implementar:**
-- Aumentar el límite de 30 a **50 resultados**.
-- Cambiar el orden de resultados para priorizar: primero coincidencias exactas de código de barras/SKU, luego coincidencias que empiezan con el término buscado, luego coincidencias parciales en el nombre.
-- Agregar un parámetro opcional `category_id` al endpoint de búsqueda para filtrar por categoría.
-- En el POS (`resources/js/pages/pos/index.tsx`), agregar un selector de categoría junto al campo de búsqueda. Al seleccionar una categoría, el search siempre incluye ese filtro. Limpiar la categoría seleccionada cuando el usuario borra el texto de búsqueda.
+- Límite: 30 → **50**.
+- Ordenamiento: código exacto primero (escaneo de barcode), luego nombre empieza con el término, luego alfabético. Implementado con `orderByRaw('CASE WHEN ... END')`.
+- Validación: `min:1` en vez de `min:2` (permite búsqueda por 1 carácter para códigos cortos).
+- Filtro opcional `category_id` añadido al endpoint `api.products.search`.
+- **PosController:** pasa `categories` al frontend.
+- **POS frontend:** chips de categoría debajo del campo de búsqueda (estilo pill, naranja cuando seleccionado). La categoría se limpia automáticamente cuando el usuario borra el query.
 
 ---
 
-### U2 — Sin filtro de estado en reportes (mezcla completadas/canceladas)
-**Prioridad: Media**
+### ✅ U2 — Sin filtro de estado en reportes (mezcla completadas/canceladas)
+**Resuelto (2026-03-16)**
 
-Los reportes de ventas incluyen ventas en estado `completed`, `cancelled` y `pending` mezcladas. Los totales de ingresos se inflan con ventas canceladas. El administrador tiene que filtrar manualmente cada vez que abre reportes, y si se olvida, ve cifras incorrectas.
-
-**Archivos afectados:** `resources/js/pages/reports/index.tsx` y páginas relacionadas de reportes
-
-**Fix a implementar:**
-- Agregar un selector de estado visible en la cabecera de cada reporte: **Completadas / Canceladas / Pendientes / Todas**.
-- El valor por defecto debe ser **"Completadas"** — es lo que el 95% de las veces necesita un administrador.
-- El filtro seleccionado debe persistir en la URL como query param (`?status=completed`) para que al recargar o compartir el enlace, el filtro se mantenga.
-- El backend (`ReportController`) ya acepta filtros — solo hay que asegurarse de que `status` esté incluido en los filtros que se pasan al query de ventas.
+- **Frontend (`reports/index.tsx`):** Selector "Estado" con opciones Completadas / Pendientes / Canceladas / Todas. Default: Completadas. El valor se pasa como `?status=...` en la URL al aplicar filtros.
+- **Backend (`ReportController`):** Nuevo manejo de `status=all` — omite el `WHERE sales.status` para mostrar todos los estados. Sin valor → sigue defaulteando a `completed`.
 
 ---
 

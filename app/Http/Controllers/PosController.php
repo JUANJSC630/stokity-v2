@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\BusinessSetting;
 use App\Models\CashSession;
+use App\Models\Category;
 use App\Models\Client;
 use App\Models\Sale;
 use Illuminate\Support\Facades\Auth;
@@ -31,9 +32,12 @@ class PosController extends Controller
             ? CashSession::getOpenForUser($user->id, $user->branch_id)
             : null;
 
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+
         return Inertia::render('pos/index', [
             'branches'           => $branches,
             'clients'            => $clients,
+            'categories'         => $categories,
             'pendingSalesCount'  => $pendingSalesCount,
             'currentSession'     => $currentSession,
             'requireCashSession' => (bool) $settings->require_cash_session,

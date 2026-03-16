@@ -340,14 +340,23 @@ class SaleController extends Controller
             return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
         }
 
-        // Verificar stock con los productos actuales del carrito
+        // Verificar stock de todos los productos antes de abrir la transacción.
+        // Recolectar todos los fallos para mostrarlos juntos (C4).
+        $stockErrors = [];
         foreach ($products as $prod) {
             $product = Product::find($prod['id']);
-            if (!$product || $product->stock < $prod['quantity']) {
-                return back()->withErrors([
-                    'stock' => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
-                ]);
+            if (!$product) {
+                $stockErrors["stock_{$prod['id']}"] = "Producto ID {$prod['id']} no encontrado.";
+                continue;
             }
+            if ($product->stock < $prod['quantity']) {
+                $available = $product->stock;
+                $stockErrors["stock_{$prod['id']}"] = "{$product->name}: necesitas {$prod['quantity']}, " .
+                    ($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
+            }
+        }
+        if (!empty($stockErrors)) {
+            return back()->withErrors($stockErrors);
         }
 
         try {
