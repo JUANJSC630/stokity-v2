@@ -32,6 +32,7 @@ Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
 
         // Stock management routes
         Route::post('/products/{product}/update-stock', [ProductController::class, 'updateStock'])->name('products.update-stock');
+        Route::post('/products/{product}/sync-suppliers', [ProductController::class, 'syncSuppliers'])->name('products.sync-suppliers');
         // Endpoint para autogenerar código de producto
         Route::post('/products/generate-code', [ProductController::class, 'generateCode'])->name('products.generate-code');
     });

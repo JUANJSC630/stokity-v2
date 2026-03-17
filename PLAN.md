@@ -374,9 +374,9 @@ El modo "blind close" para vendedores está diseñado para que no vean el efecti
 
 ---
 
-## Módulo de Proveedores (análisis completo — pendiente de implementación)
+## Módulo de Proveedores
 
-> **Estado actual (verificado 2026-03-16):** No existe ningún componente del módulo. No hay modelo `Supplier`, no hay tabla, no hay rutas, no hay páginas. El campo `reference` de `stock_movements` acepta texto libre como "Compra proveedor XYZ" pero sin entidad estructurada detrás.
+> **Estado (2026-03-16):** Módulo completo ✅
 
 ### Infraestructura existente que se puede aprovechar
 
@@ -387,8 +387,8 @@ El modo "blind close" para vendedores está diseñado para que no vean el efecti
 
 ---
 
-### P1 — CRUD de Proveedores (base del módulo)
-**Prioridad: Alta — debe implementarse primero**
+### ✅ P1 — CRUD de Proveedores (base del módulo)
+**Estado: Resuelto**
 
 **Base de datos — nueva tabla `suppliers`:**
 ```sql
@@ -410,8 +410,8 @@ address, payment_terms (días), notes, is_active (bool), timestamps
 
 ---
 
-### P2 — Relación Producto ↔ Proveedor
-**Prioridad: Alta — habilita selección de proveedor al recibir mercancía**
+### ✅ P2 — Relación Producto ↔ Proveedor
+**Estado: Resuelto**
 
 **Base de datos — nueva tabla pivot `product_supplier`:**
 ```sql
@@ -431,8 +431,8 @@ PRIMARY KEY (product_id, supplier_id)
 
 ---
 
-### P3 — Integración con Movimientos de Stock (entradas desde proveedor)
-**Prioridad: Alta — conecta el inventario al proveedor real**
+### ✅ P3 — Integración con Movimientos de Stock (entradas desde proveedor)
+**Estado: Resuelto**
 
 **Base de datos — cambios en `stock_movements`:**
 ```sql
@@ -468,8 +468,8 @@ Route::get('/suppliers/search', [SupplierController::class, 'search']); // retor
 
 ---
 
-### P4 — Historial de compras por proveedor
-**Prioridad: Media — visibilidad para el administrador**
+### ✅ P4 — Historial de compras por proveedor
+**Estado: Resuelto**
 
 **En `suppliers/show.tsx`:**
 - Sección "Historial de compras" con tabla:
@@ -493,8 +493,8 @@ public function show(Supplier $supplier) {
 
 ---
 
-### P5 — Devoluciones al proveedor (integración con F3)
-**Prioridad: Media — permite registrar stock defectuoso que regresa al proveedor**
+### ✅ P5 — Devoluciones al proveedor / F3 write_off
+**Estado: Resuelto**
 
 Este item extiende F3 (baja de inventario) con el contexto del proveedor:
 

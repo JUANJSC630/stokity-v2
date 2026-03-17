@@ -5,15 +5,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { type Branch, type BreadcrumbItem, type Product } from '@/types';
+import { type Branch, type BreadcrumbItem, type Product, type Supplier } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+type MovementType = 'in' | 'out' | 'adjustment' | 'purchase' | 'write_off' | 'supplier_return';
+
 interface Props {
     products: Product[];
     branches: Branch[];
+    suppliers: Supplier[];
     selectedProduct?: Product | null;
+    selectedType?: string;
     userBranchId: number | null;
 }
 
@@ -28,9 +32,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function StockMovementCreate({ products, selectedProduct }: Props) {
+export default function StockMovementCreate({ products, suppliers = [], selectedProduct, selectedType = 'in' }: Props) {
     const [selectedProductData, setSelectedProductData] = useState<Product | null>(selectedProduct || null);
-    const [movementType, setMovementType] = useState<'in' | 'out' | 'adjustment'>('in');
+    const [movementType, setMovementType] = useState<MovementType>((selectedType as MovementType) || 'in');
 
     // Prevenir scroll del mouse en inputs de tipo número
     useEffect(() => {
@@ -49,9 +53,10 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
 
     const { data, setData, post, processing, errors } = useForm({
         product_id: selectedProduct?.id?.toString() || '',
-        type: 'in' as 'in' | 'out' | 'adjustment',
+        type: ((selectedType as MovementType) || 'in') as MovementType,
         quantity: '',
         unit_cost: '',
+        supplier_id: '',
         reference: '',
         notes: '',
         movement_date: (() => {
@@ -72,16 +77,22 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
         setData('product_id', productId);
     };
 
-    const handleTypeChange = (type: 'in' | 'out' | 'adjustment') => {
+    const handleTypeChange = (type: MovementType) => {
         setMovementType(type);
         setData('type', type);
     };
 
+    const showSupplier = ['in', 'purchase', 'supplier_return'].includes(movementType);
+    const showUnitCost = ['in', 'purchase'].includes(movementType);
+
     const getQuantityLabel = () => {
         switch (movementType) {
             case 'in':
+            case 'purchase':
                 return 'Cantidad a ingresar';
             case 'out':
+            case 'write_off':
+            case 'supplier_return':
                 return 'Cantidad a retirar';
             case 'adjustment':
                 return 'Nuevo stock total';
@@ -92,13 +103,14 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
 
     const getQuantityHelp = () => {
         if (!selectedProductData) return '';
-
         const currentStock = selectedProductData.stock || 0;
-
         switch (movementType) {
             case 'in':
+            case 'purchase':
                 return `Stock actual: ${currentStock.toLocaleString()}`;
             case 'out':
+            case 'write_off':
+            case 'supplier_return':
                 return `Stock disponible: ${currentStock.toLocaleString()}`;
             case 'adjustment':
                 return `Stock actual: ${currentStock.toLocaleString()}`;
@@ -142,7 +154,7 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                                                 </SelectItem>
                                             ))
                                         ) : (
-                                            <SelectItem value="" disabled>
+                                            <SelectItem value="__none__" disabled>
                                                 No hay productos disponibles
                                             </SelectItem>
                                         )}
@@ -186,18 +198,47 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                             {/* Tipo de movimiento */}
                             <div>
                                 <Label htmlFor="type">Tipo de Movimiento *</Label>
-                                <Select value={data.type} onValueChange={handleTypeChange}>
+                                <Select value={data.type} onValueChange={(v) => handleTypeChange(v as MovementType)}>
                                     <SelectTrigger id="type">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="in">Entrada de Stock</SelectItem>
+                                        <SelectItem value="purchase">Compra a Proveedor</SelectItem>
                                         <SelectItem value="out">Salida de Stock</SelectItem>
+                                        <SelectItem value="write_off">Baja de Inventario</SelectItem>
+                                        <SelectItem value="supplier_return">Devolución a Proveedor</SelectItem>
                                         <SelectItem value="adjustment">Ajuste de Stock</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
                             </div>
+
+                            {/* Proveedor (para compras, entradas y devoluciones) */}
+                            {showSupplier && (
+                                <div>
+                                    <Label htmlFor="supplier_id">
+                                        Proveedor{movementType === 'purchase' ? ' *' : ''}
+                                    </Label>
+                                    <Select
+                                        value={data.supplier_id || '__none__'}
+                                        onValueChange={(v) => setData('supplier_id', v === '__none__' ? '' : v)}
+                                    >
+                                        <SelectTrigger id="supplier_id">
+                                            <SelectValue placeholder="Seleccionar proveedor (opcional)" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">Sin proveedor</SelectItem>
+                                            {suppliers.map((s) => (
+                                                <SelectItem key={s.id} value={s.id.toString()}>
+                                                    {s.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.supplier_id && <p className="mt-1 text-sm text-red-600">{errors.supplier_id}</p>}
+                                </div>
+                            )}
 
                             {/* Cantidad */}
                             <div>
@@ -205,7 +246,7 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                                 <Input
                                     id="quantity"
                                     type="number"
-                                    min="1"
+                                    min={movementType === 'adjustment' ? '0' : '1'}
                                     step="1"
                                     inputMode="numeric"
                                     autoComplete="off"
@@ -217,8 +258,8 @@ export default function StockMovementCreate({ products, selectedProduct }: Props
                                 {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity}</p>}
                             </div>
 
-                            {/* Costo unitario (solo para entradas) */}
-                            {movementType === 'in' && (
+                            {/* Costo unitario (para entradas y compras) */}
+                            {showUnitCost && (
                                 <div>
                                     <Label htmlFor="unit_cost">Costo Unitario</Label>
                                     <Input

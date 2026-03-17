@@ -17,6 +17,7 @@ import {
     RotateCcw,
     ScanLine,
     Tags,
+    Truck,
     TrendingUp,
     UserRound,
     Users,
@@ -79,6 +80,12 @@ const allNavItems: NavItem[] = [
         href: '/sales',
         icon: Banknote,
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
+    },
+    {
+        title: 'Proveedores',
+        href: '/suppliers',
+        icon: Truck,
+        roles: ['administrador', 'encargado'],
     },
     {
         title: 'Movimientos de Stock',

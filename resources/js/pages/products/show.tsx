@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Download, Edit2 } from 'lucide-react';
+import { ArrowLeft, Download, Edit2, Trash2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 interface ProductShowProps {
@@ -80,6 +80,12 @@ export default function ProductShow({ product }: ProductShowProps) {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 <span className="hidden sm:inline">Nuevo Movimiento</span>
+                            </Button>
+                        </Link>
+                        <Link href={`/stock-movements/create?product_id=${product.id}&type=write_off`}>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400">
+                                <Trash2 className="h-4 w-4" />
+                                <span className="hidden sm:inline">Registrar Baja</span>
                             </Button>
                         </Link>
                         <Link href={`/products/${product.id}/edit`}>

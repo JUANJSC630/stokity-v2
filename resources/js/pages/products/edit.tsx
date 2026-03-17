@@ -7,17 +7,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { type Branch, type BreadcrumbItem, type Category, type Product, type Supplier, type SupplierProduct } from '@/types';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
-import { ArrowLeft, Save, Sparkles, Upload, UserCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Sparkles, Trash2, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
 
+interface SupplierLink {
+    supplier_id: number;
+    name: string;
+    purchase_price: string;
+    supplier_code: string;
+    is_default: boolean;
+}
+
 interface EditProductProps {
-    product: Product;
+    product: Product & { suppliers?: SupplierProduct[] };
     categories: Category[];
     branches: Branch[];
+    suppliers?: Supplier[];
     userBranchId?: number | null;
 }
 
@@ -32,7 +41,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function EditProduct({ product, categories = [], branches = [], userBranchId = null }: EditProductProps) {
+export default function EditProduct({ product, categories = [], branches = [], suppliers = [], userBranchId = null }: EditProductProps) {
     // Actualizar la ruta en migas de pan
     breadcrumbs[1].href = `/products/${product.id}/edit`;
 
@@ -43,6 +52,50 @@ export default function EditProduct({ product, categories = [], branches = [], u
     // Estado para el diálogo de error
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMsg, setDialogMsg] = useState('');
+
+    // Supplier links state
+    const [supplierLinks, setSupplierLinks] = useState<SupplierLink[]>(
+        (product.suppliers ?? []).map((s) => ({
+            supplier_id: s.id,
+            name: s.name,
+            purchase_price: s.pivot.purchase_price != null ? String(s.pivot.purchase_price) : '',
+            supplier_code: s.pivot.supplier_code ?? '',
+            is_default: s.pivot.is_default,
+        })),
+    );
+    const [supplierToAdd, setSupplierToAdd] = useState('');
+    const [syncingSuppliers, setSyncingSuppliers] = useState(false);
+
+    const addSupplierLink = () => {
+        const id = Number(supplierToAdd);
+        if (!id || supplierLinks.some((s) => s.supplier_id === id)) return;
+        const sup = suppliers.find((s) => s.id === id);
+        if (!sup) return;
+        setSupplierLinks([...supplierLinks, { supplier_id: sup.id, name: sup.name, purchase_price: '', supplier_code: '', is_default: false }]);
+        setSupplierToAdd('');
+    };
+
+    const removeSupplierLink = (id: number) => setSupplierLinks(supplierLinks.filter((s) => s.supplier_id !== id));
+
+    const setDefault = (id: number) =>
+        setSupplierLinks(supplierLinks.map((s) => ({ ...s, is_default: s.supplier_id === id })));
+
+    const handleSyncSuppliers = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSyncingSuppliers(true);
+        router.post(
+            route('products.sync-suppliers', product.id),
+            {
+                suppliers: supplierLinks.map((s) => ({
+                    supplier_id: s.supplier_id,
+                    purchase_price: s.purchase_price !== '' ? s.purchase_price : null,
+                    supplier_code: s.supplier_code || null,
+                    is_default: s.is_default,
+                })),
+            },
+            { onFinish: () => setSyncingSuppliers(false) },
+        );
+    };
 
     // Configurar formulario con Inertia
     const form = useForm({
@@ -507,6 +560,104 @@ export default function EditProduct({ product, categories = [], branches = [], u
                         </form>
                     </CardContent>
                 </Card>
+                {/* Proveedores */}
+                {suppliers.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Proveedores</CardTitle>
+                            <CardDescription>Vincula uno o más proveedores a este producto con precio acordado y código del catálogo.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSyncSuppliers} className="space-y-4">
+                                {/* Linked suppliers list */}
+                                {supplierLinks.length > 0 && (
+                                    <div className="space-y-3">
+                                        {supplierLinks.map((link) => (
+                                            <div key={link.supplier_id} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
+                                                <div className="min-w-[120px] flex-1 font-medium text-sm">{link.name}</div>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs text-muted-foreground">$</span>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="1"
+                                                        placeholder="Precio"
+                                                        className="h-8 w-28 text-sm"
+                                                        value={link.purchase_price}
+                                                        onChange={(e) =>
+                                                            setSupplierLinks(supplierLinks.map((s) =>
+                                                                s.supplier_id === link.supplier_id ? { ...s, purchase_price: e.target.value } : s,
+                                                            ))
+                                                        }
+                                                    />
+                                                </div>
+                                                <Input
+                                                    placeholder="Cód. proveedor"
+                                                    className="h-8 w-32 text-sm"
+                                                    value={link.supplier_code}
+                                                    onChange={(e) =>
+                                                        setSupplierLinks(supplierLinks.map((s) =>
+                                                            s.supplier_id === link.supplier_id ? { ...s, supplier_code: e.target.value } : s,
+                                                        ))
+                                                    }
+                                                />
+                                                <div className="flex items-center gap-1.5">
+                                                    <Switch
+                                                        checked={link.is_default}
+                                                        onCheckedChange={() => setDefault(link.supplier_id)}
+                                                        id={`default-${link.supplier_id}`}
+                                                    />
+                                                    <Label htmlFor={`default-${link.supplier_id}`} className="text-xs whitespace-nowrap">
+                                                        Predeterminado
+                                                    </Label>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                                    onClick={() => removeSupplierLink(link.supplier_id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Add supplier */}
+                                <div className="flex items-center gap-2">
+                                    <Select value={supplierToAdd} onValueChange={setSupplierToAdd}>
+                                        <SelectTrigger className="h-8 text-sm flex-1">
+                                            <SelectValue placeholder="Agregar proveedor..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {suppliers
+                                                .filter((s) => !supplierLinks.some((l) => l.supplier_id === s.id))
+                                                .map((s) => (
+                                                    <SelectItem key={s.id} value={String(s.id)}>
+                                                        {s.name}{s.nit ? ` — ${s.nit}` : ''}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={addSupplierLink} disabled={!supplierToAdd}>
+                                        <Plus className="h-3.5 w-3.5" />
+                                        Agregar
+                                    </Button>
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <Button type="submit" size="sm" className="gap-1" disabled={syncingSuppliers}>
+                                        <Save className="h-4 w-4" />
+                                        {syncingSuppliers ? 'Guardando...' : 'Guardar proveedores'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Modal de confirmación de eliminación */}
                 <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
                     <DialogContent>

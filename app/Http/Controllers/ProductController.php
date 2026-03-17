@@ -6,6 +6,7 @@ use App\Http\Requests\ProductRequest;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Services\BlobStorageService;
 use App\Services\StockMovementService;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -144,18 +146,29 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $categories = Category::where('status', true)->get();
 
-        // If user is admin, get all branches, otherwise only user's branch
         $branches = $user->isAdmin()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
+        // Suppliers available for this branch
+        $suppliers = Supplier::where('branch_id', $product->branch_id)
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'nit']);
+
+        // Already linked suppliers with pivot data
+        $product->load('suppliers');
+
         return Inertia::render('products/edit', [
-            'product' => $product,
-            'categories' => $categories,
-            'branches' => $branches,
+            'product'      => $product,
+            'categories'   => $categories,
+            'branches'     => $branches,
+            'suppliers'    => $suppliers,
+            'userBranchId' => $user->branch_id,
         ]);
     }
 
@@ -183,6 +196,36 @@ class ProductController extends Controller
         // Redireccionar con mensaje de éxito
         return redirect()->route('products.show', $product)
             ->with('success', 'Producto actualizado exitosamente');
+    }
+
+    /**
+     * Sync the suppliers associated with a product.
+     */
+    public function syncSuppliers(Request $request, Product $product): RedirectResponse
+    {
+        $request->validate([
+            'suppliers'                  => 'array',
+            'suppliers.*.supplier_id'    => [
+                'required',
+                Rule::exists('suppliers', 'id')->where('branch_id', $product->branch_id),
+            ],
+            'suppliers.*.purchase_price' => 'nullable|numeric|min:0',
+            'suppliers.*.supplier_code'  => 'nullable|string|max:100',
+            'suppliers.*.is_default'     => 'boolean',
+        ]);
+
+        $syncData = [];
+        foreach ($request->input('suppliers', []) as $item) {
+            $syncData[(int) $item['supplier_id']] = [
+                'purchase_price' => $item['purchase_price'] ?? null,
+                'supplier_code'  => $item['supplier_code'] ?? null,
+                'is_default'     => (bool) ($item['is_default'] ?? false),
+            ];
+        }
+
+        $product->suppliers()->sync($syncData);
+
+        return back()->with('success', 'Proveedores del producto actualizados.');
     }
 
     /**

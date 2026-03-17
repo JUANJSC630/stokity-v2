@@ -241,3 +241,59 @@ export interface SaleReturnProduct {
     };
     price: number;
 }
+
+export interface StockMovement {
+    id: number;
+    product_id: number;
+    user_id: number;
+    branch_id: number;
+    supplier_id: number | null;
+    type: 'in' | 'out' | 'adjustment' | 'purchase' | 'write_off' | 'supplier_return';
+    quantity: number;
+    previous_stock: number;
+    new_stock: number;
+    unit_cost: number | null;
+    reference: string | null;
+    notes: string | null;
+    movement_date: string;
+    created_at: string;
+    updated_at: string;
+    // Relations
+    product?: Product | null;
+    user?: User | null;
+    branch?: Branch | null;
+    supplier?: Supplier | null;
+}
+
+export interface Supplier {
+    id: number;
+    branch_id: number;
+    name: string;
+    nit: string | null;
+    contact_name: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    notes: string | null;
+    status: boolean;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    // Relations
+    branch?: Branch | null;
+    products?: SupplierProduct[];
+}
+
+export interface SupplierProduct extends Product {
+    pivot: {
+        purchase_price: number | null;
+        supplier_code: string | null;
+        is_default: boolean;
+    };
+}
+
+export interface SupplierPivot {
+    purchase_price: number | null;
+    supplier_code: string | null;
+    is_default: boolean;
+}

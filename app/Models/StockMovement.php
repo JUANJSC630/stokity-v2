@@ -19,6 +19,7 @@ class StockMovement extends Model
         'product_id',
         'user_id',
         'branch_id',
+        'supplier_id',
         'type',
         'quantity',
         'previous_stock',
@@ -67,6 +68,14 @@ class StockMovement extends Model
     }
 
     /**
+     * Get the supplier associated with this stock movement.
+     */
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    /**
      * Scope to filter by movement type.
      */
     public function scopeOfType($query, $type)
@@ -107,6 +116,9 @@ class StockMovement extends Model
             'in' => 'Entrada',
             'out' => 'Salida',
             'adjustment' => 'Ajuste',
+            'purchase' => 'Compra',
+            'write_off' => 'Baja',
+            'supplier_return' => 'Devolución a proveedor',
             default => 'Desconocido',
         };
     }
@@ -120,6 +132,9 @@ class StockMovement extends Model
             'in' => 'green',
             'out' => 'red',
             'adjustment' => 'yellow',
+            'purchase' => 'blue',
+            'write_off' => 'orange',
+            'supplier_return' => 'purple',
             default => 'gray',
         };
     }

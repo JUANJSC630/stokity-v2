@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * @property int $id
@@ -158,5 +159,15 @@ class Product extends Model
     public function latestStockMovement()
     {
         return $this->hasOne(StockMovement::class)->latestOfMany();
+    }
+
+    /**
+     * Get the suppliers for this product.
+     */
+    public function suppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(Supplier::class)
+            ->withPivot(['purchase_price', 'supplier_code', 'is_default'])
+            ->withTimestamps();
     }
 }

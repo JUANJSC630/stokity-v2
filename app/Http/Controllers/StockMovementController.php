@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Product;
 use App\Models\StockMovement;
-use App\Models\Branch;
+use App\Models\Supplier;
+use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +16,8 @@ use Inertia\Response;
 
 class StockMovementController extends Controller
 {
+    public function __construct(private StockMovementService $stockMovements) {}
+
     /**
      * Display a listing of stock movements.
      */
@@ -103,10 +107,15 @@ class StockMovementController extends Controller
             : Branch::where('id', $user->branch_id)->get();
 
         return Inertia::render('stock-movements/create', [
-            'products' => $products,
-            'branches' => $branches,
+            'products'        => $products,
+            'branches'        => $branches,
             'selectedProduct' => $selectedProduct,
-            'userBranchId' => $user->branch_id,
+            'userBranchId'    => $user->branch_id,
+            'selectedType'    => $request->input('type', 'in'),
+            'suppliers'       => Supplier::when(!$user->isAdmin() && $user->branch_id, fn($q) => $q->where('branch_id', $user->branch_id))
+                                    ->where('status', true)
+                                    ->orderBy('name')
+                                    ->get(['id', 'name']),
         ]);
     }
 
@@ -116,12 +125,16 @@ class StockMovementController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'type' => 'required|in:in,out,adjustment',
-            'quantity' => 'required|integer|min:1',
-            'unit_cost' => 'nullable|numeric|min:0',
-            'reference' => 'nullable|string|max:255',
-            'notes' => 'nullable|string|max:1000',
+            'product_id'    => 'required|exists:products,id',
+            'type'          => 'required|in:in,out,adjustment,purchase,write_off,supplier_return',
+            'quantity'      => [
+                'required', 'integer',
+                $request->input('type') === 'adjustment' ? 'min:0' : 'min:1',
+            ],
+            'unit_cost'     => 'nullable|numeric|min:0',
+            'supplier_id'   => 'nullable|exists:suppliers,id',
+            'reference'     => 'nullable|string|max:255',
+            'notes'         => 'nullable|string|max:1000',
             'movement_date' => 'required|date',
         ]);
 
@@ -135,40 +148,43 @@ class StockMovementController extends Controller
 
         DB::transaction(function () use ($request, $user, $product) {
             $previousStock = $product->stock;
-            $quantity = $request->quantity;
+            $quantity      = $request->quantity;
 
-            // Calcular nuevo stock según el tipo de movimiento
-            switch ($request->type) {
-                case 'in':
-                    $newStock = $previousStock + $quantity;
-                    break;
-                case 'out':
-                    $newStock = max(0, $previousStock - $quantity);
-                    break;
-                case 'adjustment':
-                    $newStock = $quantity; // Para ajustes, la cantidad es el nuevo valor
-                    break;
-                default:
-                    $newStock = $previousStock;
-                    break;
+            $newStock = match ($request->type) {
+                'in', 'purchase'                          => $previousStock + $quantity,
+                'out', 'write_off', 'supplier_return'     => max(0, $previousStock - $quantity),
+                'adjustment'                              => $quantity,
+                default                                   => $previousStock,
+            };
+
+            $supplierId = $request->supplier_id ? (int) $request->supplier_id : null;
+
+            $this->stockMovements->record(
+                product:       $product,
+                type:          $request->type,
+                quantity:      $quantity,
+                previousStock: $previousStock,
+                newStock:      $newStock,
+                branchId:      $product->branch_id,
+                userId:        $user->id,
+                reference:     $request->reference,
+                notes:         $request->notes,
+                supplierId:    $supplierId,
+                unitCost:      $request->unit_cost !== null ? (float) $request->unit_cost : null,
+                movementDate:  $request->movement_date,
+            );
+
+            // Auto-vincular producto al proveedor en el pivot cuando es una compra o entrada con proveedor
+            if ($supplierId && in_array($request->type, ['purchase', 'in'])) {
+                if (!$product->suppliers()->where('supplier_id', $supplierId)->exists()) {
+                    $product->suppliers()->attach($supplierId, [
+                        'purchase_price' => $request->unit_cost !== null ? (float) $request->unit_cost : null,
+                        'supplier_code'  => null,
+                        'is_default'     => false,
+                    ]);
+                }
             }
 
-            // Crear el movimiento de stock
-            StockMovement::create([
-                'product_id' => $product->id,
-                'user_id' => $user->id,
-                'branch_id' => $product->branch_id,
-                'type' => $request->type,
-                'quantity' => $quantity,
-                'previous_stock' => $previousStock,
-                'new_stock' => $newStock,
-                'unit_cost' => $request->unit_cost,
-                'reference' => $request->reference,
-                'notes' => $request->notes,
-                'movement_date' => $request->movement_date,
-            ]);
-
-            // Actualizar el stock del producto
             $product->update(['stock' => $newStock]);
         });
 
@@ -181,7 +197,7 @@ class StockMovementController extends Controller
      */
     public function show(StockMovement $stockMovement): Response
     {
-        $stockMovement->load(['product', 'user', 'branch']);
+        $stockMovement->load(['product', 'user', 'branch', 'supplier']);
 
         return Inertia::render('stock-movements/show', [
             'movement' => $stockMovement,
@@ -195,50 +211,16 @@ class StockMovementController extends Controller
     {
         $user = Auth::user();
 
-        // Debug: verificar el usuario y el producto
-        \Log::info('ProductMovements called', [
-            'user_id' => $user->id,
-            'user_role' => $user->role,
-            'product_id' => $product->id,
-            'product_branch_id' => $product->branch_id,
-            'user_branch_id' => $user->branch_id,
-        ]);
+        abort_if(!$user->isAdmin() && $product->branch_id !== $user->branch_id, 403);
 
-        // Verificar permisos (temporalmente comentado para debugging)
-        /*
-        if (!$user->isAdmin() && $product->branch_id !== $user->branch_id) {
-            \Log::warning('Access denied for product movements', [
-                'user_id' => $user->id,
-                'product_id' => $product->id,
-                'user_branch' => $user->branch_id,
-                'product_branch' => $product->branch_id,
-            ]);
-            abort(403);
-        }
-        */
-
-        // Cargar las relaciones del producto
         $product->load(['category', 'branch']);
 
-        // Debug: verificar que el producto tiene las relaciones cargadas
-        \Log::info('Product loaded', [
-            'product_id' => $product->id,
-            'product_name' => $product->name,
-            'category' => $product->category ? $product->category->name : 'null',
-            'branch' => $product->branch ? $product->branch->name : 'null',
-        ]);
-
         $movements = $product->stockMovements()
-            ->with(['user', 'branch'])
+            ->with(['user', 'branch', 'supplier'])
             ->orderBy('movement_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
-
-        \Log::info('Movements loaded', [
-            'movements_count' => $movements->count(),
-            'total_movements' => $movements->total(),
-        ]);
 
         return Inertia::render('stock-movements/product-movements', [
             'product' => $product,
@@ -272,8 +254,8 @@ class StockMovementController extends Controller
 
         $statistics = [
             'total_movements' => $query->count(),
-            'total_in' => $query->clone()->where('type', 'in')->sum('quantity'),
-            'total_out' => $query->clone()->where('type', 'out')->sum('quantity'),
+            'total_in'  => $query->clone()->whereIn('type', ['in', 'purchase'])->sum('quantity'),
+            'total_out' => $query->clone()->whereIn('type', ['out', 'write_off', 'supplier_return'])->sum('quantity'),
             'total_cost' => $query->clone()->whereNotNull('unit_cost')->sum(DB::raw('quantity * unit_cost')),
             'movements_by_type' => $query->clone()
                 ->select('type', DB::raw('count(*) as count'))
