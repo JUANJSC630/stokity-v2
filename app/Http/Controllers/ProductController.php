@@ -180,6 +180,9 @@ class ProductController extends Controller
         // Validar y obtener datos
         $validated = $request->validated();
 
+        // Never overwrite stock through the edit form — use stock movements instead
+        unset($validated['stock']);
+
         if ($request->hasFile('image')) {
             // Delete old blob if it exists
             if ($product->image) {
@@ -410,11 +413,12 @@ class ProductController extends Controller
         //   2. Name starts with the search term
         //   3. Alphabetical
         $products = $query
+            ->with(['category:id,name', 'branch:id,name'])
             ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [$q])
             ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [$q . '%'])
             ->orderBy('name')
             ->limit(50)
-            ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax']);
+            ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax', 'category_id', 'branch_id']);
 
         return response()->json($products);
     }

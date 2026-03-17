@@ -105,7 +105,6 @@ export default function EditProduct({ product, categories = [], branches = [], s
         purchase_price: Number(product.purchase_price),
         sale_price: Number(product.sale_price),
         tax: Number(product.tax || 19),
-        stock: product.stock,
         min_stock: product.min_stock,
         category_id: product.category_id,
         branch_id: product.branch_id,
@@ -423,21 +422,16 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                     <p className="text-xs text-muted-foreground">Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).</p>
                                 </div>
 
-                                {/* Stock actual */}
+                                {/* Stock actual (read-only — se modifica mediante movimientos de stock) */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="stock" className="text-sm font-medium">
-                                        Stock actual *
-                                    </label>
-                                    <Input
-                                        id="stock"
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        className="w-full"
-                                        value={form.data.stock}
-                                        onChange={(e) => form.setData('stock', parseInt(e.target.value))}
-                                    />
-                                    {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
+                                    <label className="text-sm font-medium">Stock actual</label>
+                                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                                        <span className="font-semibold">{product.stock}</span>
+                                        <span className="text-muted-foreground">unidades</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        El stock se actualiza mediante <a href="/stock-movements/create" className="underline">movimientos de stock</a>.
+                                    </p>
                                 </div>
 
                                 {/* Stock mínimo */}

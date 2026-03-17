@@ -94,24 +94,16 @@ class StockMovementController extends Controller
             $selectedProduct = Product::with(['category', 'branch'])->find($request->product_id);
         }
 
-        // Obtener productos disponibles
-        $products = Product::where('status', true)
-            ->when(!$user->isAdmin() && $user->branch_id, function ($query) use ($user) {
-                return $query->where('branch_id', $user->branch_id);
-            })
-            ->with(['category', 'branch'])
-            ->get();
-
         $branches = $user->isAdmin() || $user->isManager()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
         return Inertia::render('stock-movements/create', [
-            'products'        => $products,
             'branches'        => $branches,
             'selectedProduct' => $selectedProduct,
             'userBranchId'    => $user->branch_id,
             'selectedType'    => $request->input('type', 'in'),
+            'now'             => now()->format('Y-m-d\TH:i'),
             'suppliers'       => Supplier::when(!$user->isAdmin() && $user->branch_id, fn($q) => $q->where('branch_id', $user->branch_id))
                                     ->where('status', true)
                                     ->orderBy('name')
@@ -147,7 +139,9 @@ class StockMovementController extends Controller
         }
 
         DB::transaction(function () use ($request, $user, $product) {
-            $previousStock = $product->stock;
+            // Re-read with row lock to prevent race conditions with concurrent sales
+            $locked        = Product::lockForUpdate()->findOrFail($product->id);
+            $previousStock = $locked->stock;
             $quantity      = $request->quantity;
 
             $newStock = match ($request->type) {
@@ -160,12 +154,12 @@ class StockMovementController extends Controller
             $supplierId = $request->supplier_id ? (int) $request->supplier_id : null;
 
             $this->stockMovements->record(
-                product:       $product,
+                product:       $locked,
                 type:          $request->type,
                 quantity:      $quantity,
                 previousStock: $previousStock,
                 newStock:      $newStock,
-                branchId:      $product->branch_id,
+                branchId:      $locked->branch_id,
                 userId:        $user->id,
                 reference:     $request->reference,
                 notes:         $request->notes,
@@ -176,8 +170,8 @@ class StockMovementController extends Controller
 
             // Auto-vincular producto al proveedor en el pivot cuando es una compra o entrada con proveedor
             if ($supplierId && in_array($request->type, ['purchase', 'in'])) {
-                if (!$product->suppliers()->where('supplier_id', $supplierId)->exists()) {
-                    $product->suppliers()->attach($supplierId, [
+                if (!$locked->suppliers()->where('supplier_id', $supplierId)->exists()) {
+                    $locked->suppliers()->attach($supplierId, [
                         'purchase_price' => $request->unit_cost !== null ? (float) $request->unit_cost : null,
                         'supplier_code'  => null,
                         'is_default'     => false,
@@ -185,7 +179,7 @@ class StockMovementController extends Controller
                 }
             }
 
-            $product->update(['stock' => $newStock]);
+            $locked->update(['stock' => $newStock]);
         });
 
         return redirect()->route('stock-movements.index')

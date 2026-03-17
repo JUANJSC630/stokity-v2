@@ -104,27 +104,25 @@ export default function StockMovementsIndex({ movements, branches, products, fil
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'in':
-                return 'bg-green-100 text-green-800';
-            case 'out':
-                return 'bg-red-100 text-red-800';
-            case 'adjustment':
-                return 'bg-yellow-100 text-yellow-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
+            case 'in':             return 'bg-green-100 text-green-800';
+            case 'out':            return 'bg-red-100 text-red-800';
+            case 'adjustment':     return 'bg-yellow-100 text-yellow-800';
+            case 'purchase':       return 'bg-blue-100 text-blue-800';
+            case 'write_off':      return 'bg-orange-100 text-orange-800';
+            case 'supplier_return':return 'bg-purple-100 text-purple-800';
+            default:               return 'bg-gray-100 text-gray-800';
         }
     };
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':
-                return 'Entrada';
-            case 'out':
-                return 'Salida';
-            case 'adjustment':
-                return 'Ajuste';
-            default:
-                return 'Desconocido';
+            case 'in':             return 'Entrada';
+            case 'out':            return 'Salida';
+            case 'adjustment':     return 'Ajuste';
+            case 'purchase':       return 'Compra';
+            case 'write_off':      return 'Baja';
+            case 'supplier_return':return 'Dev. Proveedor';
+            default:               return 'Desconocido';
         }
     };
 
@@ -227,7 +225,10 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                     <SelectContent>
                                         <SelectItem value="all">Todos los tipos</SelectItem>
                                         <SelectItem value="in">Entrada</SelectItem>
+                                        <SelectItem value="purchase">Compra</SelectItem>
                                         <SelectItem value="out">Salida</SelectItem>
+                                        <SelectItem value="write_off">Baja</SelectItem>
+                                        <SelectItem value="supplier_return">Dev. Proveedor</SelectItem>
                                         <SelectItem value="adjustment">Ajuste</SelectItem>
                                     </SelectContent>
                                 </Select>
