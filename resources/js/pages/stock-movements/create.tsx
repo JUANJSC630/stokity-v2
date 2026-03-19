@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -294,16 +295,12 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                     {showUnitCost && (
                                         <div className="space-y-1.5">
                                             <Label htmlFor="unit_cost">Costo Unitario</Label>
-                                            <Input
+                                            <CurrencyInput
                                                 id="unit_cost"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                inputMode="decimal"
                                                 autoComplete="off"
-                                                value={data.unit_cost}
-                                                onChange={(e) => setData('unit_cost', e.target.value)}
-                                                placeholder="0.00"
+                                                value={Number(data.unit_cost) || 0}
+                                                onChange={(v) => setData('unit_cost', v > 0 ? String(v) : '')}
+                                                placeholder="0"
                                             />
                                             <p className="text-xs text-muted-foreground">Precio de compra por unidad</p>
                                             {errors.unit_cost && <p className="text-sm text-red-600">{errors.unit_cost}</p>}

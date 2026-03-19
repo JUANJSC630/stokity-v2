@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -342,21 +343,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
                                             $
                                         </span>
-                                        <Input
+                                        <CurrencyInput
                                             id="purchase_price"
-                                            type="number"
-                                            inputMode="numeric"
-                                            min="0"
-                                            step="1"
                                             className="w-full pl-6"
                                             value={form.data.purchase_price}
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '');
-                                                form.setData('purchase_price', value ? Number(value) : 0);
-                                            }}
+                                            onChange={(v) => form.setData('purchase_price', v)}
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{Number(form.data.purchase_price).toLocaleString('es-CO')}</p>
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
                                 </div>
 
@@ -369,21 +362,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
                                             $
                                         </span>
-                                        <Input
+                                        <CurrencyInput
                                             id="sale_price"
-                                            type="number"
-                                            inputMode="numeric"
-                                            min="0"
-                                            step="1"
                                             className="w-full pl-6"
                                             value={form.data.sale_price}
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '');
-                                                form.setData('sale_price', value ? Number(value) : 0);
-                                            }}
+                                            onChange={(v) => form.setData('sale_price', v)}
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{Number(form.data.sale_price).toLocaleString('es-CO')}</p>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
                                 </div>
 
@@ -574,16 +559,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 <div className="min-w-[120px] flex-1 font-medium text-sm">{link.name}</div>
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-xs text-muted-foreground">$</span>
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        step="1"
+                                                    <CurrencyInput
                                                         placeholder="Precio"
                                                         className="h-8 w-28 text-sm"
-                                                        value={link.purchase_price}
-                                                        onChange={(e) =>
+                                                        value={link.purchase_price ? Number(link.purchase_price) : 0}
+                                                        onChange={(v) =>
                                                             setSupplierLinks(supplierLinks.map((s) =>
-                                                                s.supplier_id === link.supplier_id ? { ...s, purchase_price: e.target.value } : s,
+                                                                s.supplier_id === link.supplier_id ? { ...s, purchase_price: v > 0 ? String(v) : '' } : s,
                                                             ))
                                                         }
                                                     />

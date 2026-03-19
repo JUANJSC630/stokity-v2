@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -359,19 +360,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </label>
                                     <div className="relative">
                                         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
-                                        <Input
+                                        <CurrencyInput
                                             id="purchase_price"
-                                            type="text"
                                             className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                            value={
-                                                typeof form.data.purchase_price === 'number'
-                                                    ? Math.round(form.data.purchase_price).toLocaleString('es-CO')
-                                                    : ''
-                                            }
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '');
-                                                form.setData('purchase_price', value ? Number(value) : 0);
-                                            }}
+                                            value={form.data.purchase_price}
+                                            onChange={(v) => form.setData('purchase_price', v)}
                                         />
                                     </div>
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
@@ -384,19 +377,11 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </label>
                                     <div className="relative">
                                         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
-                                        <Input
+                                        <CurrencyInput
                                             id="sale_price"
-                                            type="text"
                                             className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                            value={
-                                                typeof form.data.sale_price === 'number'
-                                                    ? Math.round(form.data.sale_price).toLocaleString('es-CO')
-                                                    : ''
-                                            }
-                                            onChange={(e) => {
-                                                const value = e.target.value.replace(/\D/g, '');
-                                                form.setData('sale_price', value ? Number(value) : 0);
-                                            }}
+                                            value={form.data.sale_price}
+                                            onChange={(v) => form.setData('sale_price', v)}
                                         />
                                     </div>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}

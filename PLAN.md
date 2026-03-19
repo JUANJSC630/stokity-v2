@@ -84,8 +84,8 @@ Al cerrar el modal, `returnId` queda con el valor anterior. Si se abre otro ráp
 
 ## 📋 Funcionalidades pendientes
 
-### F0 — Auto-formato de inputs monetarios (COP)
-**Prioridad: Alta**
+### ✅ F0 — Auto-formato de inputs monetarios (COP)
+**Prioridad: Alta | Estado: Completo**
 
 Todos los inputs que reciben valores en pesos colombianos muestran el número crudo (ej. `123000`). Deben formatearse automáticamente con separador de miles mientras el usuario escribe (ej. `123.000`), siguiendo el locale `es-CO`.
 

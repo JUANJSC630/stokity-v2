@@ -1,5 +1,6 @@
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Badge } from '@/components/ui/badge';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -880,14 +881,11 @@ export default function PosIndex({
                         <form onSubmit={handleOpenSession} className="space-y-3">
                             <div>
                                 <label className="mb-1 block text-xs font-medium">Fondo inicial</label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
+                                <CurrencyInput
                                     value={openingAmount}
-                                    onChange={(e) => setOpeningAmount(e.target.value)}
+                                    onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -954,15 +952,12 @@ export default function PosIndex({
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-medium">Monto *</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    step={1}
-                                    value={movementAmount}
-                                    onChange={(e) => setMovementAmount(e.target.value)}
+                                <CurrencyInput
+                                    value={Number(movementAmount) || 0}
+                                    onChange={(v) => setMovementAmount(v > 0 ? String(v) : '')}
                                     required
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -1014,14 +1009,11 @@ export default function PosIndex({
                         <form onSubmit={handleOpenSession} className="space-y-3">
                             <div>
                                 <label className="mb-1 block text-xs font-medium">Fondo inicial</label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
+                                <CurrencyInput
                                     value={openingAmount}
-                                    onChange={(e) => setOpeningAmount(e.target.value)}
+                                    onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -1327,15 +1319,24 @@ export default function PosIndex({
                                 </SelectContent>
                             </Select>
                             {discountType !== 'none' && (
-                                <Input
-                                    type="number"
-                                    min={0}
-                                    max={discountType === 'percentage' ? 100 : undefined}
-                                    value={discountValue === '0' ? '' : discountValue}
-                                    onChange={(e) => setDiscountValue(e.target.value || '0')}
-                                    className="h-7 w-20 text-xs"
-                                    placeholder="0"
-                                />
+                                discountType === 'fixed' ? (
+                                    <CurrencyInput
+                                        value={Number(discountValue) || 0}
+                                        onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
+                                        className="h-7 w-24 text-xs"
+                                        placeholder="0"
+                                    />
+                                ) : (
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        value={discountValue === '0' ? '' : discountValue}
+                                        onChange={(e) => setDiscountValue(e.target.value || '0')}
+                                        className="h-7 w-20 text-xs"
+                                        placeholder="0"
+                                    />
+                                )
                             )}
                             {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
                         </div>

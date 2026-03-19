@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import AppLayout from '@/layouts/app-layout';
 import { formatTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
@@ -216,13 +217,11 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                     ))}
                                     <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-1.5 dark:border-neutral-700">
                                         <span className="text-sm font-medium">Monedas</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            value={coins}
-                                            onChange={(e) => setCoins(e.target.value)}
+                                        <CurrencyInput
+                                            value={Number(coins) || 0}
+                                            onChange={(v) => setCoins(v > 0 ? String(v) : '')}
                                             placeholder="0"
-                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                         />
                                     </div>
                                 </div>
@@ -246,15 +245,12 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         ) : (
                             <div>
                                 <label className="mb-1 block text-sm font-medium">Efectivo contado físicamente *</label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={form.data.closing_amount_declared}
-                                    onChange={(e) => form.setData('closing_amount_declared', e.target.value)}
+                                <CurrencyInput
+                                    value={Number(form.data.closing_amount_declared) || 0}
+                                    onChange={(v) => form.setData('closing_amount_declared', String(v))}
                                     required
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                         )}
