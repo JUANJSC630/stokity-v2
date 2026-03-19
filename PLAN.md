@@ -62,23 +62,16 @@ El modo blind close para vendedores no debe ver el efectivo esperado, pero `expe
 
 **Fix:** Cuando `$isBlind === true`, no incluir `expectedCash` en los props. Calcular la discrepancia únicamente en el backend al recibir el cierre.
 
+NOTA: esto solo para vendedores
 ---
 
-### B2 — Sin rate limiting en búsqueda de productos
-**Archivo:** `routes/products.php` (o donde esté `GET /products/search`)
-
-El endpoint de búsqueda no tiene throttle. Un actor malicioso podría saturar el servidor.
-
-**Fix:** Agregar `throttle:60,1` a la ruta de búsqueda.
+### ✅ B2 — Sin rate limiting en búsqueda de productos *(resuelto)*
+`throttle:60,1` agregado a `GET /api/products/search` en `routes/products.php`.
 
 ---
 
-### B1 — Modal de recibo de devolución no resetea `returnId` al cerrar
-**Archivo:** `resources/js/pages/sales/show.tsx`
-
-Al cerrar el modal, `returnId` queda con el valor anterior. Si se abre otro rápidamente puede cargar el recibo anterior por un instante.
-
-**Fix:** En el handler `onClose`, resetear a `{ open: false, returnId: undefined }`.
+### ✅ B1 — Modal de recibo de devolución no resetea `returnId` al cerrar *(resuelto)*
+`onOpenChange` en `sales/show.tsx` ahora resetea a `{ open: false, returnId: undefined }` al cerrar.
 
 ---
 
@@ -123,6 +116,7 @@ El campo `reason` es nullable, imposibilitando análisis de causas de devolució
 - Error en el precio cobrado
 - Otro → campo de texto obligatorio adicional
 
+NOTA: No necesario
 ---
 
 ### F1 — Descuentos por cliente (precio especial / mayorista)

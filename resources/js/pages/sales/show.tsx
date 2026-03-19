@@ -653,7 +653,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                         </div>
 
                         {/* Return receipt dialog */}
-                        <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt({ open })}>
+                        <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt(open ? showReturnReceipt : { open: false, returnId: undefined })}>
                             <DialogContent className="max-w-md">
                                 <DialogHeader>
                                     <DialogTitle>Recibo de devolución</DialogTitle>
