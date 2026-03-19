@@ -27,6 +27,11 @@ class SaleReturnController extends Controller
         $sale = Sale::with('saleProducts')->findOrFail($saleId);
         $user = Auth::user();
 
+        // Verify user belongs to the sale's branch (prevent cross-branch returns)
+        if (!$user->isAdmin() && $user->branch_id && $sale->branch_id !== $user->branch_id) {
+            abort(403, 'No tienes acceso a ventas de otra sucursal.');
+        }
+
         // Deduplication guard: reject if an identical return was submitted for this
         // sale in the last 30 seconds (protects against double-clicks / network retries).
         $incomingProductIds = collect($request->products)->pluck('product_id')->sort()->values()->toArray();
@@ -127,34 +132,4 @@ class SaleReturnController extends Controller
         return back()->with('success', 'Devolución registrada correctamente.');
     }
 
-    /**
-     * Imprime el recibo de devolución en la impresora térmica usando ESC/POS
-     * Cambia el conector según tu sistema y conexión:
-     * - Linux USB: FilePrintConnector('/dev/usb/lp0')
-     * - Windows: WindowsPrintConnector('NombreImpresora')
-     * - Red/Ethernet: NetworkPrintConnector('IP', Puerto)
-     */
-    public function printReturnReceipt($id)
-    {
-        $saleReturn = SaleReturn::with(['sale', 'products'])->findOrFail($id);
-        $sale = $saleReturn->sale;
-        $products = $saleReturn->products;
-
-        // Generar recibo en texto plano
-        $receiptText = '';
-        $receiptText .= "=== DEVOLUCIÓN ===\n";
-        $receiptText .= "Venta: {$sale->code}\n";
-        $receiptText .= "Fecha: " . $saleReturn->created_at->format('Y-m-d H:i') . "\n";
-        $receiptText .= "----------------------\n";
-        foreach ($products as $p) {
-            $receiptText .= $p->name . "\n";
-            $receiptText .= "  Cant: " . $p->pivot->quantity . "  Vlr: $" . number_format($p->price ?? 0, 0, ',', '.') . "\n";
-        }
-        $receiptText .= "----------------------\n";
-        $receiptText .= "Motivo: " . ($saleReturn->reason ?: 'Sin motivo') . "\n";
-        $receiptText .= "======================\n\n\n";
-
-        // La impresión de devoluciones se maneja vía QZ Tray (PrintController::returnReceipt)
-        return back()->with('success', 'Operación completada.');
-    }
 }

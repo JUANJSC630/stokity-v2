@@ -165,8 +165,11 @@ class SaleController extends Controller
             default      => 0,
         };
 
-        // Generar código único para la venta (solo números del timestamp)
-        $validated['code']            = now()->format('YmdHis') . rand(100, 999);
+        // Generate unique sale code: timestamp + random (with retry on collision)
+        do {
+            $code = now()->format('YmdHis') . rand(1000, 9999);
+        } while (Sale::withTrashed()->where('code', $code)->exists());
+        $validated['code'] = $code;
         $validated['tax']             = $totalTax;
         $validated['discount_amount'] = $discountAmount;
         $validated['total']           = max(0, $gross - $discountAmount);
@@ -340,9 +343,9 @@ class SaleController extends Controller
             return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
         }
 
-        // Verificar stock de todos los productos antes de abrir la transacción.
-        // Recolectar todos los fallos para mostrarlos juntos (C4).
+        // Verificar stock y recalcular tax/total server-side (prevent frontend manipulation)
         $stockErrors = [];
+        $totalTax = 0;
         foreach ($products as $prod) {
             $product = Product::find($prod['id']);
             if (!$product) {
@@ -354,24 +357,39 @@ class SaleController extends Controller
                 $stockErrors["stock_{$prod['id']}"] = "{$product->name}: necesitas {$prod['quantity']}, " .
                     ($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
             }
+            $productTax = $product->tax ?? 0;
+            $totalTax += $prod['subtotal'] * ($productTax / 100);
         }
         if (!empty($stockErrors)) {
             return back()->withErrors($stockErrors);
         }
 
+        // Recalculate discount and total server-side (same logic as store())
+        $discountType  = $validated['discount_type'] ?? 'none';
+        $discountValue = $validated['discount_value'] ?? 0;
+        $gross = $validated['net'] + $totalTax;
+        $discountAmount = match ($discountType) {
+            'percentage' => round($gross * ($discountValue / 100), 2),
+            'fixed'      => min($discountValue, $gross),
+            default      => 0,
+        };
+        $serverTotal = max(0, $gross - $discountAmount);
+
         try {
-        DB::transaction(function () use ($sale, $validated, $products, $openSession) {
+        DB::transaction(function () use ($sale, $validated, $products, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
             $sale->update([
-                'payment_method' => $validated['payment_method'],
-                'amount_paid'    => $validated['amount_paid'],
-                'change_amount'  => $validated['change_amount'],
-                'net'            => $validated['net'],
-                'total'          => $validated['total'],
-                'discount_type'  => $validated['discount_type'] ?? 'none',
-                'discount_value' => $validated['discount_value'] ?? 0,
-                'status'         => 'completed',
-                'date'           => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
-                'session_id'     => $openSession?->id,
+                'payment_method'  => $validated['payment_method'],
+                'amount_paid'     => $validated['amount_paid'],
+                'change_amount'   => $validated['change_amount'],
+                'net'             => $validated['net'],
+                'tax'             => $totalTax,
+                'discount_type'   => $discountType,
+                'discount_value'  => $discountValue,
+                'discount_amount' => $discountAmount,
+                'total'           => $serverTotal,
+                'status'          => 'completed',
+                'date'            => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
+                'session_id'      => $openSession?->id,
             ]);
 
             // Replace products with current cart
@@ -650,7 +668,7 @@ class SaleController extends Controller
 
         DB::transaction(function () use ($sale) {
             foreach ($sale->saleProducts as $saleProduct) {
-                $product = Product::find($saleProduct->product_id);
+                $product = Product::lockForUpdate()->find($saleProduct->product_id);
                 if ($product) {
                     $previousStock = $product->stock;
                     $product->stock += $saleProduct->quantity;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ArchivedUser;
 use App\Models\Branch;
 use App\Models\User;
+use App\Services\BlobStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -14,6 +15,7 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
+    public function __construct(private BlobStorageService $blobStorage) {}
     /**
      * Display a listing of the users.
      */
@@ -91,44 +93,12 @@ class UserController extends Controller
             'photo' => 'nullable|image|max:1024', // 1MB max
         ]);
 
-        // Handle photo upload if present
+        // Upload photo to Vercel Blob (persists across deploys, unlike local filesystem)
         if ($request->hasFile('photo')) {
             try {
-                $uploadPath = public_path('uploads/users');
-
-                // Asegurarse de que el directorio existe
-                if (!file_exists($uploadPath)) {
-                    mkdir($uploadPath, 0755, true);
-                }
-
-                $file = $request->file('photo');
-                $extension = $file->getClientOriginalExtension();
-                $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $extension;
-
-                // Subir la imagen
-                $file->move($uploadPath, $filename);
-
-                // Verificar que se subió correctamente
-                if (file_exists($uploadPath . '/' . $filename)) {
-                    $validated['photo'] = $filename;
-
-                    // Log para depuración
-                    \Log::info('Foto subida exitosamente:', [
-                        'filename' => $filename,
-                        'path' => $uploadPath,
-                        'full_path' => $uploadPath . '/' . $filename,
-                        'url' => asset('uploads/users/' . $filename)
-                    ]);
-                } else {
-                    \Log::error('Error: No se pudo verificar la existencia del archivo subido:', [
-                        'filename' => $filename,
-                        'path' => $uploadPath
-                    ]);
-                }
+                $validated['photo'] = $this->blobStorage->upload($request->file('photo'), 'users');
             } catch (\Exception $e) {
-                \Log::error('Error al subir la foto: ' . $e->getMessage(), [
-                    'trace' => $e->getTraceAsString()
-                ]);
+                \Log::error('Error al subir la foto: ' . $e->getMessage());
             }
         }
 
@@ -215,52 +185,16 @@ class UserController extends Controller
             'photo' => 'nullable|image|max:1024', // 1MB max
         ]);
 
-        // Handle photo upload if present
+        // Upload photo to Vercel Blob (persists across deploys, unlike local filesystem)
         if ($request->hasFile('photo')) {
             try {
-                $uploadPath = public_path('uploads/users');
-
-                // Asegurarse de que el directorio existe
-                if (!file_exists($uploadPath)) {
-                    mkdir($uploadPath, 0755, true);
+                // Delete old photo from Blob if it's a Blob URL
+                if ($user->photo) {
+                    $this->blobStorage->delete($user->photo);
                 }
-
-                // Delete old photo if exists
-                if ($user->photo && file_exists($uploadPath . '/' . $user->photo)) {
-                    unlink($uploadPath . '/' . $user->photo);
-                }
-
-                $file = $request->file('photo');
-                $extension = $file->getClientOriginalExtension();
-                $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $extension;
-
-                // Subir la imagen
-                $file->move($uploadPath, $filename);
-
-                // Verificar que se subió correctamente
-                if (file_exists($uploadPath . '/' . $filename)) {
-                    $validated['photo'] = $filename;
-
-                    // Log para depuración
-                    \Log::info('Foto actualizada exitosamente:', [
-                        'filename' => $filename,
-                        'path' => $uploadPath,
-                        'full_path' => $uploadPath . '/' . $filename,
-                        'url' => asset('uploads/users/' . $filename),
-                        'user_id' => $user->id
-                    ]);
-                } else {
-                    \Log::error('Error: No se pudo verificar la existencia del archivo actualizado:', [
-                        'filename' => $filename,
-                        'path' => $uploadPath,
-                        'user_id' => $user->id
-                    ]);
-                }
+                $validated['photo'] = $this->blobStorage->upload($request->file('photo'), 'users');
             } catch (\Exception $e) {
-                \Log::error('Error al actualizar la foto: ' . $e->getMessage(), [
-                    'trace' => $e->getTraceAsString(),
-                    'user_id' => $user->id
-                ]);
+                \Log::error('Error al actualizar la foto: ' . $e->getMessage());
             }
         }
 

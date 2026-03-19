@@ -8,6 +8,7 @@ use App\Models\CashSession;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\SaleReturnProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -157,11 +158,12 @@ class CashSessionController extends Controller
         $salesSummary = $this->buildSalesDetail($session->id, $paymentMethodNames->toArray());
         $totalSales   = collect($salesSummary)->sum('total');
 
-        // Expected cash (for non-blind display)
-        $totalCash   = collect($salesSummary)->where('group', 'cash')->sum('total');
-        $totalCashIn  = $movements->where('type', 'cash_in')->sum('amount');
-        $totalCashOut = $movements->where('type', 'cash_out')->sum('amount');
-        $expectedCash = (float) $session->opening_amount + $totalCash + $totalCashIn - $totalCashOut;
+        // Expected cash (for non-blind display) — includes refunds
+        $totalCash      = collect($salesSummary)->where('group', 'cash')->sum('total');
+        $totalCashIn    = $movements->where('type', 'cash_in')->sum('amount');
+        $totalCashOut   = $movements->where('type', 'cash_out')->sum('amount');
+        $totalRefunds   = $this->calculateCashRefunds($session->id);
+        $expectedCash   = (float) $session->opening_amount + $totalCash + $totalCashIn - $totalCashOut - $totalRefunds;
 
         return Inertia::render('cash-sessions/close', [
             'session'      => $session,
@@ -224,20 +226,8 @@ class CashSessionController extends Controller
         $totalCashIn  = (float) $movements->where('type', 'cash_in')->sum('amount');
         $totalCashOut = (float) $movements->where('type', 'cash_out')->sum('amount');
 
-        // Cash refunds in this session
-        $totalRefundsCash = (float) SaleReturn::whereHas('sale', function ($q) use ($session) {
-            $q->where('session_id', $session->id)
-              ->whereIn('payment_method', self::CASH_CODES);
-        })->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
-          ->distinct()
-          ->exists()
-            ? SaleReturn::whereHas('sale', function ($q) use ($session) {
-                $q->where('session_id', $session->id)
-                  ->whereIn('payment_method', self::CASH_CODES);
-              })->with('sale:id,total')
-                ->get()
-                ->sum(fn($r) => (float) $r->sale->total)
-            : 0;
+        // Cash refunds: calculate actual refunded amount from return product quantities × sale prices
+        $totalRefundsCash = $this->calculateCashRefunds($session->id);
 
         $expectedCash = (float) $session->opening_amount
             + $totalSalesCash
@@ -298,6 +288,37 @@ class CashSessionController extends Controller
         $label = $validated['type'] === 'cash_in' ? 'Ingreso registrado.' : 'Retiro registrado.';
 
         return back()->with('success', $label);
+    }
+
+    /**
+     * Calculate actual cash refunded for a session based on returned product quantities × sale prices.
+     *
+     * Example: Sale of $100,000 (3 products). Partial return of 1 product worth $20,000.
+     * Before fix: returned $100,000 (full sale.total). After fix: returns $20,000 (actual amount).
+     */
+    private function calculateCashRefunds(int $sessionId): float
+    {
+        $returns = SaleReturn::whereHas('sale', function ($q) use ($sessionId) {
+            $q->where('session_id', $sessionId)
+              ->whereIn('payment_method', self::CASH_CODES);
+        })->with(['sale.saleProducts'])->get();
+
+        if ($returns->isEmpty()) {
+            return 0;
+        }
+
+        $total = 0;
+        foreach ($returns as $return) {
+            $returnProducts = SaleReturnProduct::where('sale_return_id', $return->id)->get();
+            foreach ($returnProducts as $rp) {
+                $saleProduct = $return->sale->saleProducts->firstWhere('product_id', $rp->product_id);
+                if ($saleProduct) {
+                    $total += $rp->quantity * $saleProduct->price;
+                }
+            }
+        }
+
+        return round($total, 2);
     }
 
     /**
