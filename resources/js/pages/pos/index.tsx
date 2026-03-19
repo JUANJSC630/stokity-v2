@@ -448,10 +448,19 @@ export default function PosIndex({
             route('cash-sessions.store'),
             { opening_amount: openingAmount || '0', opening_notes: openingNotes },
             {
+                onSuccess: (page) => {
+                    const props = page.props as unknown as Props;
+                    if (props.currentSession) {
+                        setCurrentSession(props.currentSession);
+                    }
+                    setOpeningAmount('');
+                    setOpeningNotes('');
+                    setShowOpenSessionModal(false);
+                },
                 onError: (errors) => {
                     Object.values(errors).forEach((msg) => toast.error(String(msg)));
-                    setSubmittingSession(false);
                 },
+                onFinish: () => setSubmittingSession(false),
             },
         );
     }

@@ -1,6 +1,7 @@
 # Stokity v2 — Plan de Trabajo
 
-> Última actualización: Marzo 2026
+> Última actualización: 2026-03-18
+> Historial de revisiones: `REVIEW.md` (lógica de negocio) · `UX-REVIEW.md` (UX/UI)
 
 ---
 
@@ -12,8 +13,8 @@
 | Multi-sucursal + RBAC | ✅ Funcional |
 | Métodos de pago dinámicos | ✅ Funcional |
 | Devoluciones | ✅ Funcional |
-| Impresión térmica ESC/POS (QZ Tray) | ✅ Funcional (ver bug pendiente) |
-| Validación de stock al vender | ✅ Funcional |
+| Impresión térmica ESC/POS (QZ Tray) | ⚠️ Funcional — bug activo en corte (ver abajo) |
+| Validación de stock (pessimistic lock) | ✅ Funcional |
 | Configuración del negocio (logo, NIT, etc.) | ✅ Funcional |
 | Almacenamiento de imágenes (Vercel Blob + WebP) | ✅ Funcional |
 | Búsqueda en tiempo real (POS + productos) | ✅ Funcional |
@@ -21,507 +22,225 @@
 | Historial de compras del cliente | ✅ Funcional |
 | Apertura/Cierre de Caja (turnos) | ✅ Funcional |
 | Cotizaciones / ventas pendientes | ✅ Funcional |
-| Botones de efectivo rápido en POS | ✅ Funcional |
 | Reportes + exportación PDF/Excel | ✅ Funcional |
-| Análisis estático (Larastan nivel 5) | ✅ 0 errores |
+| Módulo de Proveedores | ✅ Funcional |
+| UX improvements (28 hallazgos) | ✅ Completo |
 | Tests automatizados | ❌ Vacío |
 
 ---
 
-## Bug pendiente
+## 🐛 Bug activo — Recibo térmico cortado en la parte superior
 
-### Recibo térmico: corte deja parte superior dentro de la impresora
-**Severidad: Alta — sin solución funcional hasta la fecha (2026-03-16)**
+**Severidad: Alta · Impresora: POS-5890U-L (58mm, 203 DPI, USB)**
+**Archivos:** `app/Http/Controllers/PrintController.php`, `resources/js/services/qzTray.ts`
 
-**Síntoma confirmado:** El primer recibo tras encender la impresora se imprime perfecto. A partir del segundo recibo, el encabezado ("Lú Accesorios" + separador) queda dentro de la impresora y no es visible. El problema se agrava cuando el recibo incluye QR o barcode.
+**Síntoma:** El primer recibo tras encender la impresora sale perfecto. A partir del segundo, el encabezado queda dentro de la impresora después del corte.
 
-**Impresora de referencia:** POS-5890U-L (58mm, 203 DPI, ESC/POS, USB)
+**Causa raíz:** La impresora mantiene estado interno entre trabajos USB. Los comandos ESC \* (logo, QR, barcode) dejan el `line spacing` corrupto. ESC @ resetea el estado pero retrae el papel ~20-30mm hacia adentro.
 
-**Archivos relevantes:** `app/Http/Controllers/PrintController.php`, `resources/js/services/qzTray.ts`
-
----
-
-#### Diagnóstico técnico
-
-- **Zona muerta (dead zone):** La impresora tiene ~20-25mm de distancia entre el cabezal de impresión y la cuchilla. Después de un corte, el borde del papel queda en la cuchilla. Al iniciar el siguiente recibo, ese espacio de 20-25mm queda oculto dentro de la impresora.
-
-- **Causa raíz identificada:** La impresora **mantiene estado interno entre trabajos USB** (line spacing, modo gráfico ESC \*). Los comandos ESC \* (usados para imprimir logos, QR y barcodes) dejan el `line spacing` corrupto para el siguiente trabajo. Esto hace que los feeds del siguiente recibo no avancen el papel la cantidad esperada.
-
-- **Comportamiento del corte:** El comando `GS V 0` (corte sin auto-feed) y `GS V 66 3` (corte con auto-feed pequeño) no producen diferencia observable. El corte en sí funciona correctamente.
-
-- **ESC @ (initialize):** Resetea el estado completamente, pero también **retrae el papel ~20-30mm** hacia adentro de la impresora, empeorando el problema si no se compensa con suficiente feed posterior.
-
----
-
-#### Intentos fallidos (en orden cronológico)
-
-1. **Feed grande ANTES del corte con `$p->text("\n"×N)`:** Dependía del `line spacing`. Si el spacing estaba corrupto por ESC \* del mismo recibo (QR/barcode), las líneas avanzaban menos de lo esperado. Sin QR funcionaba, con QR no.
-
-2. **`feedPastDeadZone()` con raw ESC 2 + `str_repeat(" \n", 12)`:** Se forzó ESC 2 directamente en el conector. No solucionó el problema con QR/barcode. El printer parece ignorar o malinterpretar ESC 2 después de ESC \*.
-
-3. **Feed post-corte (después del `GS V 0`):** La impresora descarta los bytes que recibe durante la acción mecánica del corte. El feed nunca se ejecuta.
-
-4. **ESC J (feed absoluto en dots) en el margen superior:** ESC J no depende del line spacing, pero la impresora también lo ignora cuando el estado del trabajo anterior fue ESC \*. Probado con 10×ESC J 24 = 30mm y sigue fallando.
-
-5. **ESC 3 n (line spacing explícito) en vez de ESC 2:** Mismo resultado. El printer parece estar en un modo donde ignora ciertos comandos entre trabajos.
-
-6. **Estructura "corte + feed post-corte":** Los bytes post-corte se descartan durante el mecanismo físico del corte. No funciona.
-
-7. **ESC @ + ESC J×20 = 60mm (estado actual del código):** ESC @ resetea el estado (resuelve la corrupción del trabajo anterior), y 20×ESC J 24 = 480 dots = 60mm compensa la retracción de ESC @ más la zona muerta. **El primer recibo sale perfecto, pero el segundo sigue cortado.** Causa probable: el `GS V 0` o `$p->cut()` que se usa al final puede retraer el papel después del corte en esta impresora específica.
-
----
-
-#### Estado actual del código (`PrintController.php`)
-
+**Estado actual del código:**
 ```php
-// createPrinter(): NO limpia el buffer — el ESC @ del constructor se envía al printer
-private function createPrinter(DummyPrintConnector $connector): Printer
-{
-    return new Printer($connector); // ESC @ incluido
-}
-
-// printBusinessHeader(): compensa retracción + dead zone con ESC J
-for ($i = 0; $i < 20; $i++) {
-    $conn->write("\x1b\x4a\x18"); // 20 × ESC J 24 = 480 dots ≈ 60mm
-}
-
-// cutReceipt(): feed pre-corte + corte estándar
-for ($i = 0; $i < 8; $i++) {
-    $conn->write("\x1b\x4a\x18"); // 8 × ESC J 24 = 192 dots ≈ 24mm
-}
-$p->cut(Printer::CUT_PARTIAL); // GS V 66 3
+// createPrinter(): ESC @ incluido via constructor de Printer
+// printBusinessHeader(): 20 × ESC J 24 = 480 dots ≈ 60mm de compensación
+// cutReceipt(): 8 × ESC J 24 + GS V 66 3 (CUT_PARTIAL)
 ```
 
----
+**Hipótesis pendientes de probar en producción (Railway):**
 
-#### Hipótesis pendientes de probar
-
-- **H1:** El `$p->cut()` (GS V 66 3) en esta impresora puede estar retrayendo el papel después del corte. Probar con `GS V 1` (corte parcial simple, sin auto-feed): `$conn->write("\x1d\x56\x01")`.
-
-- **H2:** El driver macOS/Windows puede estar añadiendo ESC @ antes del job a pesar de `altPrinting: true, forceRaw: true` en QZ Tray. Probar capturando los bytes reales que recibe la impresora con un sniffer USB.
-
-- **H3:** La impresora tiene un comportamiento propietario no documentado en el manual ESC/POS estándar. Revisar el manual específico del POS-5890U-L si está disponible.
-
-- **H4:** Usar `GS V 65 n` (full cut con auto-feed a cuchilla + n dots extra). El valor de n se ajusta para cubrir la zona muerta del siguiente recibo: `$conn->write("\x1d\x56\x41\xc0")` (n=192 dots = 24mm extra).
-
-- **H5 (más prometedora):** Combinar ESC @ + ESC J generoso **Y** usar `GS V 65 n` con n grande para que el corte en sí posicione el papel correctamente para el siguiente recibo, eliminando la dependencia del ESC J al inicio.
+- **H1:** `GS V 66 3` puede retraer el papel post-corte. Probar con `GS V 1` (corte simple sin auto-feed): `$conn->write("\x1d\x56\x01")`
+- **H4:** Usar `GS V 65 n` (full cut + n dots extra) para que el corte posicione el papel correctamente: `$conn->write("\x1d\x56\x41\xc0")` (n=192 dots = 24mm)
+- **H5 (más prometedora):** ESC @ + ESC J generoso **Y** `GS V 65 n` con n grande — elimina dependencia del feed al inicio del siguiente recibo
 
 ---
 
-## Problemas críticos (afectan operación real)
+## 🔒 Bugs de seguridad / datos
 
-### ~~C1 — Race condition en stock con ventas simultáneas~~ ✅ Resuelto
-**Severidad: Alta**
+### B3 — Cierre ciego expone `expectedCash` al frontend
+**Archivo:** `app/Http/Controllers/CashSessionController.php` → `closeForm()`
 
-Dos vendedores en sucursales distintas (o en la misma) pueden vender el último producto al mismo tiempo. El flujo actual hace una lectura de stock ANTES de la transacción (`foreach` con `Product::find()`) y luego descuenta dentro del `DB::transaction()`. Entre esas dos lecturas, otro proceso puede vender el mismo producto. El resultado es stock negativo en la base de datos y un movimiento incorrecto en `stock_movements`.
+El modo blind close para vendedores no debe ver el efectivo esperado, pero `expectedCash` se envía en los props de Inertia y es visible en DevTools.
 
-**Archivos afectados:**
-- `app/Http/Controllers/SaleController.php` — método `store()` y método `completePending()`
-
-**Fix a implementar:**
-- Dentro del `DB::transaction()`, al momento de descontar el stock, usar `Product::lockForUpdate()->find($id)` para adquirir un bloqueo de fila a nivel de base de datos. MySQL garantiza que ninguna otra transacción puede leer o modificar esa fila hasta que la transacción actual termine (commit o rollback).
-- Verificar nuevamente el stock disponible DENTRO de la transacción (no solo en el pre-check exterior). Si el stock ya no alcanza, lanzar una excepción para que la transacción haga rollback y retornar el error al usuario con el nombre del producto y el stock disponible real.
-- El pre-check exterior (líneas 146-159) puede mantenerse como validación rápida de UX, pero NO como garantía de integridad — esa garantía la da el `lockForUpdate` interno.
-- Aplicar el mismo patrón en `completePending()` ya que tiene la misma vulnerabilidad al convertir una cotización en venta.
+**Fix:** Cuando `$isBlind === true`, no incluir `expectedCash` en los props. Calcular la discrepancia únicamente en el backend al recibir el cierre.
 
 ---
 
-### ✅ C2 — Devoluciones duplicadas sin protección
-**Resuelto (2026-03-16)**
+### B2 — Sin rate limiting en búsqueda de productos
+**Archivo:** `routes/products.php` (o donde esté `GET /products/search`)
 
-**Frontend:** `SaleReturnForm.tsx` ya tenía `loading` state que deshabilita el botón submit durante el request — protege contra doble clic.
+El endpoint de búsqueda no tiene throttle. Un actor malicioso podría saturar el servidor.
 
-**Backend (`SaleReturnController::store()`):**
-- **Deduplicación:** antes de crear la devolución, busca un `SaleReturn` para esa venta en los últimos 30 segundos con los mismos `product_id` y `quantity`. Si existe, retorna `back()->with('success', ...)` silenciosamente (idempotente).
-- **`lockForUpdate()`** en `Product::find()` dentro de la transacción — mismo patrón que C1.
-- Migrado de `DB::beginTransaction/commit/rollBack` manual a `DB::transaction()` callback.
-- Excepciones: `\RuntimeException` en lugar de `\Exception` genérica.
+**Fix:** Agregar `throttle:60,1` a la ruta de búsqueda.
 
 ---
 
-### C3 — Motivo de devolución no es requerido - No Necesario para procesar la devolución, pero crítico para análisis de datos
-**Severidad: Alta**
+### B1 — Modal de recibo de devolución no resetea `returnId` al cerrar
+**Archivo:** `resources/js/pages/sales/show.tsx`
 
-El campo `reason` en la tabla `sale_returns` es `nullable`. Sin motivo registrado, el administrador no puede analizar qué está fallando: ¿son productos defectuosos?, ¿errores del vendedor al cobrar?, ¿cambios de opinión del cliente? Es imposible tomar decisiones de compra o de proceso basadas en los datos.
+Al cerrar el modal, `returnId` queda con el valor anterior. Si se abre otro rápidamente puede cargar el recibo anterior por un instante.
 
-**Fix a implementar:**
-
-*Backend (`app/Http/Controllers/SaleReturnController.php`):*
-- Cambiar la validación de `reason` a `'reason' => 'required|string|max:500'`.
-
-*Frontend — modal de devolución:*
-- Reemplazar el campo de texto libre actual por un selector con opciones predefinidas:
-  - *Defecto de fábrica*
-  - *Producto incorrecto entregado*
-  - *Producto vencido o en mal estado*
-  - *Cliente cambió de opinión*
-  - *Error en el precio cobrado*
-  - *Otro*
-- Si el usuario selecciona **"Otro"**, mostrar un campo de texto libre adicional que también sea requerido (no puede quedar vacío si eligió "Otro").
-- El valor final que se envía al backend es la opción seleccionada, o el texto libre si eligió "Otro".
+**Fix:** En el handler `onClose`, resetear a `{ open: false, returnId: undefined }`.
 
 ---
 
-### ✅ C4 — Error genérico al completar cotización con stock insuficiente
-**Resuelto (2026-03-16)**
+## 📋 Funcionalidades pendientes
 
-**Backend (`completePending()`):** El pre-check de stock ahora itera todos los productos, recolecta todos los fallos y retorna un error por producto con clave `stock_{product_id}` y mensaje `"Nombre: necesitas N, solo hay M disponible"`. Esto también corrige un bug latente donde `$product->name` podía lanzar fatal error si el producto era null.
+### F0 — Auto-formato de inputs monetarios (COP)
+**Prioridad: Alta**
 
-**Frontend:** El `onError` del POS ya muestra `Object.values(errors).forEach(toast.error)` — cada producto fallido aparece como un toast individual. El vendedor puede ajustar cantidades directamente en el carrito (ya cargado) o cancelar la cotización con el botón "Cancelar" del banner.
+Todos los inputs que reciben valores en pesos colombianos muestran el número crudo (ej. `123000`). Deben formatearse automáticamente con separador de miles mientras el usuario escribe (ej. `123.000`), siguiendo el locale `es-CO`.
 
----
+**Inputs afectados (inventario inicial):**
+- POS → fondo inicial al abrir caja (`openingAmount`)
+- POS → ingresos/egresos de caja (`movementAmount`)
+- Cierre de caja → monto declarado y denominaciones (`closing_amount_declared`, `denomCounts`, `coins`)
+- Productos → precio de venta y precio de compra (`sale_price`, `purchase_price`)
+- Clientes → descuento especial cuando se implemente F1
+- Cualquier campo `type="number"` que represente COP en formularios del sistema
 
-## Mejoras de UX (día a día del vendedor)
-
-### ✅ U1 — Búsqueda de productos limitada a 30 resultados
-**Resuelto (2026-03-16)**
-
-- Límite: 30 → **50**.
-- Ordenamiento: código exacto primero (escaneo de barcode), luego nombre empieza con el término, luego alfabético. Implementado con `orderByRaw('CASE WHEN ... END')`.
-- Validación: `min:1` en vez de `min:2` (permite búsqueda por 1 carácter para códigos cortos).
-- Filtro opcional `category_id` añadido al endpoint `api.products.search`.
-- **PosController:** pasa `categories` al frontend.
-- **POS frontend:** chips de categoría debajo del campo de búsqueda (estilo pill, naranja cuando seleccionado). La categoría se limpia automáticamente cuando el usuario borra el query.
-
----
-
-### ✅ U2 — Sin filtro de estado en reportes (mezcla completadas/canceladas)
-**Resuelto (2026-03-16)**
-
-- **Frontend (`reports/index.tsx`):** Selector "Estado" con opciones Completadas / Pendientes / Canceladas / Todas. Default: Completadas. El valor se pasa como `?status=...` en la URL al aplicar filtros.
-- **Backend (`ReportController`):** Nuevo manejo de `status=all` — omite el `WHERE sales.status` para mostrar todos los estados. Sin valor → sigue defaulteando a `completed`.
+**Implementación sugerida:**
+- Crear hook `useCurrencyInput(initialValue?)` que retorne `{ displayValue, numericValue, onChange }`:
+  - `displayValue`: string formateado con puntos (`123.000`)
+  - `numericValue`: número puro para enviar al backend (`123000`)
+  - `onChange`: handler que acepta el evento, limpia caracteres no numéricos y re-formatea
+- El input debe ser `type="text"` con `inputMode="numeric"` (evita las flechas de number y el comportamiento nativo que interfiere con el formato)
+- Al hacer focus: opcionalmente mostrar solo el número sin formato para facilitar edición
+- Al perder focus (blur): siempre mostrar con formato
 
 ---
 
-### ✅ U3 — Formato de fechas inconsistente en la app
-**Resuelto (2026-03-16)**
+### C3 — Motivo de devolución no requerido
+**Prioridad: Alta**
 
-- Creado `resources/js/lib/format.ts` con `formatDate`, `formatDateTime`, `formatTime`, `formatCurrency` — todas con locale `es-CO`, timezone `America/Bogota`, retornan `'—'` para null/undefined.
-- Reemplazados los usos inconsistentes en: `sales/index.tsx`, `sales/show.tsx`, `products/show.tsx`, `users/show.tsx`, `cash-sessions/show.tsx`, `cash-sessions/index.tsx`, `cash-sessions/close.tsx`.
+El campo `reason` es nullable, imposibilitando análisis de causas de devolución.
 
----
+**Fix backend:** `'reason' => 'required|string|max:500'` en `SaleReturnController`.
 
-### ✅ U4 — El código en ficha de producto no tiene descarga ni instrucciones claras
-**Resuelto (2026-03-16)**
-
-- `products/show.tsx`: QR tiene `id="product-qr"`. Botón "Descargar PNG" usa `XMLSerializer` + `<canvas>` para exportar el SVG como PNG (256×256, fondo blanco).
-- Texto de ayuda: "Escanea para agregar al POS".
-
----
-
-### ✅ U5 — Sin skeleton loaders en búsquedas y cargas
-**Resuelto (2026-03-16)**
-
-- `Table` component: nueva prop `loading` (+ `skeletonRows=8`). Cuando `loading=true` renderiza filas skeleton con `<Skeleton className="h-4 w-full" />` por cada celda, en lugar del overlay spinner.
-- `sales/index.tsx` y `products/index.tsx`: removido el overlay spinner, pasado `loading={isSearching}` al Table. También agregadas tarjetas skeleton para la vista móvil.
+**Fix frontend (`SaleReturnForm.tsx`):** Reemplazar textarea libre por selector con opciones:
+- Defecto de fábrica
+- Producto incorrecto entregado
+- Producto vencido o en mal estado
+- Cliente cambió de opinión
+- Error en el precio cobrado
+- Otro → campo de texto obligatorio adicional
 
 ---
-
-## Funcionalidades faltantes para el negocio
 
 ### F1 — Descuentos por cliente (precio especial / mayorista)
 **Prioridad: Alta**
 
-El sistema solo permite descuentos manuales por venta. No hay forma de marcar a un cliente como mayorista y que cada vez que se le venda, el descuento se aplique automáticamente. El vendedor tiene que recordar qué clientes tienen descuento y aplicarlo a mano — lo que lleva a errores (olvidar el descuento o aplicarlo donde no corresponde).
+No hay forma de marcar clientes mayoristas con descuento automático. El vendedor tiene que aplicarlo a mano en cada venta.
 
-**Propuesta de implementación:**
-- Agregar columna `discount_pct DECIMAL(5,2) DEFAULT NULL` en la tabla `clients`. Null significa sin descuento especial; un valor entre 0 y 100 indica el porcentaje que siempre se le aplica.
-- En el formulario de crear/editar cliente, agregar campo **"Descuento especial (%)"** visible solo para administrador y encargado (vendedor no puede establecer descuentos de cliente).
-- En el POS, al seleccionar un cliente que tenga `discount_pct`, aplicar ese descuento automáticamente en el campo de descuento de la venta. El tipo debe quedar en `percentage` y el valor en el porcentaje configurado.
-- El vendedor puede ver el descuento aplicado y eliminarlo si es necesario (con confirmación), pero no puede aumentarlo por encima del porcentaje configurado para ese cliente.
-- Mostrar un badge o indicador junto al nombre del cliente en el POS cuando tiene descuento especial: *"Cliente VIP — 15% dto."*
+**Implementación:**
+- Columna `discount_pct DECIMAL(5,2) DEFAULT NULL` en `clients`
+- Campo "Descuento especial (%)" en crear/editar cliente (solo admin y encargado)
+- En POS: al seleccionar cliente con `discount_pct`, aplicar automáticamente en el campo de descuento
+- Badge en el POS: *"Cliente VIP — 15% dto."* junto al nombre del cliente
+- El vendedor puede ver pero no aumentar el descuento por encima del configurado
 
 ---
 
 ### F2 — Transferencia de stock entre sucursales
 **Prioridad: Alta**
 
-No existe mecanismo para mover inventario de Sucursal A a Sucursal B. Actualmente hay que hacer un ajuste manual de salida en A y otro de entrada en B por separado, sin ningún vínculo entre ellos. No hay forma de saber que el stock que entró en B provino de A.
+No existe mecanismo para mover inventario entre sucursales de forma vinculada y auditable.
 
-**Propuesta de implementación:**
-- Nueva tabla `stock_transfers`: `id, origin_branch_id, destination_branch_id, requested_by, status (draft/confirmed/cancelled), notes, created_at`.
-- Nueva tabla `stock_transfer_items`: `transfer_id, product_id, quantity`.
-- Nueva sección **"Transferencias"** dentro del módulo de inventario, accesible para encargado y administrador.
-- Flujo: el encargado crea una transferencia seleccionando origen, destino, productos y cantidades → el sistema valida que haya stock suficiente en origen → al confirmar, se descuenta de origen y se incrementa en destino en una sola `DB::transaction()`.
-- Ambos movimientos deben registrarse en `stock_movements` con `type = 'transfer_out'` y `type = 'transfer_in'` respectivamente, usando el ID de la transferencia como `reference` para el vínculo cruzado.
-- Si una transferencia se cancela después de confirmada, debe generarse el movimiento inverso (devolver stock a origen).
-
----
-
-### F3 — Devolución al proveedor / baja de inventario
-**Prioridad: Alta**
-
-No hay forma de registrar formalmente productos dañados, vencidos, robados o devueltos al proveedor. Hoy el encargado hace un ajuste de stock manual sin motivo, lo que hace el inventario imposible de auditar: ¿por qué bajó el stock de 50 a 43? No hay forma de saberlo.
-
-**Propuesta de implementación:**
-- Agregar nuevo tipo de movimiento en `StockMovement`: `write_off` (baja de inventario).
-- Nueva pantalla o modal **"Registrar baja"** en la ficha de producto, accesible solo para encargado y administrador.
-- El formulario solicita: producto, cantidad, motivo (selector):
-  - *Vencimiento / fecha caducada*
-  - *Daño físico o deterioro*
-  - *Devolución a proveedor*
-  - *Robo o pérdida*
-  - *Otro* (con campo de texto obligatorio)
-- Opcionalmente: número de remisión o referencia del proveedor (para devoluciones al proveedor).
-- En el historial de movimientos de stock, los `write_off` deben mostrarse con ícono distinto (ej: papelera o X roja) y el motivo visible sin tener que abrir detalle.
-- El modelo `StockMovement` ya tiene `notes` para guardar el motivo; el `type_label` debe incluir el caso `'write_off' => 'Baja'`.
+**Implementación:**
+- Nueva tabla `stock_transfers`: `id, origin_branch_id, destination_branch_id, requested_by, status (draft/confirmed/cancelled), notes, timestamps`
+- Nueva tabla `stock_transfer_items`: `transfer_id, product_id, quantity`
+- Sección "Transferencias" en el módulo de inventario (admin + encargado)
+- Al confirmar: `DB::transaction()` descuenta de origen e incrementa en destino
+- Registrar en `stock_movements` como `transfer_out` / `transfer_in` con `reference` = ID de la transferencia
+- Cancelación post-confirmación genera movimiento inverso
 
 ---
 
 ### F4 — Historial de precios de productos
 **Prioridad: Media**
 
-Si el precio de venta de un producto sube de $10.000 a $15.000, no queda ningún registro de cuándo ocurrió, quién lo cambió, ni cuál era el precio anterior. Esto genera problemas cuando un cliente reclama haber pagado más o cuando el administrador quiere entender por qué los márgenes cambiaron.
+Cambios de precio no dejan rastro: quién lo cambió, cuándo, y cuánto era antes.
 
-**Propuesta de implementación:**
-- Nueva tabla `product_price_history`: `id, product_id, field (sale_price|purchase_price), old_value, new_value, changed_by (user_id), changed_at`.
-- Registrar automáticamente mediante un observer de Eloquent (`ProductObserver`) que se dispara en el evento `updating` cuando `sale_price` o `purchase_price` cambian.
-- En la ficha del producto (`products/show.tsx`), agregar una sección colapsable **"Historial de precios"** que muestre una tabla con: fecha, campo modificado, precio anterior, precio nuevo, usuario que lo cambió.
-- Solo visible para administrador y encargado.
+**Implementación:**
+- Nueva tabla `product_price_history`: `id, product_id, field (sale_price|purchase_price), old_value, new_value, changed_by, changed_at`
+- Observer `ProductObserver` en evento `updating` cuando cambia `sale_price` o `purchase_price`
+- Sección colapsable "Historial de precios" en `products/show.tsx` (solo admin + encargado)
 
 ---
 
 ### F5 — Auditoría de cambios en ventas
 **Prioridad: Media**
 
-Un administrador puede cambiar el estado de una venta (de `completed` a `cancelled`), modificar el total o editar datos sin dejar rastro. No hay forma de saber si alguien alteró una venta después de haberse registrado, lo que abre la puerta a fraude interno o errores sin responsabilidad.
+Un admin puede modificar o cancelar ventas sin dejar rastro. Abre la puerta a fraude interno.
 
-**Propuesta de implementación:**
-- Evaluar `spatie/laravel-activity-log` como primera opción (ya bien integrado con Laravel, genera logs automáticos en modelos con un trait). Si agrega demasiado peso o complejidad, usar tabla propia `sale_audit_log`.
-- Campos a registrar: `sale_id, user_id, action (update|cancel|refund), field_changed, old_value, new_value, ip_address, created_at`.
-- Registrar cambios en: estado, total, método de pago, y cualquier edición de ítems.
-- En la ficha de venta (`sales/show.tsx`), agregar sección **"Auditoría"** visible solo para administrador, con tabla cronológica de todos los cambios.
+**Implementación:**
+- Evaluar `spatie/laravel-activity-log`; si es excesivo, tabla propia `sale_audit_log`
+- Campos: `sale_id, user_id, action, field_changed, old_value, new_value, ip_address, created_at`
+- Registrar cambios de: estado, total, método de pago, ítems
+- Sección "Auditoría" en `sales/show.tsx` (solo admin)
 
 ---
 
 ### F6 — Impresión de etiquetas de precio / código
 **Prioridad: Media**
 
-Cuando el precio de un producto cambia, el encargado debe imprimir etiquetas nuevas manualmente en otro sistema (Word, etiquetador, etc.). No hay integración con la impresora térmica del negocio para esto.
+Al cambiar precios, el encargado debe imprimir etiquetas en otro sistema externo.
 
-**Nota:** El tipo de código a imprimir en la etiqueta (QR o código de barras CODE128) debe ser consistente con lo que se decida implementar en la ficha del producto (ver U4). El backend ya soporta ambos formatos via `PrintController`.
-
-**Propuesta de implementación:**
-- Botón **"Imprimir etiqueta"** en la ficha del producto, accesible para encargado y administrador.
-- La etiqueta incluye: nombre del producto (máx. 2 líneas), precio de venta formateado en COP, código del producto, y el QR o código de barras del código.
-- Formato de papel: compatible con impresora térmica de 58mm ya configurada via QZ Tray.
-- Opcionalmente: al seleccionar múltiples productos en el listado, botón **"Imprimir etiquetas seleccionadas"** que envía todas en una sola impresión.
-- El endpoint de impresión seguiría el mismo patrón que `GET /print/receipt/{id}` → devuelve base64 → el frontend lo envía a QZ Tray.
+**Implementación:**
+- Botón "Imprimir etiqueta" en ficha de producto (admin + encargado)
+- Etiqueta: nombre del producto, precio en COP, código, QR/barcode
+- Compatible con impresora térmica 58mm vía QZ Tray (misma infraestructura que `GET /print/receipt/{id}`)
+- Opcional: selección múltiple en listado → "Imprimir etiquetas seleccionadas"
 
 ---
 
-### F7 — Alerta si una sesión de caja lleva demasiado tiempo abierta
+### F7 — Alerta de sesión de caja abierta demasiado tiempo
 **Prioridad: Baja**
 
-Un vendedor puede abrir caja a las 8 AM y olvidarse de cerrarla. Al día siguiente abre otra sesión sin haber cerrado la anterior (o no puede, dependiendo de la configuración). No hay ninguna señal visual que indique que algo está mal.
+Un vendedor puede olvidar cerrar la caja. No hay señal visual de que algo está mal.
 
-**Propuesta de implementación:**
-- En el POS, al cargar la página, verificar si la sesión activa tiene `opened_at` con más de **10 horas** de antigüedad.
-- Si es así, mostrar un banner amarillo no bloqueante en la parte superior: *"La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno anterior?"* con botón para ir al cierre de caja.
-- El banner debe desaparecer si el usuario lo cierra manualmente (persiste con `sessionStorage` para no repetirse en la misma pestaña).
-- El umbral de 10 horas puede hacerse configurable desde la configuración del negocio en el futuro.
+**Implementación:**
+- Al cargar el POS: si `session.opened_at` tiene más de 10 horas, mostrar banner amarillo no bloqueante
+- Texto: *"La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno anterior?"* + link al cierre
+- Persistir dismiss en `sessionStorage` para no repetirse en la misma sesión de navegador
 
 ---
 
 ### F8 — Confirmación de discrepancia alta al cerrar caja
 **Prioridad: Media**
 
-Si un vendedor ingresa un conteo de efectivo incorrecto al cerrar caja (ej: $500.000 de diferencia por un error de digitación), el sistema lo registra sin ninguna advertencia. La discrepancia queda guardada como si fuera intencional, y solo el administrador lo nota al revisar el historial.
+Errores de digitación en el conteo de cierre se guardan sin advertencia.
 
-**Propuesta de implementación:**
-- Al calcular la discrepancia en el frontend del cierre de caja, si el valor absoluto supera un umbral (sugerido: **$50.000 COP** o **5% del total de ventas en efectivo**, lo que sea mayor), mostrar un modal de confirmación antes de enviar.
-- El modal muestra: *"La diferencia de cierre es de $X. Esto es inusualmente alto. ¿Confirmas que el conteo es correcto?"* con botones **Revisar conteo** y **Confirmar de todas formas**.
-- El umbral debe ser configurable desde la configuración del negocio (`business_settings`), campo `cash_discrepancy_threshold`, con valor por defecto de $50.000.
-- Si el admin revisa el historial y ve una discrepancia muy alta registrada sin confirmación explícita, no hay forma de distinguirlo. Por eso la confirmación debe quedar registrada en `cash_sessions` con un campo `discrepancy_confirmed: boolean`.
-
----
-
-## Bugs menores / inconsistencias técnicas
-
-### B1 — `showReturnReceipt` no resetea `returnId` al cerrar
-**Archivo:** `resources/js/pages/sales/show.tsx`
-
-El estado que controla el modal del recibo de devolución guarda el `returnId` del recibo que se abrió. Al cerrar el modal solo se cambia `open: false`, pero `returnId` queda con el valor anterior. Si el usuario abre otro recibo de devolución rápidamente (ej: haciendo clic antes de que el componente se limpie), existe el riesgo de que por un instante se intente cargar el recibo anterior mientras el nuevo aún no cargó.
-
-**Fix:** En el handler `onClose` del modal, resetear el estado completo: `{ open: false, returnId: undefined }` en lugar de solo `{ open: false }`.
+**Implementación:**
+- Si discrepancia > $50.000 COP o > 5% del total en efectivo (lo que sea mayor): modal de confirmación antes de enviar
+- Texto: *"La diferencia de cierre es de $X. ¿Confirmas que el conteo es correcto?"* + botones "Revisar" / "Confirmar"
+- Campo `discrepancy_confirmed: boolean` en `cash_sessions` para auditabilidad
+- Umbral configurable desde `business_settings` → campo `cash_discrepancy_threshold`
 
 ---
 
-### B2 — Sin rate limiting en búsqueda de productos
-**Archivo:** `routes/web.php` o el archivo de rutas donde esté registrado `GET /products/search`
+## 🔧 Calidad y mantenibilidad
 
-El endpoint de búsqueda no tiene ningún throttle. Un actor malicioso o un bug de frontend (loop infinito de requests) podría saturar el servidor con cientos de queries por segundo, afectando a todos los usuarios de todas las sucursales.
-
-**Fix:** Agregar `throttle:60,1` al middleware de la ruta de búsqueda (60 requests por minuto por IP). En Laravel esto se configura en la definición de la ruta o en un grupo de rutas. Dado que el POS hace búsquedas en tiempo real con debounce, 60 requests/min es más que suficiente para uso normal.
-
----
-
-### B3 — Cierre ciego de caja expone `expectedCash` al frontend
-**Archivo:** `app/Http/Controllers/CashSessionController.php` — método `closeForm()`
-
-El modo "blind close" para vendedores está diseñado para que no vean el efectivo esperado antes de ingresar su conteo (para evitar que ajusten el número). Sin embargo, `expectedCash` se envía igual en los props de Inertia y puede verse abriendo las DevTools del navegador → pestaña Network → respuesta de la página.
-
-**Fix:** En el controlador, cuando `$isBlind === true`, no incluir `expectedCash` en los props enviados a la vista. El valor real se puede calcular en el backend al momento de recibir el cierre, comparándolo con el conteo enviado por el vendedor. De esta forma el número nunca toca el cliente.
+| Tarea | Prioridad | Descripción |
+|-------|-----------|-------------|
+| **Tests automatizados** | Alta | Flujos críticos con Pest PHP: crear venta, validar stock, devolución, abrir/cerrar caja |
+| **Refactorizar ReportController** | Media | +2000 líneas, excluido de Larastan. Dividir en `SalesReportService`, `StockReportService`, etc. |
+| **Caché de datos estáticos** | Media | Métodos de pago, categorías y configuración del negocio: `Cache::remember()` con TTL 5 min |
+| **Índices DB** | Media | Índice compuesto `(status, created_at)` en `sales` para acelerar queries de reportes |
 
 ---
 
-## Calidad y mantenibilidad
+## 🗺️ Roadmap futuro
 
-- [ ] **Tests básicos** — flujos críticos: crear venta, validar stock, procesar devolución, abrir/cerrar caja. Usar Pest PHP ya incluido en Laravel.
-- [ ] **Refactorizar `ReportController`** — archivo masivo (+2000 líneas), dividir en clases de servicio por tipo de reporte (`SalesReportService`, `StockReportService`, etc.). Actualmente está excluido del análisis de Larastan.
-- [ ] **Caché** — datos poco cambiantes como métodos de pago, categorías y configuración del negocio se consultan en cada request. Agregar `Cache::remember()` con TTL de 5 minutos.
-- [ ] **Índices DB** — agregar índices compuestos en `(status, created_at)` en la tabla `sales` para acelerar queries de reportes que filtran por estado y rango de fecha.
-
----
-
-## Módulo de Proveedores
-
-> **Estado (2026-03-16):** Módulo completo ✅
-
-### Infraestructura existente que se puede aprovechar
-
-- `stock_movements.unit_cost` — ya registra costo por unidad en entradas de stock
-- `stock_movements.reference` — campo de texto libre, se migrará a relación FK
-- `products.purchase_price` — precio de compra a nivel de producto (no por proveedor)
-- `StockMovementService` — servicio centralizado que se extenderá con el `supplier_id`
-
----
-
-### ✅ P1 — CRUD de Proveedores (base del módulo)
-**Estado: Resuelto**
-
-**Base de datos — nueva tabla `suppliers`:**
-```sql
-id, name, contact_name, phone, email, tax_id (NIT/RUT),
-address, payment_terms (días), notes, is_active (bool), timestamps
-```
-
-**Archivos a crear:**
-- `app/Models/Supplier.php` — relaciones: `hasMany(StockMovement)`, `belongsToMany(Product)` via pivot
-- `database/migrations/..._create_suppliers_table.php`
-- `app/Http/Controllers/SupplierController.php` — index, create, store, edit, update, destroy
-- `routes/suppliers.php` — rutas resource con middleware `role:administrador,encargado`
-- `resources/js/pages/suppliers/index.tsx` — listado con búsqueda, paginación
-- `resources/js/pages/suppliers/create.tsx` — formulario de alta
-- `resources/js/pages/suppliers/edit.tsx` — formulario de edición
-- `resources/js/pages/suppliers/show.tsx` — detalle con historial de compras y productos asociados
-
-**Sidebar:** Agregar ítem "Proveedores" con ícono `Truck` en el menú, visible para `administrador` y `encargado`.
-
----
-
-### ✅ P2 — Relación Producto ↔ Proveedor
-**Estado: Resuelto**
-
-**Base de datos — nueva tabla pivot `product_supplier`:**
-```sql
-product_id (FK), supplier_id (FK),
-supplier_sku (string, nullable) — código del producto en el catálogo del proveedor,
-cost_price (decimal 10,2, nullable) — precio acordado con ese proveedor,
-is_preferred (bool, default false) — proveedor preferido para este producto,
-timestamps
-PRIMARY KEY (product_id, supplier_id)
-```
-
-**Archivos a modificar:**
-- `app/Models/Product.php` — agregar `suppliers(): BelongsToMany` con pivot `supplier_sku, cost_price, is_preferred`
-- `app/Models/Supplier.php` — agregar `products(): BelongsToMany`
-- `resources/js/pages/products/edit.tsx` — sección "Proveedores" con selector multi-proveedor, campo de SKU por proveedor y costo acordado
-- `resources/js/pages/suppliers/show.tsx` — tabla de productos asociados con sus SKUs y costos
-
----
-
-### ✅ P3 — Integración con Movimientos de Stock (entradas desde proveedor)
-**Estado: Resuelto**
-
-**Base de datos — cambios en `stock_movements`:**
-```sql
--- Agregar columna:
-supplier_id (FK → suppliers.id, nullable) — solo para type='in' o type='supplier_return'
-
--- Extender enum type:
-ALTER TABLE stock_movements MODIFY type ENUM('in','out','adjustment','write_off','supplier_return')
-```
-
-**Archivos a modificar:**
-- `database/migrations/..._add_supplier_to_stock_movements.php` — nueva migración (no alterar la original)
-- `app/Models/StockMovement.php`:
-  - Agregar `supplier_id` a `$fillable`
-  - Agregar `supplier(): BelongsTo(Supplier)`
-  - Extender `getTypeLabelAttribute()`: `'write_off' => 'Baja'`, `'supplier_return' => 'Devolución a proveedor'`
-  - Extender `getTypeColorAttribute()`: colores para los nuevos tipos
-- `app/Http/Controllers/StockMovementController.php`:
-  - Validación: `'type' => 'required|in:in,out,adjustment,write_off,supplier_return'`
-  - Validación: `'supplier_id' => 'nullable|exists:suppliers,id'`
-  - En `store()`: pasar `supplier_id` a `StockMovementService::record()`
-- `app/Services/StockMovementService.php` — agregar parámetro `?int $supplierId = null` a `record()`
-- `resources/js/pages/stock-movements/create.tsx`:
-  - Agregar tipo `'supplier_return'` al selector de tipo
-  - Cuando `type === 'in'` o `type === 'supplier_return'`: mostrar selector de proveedor (async search similar al selector de cliente en POS)
-  - El selector busca en `/api/suppliers?q=...` y retorna id + name
-
-**Nuevo endpoint API:**
-```php
-// routes/api.php
-Route::get('/suppliers/search', [SupplierController::class, 'search']); // retorna JSON
-```
-
----
-
-### ✅ P4 — Historial de compras por proveedor
-**Estado: Resuelto**
-
-**En `suppliers/show.tsx`:**
-- Sección "Historial de compras" con tabla:
-  - Fecha, producto, cantidad, costo unitario, total, registrado por
-  - Filtro por rango de fechas
-  - Total invertido con ese proveedor en el período
-- Sección "Productos asociados" con tabla:
-  - Nombre, SKU del proveedor, costo acordado, proveedor preferido (toggle), stock actual
-- Indicador: "Último pedido hace X días"
-
-**Backend — nuevo método en `SupplierController`:**
-```php
-public function show(Supplier $supplier) {
-    $movements = StockMovement::where('supplier_id', $supplier->id)
-        ->with('product', 'user')
-        ->latest()
-        ->paginate(20);
-    // ...
-}
-```
-
----
-
-### ✅ P5 — Devoluciones al proveedor / F3 write_off
-**Estado: Resuelto**
-
-Este item extiende F3 (baja de inventario) con el contexto del proveedor:
-
-- Cuando el motivo en F3 es "Devolución a proveedor", el campo `supplier_id` pasa a ser **obligatorio**
-- El movimiento se registra como `type='supplier_return'` en lugar de `type='write_off'`
-- En el historial del proveedor aparece como "Devolución" (con ícono distinto, ej: `RotateCcw` rojo)
-- El campo `reference` puede capturar el número de remisión de devolución al proveedor
-- La pantalla de devolución al proveedor es la misma de F3 pero con el campo de proveedor visible y requerido
-
----
-
-### Orden de implementación recomendado
-
-```
-P1 (CRUD proveedores) → P2 (relación producto-proveedor) → P3 (stock_movements) → F3 (write_off/baja) → P4 (historial) → P5 (devoluciones)
-```
-
-P1 y P2 son independientes del resto del sistema y se pueden desarrollar en paralelo. P3 depende de P1 (necesita supplier_id). F3 puede hacerse antes o después de P3 (solo agrega write_off sin proveedor).
-
----
-
-## Roadmap futuro
-
-- [ ] Lector de código de barras (USB/Bluetooth) — búsqueda por código en POS sin teclado
-- [ ] Cuentas por cobrar — ventas a crédito con seguimiento de pagos parciales
-- [ ] Balance por sucursal — efectivo esperado en caja al cierre del día
-- [ ] PWA / app móvil para vendedores en campo
-- [ ] Factura electrónica DIAN (Colombia)
-- [ ] Búsqueda full-text (Meilisearch) para catálogos grandes
-- [ ] Órdenes de compra (PO) — documentos formales vinculados a proveedores y entradas de stock
+| Feature | Descripción |
+|---------|-------------|
+| Descuentos escalonados / por volumen | Precio diferente según cantidad comprada |
+| Cuentas por cobrar | Ventas a crédito con seguimiento de pagos parciales |
+| Órdenes de compra (PO) | Documento formal de compra vinculado a proveedor y entrada de stock |
+| Impresión de etiquetas masiva | Integración con impresoras de etiquetas (Zebra, etc.) |
+| Factura electrónica DIAN | Requisito legal Colombia — integración con proveedor autorizado |
+| Balance por sucursal | Efectivo esperado en caja al cierre del día por sucursal |
+| Split payment | Pago dividido en múltiples métodos en una misma venta |
+| PWA / app móvil | Para vendedores en campo, con soporte offline básico |
+| Búsqueda full-text | Meilisearch para catálogos grandes (+10.000 productos) |
+| Lector de barras USB/Bluetooth | Sin necesidad de teclado en el POS |
+| Customer-facing display | Pantalla del cliente mostrando el carrito en tiempo real |
+| Receipt email/SMS | Envío del recibo digital al cliente tras la venta |
