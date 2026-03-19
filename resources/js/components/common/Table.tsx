@@ -20,6 +20,7 @@ interface TableProps<T> {
     tdClassName?: string;
     emptyMessage?: React.ReactNode;
     children?: React.ReactNode;
+    'aria-label'?: string;
 }
 
 export function Table<T extends object>({
@@ -35,9 +36,10 @@ export function Table<T extends object>({
     tdClassName = 'px-4 py-3 text-sm',
     emptyMessage = <p className="text-muted-foreground">No se encontraron resultados</p>,
     children,
+    'aria-label': ariaLabel,
 }: TableProps<T>) {
     return (
-        <table className={className}>
+        <table className={className} aria-label={ariaLabel}>
             <thead className={theadClassName}>
                 <tr className="border-b text-left">
                     {columns.map((col) => (

@@ -10,7 +10,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, Plus, Search, X } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Equal, Eye, Package, Plus, RotateCcw, Search, ShoppingCart, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface StockMovement {
@@ -126,6 +126,19 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         }
     };
 
+    const getTypeIcon = (type: string) => {
+        const cls = 'mr-1 inline h-3 w-3';
+        switch (type) {
+            case 'in':             return <ArrowDownCircle className={cls} />;
+            case 'out':            return <ArrowUpCircle className={cls} />;
+            case 'adjustment':     return <Equal className={cls} />;
+            case 'purchase':       return <ShoppingCart className={cls} />;
+            case 'write_off':      return <Trash2 className={cls} />;
+            case 'supplier_return':return <RotateCcw className={cls} />;
+            default:               return <Package className={cls} />;
+        }
+    };
+
     const columns: Column<StockMovement>[] = [
         {
             key: 'movement_date',
@@ -144,7 +157,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'type',
             title: 'Tipo',
-            render: (value) => <Badge className={getTypeColor(value as string)}>{getTypeLabel(value as string)}</Badge>,
+            render: (value) => <Badge className={getTypeColor(value as string)}>{getTypeIcon(value as string)}{getTypeLabel(value as string)}</Badge>,
         },
         {
             key: 'quantity',
@@ -306,7 +319,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                     <CardContent>
                         {/* Vista tabla en md+ */}
                         <div className="hidden md:block">
-                            <Table columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos de stock" />
+                            <Table aria-label="Movimientos de stock" columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos de stock" />
                         </div>
 
                         {/* Vista tarjetas en móvil */}
@@ -333,7 +346,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                     <div className="text-xs text-neutral-500 dark:text-neutral-400">{movement.product.code}</div>
                                                 </div>
                                             </div>
-                                            <Badge className={getTypeColor(movement.type)}>{getTypeLabel(movement.type)}</Badge>
+                                            <Badge className={getTypeColor(movement.type)}>{getTypeIcon(movement.type)}{getTypeLabel(movement.type)}</Badge>
                                         </div>
 
                                         <div className="mb-2 space-y-1">

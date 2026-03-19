@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePrinter } from '@/hooks/use-printer';
+import { useSound } from '@/hooks/use-sound';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
@@ -338,6 +339,7 @@ export default function PosIndex({
 
     // Printer
     const printer = usePrinter();
+    const { play: playSound } = useSound();
 
     // Track the last sale ID we've already printed to avoid double-printing
     const lastPrintedSaleId = useRef<number | null>(null);
@@ -401,6 +403,7 @@ export default function PosIndex({
     // --- Cart helpers ---
     const addToCart = useCallback((product: Product, qty = 1) => {
         if (product.stock <= 0) {
+            playSound('error');
             toast.error('Sin stock disponible');
             return;
         }
@@ -409,15 +412,22 @@ export default function PosIndex({
             if (idx !== -1) {
                 const updated = [...prev];
                 const newQty = Math.min(updated[idx].quantity + qty, product.stock);
+                if (newQty === updated[idx].quantity) {
+                    playSound('warning');
+                    toast.error('Stock máximo alcanzado');
+                    return prev;
+                }
                 updated[idx] = { ...updated[idx], quantity: newQty, subtotal: newQty * product.sale_price };
+                playSound('success');
                 return updated;
             }
+            playSound('success');
             return [{ product, quantity: qty, subtotal: qty * product.sale_price }, ...prev];
         });
         setQuery('');
         setResults([]);
         setTimeout(() => searchRef.current?.focus(), 0);
-    }, []);
+    }, [playSound]);
 
     const updateQty = (productId: number, qty: number) => {
         setCart((prev) =>
@@ -488,8 +498,30 @@ export default function PosIndex({
             return;
         }
 
+        const saleChange = paymentMethod === 'cash' ? change : 0;
+
         const onSuccess = (page: { props: unknown }) => {
-            toast.success('¡Venta registrada!');
+            const pageFlash = (page.props as unknown as SharedData).flash;
+            const saleId = pageFlash?.last_sale_id;
+            const saleCode = pageFlash?.last_sale_code;
+
+            // Toast with change amount and link to sale
+            const lines: string[] = ['¡Venta registrada!'];
+            if (saleCode) lines.push(`Código: ${saleCode}`);
+            if (saleChange > 0) lines.push(`Cambio: ${formatCOP(saleChange)}`);
+            toast.success(
+                (t) =>
+                    React.createElement('div', { className: 'text-sm' },
+                        React.createElement('p', { className: 'font-semibold' }, '¡Venta registrada!'),
+                        saleChange > 0 && React.createElement('p', { className: 'mt-1 text-base font-bold text-green-700' }, `Cambio: ${formatCOP(saleChange)}`),
+                        saleId && React.createElement('button', {
+                            onClick: () => { toast.dismiss(t.id); router.visit(`/sales/${saleId}`); },
+                            className: 'mt-1 text-xs text-blue-600 underline hover:text-blue-800',
+                        }, `Ver venta ${saleCode || ''}`)
+                    ),
+                { duration: saleChange > 0 ? 6000 : 4000 },
+            );
+
             setCart([]);
             setAmountPaid(0);
             setAmountPaidDisplay('');
@@ -503,8 +535,6 @@ export default function PosIndex({
             setTimeout(() => searchRef.current?.focus(), 0);
 
             // Auto-print si hay impresora conectada
-            const pageFlash = (page.props as unknown as SharedData).flash;
-            const saleId = pageFlash?.last_sale_id;
             const p = printerRef.current;
             if (saleId && p.status === 'connected' && p.selectedPrinter) {
                 lastPrintedSaleId.current = saleId;
@@ -515,7 +545,26 @@ export default function PosIndex({
         };
 
         const onError = (errors: Record<string, string>) => {
-            Object.values(errors).forEach((msg) => toast.error(String(msg)));
+            const messages = Object.values(errors).map(String);
+            if (messages.length <= 1) {
+                messages.forEach((msg) => toast.error(msg));
+            } else {
+                toast.error(
+                    (t) =>
+                        React.createElement('div', { className: 'text-sm' },
+                            React.createElement('p', { className: 'mb-1 font-semibold' }, `${messages.length} errores:`),
+                            React.createElement('ul', { className: 'list-inside list-disc space-y-0.5' },
+                                ...messages.map((msg, i) => React.createElement('li', { key: i }, msg)),
+                            ),
+                            React.createElement('button', {
+                                onClick: () => toast.dismiss(t.id),
+                                className: 'mt-2 text-xs text-red-300 underline',
+                            }, 'Cerrar'),
+                        ),
+                    { duration: 10000 },
+                );
+            }
+            playSound('error');
         };
 
         setSubmitting(true);
@@ -1065,6 +1114,7 @@ export default function PosIndex({
                                     type="button"
                                     onClick={() => addToCart(p)}
                                     disabled={p.stock <= 0}
+                                    aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}, stock ${p.stock}`}
                                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}
                                 >
                                     {p.image_url ? (
@@ -1096,7 +1146,7 @@ export default function PosIndex({
                 </div>
 
                 {/* ── RIGHT: Cart + Payment ── */}
-                <div className="flex w-full flex-col overflow-hidden md:w-[420px]">
+                <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none">
                     {/* Client + clear cart + printer status */}
                     <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
                         <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
@@ -1179,15 +1229,31 @@ export default function PosIndex({
                                             <button
                                                 type="button"
                                                 onClick={() => updateQty(item.product.id, item.quantity - 1)}
+                                                aria-label={`Disminuir cantidad de ${item.product.name}`}
                                                 className="flex h-7 w-7 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
                                             >
                                                 <Minus className="h-3 w-3" />
                                             </button>
-                                            <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                max={item.product.stock}
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value, 10);
+                                                    if (!isNaN(val) && val >= 1) {
+                                                        updateQty(item.product.id, Math.min(val, item.product.stock));
+                                                    }
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                                aria-label={`Cantidad de ${item.product.name}`}
+                                                className="h-7 w-10 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400 dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => updateQty(item.product.id, Math.min(item.quantity + 1, item.product.stock))}
                                                 disabled={item.quantity >= item.product.stock}
+                                                aria-label={`Aumentar cantidad de ${item.product.name}`}
                                                 className="flex h-7 w-7 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800"
                                             >
                                                 <Plus className="h-3 w-3" />
@@ -1199,6 +1265,7 @@ export default function PosIndex({
                                         <button
                                             type="button"
                                             onClick={() => removeFromCart(item.product.id)}
+                                            aria-label={`Eliminar ${item.product.name} del carrito`}
                                             className="flex h-7 w-7 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -1291,25 +1358,44 @@ export default function PosIndex({
                                             setAmountPaid(total);
                                             setAmountPaidDisplay(formatNumber(total));
                                         }}
+                                        aria-label={`Pago exacto de ${formatCOP(total)}`}
                                         className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
                                     >
                                         Exacto
                                     </button>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-1">
-                                    {[10000, 20000, 30000, 40000, 50000, 100000].map((bill) => (
-                                        <button
-                                            key={bill}
-                                            type="button"
-                                            onClick={() => {
-                                                setAmountPaid(bill);
-                                                setAmountPaidDisplay(formatNumber(bill));
-                                            }}
-                                            className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                                        >
-                                            {formatNumber(bill)}
-                                        </button>
-                                    ))}
+                                    {(() => {
+                                        const denominations = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
+                                        const suggestions: number[] = [];
+                                        if (total > 0) {
+                                            // Next round-up for each denomination >= total
+                                            for (const d of denominations) {
+                                                const rounded = Math.ceil(total / d) * d;
+                                                if (rounded >= total && !suggestions.includes(rounded)) {
+                                                    suggestions.push(rounded);
+                                                }
+                                            }
+                                            // Sort and take up to 6 unique values
+                                            suggestions.sort((a, b) => a - b);
+                                            suggestions.splice(6);
+                                        }
+                                        // Fallback: show standard denominations when cart is empty
+                                        const buttons = suggestions.length > 0 ? suggestions : [10000, 20000, 50000, 100000];
+                                        return buttons.map((bill) => (
+                                            <button
+                                                key={bill}
+                                                type="button"
+                                                onClick={() => {
+                                                    setAmountPaid(bill);
+                                                    setAmountPaidDisplay(formatNumber(bill));
+                                                }}
+                                                className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                            >
+                                                {formatNumber(bill)}
+                                            </button>
+                                        ));
+                                    })()}
                                 </div>
                                 {amountPaid >= total && total > 0 && (
                                     <div className="mt-1 flex justify-between text-sm font-semibold text-green-700 dark:text-green-300">

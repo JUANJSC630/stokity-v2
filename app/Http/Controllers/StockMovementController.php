@@ -182,6 +182,12 @@ class StockMovementController extends Controller
             $locked->update(['stock' => $newStock]);
         });
 
+        // Redirect back to product if the movement came from a product page
+        if ($request->has('from_product') && $request->from_product) {
+            return redirect()->route('products.show', $product->id)
+                ->with('success', 'Movimiento de stock registrado exitosamente');
+        }
+
         return redirect()->route('stock-movements.index')
             ->with('success', 'Movimiento de stock registrado exitosamente');
     }

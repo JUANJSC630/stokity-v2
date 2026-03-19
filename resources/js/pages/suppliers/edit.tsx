@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Supplier } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ArrowLeft, Save } from 'lucide-react';
 
 interface PageProps {
@@ -43,6 +44,8 @@ export default function Edit({ supplier, branches }: PageProps) {
         notes: supplier.notes ?? '',
         status: supplier.status,
     });
+
+    useScrollToError(form.errors);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

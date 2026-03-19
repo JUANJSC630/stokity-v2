@@ -235,7 +235,7 @@ export default function Branches({ branches, filters = { search: '', status: 'al
                     )}
 
                     <div className="hidden w-full overflow-x-auto md:block">
-                        <Table columns={columns} data={branches.data.map((branch) => ({ ...branch, actions: null }))} />
+                        <Table aria-label="Sucursales" columns={columns} data={branches.data.map((branch) => ({ ...branch, actions: null }))} />
                     </div>
 
                     {/* Tarjetas para móvil */}

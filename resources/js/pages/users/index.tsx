@@ -207,7 +207,7 @@ export default function Users({ users, filters = { search: '', status: 'all' } }
 
                     {/* Tabla desktop */}
                     <div className="hidden w-full overflow-x-auto md:block">
-                        <Table columns={columns} data={users.data.map((user) => ({ ...user, actions: null }))} />
+                        <Table aria-label="Usuarios" columns={columns} data={users.data.map((user) => ({ ...user, actions: null }))} />
                     </div>
 
                     {/* Tarjetas móvil */}

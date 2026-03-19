@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ChevronLeft } from 'lucide-react';
 
 interface EditBranchProps {
@@ -35,6 +36,8 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
         status: branch.status,
         manager_id: branch.manager_id ? branch.manager_id.toString() : 'none',
     });
+
+    useScrollToError(errors);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

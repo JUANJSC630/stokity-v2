@@ -9,6 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useEffect, useState } from 'react';
 
 interface Branch {
@@ -110,6 +111,8 @@ export default function Edit({ sale, branches, clients, sellers }: Props) {
         date: new Date(sale.date).toISOString().slice(0, 16), // Formato: YYYY-MM-DDThh:mm
         status: sale.status,
     });
+
+    useScrollToError(form.errors);
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

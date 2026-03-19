@@ -266,7 +266,7 @@ export default function ProductMovements({ product, movements }: Props) {
                     <CardContent>
                         {/* Vista tabla en md+ */}
                         <div className="hidden md:block">
-                            <Table columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos para este producto" />
+                            <Table aria-label="Movimientos de stock del producto" columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos para este producto" />
                         </div>
 
                         {/* Vista tarjetas en móvil */}

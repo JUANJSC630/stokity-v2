@@ -28,11 +28,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     const userRole = page.props.auth.user.role;
 
     const [expandedItems, setExpandedItems] = useState<string[]>(() => {
-        // Expandir automáticamente "Reportes" si estamos en una página de reportes
-        if (page.url.split('?')[0].startsWith('/reports')) {
-            return ['Reportes'];
-        }
-        return [];
+        // Auto-expand groups whose children include the current page
+        const currentUrl = page.url.split('?')[0];
+        return items
+            .filter((item) => item.children?.some((child) => currentUrl === child.href || currentUrl.startsWith(child.href + '/')))
+            .map((item) => item.title);
     });
 
     const toggleExpanded = (title: string) => {

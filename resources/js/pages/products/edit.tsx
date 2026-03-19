@@ -12,6 +12,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
 import { ArrowLeft, Plus, Save, Sparkles, Trash2, Upload, UserCircle } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface SupplierLink {
@@ -112,6 +113,8 @@ export default function EditProduct({ product, categories = [], branches = [], s
         image: null as File | null,
         _method: 'PUT', // Para simular PUT request con FormData
     });
+
+    useScrollToError(form.errors);
 
     // Generar código automáticamente usando axios (igual que en create)
     const handleGenerateCode = async () => {

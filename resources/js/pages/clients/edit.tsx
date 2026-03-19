@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface Client {
@@ -47,6 +48,8 @@ export default function Edit({ client }: Props) {
         email: client.email || '',
         birthdate: client.birthdate || '',
     });
+
+    useScrollToError(form.errors);
 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 

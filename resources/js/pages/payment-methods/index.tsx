@@ -134,7 +134,7 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
 
                     {/* Tabla solo visible en escritorio */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={paymentMethods} />
+                        <Table aria-label="Métodos de pago" columns={columns} data={paymentMethods} />
                     </div>
 
                     {/* Tarjetas para móvil */}

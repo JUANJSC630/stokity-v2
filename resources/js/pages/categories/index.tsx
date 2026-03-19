@@ -232,7 +232,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
 
                     {/* Desktop table */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
+                        <Table aria-label="Categorías" columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
                     </div>
 
                     {/* Mobile cards */}

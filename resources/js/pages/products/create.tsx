@@ -13,6 +13,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { ArrowLeft, Save, Upload, UserCircle } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface CreateProductProps {
@@ -75,6 +76,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         status: true,
         image: null as File | null,
     });
+
+    useScrollToError(form.errors);
 
     // Manejar cambio de imagen
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -437,10 +440,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <p className="text-xs text-muted-foreground">Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).</p>
                                 </div>
 
-                                {/* Stock actual */}
+                                {/* Stock inicial */}
                                 <div className="space-y-2">
                                     <label htmlFor="stock" className="text-sm font-medium">
-                                        Stock actual *
+                                        Stock inicial *
                                     </label>
                                     <Input
                                         id="stock"
@@ -451,6 +454,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         onChange={(e) => form.setData('stock', Number(e.target.value))}
                                         className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
+                                    <p className="text-xs text-muted-foreground">Cantidad inicial en inventario.</p>
                                     {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
                                 </div>
 

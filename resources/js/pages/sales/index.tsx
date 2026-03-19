@@ -473,7 +473,7 @@ export default function Index({ sales, filters }: PageProps) {
                                         <div className="mb-2 flex items-center justify-between">
                                             <div className="text-base font-semibold">{sale.code}</div>
                                             <Link href={route('sales.show', sale.id)}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0" title="Ver venta">
                                                     <Eye className="size-4" />
                                                 </Button>
                                             </Link>

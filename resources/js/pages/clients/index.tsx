@@ -151,7 +151,7 @@ export default function Index({ clients, filters }: PageProps) {
 
                     {/* Desktop table */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={clients.data.map((client) => ({ ...client, actions: null }))} />
+                        <Table aria-label="Clientes" columns={columns} data={clients.data.map((client) => ({ ...client, actions: null }))} />
                     </div>
 
                     {/* Mobile cards */}

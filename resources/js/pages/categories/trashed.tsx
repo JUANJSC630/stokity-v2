@@ -211,10 +211,10 @@ export default function TrashedCategories({ categories, filters = { search: '' }
 
                     {/* Tabla reutilizable en desktop y mobile */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
+                        <Table aria-label="Categorías eliminadas" columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
                     </div>
                     <div className="block md:hidden">
-                        <Table columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
+                        <Table aria-label="Categorías eliminadas" columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
                     </div>
 
                     {/* Pagination */}

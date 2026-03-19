@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 type Branch = {
@@ -62,6 +63,8 @@ export default function EditUser({ user, branches, roles }: Props) {
         photo: null as File | null,
         _method: 'PUT',
     });
+
+    useScrollToError(form.errors);
 
     // Manejar la lógica de cambio de rol
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

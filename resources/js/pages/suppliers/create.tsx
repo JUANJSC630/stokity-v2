@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ArrowLeft, Save } from 'lucide-react';
 
 interface PageProps {
@@ -42,6 +43,8 @@ export default function Create({ branches, userBranchId }: PageProps) {
         notes: '',
         status: true,
     });
+
+    useScrollToError(form.errors);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

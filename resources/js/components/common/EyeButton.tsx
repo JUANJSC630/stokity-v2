@@ -7,7 +7,7 @@ interface EyeButtonProps {
 
 export default function EyeButton({ text }: EyeButtonProps) {
     return (
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title={text}>
             <Eye className="size-4" />
             <span className="sr-only">{text}</span>
         </Button>

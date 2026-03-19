@@ -9,6 +9,7 @@ import { type Branch, type BreadcrumbItem, type Product, type Supplier } from '@
 import { Head, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import { ArrowLeft, Loader2, Package, Save, Search, X } from 'lucide-react';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useEffect, useRef, useState } from 'react';
 
 type MovementType = 'in' | 'out' | 'adjustment' | 'purchase' | 'write_off' | 'supplier_return';
@@ -66,8 +67,11 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
         supplier_id: '',
         reference: '',
         notes: '',
+        from_product: selectedProduct ? '1' : '',
         movement_date: now,
     });
+
+    useScrollToError(errors);
 
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
