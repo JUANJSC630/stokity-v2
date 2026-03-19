@@ -177,26 +177,6 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     )}
                                 </>
                             )
-                        ) : item.disabled ? (
-                            // Item deshabilitado — visible pero no clickeable
-                            <SidebarMenuButton
-                                tooltip={isCollapsed ? { children: `${item.title} — Requiere permisos` } : undefined}
-                                className="w-full cursor-not-allowed rounded-lg opacity-40"
-                            >
-                                <span
-                                    title="Requiere permisos de encargado o administrador"
-                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-gray-400 dark:text-gray-600"
-                                >
-                                    {item.icon && (
-                                        <span className="flex-shrink-0">
-                                            <item.icon className="size-5" />
-                                        </span>
-                                    )}
-                                    {!isCollapsed && (
-                                        <span className="min-w-0 flex-1 truncate">{item.title}</span>
-                                    )}
-                                </span>
-                            </SidebarMenuButton>
                         ) : (
                             // Item sin sub-items
                             <SidebarMenuButton

@@ -150,11 +150,10 @@ export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
 
-    // Show all items, but mark restricted ones as disabled
-    const filteredNavItems = allNavItems.map((item) => {
-        const hasAccess = !item.roles || item.roles.includes(userRole);
-        return hasAccess ? item : { ...item, disabled: true };
-    });
+    // Filter navigation items based on user's role
+    const filteredNavItems = allNavItems.filter(
+        (item) => !item.roles || item.roles.includes(userRole),
+    );
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

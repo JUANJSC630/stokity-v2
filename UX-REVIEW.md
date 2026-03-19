@@ -591,7 +591,7 @@ La conversión tabla-a-cards está bien implementada con `hidden md:block` / `bl
 
 | # | Hallazgo | Módulo | Estado | Descripción |
 |---|----------|--------|--------|-------------|
-| UX-03 | Items ocultos sin explicación | Sidebar | ✅ RESUELTO | Items restringidos visibles pero deshabilitados con tooltip "Requiere permisos" |
+| UX-03 | Items ocultos sin explicación | Sidebar | ✅ DESCARTADO | Decisión de diseño: ocultar items restringidos para mantener sidebar limpio |
 | UX-06 | Sin link a venta tras cobro | POS | ✅ RESUELTO | Toast custom con link "Ver venta" + código |
 | UX-08 | Producto duplicado en carrito | POS | ✅ YA ESTABA OK | addToCart ya suma qty al producto existente |
 | UX-10 | Carrito sin max-height | POS | ✅ RESUELTO | Panel derecho con min-h-0 flex-1, carrito scrollable |
