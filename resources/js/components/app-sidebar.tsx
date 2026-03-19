@@ -68,6 +68,7 @@ const allNavItems: NavItem[] = [
         title: 'POS',
         href: '/pos',
         icon: ScanLine,
+        highlight: true,
     },
     {
         title: 'Historial de Caja',
@@ -149,12 +150,11 @@ export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
 
-    // Filter navigation items based on user's role
-    const filteredNavItems = allNavItems.filter(
-        (item) =>
-            // If no roles specified, allow access to all, otherwise check if user's role is included
-            !item.roles || item.roles.includes(userRole),
-    );
+    // Show all items, but mark restricted ones as disabled
+    const filteredNavItems = allNavItems.map((item) => {
+        const hasAccess = !item.roles || item.roles.includes(userRole);
+        return hasAccess ? item : { ...item, disabled: true };
+    });
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

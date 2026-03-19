@@ -86,8 +86,8 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                         toast.success('Devolución registrada correctamente.');
                         setLoading(false);
                         if (onSuccess) onSuccess();
-                        // No cerrar automáticamente, dejar que el usuario vea el mensaje
-                        // y cierre manualmente para ver los productos actualizados
+                        // Auto-cerrar tras 2 segundos para que el usuario vea la confirmación
+                        setTimeout(() => onClose(), 2000);
                     },
                     onError: (errors: unknown) => {
                         setError('Error al registrar la devolución.');

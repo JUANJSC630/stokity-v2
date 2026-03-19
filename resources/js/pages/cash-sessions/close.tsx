@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { formatTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useCallback, useState } from 'react';
 
 interface SalesSummary {
     method: string;
@@ -37,6 +37,23 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
         closing_amount_declared: '',
         closing_notes: '',
     });
+
+    const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000] as const;
+    const [useDenominations, setUseDenominations] = useState(false);
+    const [denomCounts, setDenomCounts] = useState<Record<number, number>>({});
+    const [coins, setCoins] = useState('');
+
+    const denomTotal = DENOMINATIONS.reduce((sum, d) => sum + (denomCounts[d] || 0) * d, 0) + (parseInt(coins) || 0);
+
+    const updateDenom = useCallback((denom: number, count: string) => {
+        const val = parseInt(count) || 0;
+        setDenomCounts((prev) => ({ ...prev, [denom]: Math.max(0, val) }));
+    }, []);
+
+    // Sync denomination total to form
+    const syncDenomToForm = useCallback(() => {
+        form.setData('closing_amount_declared', String(denomTotal));
+    }, [denomTotal, form]);
 
     const openedAt = new Date(session.opened_at);
     const duration = Math.round((Date.now() - openedAt.getTime()) / 60000);
@@ -156,22 +173,94 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                     )}
 
                     <form onSubmit={submit} className="space-y-3">
-                        <div>
-                            <label className="mb-1 block text-sm font-medium">Efectivo contado físicamente *</label>
-                            <input
-                                type="number"
-                                min={0}
-                                step={1}
-                                value={form.data.closing_amount_declared}
-                                onChange={(e) => form.setData('closing_amount_declared', e.target.value)}
-                                required
-                                placeholder="0"
-                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                            />
-                            {form.errors.closing_amount_declared && (
-                                <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>
-                            )}
+                        {/* Toggle: monto directo vs desglose */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => { setUseDenominations(false); }}
+                                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${!useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
+                            >
+                                Monto directo
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setUseDenominations(true); }}
+                                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
+                            >
+                                Contar por denominación
+                            </button>
                         </div>
+
+                        {useDenominations ? (
+                            <div className="space-y-2">
+                                <label className="mb-1 block text-sm font-medium">Desglose por denominación</label>
+                                <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
+                                    {DENOMINATIONS.map((denom) => (
+                                        <div key={denom} className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5 last:border-b-0 dark:border-neutral-800">
+                                            <span className="text-sm font-medium">{formatCOP(denom)}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">×</span>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    value={denomCounts[denom] || ''}
+                                                    onChange={(e) => updateDenom(denom, e.target.value)}
+                                                    placeholder="0"
+                                                    className="w-16 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                                />
+                                                <span className="w-24 text-right text-sm text-muted-foreground">
+                                                    = {formatCOP((denomCounts[denom] || 0) * denom)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-1.5 dark:border-neutral-700">
+                                        <span className="text-sm font-medium">Monedas</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={coins}
+                                            onChange={(e) => setCoins(e.target.value)}
+                                            placeholder="0"
+                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between rounded-lg bg-neutral-100 px-3 py-2 dark:bg-neutral-800">
+                                    <span className="text-sm font-bold">Total contado:</span>
+                                    <span className="text-base font-bold text-green-700 dark:text-green-300">{formatCOP(denomTotal)}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={syncDenomToForm}
+                                    className="w-full rounded-lg border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+                                >
+                                    Usar {formatCOP(denomTotal)} como monto contado
+                                </button>
+                                {form.data.closing_amount_declared && (
+                                    <p className="text-center text-xs text-muted-foreground">
+                                        Monto a declarar: <strong>{formatCOP(Number(form.data.closing_amount_declared))}</strong>
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="mb-1 block text-sm font-medium">Efectivo contado físicamente *</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={form.data.closing_amount_declared}
+                                    onChange={(e) => form.setData('closing_amount_declared', e.target.value)}
+                                    required
+                                    placeholder="0"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                />
+                            </div>
+                        )}
+                        {form.errors.closing_amount_declared && (
+                            <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>
+                        )}
                         <div>
                             <label className="mb-1 block text-sm font-medium">Notas del cierre (opcional)</label>
                             <textarea

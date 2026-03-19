@@ -22,6 +22,8 @@ export interface NavItem {
     isActive?: boolean;
     roles?: string[]; // Which roles can access this menu item
     children?: NavItem[]; // Sub-items for nested navigation
+    disabled?: boolean; // Show as disabled (no access)
+    highlight?: boolean; // Visual emphasis (e.g., POS button)
 }
 
 export interface BusinessSetting {

@@ -331,13 +331,24 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             <RotateCcw className="h-3.5 w-3.5" />
                             Devolución
                         </button>
-                        {sale.id && isAdmin && (
-                            <Link href={route('sales.edit', sale.id)}>
-                                <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                        {sale.id && (
+                            isAdmin ? (
+                                <Link href={route('sales.edit', sale.id)}>
+                                    <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                        <Edit className="h-3.5 w-3.5" />
+                                        Editar
+                                    </button>
+                                </Link>
+                            ) : (
+                                <button
+                                    disabled
+                                    title="Solo administradores pueden editar ventas"
+                                    className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground opacity-40"
+                                >
                                     <Edit className="h-3.5 w-3.5" />
                                     Editar
                                 </button>
-                            </Link>
+                            )
                         )}
                     </div>
                 </div>

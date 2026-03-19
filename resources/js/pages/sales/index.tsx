@@ -348,10 +348,15 @@ export default function Index({ sales, filters }: PageProps) {
                                                     ref={searchRef}
                                                     type="search"
                                                     placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pl-8 text-sm"
+                                                    className="h-8 pl-8 pr-12 text-sm"
                                                     value={search}
                                                     onChange={(e) => setSearch(e.target.value)}
                                                 />
+                                                {search && (
+                                                    <kbd className="absolute top-1.5 right-2 rounded border border-neutral-300 px-1 text-[10px] text-neutral-400 dark:border-neutral-600">
+                                                        Enter ↵
+                                                    </kbd>
+                                                )}
                                             </div>
                                         </div>
                                     </form>

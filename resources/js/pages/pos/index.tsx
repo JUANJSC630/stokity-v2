@@ -327,6 +327,7 @@ export default function PosIndex({
     // Cash session
     const [currentSession, setCurrentSession] = useState<CashSession | null>(initialSession);
     const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
+    const [showShortcuts, setShowShortcuts] = useState(false);
     const [openingAmount, setOpeningAmount] = useState('');
     const [openingNotes, setOpeningNotes] = useState('');
     const [submittingSession, setSubmittingSession] = useState(false);
@@ -661,6 +662,10 @@ export default function PosIndex({
             if (e.key === 'F9') {
                 e.preventDefault();
                 handleSubmit();
+            }
+            if (e.key === '?' && !isInput) {
+                e.preventDefault();
+                setShowShortcuts((v) => !v);
             }
         }
         window.addEventListener('keydown', onKeyDown);
@@ -1046,7 +1051,7 @@ export default function PosIndex({
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="h-11 pl-9 text-base"
                             />
-                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-orange-500">Buscando...</span>}
+                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[#C850C0]">Buscando...</span>}
                         </div>
                         {/* Category filter */}
                         {categories.length > 0 && (
@@ -1056,7 +1061,7 @@ export default function PosIndex({
                                     onClick={() => setSelectedCategory('')}
                                     className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedCategory === ''
-                                            ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                            ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                     }`}
                                 >
@@ -1069,7 +1074,7 @@ export default function PosIndex({
                                         onClick={() => setSelectedCategory(String(cat.id))}
                                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                             selectedCategory === String(cat.id)
-                                                ? 'border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                                ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                         }`}
                                     >
@@ -1079,21 +1084,42 @@ export default function PosIndex({
                             </div>
                         )}
                         {/* Keyboard hints */}
-                        <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+                        <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1">
                                 <Keyboard className="h-3 w-3" />
                                 <kbd className="rounded border px-1">/</kbd> buscar
                             </span>
-                            <span>
-                                <kbd className="rounded border px-1">Enter</kbd> agregar primero
-                            </span>
-                            <span>
-                                <kbd className="rounded border px-1">Esc</kbd> limpiar
-                            </span>
-                            <span>
-                                <kbd className="rounded border px-1">F9</kbd> cobrar
-                            </span>
+                            <span><kbd className="rounded border px-1">Enter</kbd> agregar</span>
+                            <span><kbd className="rounded border px-1">Esc</kbd> limpiar</span>
+                            <span><kbd className="rounded border px-1">F9</kbd> cobrar</span>
+                            <button
+                                type="button"
+                                onClick={() => setShowShortcuts(true)}
+                                className="ml-auto flex h-5 w-5 items-center justify-center rounded border border-neutral-300 text-[10px] font-bold text-muted-foreground hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
+                                title="Ver todos los atajos (?)"
+                            >
+                                ?
+                            </button>
                         </div>
+
+                        {/* Shortcuts panel */}
+                        {showShortcuts && (
+                            <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atajos de teclado</h3>
+                                    <button type="button" onClick={() => setShowShortcuts(false)} className="text-muted-foreground hover:text-foreground">
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Buscar producto</span><kbd className="rounded border px-1.5 font-mono">/</kbd></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Agregar primer resultado</span><kbd className="rounded border px-1.5 font-mono">Enter</kbd></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Limpiar búsqueda</span><kbd className="rounded border px-1.5 font-mono">Esc</kbd></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Cobrar venta</span><kbd className="rounded border px-1.5 font-mono">F9</kbd></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Ver/ocultar atajos</span><kbd className="rounded border px-1.5 font-mono">?</kbd></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Results */}
@@ -1115,7 +1141,7 @@ export default function PosIndex({
                                     onClick={() => addToCart(p)}
                                     disabled={p.stock <= 0}
                                     aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}, stock ${p.stock}`}
-                                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}
+                                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
                                 >
                                     {p.image_url ? (
                                         <img

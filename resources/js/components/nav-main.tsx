@@ -67,7 +67,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             <SidebarSeparator className="my-4" />
                         )}
 
-                        {item.children ? (
+                        {item.children && !item.disabled ? (
                             isCollapsed ? (
                                 // Modo colapsado: DropdownMenu lateral
                                 <DropdownMenu>
@@ -177,13 +177,33 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     )}
                                 </>
                             )
+                        ) : item.disabled ? (
+                            // Item deshabilitado — visible pero no clickeable
+                            <SidebarMenuButton
+                                tooltip={isCollapsed ? { children: `${item.title} — Requiere permisos` } : undefined}
+                                className="w-full cursor-not-allowed rounded-lg opacity-40"
+                            >
+                                <span
+                                    title="Requiere permisos de encargado o administrador"
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-gray-400 dark:text-gray-600"
+                                >
+                                    {item.icon && (
+                                        <span className="flex-shrink-0">
+                                            <item.icon className="size-5" />
+                                        </span>
+                                    )}
+                                    {!isCollapsed && (
+                                        <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                                    )}
+                                </span>
+                            </SidebarMenuButton>
                         ) : (
                             // Item sin sub-items
                             <SidebarMenuButton
                                 asChild
                                 isActive={isItemActive(item)}
                                 tooltip={isCollapsed ? { children: item.title } : undefined}
-                                className="w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033]"
+                                className={`w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033] ${item.highlight && !isItemActive(item) ? 'ring-1 ring-[#C850C0]/30' : ''}`}
                             >
                                 <Link
                                     href={item.href}
@@ -191,7 +211,9 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     className={`flex w-full items-center gap-2 ${
                                         isItemActive(item)
                                             ? 'bg-gradient-to-r from-[#C850C0] to-[#FFCC70] font-semibold text-white shadow-md'
-                                            : 'text-gray-700 dark:text-gray-300'
+                                            : item.highlight
+                                              ? 'bg-[#C850C0]/5 font-semibold text-[#C850C0] dark:bg-[#C850C0]/10 dark:text-[#FFCC70]'
+                                              : 'text-gray-700 dark:text-gray-300'
                                     } rounded-lg px-3 py-2`}
                                 >
                                     {item.icon && (

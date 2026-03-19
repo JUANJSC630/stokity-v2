@@ -591,35 +591,35 @@ La conversión tabla-a-cards está bien implementada con `hidden md:block` / `bl
 
 | # | Hallazgo | Módulo | Estado | Descripción |
 |---|----------|--------|--------|-------------|
-| UX-03 | Items ocultos sin explicación | Sidebar | PENDIENTE | Vendedores no saben qué módulos existen |
+| UX-03 | Items ocultos sin explicación | Sidebar | ✅ RESUELTO | Items restringidos visibles pero deshabilitados con tooltip "Requiere permisos" |
 | UX-06 | Sin link a venta tras cobro | POS | ✅ RESUELTO | Toast custom con link "Ver venta" + código |
 | UX-08 | Producto duplicado en carrito | POS | ✅ YA ESTABA OK | addToCart ya suma qty al producto existente |
 | UX-10 | Carrito sin max-height | POS | ✅ RESUELTO | Panel derecho con min-h-0 flex-1, carrito scrollable |
 | UX-13 | Cambio no visible post-venta | POS | ✅ RESUELTO | Toast muestra cambio en verde por 6s en pagos efectivo |
-| UX-15 | Editar oculto sin tooltip | Sales | PENDIENTE | Encargados no saben que la funcionalidad existe |
-| UX-17 | Cierre sin desglose denominación | Caja | PENDIENTE | Contar efectivo en un solo campo causa errores |
+| UX-15 | Editar oculto sin tooltip | Sales | ✅ RESUELTO | Botón visible para todos, disabled con tooltip para no-admins |
+| UX-17 | Cierre sin desglose denominación | Caja | ✅ RESUELTO | Modo "Contar por denominación" con 7 billetes + monedas y total auto |
 | UX-22 | Toast de errores desaparece | POS | ✅ RESUELTO | Errores múltiples agrupados en toast persistente con botón cerrar |
 | UX-23 | Sin scroll a primer error | Forms | ✅ RESUELTO | Hook `use-scroll-to-error.ts` en 9 formularios |
 | UX-24 | Sin loading en paginación | Listados | ✅ RESUELTO | Barra progreso Inertia con color marca + spinner |
 | UX-26 | Color como único indicador | General | ✅ RESUELTO | Iconos Lucide en badges de tipo de movimiento de stock |
 | UX-27 | Tablas sin aria-label | General | ✅ RESUELTO | aria-label en componente Table + 10 instancias |
-| UX-28 | Atajos no descubribles | POS | PENDIENTE | No hay panel de help para shortcuts |
+| UX-28 | Atajos no descubribles | POS | ✅ RESUELTO | Panel shortcuts con tecla ? y botón, 5 atajos documentados |
 
 ### MENORES (Nice-to-have)
 
 | # | Hallazgo | Módulo | Estado | Descripción |
 |---|----------|--------|--------|-------------|
-| UX-01 | Naranja sobrecargado | General | PENDIENTE | Mismo color para búsqueda, categorías activas, cotizaciones |
+| UX-01 | Naranja sobrecargado | General | ✅ RESUELTO | Búsqueda y categorías usan púrpura marca, ámbar solo para advertencias |
 | UX-02 | Iconos sin tooltip | General | ✅ RESUELTO | title nativo en EyeButton + botones mobile |
 | UX-04 | Sub-menú se cierra al navegar | Sidebar | ✅ RESUELTO | Initializer dinámico detecta grupo activo por URL |
-| UX-05 | POS sin prominencia en sidebar | Sidebar | PENDIENTE | Mismo tamaño que otros links |
-| UX-09 | Hints de teclado estáticos | POS | PENDIENTE | Podrían ser tooltips contextuales |
-| UX-14 | Búsqueda no indica "Enter" | Sales | PENDIENTE | Sin botón de búsqueda visible |
-| UX-16 | Modal devolución no auto-cierra | Devoluciones | PENDIENTE | Requiere cierre manual |
+| UX-05 | POS sin prominencia en sidebar | Sidebar | ✅ RESUELTO | Fondo púrpura sutil, texto marca, ring border, font bold |
+| UX-09 | Hints de teclado estáticos | POS | ✅ RESUELTO | Integrado con panel de shortcuts (UX-28) |
+| UX-14 | Búsqueda no indica "Enter" | Sales | ✅ RESUELTO | Badge "Enter ↵" aparece al escribir en el campo de búsqueda |
+| UX-16 | Modal devolución no auto-cierra | Devoluciones | ✅ RESUELTO | Auto-cierre tras 2 segundos de éxito |
 | UX-18 | Campo stock sin help text | Productos | ✅ RESUELTO | Label "Stock inicial" + help text "Cantidad inicial en inventario" |
 | UX-19 | Redirect incorrecto post-movimiento | Stock | ✅ RESUELTO | from_product flag redirige a /products/{id} |
-| UX-20 | Stock bajo sin acción masiva | Dashboard | PENDIENTE | No hay "exportar lista" ni "crear orden" |
-| UX-21 | Setup impresora sin wizard | Settings | PENDIENTE | Pasos estáticos sin detección automática |
+| UX-20 | Stock bajo sin acción masiva | Dashboard | ✅ RESUELTO | Botón "Exportar" descarga CSV con productos de stock bajo |
+| UX-21 | Setup impresora sin wizard | Settings | ✅ RESUELTO | Pasos con detección automática: check verde si QZ Tray activo/impresora seleccionada |
 
 ---
 

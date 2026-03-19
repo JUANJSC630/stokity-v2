@@ -1,8 +1,8 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, ChevronDown, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, ChevronDown, Download, ExternalLink } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
 interface LowStockProduct {
     id: number;
@@ -25,13 +25,27 @@ interface LowStockProductsProps {
 export function LowStockProducts({ products }: LowStockProductsProps) {
     const [expanded, setExpanded] = useState(true);
 
+    const exportCSV = useCallback(() => {
+        const header = 'Código,Producto,Categoría,Stock Actual,Stock Mínimo\n';
+        const rows = products.map((p) =>
+            `"${p.code}","${p.name}","${p.category?.name || ''}",${p.stock},${p.min_stock}`
+        ).join('\n');
+        const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `stock-bajo-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [products]);
+
     if (products.length === 0) return null;
 
     const outOfStock = products.filter((p) => p.stock === 0);
     const lowStock = products.filter((p) => p.stock > 0 && p.stock <= p.min_stock);
 
     return (
-        <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
+        <div className="relative overflow-hidden rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
             {/* Header / toggle */}
             <button
                 type="button"
@@ -67,6 +81,16 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
                         expanded && 'rotate-180',
                     )}
                 />
+            </button>
+            {/* Export button */}
+            <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); exportCSV(); }}
+                title="Exportar lista de stock bajo como CSV"
+                className="absolute top-3 right-10 flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+            >
+                <Download className="h-3 w-3" />
+                Exportar
             </button>
 
             {/* Product list */}
