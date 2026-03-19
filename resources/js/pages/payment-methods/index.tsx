@@ -39,7 +39,8 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
     };
 
     const toggleActive = (paymentMethod: PaymentMethod) => {
-        router.patch(`/payment-methods/${paymentMethod.id}/toggle`);
+        setItems((prev) => prev.map((pm) => (pm.id === paymentMethod.id ? { ...pm, is_active: !pm.is_active } : pm)));
+        router.patch(`/payment-methods/${paymentMethod.id}/toggle`, {}, { preserveScroll: true });
     };
 
     // ── Drag & Drop ──────────────────────────────────────────────────────────
