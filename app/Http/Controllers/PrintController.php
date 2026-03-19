@@ -153,13 +153,17 @@ class PrintController extends Controller
                 ->groupBy('payment_method')
                 ->get();
 
+            // Map payment method codes → display names from DB
+            $pmNames = \App\Models\PaymentMethod::pluck('name', 'code');
+
             if ($salesByMethod->isNotEmpty()) {
                 $p->setEmphasis(true);
                 $p->text("VENTAS\n");
                 $p->setEmphasis(false);
                 $totalSales = 0;
                 foreach ($salesByMethod as $row) {
-                    $name  = ucfirst((string) data_get($row, 'payment_method', ''));
+                    $code  = (string) data_get($row, 'payment_method', '');
+                    $name  = $pmNames->get($code, ucfirst($code)); // fallback to ucfirst if not found
                     $total = (float) data_get($row, 'total', 0);
                     $totalSales += $total;
                     $this->printTotalRow($p, $name . ' (' . (int) data_get($row, 'count', 0) . '):', $this->formatMoney($total), $charsPerLine);
@@ -187,25 +191,35 @@ class PrintController extends Controller
                 $p->text($sep2 . "\n");
                 $p->setEmphasis(true); $p->text("CUADRE DE CAJA\n"); $p->setEmphasis(false);
                 $p->text($sep . "\n");
-                $this->printTotalRow($p, 'Fondo inicial:', $this->formatMoney($session->opening_amount), $charsPerLine);
-                $this->printTotalRow($p, 'Ventas efectivo:', $this->formatMoney($session->total_sales_cash), $charsPerLine);
-                $this->printTotalRow($p, 'Ingresos manuales:', $this->formatMoney($session->total_cash_in), $charsPerLine);
-                $this->printTotalRow($p, 'Egresos manuales:', $this->formatMoney($session->total_cash_out), $charsPerLine);
+                $this->printTotalRow($p, '+ Fondo inicial:', $this->formatMoney($session->opening_amount), $charsPerLine);
+                $this->printTotalRow($p, '+ Ventas efectivo:', $this->formatMoney($session->total_sales_cash), $charsPerLine);
+                $this->printTotalRow($p, '+ Ingresos manuales:', $this->formatMoney($session->total_cash_in), $charsPerLine);
+                $this->printTotalRow($p, '- Egresos manuales:', $this->formatMoney($session->total_cash_out), $charsPerLine);
+                if ((float) $session->total_refunds_cash > 0) {
+                    $this->printTotalRow($p, '- Devoluciones:', $this->formatMoney($session->total_refunds_cash), $charsPerLine);
+                }
                 $p->text($sep . "\n");
                 $p->setEmphasis(true);
-                $this->printTotalRow($p, 'Esperado:', $this->formatMoney($session->expected_cash), $charsPerLine);
-                $this->printTotalRow($p, 'Contado:', $this->formatMoney($session->closing_amount_declared), $charsPerLine);
+                $this->printTotalRow($p, '= Esperado:', $this->formatMoney($session->expected_cash), $charsPerLine);
+                $this->printTotalRow($p, '  Contado:', $this->formatMoney($session->closing_amount_declared), $charsPerLine);
                 $p->setEmphasis(false);
                 $p->text($sep2 . "\n");
                 $disc = (float) $session->discrepancy;
-                $discStr = ($disc >= 0 ? '+' : '') . $this->formatMoney($disc);
+                $discLabel = $disc > 0 ? 'SOBRANTE:' : ($disc < 0 ? 'FALTANTE:' : 'SIN DIFERENCIA:');
+                $discStr   = ($disc > 0 ? '+' : '') . $this->formatMoney(abs($disc));
                 $p->setEmphasis(true);
-                $this->printTotalRow($p, 'DIFERENCIA:', $discStr, $charsPerLine);
+                $this->printTotalRow($p, $discLabel, $discStr, $charsPerLine);
                 $p->setEmphasis(false);
             }
 
-            // ── Footer (same style as sale receipts) ─────────────────────────
-            $this->printFooter($p, $charsPerLine, $cfg);
+            // ── Footer (arqueo — internal document, no customer message) ────
+            $printedAt = \Carbon\Carbon::now('America/Bogota')->format('d/m/Y H:i');
+            $p->text($sep . "\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->text("Documento de uso interno\n");
+            $p->text("Impreso: " . $printedAt . "\n");
+            $this->feedPastDeadZone($p);
+            $p->cut();
         } finally {
             $bytes = $connector->getData();
             $printer->close();
