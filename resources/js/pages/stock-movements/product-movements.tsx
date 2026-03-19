@@ -126,11 +126,15 @@ export default function ProductMovements({ product, movements }: Props) {
     const getTypeColor = (type: string) => {
         switch (type) {
             case 'in':
+            case 'purchase':
                 return 'bg-green-100 text-green-800';
             case 'out':
+            case 'write_off':
                 return 'bg-red-100 text-red-800';
             case 'adjustment':
                 return 'bg-yellow-100 text-yellow-800';
+            case 'supplier_return':
+                return 'bg-orange-100 text-orange-800';
             default:
                 return 'bg-gray-100 text-gray-800';
         }
@@ -138,14 +142,13 @@ export default function ProductMovements({ product, movements }: Props) {
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':
-                return 'Entrada';
-            case 'out':
-                return 'Salida';
-            case 'adjustment':
-                return 'Ajuste';
-            default:
-                return 'Desconocido';
+            case 'in':            return 'Entrada';
+            case 'out':           return 'Salida';
+            case 'adjustment':    return 'Ajuste';
+            case 'purchase':      return 'Compra';
+            case 'write_off':     return 'Baja';
+            case 'supplier_return': return 'Dev. Proveedor';
+            default:              return type; // muestra el valor crudo si aparece uno nuevo
         }
     };
 
