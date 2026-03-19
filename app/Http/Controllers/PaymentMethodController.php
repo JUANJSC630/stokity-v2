@@ -103,6 +103,24 @@ class PaymentMethodController extends Controller
     }
 
     /**
+     * Bulk reorder — receives [{id, sort_order}] and persists in one go.
+     */
+    public function reorder(Request $request)
+    {
+        $validated = $request->validate([
+            'order'              => 'required|array',
+            'order.*.id'         => 'required|integer|exists:payment_methods,id',
+            'order.*.sort_order' => 'required|integer|min:0',
+        ]);
+
+        foreach ($validated['order'] as $item) {
+            PaymentMethod::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
+        }
+
+        return back();
+    }
+
+    /**
      * Toggle active status
      */
     public function toggleActive(PaymentMethod $paymentMethod)
