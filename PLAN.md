@@ -161,7 +161,7 @@ Cambios de precio no dejan rastro: quién lo cambió, cuándo, y cuánto era ant
 ---
 
 ### F5 — Auditoría de cambios en ventas
-**Prioridad: Media**
+**Prioridad: Alta**
 
 Un admin puede modificar o cancelar ventas sin dejar rastro. Abre la puerta a fraude interno.
 
@@ -187,7 +187,7 @@ Al cambiar precios, el encargado debe imprimir etiquetas en otro sistema externo
 ---
 
 ### F7 — Alerta de sesión de caja abierta demasiado tiempo
-**Prioridad: Baja**
+**Prioridad: Media**
 
 Un vendedor puede olvidar cerrar la caja. No hay señal visual de que algo está mal.
 
