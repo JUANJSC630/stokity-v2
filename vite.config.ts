@@ -19,7 +19,15 @@ export default defineConfig({
     },
     resolve: {
         alias: {
+            '@': resolve(__dirname, 'resources/js'),
             'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
         },
+    },
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: ['resources/js/tests/setup.ts'],
+        include: ['resources/js/**/*.test.{ts,tsx}'],
+        css: false,
     },
 });
