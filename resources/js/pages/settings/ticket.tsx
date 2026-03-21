@@ -96,9 +96,7 @@ const SAMPLE_RETURN = {
     seller: 'Administrador User',
     branch: 'Sucursal Principal',
     reason: 'Producto en mal estado',
-    products: [
-        { name: 'Chocolate Bon Bon', qty: 1, price: 7500, subtotal: 7500 },
-    ],
+    products: [{ name: 'Chocolate Bon Bon', qty: 1, price: 7500, subtotal: 7500 }],
     net: 7500,
     tax: 0,
     total: 7500,
@@ -156,13 +154,11 @@ function CodeGraphicPlaceholder({ type }: { type: 'qr' | 'barcode' }) {
                     }}
                 >
                     {/* Simplified QR-like pattern */}
-                    {[1,1,1,0,1, 1,0,1,0,1, 1,1,1,0,0, 0,0,0,1,1, 1,0,0,1,0].map((v, i) => (
+                    {[1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0].map((v, i) => (
                         <div key={i} style={{ background: v ? '#222' : '#fff', borderRadius: 1 }} />
                     ))}
                 </div>
-                <span style={{ fontFamily: 'monospace', fontSize: '9px', color: '#555', marginTop: 2 }}>
-                    QR · código de venta
-                </span>
+                <span style={{ fontFamily: 'monospace', fontSize: '9px', color: '#555', marginTop: 2 }}>QR · código de venta</span>
             </div>
         );
     }
@@ -178,7 +174,7 @@ function CodeGraphicPlaceholder({ type }: { type: 'qr' | 'barcode' }) {
                     padding: '0 4px',
                 }}
             >
-                {[3,1,2,1,3,2,1,2,3,1,2,1,3,2,1,3,1,2,1,3].map((w, i) => (
+                {[3, 1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 1, 3, 2, 1, 3, 1, 2, 1, 3].map((w, i) => (
                     <div
                         key={i}
                         style={{
@@ -189,9 +185,7 @@ function CodeGraphicPlaceholder({ type }: { type: 'qr' | 'barcode' }) {
                     />
                 ))}
             </div>
-            <span style={{ fontFamily: 'monospace', fontSize: '9px', color: '#555', marginTop: 2 }}>
-                CODE128 · código de venta
-            </span>
+            <span style={{ fontFamily: 'monospace', fontSize: '9px', color: '#555', marginTop: 2 }}>CODE128 · código de venta</span>
         </div>
     );
 }
@@ -219,21 +213,11 @@ function PreviewHeader({ config, business, chars }: { config: TicketConfig; busi
             >
                 {business.name}
             </div>
-            {config.show_nit && (
-                <div style={{ ...mono, color: business.nit ? '#111' : '#aaa' }}>
-                    NIT: {business.nit ?? '(no configurado)'}
-                </div>
-            )}
+            {config.show_nit && <div style={{ ...mono, color: business.nit ? '#111' : '#aaa' }}>NIT: {business.nit ?? '(no configurado)'}</div>}
             {config.show_address && (
-                <div style={{ ...mono, color: business.address ? '#111' : '#aaa' }}>
-                    {business.address ?? '(dirección no configurada)'}
-                </div>
+                <div style={{ ...mono, color: business.address ? '#111' : '#aaa' }}>{business.address ?? '(dirección no configurada)'}</div>
             )}
-            {config.show_phone && (
-                <div style={{ ...mono, color: business.phone ? '#111' : '#aaa' }}>
-                    Tel: {business.phone ?? '(no configurado)'}
-                </div>
-            )}
+            {config.show_phone && <div style={{ ...mono, color: business.phone ? '#111' : '#aaa' }}>Tel: {business.phone ?? '(no configurado)'}</div>}
         </div>
     );
 }
@@ -278,7 +262,18 @@ function SaleTicketPreview({ config, business }: { config: TicketConfig; busines
             <Sep chars={chars} />
 
             {/* Products table */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 8px', fontWeight: 'bold', ...mono, borderBottom: '1px dashed #999', paddingBottom: '3px', marginBottom: '3px' }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0 8px',
+                    fontWeight: 'bold',
+                    ...mono,
+                    borderBottom: '1px dashed #999',
+                    paddingBottom: '3px',
+                    marginBottom: '3px',
+                }}
+            >
                 <span>Producto</span>
                 <span style={{ textAlign: 'right' }}>Cant</span>
                 <span style={{ textAlign: 'right' }}>Precio</span>
@@ -297,9 +292,22 @@ function SaleTicketPreview({ config, business }: { config: TicketConfig; busines
             {/* Totals */}
             <Row label="Subtotal:" value={fmt(SAMPLE_SALE.net)} />
             {config.show_tax && <Row label="Impuesto:" value={fmt(SAMPLE_SALE.tax)} />}
-            <Row label={is58 ? `Descto (${SAMPLE_SALE.discount_pct}%):` : `Descuento (${SAMPLE_SALE.discount_pct}%):`} value={`- ${fmt(SAMPLE_SALE.discount_amount)}`} />
+            <Row
+                label={is58 ? `Descto (${SAMPLE_SALE.discount_pct}%):` : `Descuento (${SAMPLE_SALE.discount_pct}%):`}
+                value={`- ${fmt(SAMPLE_SALE.discount_amount)}`}
+            />
             <Sep double chars={chars} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '20px', lineHeight: 1.3, fontFamily: "'Courier New', Courier, monospace", margin: '2px 0' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    lineHeight: 1.3,
+                    fontFamily: "'Courier New', Courier, monospace",
+                    margin: '2px 0',
+                }}
+            >
                 <span>TOTAL:</span>
                 <span>{fmt(SAMPLE_SALE.total)}</span>
             </div>
@@ -353,9 +361,7 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
             <Sep double chars={chars} />
 
             {/* Return header */}
-            <div style={{ textAlign: 'center', fontWeight: 'bold', ...mono, marginBottom: '2px' }}>
-                RECIBO DE DEVOLUCIÓN
-            </div>
+            <div style={{ textAlign: 'center', fontWeight: 'bold', ...mono, marginBottom: '2px' }}>RECIBO DE DEVOLUCIÓN</div>
             <Sep chars={chars} />
 
             {/* Return info */}
@@ -377,7 +383,18 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
             <Sep chars={chars} />
 
             {/* Products table */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '0 8px', fontWeight: 'bold', ...mono, borderBottom: '1px dashed #999', paddingBottom: '3px', marginBottom: '3px' }}>
+            <div
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto auto auto',
+                    gap: '0 8px',
+                    fontWeight: 'bold',
+                    ...mono,
+                    borderBottom: '1px dashed #999',
+                    paddingBottom: '3px',
+                    marginBottom: '3px',
+                }}
+            >
                 <span>Producto</span>
                 <span style={{ textAlign: 'right' }}>Cant</span>
                 <span style={{ textAlign: 'right' }}>Precio</span>
@@ -396,7 +413,17 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
             {/* Totals */}
             <Row label="Subtotal:" value={fmt(SAMPLE_RETURN.net)} />
             <Sep double chars={chars} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '20px', lineHeight: 1.3, fontFamily: "'Courier New', Courier, monospace", margin: '2px 0' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
+                    fontSize: '20px',
+                    lineHeight: 1.3,
+                    fontFamily: "'Courier New', Courier, monospace",
+                    margin: '2px 0',
+                }}
+            >
                 <span>TOTAL:</span>
                 <span>{fmt(SAMPLE_RETURN.total)}</span>
             </div>
@@ -420,13 +447,7 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
 }
 
 // ── Code graphic selector ──────────────────────────────────────────────────────
-function CodeGraphicSelector({
-    value,
-    onChange,
-}: {
-    value: 'none' | 'qr' | 'barcode';
-    onChange: (v: 'none' | 'qr' | 'barcode') => void;
-}) {
+function CodeGraphicSelector({ value, onChange }: { value: 'none' | 'qr' | 'barcode'; onChange: (v: 'none' | 'qr' | 'barcode') => void }) {
     const options = [
         { value: 'none' as const, label: 'Ninguno' },
         { value: 'qr' as const, label: 'Código QR' },
@@ -435,13 +456,7 @@ function CodeGraphicSelector({
     return (
         <div className="flex flex-wrap gap-2">
             {options.map((o) => (
-                <Button
-                    key={o.value}
-                    type="button"
-                    size="sm"
-                    variant={value === o.value ? 'default' : 'outline'}
-                    onClick={() => onChange(o.value)}
-                >
+                <Button key={o.value} type="button" size="sm" variant={value === o.value ? 'default' : 'outline'} onClick={() => onChange(o.value)}>
                     {o.label}
                 </Button>
             ))}
@@ -515,7 +530,6 @@ export default function TicketSettings({ config, business }: Props) {
                 <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
                     {/* ── Left: config panel ── */}
                     <form onSubmit={handleSave} className="space-y-4">
-
                         {/* ── Shared: Paper width ── */}
                         <Card>
                             <CardHeader className="pb-2">
@@ -569,7 +583,9 @@ export default function TicketSettings({ config, business }: Props) {
                                     { key: 'show_phone', label: 'Mostrar teléfono' },
                                 ].map(({ key, label }) => (
                                     <div key={key} className="flex items-center justify-between">
-                                        <Label htmlFor={key} className="text-sm">{label}</Label>
+                                        <Label htmlFor={key} className="text-sm">
+                                            {label}
+                                        </Label>
                                         <Switch
                                             id={key}
                                             checked={data[key as keyof TicketConfig] as boolean}
@@ -583,12 +599,16 @@ export default function TicketSettings({ config, business }: Props) {
                         {/* ── Tabs: Sale / Return ── */}
                         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'sale' | 'return')}>
                             <TabsList className="w-full">
-                                <TabsTrigger value="sale" className="flex-1">Ticket de venta</TabsTrigger>
-                                <TabsTrigger value="return" className="flex-1">Ticket de devolución</TabsTrigger>
+                                <TabsTrigger value="sale" className="flex-1">
+                                    Ticket de venta
+                                </TabsTrigger>
+                                <TabsTrigger value="return" className="flex-1">
+                                    Ticket de devolución
+                                </TabsTrigger>
                             </TabsList>
 
                             {/* ── Sale tab ── */}
-                            <TabsContent value="sale" className="space-y-4 mt-4">
+                            <TabsContent value="sale" className="mt-4 space-y-4">
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm">Cuerpo</CardTitle>
@@ -600,7 +620,9 @@ export default function TicketSettings({ config, business }: Props) {
                                             { key: 'show_tax', label: 'Mostrar impuesto' },
                                         ].map(({ key, label }) => (
                                             <div key={key} className="flex items-center justify-between">
-                                                <Label htmlFor={`sale_${key}`} className="text-sm">{label}</Label>
+                                                <Label htmlFor={`sale_${key}`} className="text-sm">
+                                                    {label}
+                                                </Label>
                                                 <Switch
                                                     id={`sale_${key}`}
                                                     checked={data[key as keyof TicketConfig] as boolean}
@@ -619,10 +641,7 @@ export default function TicketSettings({ config, business }: Props) {
                                         <p className="text-xs text-muted-foreground">
                                             Imprime un QR o código de barras con el número de venta para buscarlo rápidamente.
                                         </p>
-                                        <CodeGraphicSelector
-                                            value={data.sale_code_graphic}
-                                            onChange={(v) => setData('sale_code_graphic', v)}
-                                        />
+                                        <CodeGraphicSelector value={data.sale_code_graphic} onChange={(v) => setData('sale_code_graphic', v)} />
                                     </CardContent>
                                 </Card>
 
@@ -654,7 +673,7 @@ export default function TicketSettings({ config, business }: Props) {
                             </TabsContent>
 
                             {/* ── Return tab ── */}
-                            <TabsContent value="return" className="space-y-4 mt-4">
+                            <TabsContent value="return" className="mt-4 space-y-4">
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm">Cuerpo</CardTitle>
@@ -666,7 +685,9 @@ export default function TicketSettings({ config, business }: Props) {
                                             { key: 'return_show_reason', label: 'Mostrar motivo de devolución' },
                                         ].map(({ key, label }) => (
                                             <div key={key} className="flex items-center justify-between">
-                                                <Label htmlFor={key} className="text-sm">{label}</Label>
+                                                <Label htmlFor={key} className="text-sm">
+                                                    {label}
+                                                </Label>
                                                 <Switch
                                                     id={key}
                                                     checked={data[key as keyof TicketConfig] as boolean}
@@ -682,13 +703,8 @@ export default function TicketSettings({ config, business }: Props) {
                                         <CardTitle className="text-sm">Código visual</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2">
-                                        <p className="text-xs text-muted-foreground">
-                                            Imprime un QR o código de barras con el número de devolución.
-                                        </p>
-                                        <CodeGraphicSelector
-                                            value={data.return_code_graphic}
-                                            onChange={(v) => setData('return_code_graphic', v)}
-                                        />
+                                        <p className="text-xs text-muted-foreground">Imprime un QR o código de barras con el número de devolución.</p>
+                                        <CodeGraphicSelector value={data.return_code_graphic} onChange={(v) => setData('return_code_graphic', v)} />
                                     </CardContent>
                                 </Card>
 
@@ -751,11 +767,9 @@ export default function TicketSettings({ config, business }: Props) {
 
                     {/* ── Right: live preview ── */}
                     <div className="flex flex-col items-center gap-3">
-                        <p className="text-sm text-muted-foreground text-center">
+                        <p className="text-center text-sm text-muted-foreground">
                             Vista previa ·{' '}
-                            <span className="font-medium text-foreground">
-                                {activeTab === 'sale' ? 'Ticket de venta' : 'Ticket de devolución'}
-                            </span>
+                            <span className="font-medium text-foreground">{activeTab === 'sale' ? 'Ticket de venta' : 'Ticket de devolución'}</span>
                             <span className="text-xs"> · datos de muestra</span>
                         </p>
                         <div className="overflow-x-auto rounded-lg bg-muted/40 p-6">

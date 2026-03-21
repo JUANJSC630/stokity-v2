@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Supplier } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ArrowLeft, Save } from 'lucide-react';
 
 interface PageProps {
@@ -78,22 +78,13 @@ export default function Edit({ supplier, branches }: PageProps) {
                                     <Label htmlFor="name">
                                         Nombre / Razón social <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="name"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        required
-                                    />
+                                    <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} required />
                                     {form.errors.name && <p className="text-sm text-red-500">{form.errors.name}</p>}
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="nit">NIT / RUT</Label>
-                                    <Input
-                                        id="nit"
-                                        value={form.data.nit}
-                                        onChange={(e) => form.setData('nit', e.target.value)}
-                                    />
+                                    <Input id="nit" value={form.data.nit} onChange={(e) => form.setData('nit', e.target.value)} />
                                     {form.errors.nit && <p className="text-sm text-red-500">{form.errors.nit}</p>}
                                 </div>
 
@@ -109,46 +100,36 @@ export default function Edit({ supplier, branches }: PageProps) {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Teléfono</Label>
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        value={form.data.phone}
-                                        onChange={(e) => form.setData('phone', e.target.value)}
-                                    />
+                                    <Input id="phone" type="tel" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
                                     {form.errors.phone && <p className="text-sm text-red-500">{form.errors.phone}</p>}
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="email">Correo electrónico</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={form.data.email}
-                                        onChange={(e) => form.setData('email', e.target.value)}
-                                    />
+                                    <Input id="email" type="email" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
                                     {form.errors.email && <p className="text-sm text-red-500">{form.errors.email}</p>}
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="address">Dirección</Label>
-                                    <Input
-                                        id="address"
-                                        value={form.data.address}
-                                        onChange={(e) => form.setData('address', e.target.value)}
-                                    />
+                                    <Input id="address" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} />
                                     {form.errors.address && <p className="text-sm text-red-500">{form.errors.address}</p>}
                                 </div>
 
                                 {branches.length > 1 && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="branch_id">Sucursal <span className="text-red-500">*</span></Label>
+                                        <Label htmlFor="branch_id">
+                                            Sucursal <span className="text-red-500">*</span>
+                                        </Label>
                                         <Select value={form.data.branch_id} onValueChange={(v) => form.setData('branch_id', v)}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {branches.map((b) => (
-                                                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                                                    <SelectItem key={b.id} value={String(b.id)}>
+                                                        {b.name}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -157,29 +138,22 @@ export default function Edit({ supplier, branches }: PageProps) {
                                 )}
 
                                 <div className="flex items-center gap-3 pt-2 sm:col-span-2">
-                                    <Switch
-                                        id="status"
-                                        checked={form.data.status}
-                                        onCheckedChange={(v) => form.setData('status', v)}
-                                    />
+                                    <Switch id="status" checked={form.data.status} onCheckedChange={(v) => form.setData('status', v)} />
                                     <Label htmlFor="status">Proveedor activo</Label>
                                 </div>
 
                                 <div className="space-y-2 sm:col-span-2">
                                     <Label htmlFor="notes">Notas</Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={form.data.notes}
-                                        onChange={(e) => form.setData('notes', e.target.value)}
-                                        rows={3}
-                                    />
+                                    <Textarea id="notes" value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} rows={3} />
                                     {form.errors.notes && <p className="text-sm text-red-500">{form.errors.notes}</p>}
                                 </div>
                             </div>
 
                             <div className="flex justify-end gap-2">
                                 <Link href={route('suppliers.show', supplier.id)}>
-                                    <Button variant="outline" type="button">Cancelar</Button>
+                                    <Button variant="outline" type="button">
+                                        Cancelar
+                                    </Button>
                                 </Link>
                                 <Button type="submit" disabled={form.processing} className="gap-1">
                                     <Save className="size-4" />

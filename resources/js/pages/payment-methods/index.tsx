@@ -103,9 +103,8 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
                     <div className="border-b p-4">
                         <h2 className="text-lg font-semibold">Gestionar Métodos de Pago</h2>
                         <p className="text-sm text-muted-foreground">
-                            Arrastra{' '}
-                            <GripVertical className="inline h-3.5 w-3.5 align-middle text-muted-foreground/70" />{' '}
-                            para cambiar el orden en el que aparecen en el POS
+                            Arrastra <GripVertical className="inline h-3.5 w-3.5 align-middle text-muted-foreground/70" /> para cambiar el orden en el
+                            que aparecen en el POS
                         </p>
                     </div>
 
@@ -116,8 +115,8 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
                         ) : (
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        <th className="px-4 py-3 w-10"></th>
+                                    <tr className="border-b bg-muted/40 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                        <th className="w-10 px-4 py-3"></th>
                                         <th className="px-4 py-3">Nombre</th>
                                         <th className="px-4 py-3">Código</th>
                                         <th className="px-4 py-3">Descripción</th>
@@ -150,13 +149,16 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
                                             </td>
                                             <td className="px-4 py-3 text-muted-foreground">{pm.description || '-'}</td>
                                             <td className="px-4 py-3">
-                                                <Badge variant={pm.is_active ? 'default' : 'secondary'}>
-                                                    {pm.is_active ? 'Activo' : 'Inactivo'}
-                                                </Badge>
+                                                <Badge variant={pm.is_active ? 'default' : 'secondary'}>{pm.is_active ? 'Activo' : 'Inactivo'}</Badge>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => toggleActive(pm)} title={pm.is_active ? 'Desactivar' : 'Activar'}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => toggleActive(pm)}
+                                                        title={pm.is_active ? 'Desactivar' : 'Activar'}
+                                                    >
                                                         {pm.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                     </Button>
                                                     <Link href={`/payment-methods/${pm.id}/edit`}>
@@ -208,9 +210,7 @@ export default function PaymentMethodsIndex({ paymentMethods }: Props) {
                                             </Badge>
                                         </div>
 
-                                        {pm.description && (
-                                            <p className="mb-2 text-sm text-muted-foreground">{pm.description}</p>
-                                        )}
+                                        {pm.description && <p className="mb-2 text-sm text-muted-foreground">{pm.description}</p>}
 
                                         <div className="flex items-center justify-end gap-1">
                                             <Button variant="ghost" size="sm" onClick={() => toggleActive(pm)}>

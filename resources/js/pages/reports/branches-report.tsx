@@ -8,9 +8,9 @@ import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import toast from 'react-hot-toast';
 import { Award, Building, Calendar, Download, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {

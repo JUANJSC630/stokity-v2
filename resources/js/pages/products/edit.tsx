@@ -1,19 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product, type Supplier, type SupplierProduct } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
 import { ArrowLeft, Plus, Save, Sparkles, Trash2, Upload, UserCircle } from 'lucide-react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface SupplierLink {
@@ -79,8 +79,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
     const removeSupplierLink = (id: number) => setSupplierLinks(supplierLinks.filter((s) => s.supplier_id !== id));
 
-    const setDefault = (id: number) =>
-        setSupplierLinks(supplierLinks.map((s) => ({ ...s, is_default: s.supplier_id === id })));
+    const setDefault = (id: number) => setSupplierLinks(supplierLinks.map((s) => ({ ...s, is_default: s.supplier_id === id })));
 
     const handleSyncSuppliers = (e: React.FormEvent) => {
         e.preventDefault();
@@ -418,7 +417,11 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         <span className="text-muted-foreground">unidades</span>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        El stock se actualiza mediante <a href="/stock-movements/create" className="underline">movimientos de stock</a>.
+                                        El stock se actualiza mediante{' '}
+                                        <a href="/stock-movements/create" className="underline">
+                                            movimientos de stock
+                                        </a>
+                                        .
                                     </p>
                                 </div>
 
@@ -547,7 +550,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     <Card>
                         <CardHeader>
                             <CardTitle>Proveedores</CardTitle>
-                            <CardDescription>Vincula uno o más proveedores a este producto con precio acordado y código del catálogo.</CardDescription>
+                            <CardDescription>
+                                Vincula uno o más proveedores a este producto con precio acordado y código del catálogo.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleSyncSuppliers} className="space-y-4">
@@ -556,7 +561,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                     <div className="space-y-3">
                                         {supplierLinks.map((link) => (
                                             <div key={link.supplier_id} className="flex flex-wrap items-center gap-3 rounded-md border p-3">
-                                                <div className="min-w-[120px] flex-1 font-medium text-sm">{link.name}</div>
+                                                <div className="min-w-[120px] flex-1 text-sm font-medium">{link.name}</div>
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-xs text-muted-foreground">$</span>
                                                     <CurrencyInput
@@ -564,9 +569,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                         className="h-8 w-28 text-sm"
                                                         value={link.purchase_price ? Number(link.purchase_price) : 0}
                                                         onChange={(v) =>
-                                                            setSupplierLinks(supplierLinks.map((s) =>
-                                                                s.supplier_id === link.supplier_id ? { ...s, purchase_price: v > 0 ? String(v) : '' } : s,
-                                                            ))
+                                                            setSupplierLinks(
+                                                                supplierLinks.map((s) =>
+                                                                    s.supplier_id === link.supplier_id
+                                                                        ? { ...s, purchase_price: v > 0 ? String(v) : '' }
+                                                                        : s,
+                                                                ),
+                                                            )
                                                         }
                                                     />
                                                 </div>
@@ -575,9 +584,11 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                     className="h-8 w-32 text-sm"
                                                     value={link.supplier_code}
                                                     onChange={(e) =>
-                                                        setSupplierLinks(supplierLinks.map((s) =>
-                                                            s.supplier_id === link.supplier_id ? { ...s, supplier_code: e.target.value } : s,
-                                                        ))
+                                                        setSupplierLinks(
+                                                            supplierLinks.map((s) =>
+                                                                s.supplier_id === link.supplier_id ? { ...s, supplier_code: e.target.value } : s,
+                                                            ),
+                                                        )
                                                     }
                                                 />
                                                 <div className="flex items-center gap-1.5">
@@ -607,7 +618,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                 {/* Add supplier */}
                                 <div className="flex items-center gap-2">
                                     <Select value={supplierToAdd} onValueChange={setSupplierToAdd}>
-                                        <SelectTrigger className="h-8 text-sm flex-1">
+                                        <SelectTrigger className="h-8 flex-1 text-sm">
                                             <SelectValue placeholder="Agregar proveedor..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -615,12 +626,20 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 .filter((s) => !supplierLinks.some((l) => l.supplier_id === s.id))
                                                 .map((s) => (
                                                     <SelectItem key={s.id} value={String(s.id)}>
-                                                        {s.name}{s.nit ? ` — ${s.nit}` : ''}
+                                                        {s.name}
+                                                        {s.nit ? ` — ${s.nit}` : ''}
                                                     </SelectItem>
                                                 ))}
                                         </SelectContent>
                                     </Select>
-                                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={addSupplierLink} disabled={!supplierToAdd}>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1"
+                                        onClick={addSupplierLink}
+                                        disabled={!supplierToAdd}
+                                    >
                                         <Plus className="h-3.5 w-3.5" />
                                         Agregar
                                     </Button>

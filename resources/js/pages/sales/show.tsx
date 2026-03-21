@@ -1,5 +1,4 @@
 import SaleReturnTicket from '@/components/SaleReturnTicket';
-import { formatDateTime } from '@/lib/format';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
@@ -190,7 +190,6 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
         return methods[method as keyof typeof methods] || method;
     };
 
-
     // Función para actualizar los datos de la venta después de una devolución
     const updateSaleData = () => {
         // Recargar la página para obtener los datos actualizados
@@ -331,8 +330,8 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             <RotateCcw className="h-3.5 w-3.5" />
                             Devolución
                         </button>
-                        {sale.id && (
-                            isAdmin ? (
+                        {sale.id &&
+                            (isAdmin ? (
                                 <Link href={route('sales.edit', sale.id)}>
                                     <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                                         <Edit className="h-3.5 w-3.5" />
@@ -348,8 +347,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                     <Edit className="h-3.5 w-3.5" />
                                     Editar
                                 </button>
-                            )
-                        )}
+                            ))}
                     </div>
                 </div>
 
@@ -653,7 +651,10 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                         </div>
 
                         {/* Return receipt dialog */}
-                        <Dialog open={showReturnReceipt.open} onOpenChange={(open) => setShowReturnReceipt(open ? showReturnReceipt : { open: false, returnId: undefined })}>
+                        <Dialog
+                            open={showReturnReceipt.open}
+                            onOpenChange={(open) => setShowReturnReceipt(open ? showReturnReceipt : { open: false, returnId: undefined })}
+                        >
                             <DialogContent className="max-w-md">
                                 <DialogHeader>
                                     <DialogTitle>Recibo de devolución</DialogTitle>

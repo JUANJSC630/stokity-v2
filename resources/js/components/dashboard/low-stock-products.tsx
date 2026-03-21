@@ -27,9 +27,7 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
 
     const exportCSV = useCallback(() => {
         const header = 'Código,Producto,Categoría,Stock Actual,Stock Mínimo\n';
-        const rows = products.map((p) =>
-            `"${p.code}","${p.name}","${p.category?.name || ''}",${p.stock},${p.min_stock}`
-        ).join('\n');
+        const rows = products.map((p) => `"${p.code}","${p.name}","${p.category?.name || ''}",${p.stock},${p.min_stock}`).join('\n');
         const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -85,7 +83,10 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
             {/* Export button */}
             <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); exportCSV(); }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    exportCSV();
+                }}
                 title="Exportar lista de stock bajo como CSV"
                 className="absolute top-3 right-10 flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] font-medium text-amber-700 transition-colors hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
             >

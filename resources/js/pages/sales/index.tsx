@@ -1,14 +1,14 @@
 import EyeButton from '@/components/common/EyeButton';
-import { formatDateTime } from '@/lib/format';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Sale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
@@ -294,7 +294,6 @@ export default function Index({ sales, filters }: PageProps) {
         return methods[method as keyof typeof methods] || method;
     };
 
-
     const columns: Column<Sale & { actions: null }>[] = [
         { key: 'code', title: 'Código' },
         { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'N/A' },
@@ -348,7 +347,7 @@ export default function Index({ sales, filters }: PageProps) {
                                                     ref={searchRef}
                                                     type="search"
                                                     placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pl-8 pr-12 text-sm"
+                                                    className="h-8 pr-12 pl-8 text-sm"
                                                     value={search}
                                                     onChange={(e) => setSearch(e.target.value)}
                                                 />
@@ -449,11 +448,7 @@ export default function Index({ sales, filters }: PageProps) {
                 <div className="relative overflow-hidden rounded-md bg-card shadow">
                     {/* Tabla solo visible en escritorio */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table
-                            columns={columns}
-                            data={sales.data.map((sale) => ({ ...sale, actions: null }))}
-                            loading={isSearching}
-                        />
+                        <Table columns={columns} data={sales.data.map((sale) => ({ ...sale, actions: null }))} loading={isSearching} />
                     </div>
 
                     {/* Tarjetas para móvil */}
@@ -461,7 +456,7 @@ export default function Index({ sales, filters }: PageProps) {
                         {isSearching ? (
                             <div className="flex flex-col gap-4 p-2">
                                 {Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+                                    <div key={i} className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
                                         <Skeleton className="h-4 w-1/3" />
                                         <Skeleton className="h-3 w-2/3" />
                                         <Skeleton className="h-3 w-1/2" />

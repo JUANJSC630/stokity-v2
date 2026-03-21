@@ -2,8 +2,8 @@ import { CardCreateClient } from '@/components/clients';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -736,8 +736,8 @@ export default function Create({ branches, clients }: Props) {
                                                 <SelectItem value="fixed">Monto fijo $</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        {form.data.discount_type !== 'none' && (
-                                            form.data.discount_type === 'fixed' ? (
+                                        {form.data.discount_type !== 'none' &&
+                                            (form.data.discount_type === 'fixed' ? (
                                                 <CurrencyInput
                                                     value={Number(form.data.discount_value) || 0}
                                                     onChange={(v) => form.setData('discount_value', v > 0 ? String(v) : '0')}
@@ -755,8 +755,7 @@ export default function Create({ branches, clients }: Props) {
                                                     onChange={(e) => form.setData('discount_value', e.target.value || '0')}
                                                     className="w-32 bg-white dark:bg-neutral-800"
                                                 />
-                                            )
-                                        )}
+                                            ))}
                                         {form.data.discount_type !== 'none' && parseFloat(form.data.discount_amount) > 0 && (
                                             <span className="flex items-center text-sm font-semibold text-red-600 dark:text-red-400">
                                                 − {formatCOP(form.data.discount_amount)}

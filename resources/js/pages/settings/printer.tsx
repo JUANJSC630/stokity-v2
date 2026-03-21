@@ -279,15 +279,21 @@ export default function PrinterSettings() {
                                         (step.number === 1 && printer.status === 'connected') ||
                                         (step.number === 5 && printer.status === 'connected' && !!printer.selectedPrinter);
                                     return (
-                                    <li key={step.number} className="flex gap-4">
-                                        <div className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isComplete ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'}`}>
-                                            {isComplete ? <CheckCircle className="size-4" /> : step.number}
-                                        </div>
-                                        <div className="space-y-1 pt-0.5">
-                                            <p className={`text-sm font-semibold ${isComplete ? 'text-green-600 line-through dark:text-green-400' : ''}`}>{step.title}</p>
-                                            <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-                                        </div>
-                                    </li>
+                                        <li key={step.number} className="flex gap-4">
+                                            <div
+                                                className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isComplete ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'}`}
+                                            >
+                                                {isComplete ? <CheckCircle className="size-4" /> : step.number}
+                                            </div>
+                                            <div className="space-y-1 pt-0.5">
+                                                <p
+                                                    className={`text-sm font-semibold ${isComplete ? 'text-green-600 line-through dark:text-green-400' : ''}`}
+                                                >
+                                                    {step.title}
+                                                </p>
+                                                <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+                                            </div>
+                                        </li>
                                     );
                                 })}
                             </ol>

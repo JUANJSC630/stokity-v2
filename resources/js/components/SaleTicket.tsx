@@ -1,6 +1,6 @@
 import { type Branch } from '@/types';
-import QRCode from 'react-qr-code';
 import React from 'react';
+import QRCode from 'react-qr-code';
 
 interface TicketConfig {
     paper_width: 58 | 80;
@@ -278,7 +278,7 @@ const SaleTicket: React.FC<SaleTicketProps> = ({
                             // Barcode placeholder (browser print — actual barcode printed via ESC/POS)
                             <>
                                 <div style={{ display: 'flex', gap: '1px', height: 40, alignItems: 'stretch' }}>
-                                    {[3,1,2,1,3,2,1,2,3,1,2,1,3,2,1,3,1,2,1,3].map((w, i) => (
+                                    {[3, 1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 1, 3, 2, 1, 3, 1, 2, 1, 3].map((w, i) => (
                                         <div key={i} style={{ width: w * 2, background: i % 2 === 0 ? '#222' : '#fff' }} />
                                     ))}
                                 </div>

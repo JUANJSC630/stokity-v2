@@ -103,9 +103,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
             key: 'sale_price',
             title: 'P. compra (proveedor)',
             render: (_: unknown, row: SupplierProduct) =>
-                row.pivot.purchase_price != null
-                    ? `$ ${Number(row.pivot.purchase_price).toLocaleString('es-CO')}`
-                    : '-',
+                row.pivot.purchase_price != null ? `$ ${Number(row.pivot.purchase_price).toLocaleString('es-CO')}` : '-',
         },
         { key: 'stock', title: 'Stock' },
         {
@@ -115,7 +113,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                 row.pivot.is_default ? (
                     <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Sí</Badge>
                 ) : (
-                    <span className="text-muted-foreground text-xs">—</span>
+                    <span className="text-xs text-muted-foreground">—</span>
                 ),
         },
     ];
@@ -151,8 +149,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
         {
             key: 'unit_cost',
             title: 'Costo unit.',
-            render: (_: unknown, row: StockMovement) =>
-                row.unit_cost != null ? `$ ${Number(row.unit_cost).toLocaleString('es-CO')}` : '-',
+            render: (_: unknown, row: StockMovement) => (row.unit_cost != null ? `$ ${Number(row.unit_cost).toLocaleString('es-CO')}` : '-'),
         },
         {
             key: 'reference',
@@ -295,21 +292,11 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                             <div className="flex flex-wrap items-end gap-2">
                                 <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Desde</Label>
-                                    <Input
-                                        type="date"
-                                        className="h-8 text-sm"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                    />
+                                    <Input type="date" className="h-8 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                                 </div>
                                 <div className="space-y-1">
                                     <Label className="text-xs text-muted-foreground">Hasta</Label>
-                                    <Input
-                                        type="date"
-                                        className="h-8 text-sm"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                    />
+                                    <Input type="date" className="h-8 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                                 </div>
                                 <Button size="sm" className="h-8" onClick={applyDateFilter}>
                                     Filtrar

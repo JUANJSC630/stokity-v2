@@ -1,10 +1,10 @@
 import { Avatar } from '@/components/ui/avatar';
-import { formatDateTime } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { ChevronLeft, Edit, Trash } from 'lucide-react';
@@ -78,7 +78,6 @@ export default function ShowUser({ user }: Props) {
             <Badge className="bg-red-500 hover:bg-red-600">Inactivo</Badge>
         );
     };
-
 
     const handleDelete = () => {
         form.delete(`/users/${user.id}`, {

@@ -4,10 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ChevronLeft } from 'lucide-react';
 
 interface EditBranchProps {

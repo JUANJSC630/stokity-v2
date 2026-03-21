@@ -17,8 +17,8 @@ import {
     RotateCcw,
     ScanLine,
     Tags,
-    Truck,
     TrendingUp,
+    Truck,
     UserRound,
     Users,
     Users2,
@@ -151,9 +151,7 @@ export function AppSidebar() {
     const userRole = auth.user.role;
 
     // Filter navigation items based on user's role
-    const filteredNavItems = allNavItems.filter(
-        (item) => !item.roles || item.roles.includes(userRole),
-    );
+    const filteredNavItems = allNavItems.filter((item) => !item.roles || item.roles.includes(userRole));
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>

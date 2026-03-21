@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 type Branch = {

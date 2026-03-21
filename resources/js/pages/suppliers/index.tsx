@@ -31,9 +31,7 @@ interface PageProps {
     };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Proveedores', href: '/suppliers' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Proveedores', href: '/suppliers' }];
 
 export default function Index({ suppliers, branches, filters }: PageProps) {
     const [search, setSearch] = useState(filters.search || '');
@@ -108,7 +106,9 @@ export default function Index({ suppliers, branches, filters }: PageProps) {
                 row.status ? (
                     <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Activo</Badge>
                 ) : (
-                    <Badge variant="secondary" className="text-xs">Inactivo</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                        Inactivo
+                    </Badge>
                 ),
         },
         {
@@ -206,7 +206,9 @@ export default function Index({ suppliers, branches, filters }: PageProps) {
                                             <SelectContent>
                                                 <SelectItem value="all">Todas</SelectItem>
                                                 {branches.map((b) => (
-                                                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                                                    <SelectItem key={b.id} value={String(b.id)}>
+                                                        {b.name}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -220,11 +222,7 @@ export default function Index({ suppliers, branches, filters }: PageProps) {
                 <div className="relative overflow-hidden rounded-md bg-card shadow">
                     {/* Desktop table */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table
-                            columns={columns}
-                            data={suppliers.data.map((s) => ({ ...s, actions: null }))}
-                            loading={isSearching}
-                        />
+                        <Table columns={columns} data={suppliers.data.map((s) => ({ ...s, actions: null }))} loading={isSearching} />
                     </div>
 
                     {/* Mobile cards */}

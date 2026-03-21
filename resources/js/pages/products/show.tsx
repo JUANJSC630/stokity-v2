@@ -83,7 +83,11 @@ export default function ProductShow({ product }: ProductShowProps) {
                             </Button>
                         </Link>
                         <Link href={`/stock-movements/create?product_id=${product.id}&type=write_off`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                            >
                                 <Trash2 className="h-4 w-4" />
                                 <span className="hidden sm:inline">Registrar Baja</span>
                             </Button>
@@ -138,9 +142,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                             viewBox="0 0 256 256"
                                             className="sm:h-20 sm:w-20"
                                         />
-                                        <p className="text-center text-[10px] text-muted-foreground">
-                                            Escanea para agregar al POS
-                                        </p>
+                                        <p className="text-center text-[10px] text-muted-foreground">Escanea para agregar al POS</p>
                                         <button
                                             type="button"
                                             onClick={downloadQr}

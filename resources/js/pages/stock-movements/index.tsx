@@ -104,38 +104,59 @@ export default function StockMovementsIndex({ movements, branches, products, fil
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'in':             return 'bg-green-100 text-green-800';
-            case 'out':            return 'bg-red-100 text-red-800';
-            case 'adjustment':     return 'bg-yellow-100 text-yellow-800';
-            case 'purchase':       return 'bg-blue-100 text-blue-800';
-            case 'write_off':      return 'bg-orange-100 text-orange-800';
-            case 'supplier_return':return 'bg-purple-100 text-purple-800';
-            default:               return 'bg-gray-100 text-gray-800';
+            case 'in':
+                return 'bg-green-100 text-green-800';
+            case 'out':
+                return 'bg-red-100 text-red-800';
+            case 'adjustment':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'purchase':
+                return 'bg-blue-100 text-blue-800';
+            case 'write_off':
+                return 'bg-orange-100 text-orange-800';
+            case 'supplier_return':
+                return 'bg-purple-100 text-purple-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
         }
     };
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':             return 'Entrada';
-            case 'out':            return 'Salida';
-            case 'adjustment':     return 'Ajuste';
-            case 'purchase':       return 'Compra';
-            case 'write_off':      return 'Baja';
-            case 'supplier_return':return 'Dev. Proveedor';
-            default:               return 'Desconocido';
+            case 'in':
+                return 'Entrada';
+            case 'out':
+                return 'Salida';
+            case 'adjustment':
+                return 'Ajuste';
+            case 'purchase':
+                return 'Compra';
+            case 'write_off':
+                return 'Baja';
+            case 'supplier_return':
+                return 'Dev. Proveedor';
+            default:
+                return 'Desconocido';
         }
     };
 
     const getTypeIcon = (type: string) => {
         const cls = 'mr-1 inline h-3 w-3';
         switch (type) {
-            case 'in':             return <ArrowDownCircle className={cls} />;
-            case 'out':            return <ArrowUpCircle className={cls} />;
-            case 'adjustment':     return <Equal className={cls} />;
-            case 'purchase':       return <ShoppingCart className={cls} />;
-            case 'write_off':      return <Trash2 className={cls} />;
-            case 'supplier_return':return <RotateCcw className={cls} />;
-            default:               return <Package className={cls} />;
+            case 'in':
+                return <ArrowDownCircle className={cls} />;
+            case 'out':
+                return <ArrowUpCircle className={cls} />;
+            case 'adjustment':
+                return <Equal className={cls} />;
+            case 'purchase':
+                return <ShoppingCart className={cls} />;
+            case 'write_off':
+                return <Trash2 className={cls} />;
+            case 'supplier_return':
+                return <RotateCcw className={cls} />;
+            default:
+                return <Package className={cls} />;
         }
     };
 
@@ -157,7 +178,12 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'type',
             title: 'Tipo',
-            render: (value) => <Badge className={getTypeColor(value as string)}>{getTypeIcon(value as string)}{getTypeLabel(value as string)}</Badge>,
+            render: (value) => (
+                <Badge className={getTypeColor(value as string)}>
+                    {getTypeIcon(value as string)}
+                    {getTypeLabel(value as string)}
+                </Badge>
+            ),
         },
         {
             key: 'quantity',
@@ -319,7 +345,12 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                     <CardContent>
                         {/* Vista tabla en md+ */}
                         <div className="hidden md:block">
-                            <Table aria-label="Movimientos de stock" columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos de stock" />
+                            <Table
+                                aria-label="Movimientos de stock"
+                                columns={columns}
+                                data={movements.data}
+                                emptyMessage="No se encontraron movimientos de stock"
+                            />
                         </div>
 
                         {/* Vista tarjetas en móvil */}
@@ -346,7 +377,10 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                     <div className="text-xs text-neutral-500 dark:text-neutral-400">{movement.product.code}</div>
                                                 </div>
                                             </div>
-                                            <Badge className={getTypeColor(movement.type)}>{getTypeIcon(movement.type)}{getTypeLabel(movement.type)}</Badge>
+                                            <Badge className={getTypeColor(movement.type)}>
+                                                {getTypeIcon(movement.type)}
+                                                {getTypeLabel(movement.type)}
+                                            </Badge>
                                         </div>
 
                                         <div className="mb-2 space-y-1">

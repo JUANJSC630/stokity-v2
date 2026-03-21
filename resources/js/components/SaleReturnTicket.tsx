@@ -1,6 +1,6 @@
 import { type Branch } from '@/types';
-import QRCode from 'react-qr-code';
 import React from 'react';
+import QRCode from 'react-qr-code';
 
 interface TicketConfig {
     paper_width: 58 | 80;
@@ -130,11 +130,11 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
     const name = businessName ?? sale.branch?.business_name ?? sale.branch?.name;
 
     // Return-specific config with fallbacks
-    const returnShowSeller  = config.return_show_seller  ?? true;
-    const returnShowBranch  = config.return_show_branch  ?? true;
-    const returnShowReason  = config.return_show_reason  ?? true;
-    const returnFooter1     = config.return_footer_line1 ?? 'Devolución procesada.';
-    const returnFooter2     = config.return_footer_line2 ?? 'Gracias por su preferencia.';
+    const returnShowSeller = config.return_show_seller ?? true;
+    const returnShowBranch = config.return_show_branch ?? true;
+    const returnShowReason = config.return_show_reason ?? true;
+    const returnFooter1 = config.return_footer_line1 ?? 'Devolución procesada.';
+    const returnFooter2 = config.return_footer_line2 ?? 'Gracias por su preferencia.';
     const returnCodeGraphic = config.return_code_graphic ?? 'none';
 
     return (
@@ -262,20 +262,16 @@ const SaleReturnTicket: React.FC<SaleReturnTicketProps> = ({
                         {returnCodeGraphic === 'qr' ? (
                             <>
                                 <QRCode size={80} value={String(saleReturn.id)} viewBox="0 0 256 256" />
-                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 3 }}>
-                                    Devol. #{saleReturn.id}
-                                </span>
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 3 }}>Devol. #{saleReturn.id}</span>
                             </>
                         ) : (
                             <>
                                 <div style={{ display: 'flex', gap: '1px', height: 40, alignItems: 'stretch' }}>
-                                    {[3,1,2,1,3,2,1,2,3,1,2,1,3,2,1,3,1,2,1,3].map((w, i) => (
+                                    {[3, 1, 2, 1, 3, 2, 1, 2, 3, 1, 2, 1, 3, 2, 1, 3, 1, 2, 1, 3].map((w, i) => (
                                         <div key={i} style={{ width: w * 2, background: i % 2 === 0 ? '#222' : '#fff' }} />
                                     ))}
                                 </div>
-                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 2 }}>
-                                    Devol. #{saleReturn.id}
-                                </span>
+                                <span style={{ ...mono, fontSize: '9px', color: '#555', marginTop: 2 }}>Devol. #{saleReturn.id}</span>
                             </>
                         )}
                     </div>

@@ -269,11 +269,7 @@ function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks
                                 Configurar
                             </a>
                         </p>
-                        <button
-                            type="button"
-                            onClick={() => printer.connect()}
-                            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-                        >
+                        <button type="button" onClick={() => printer.connect()} className="text-xs text-blue-600 hover:underline dark:text-blue-400">
                             Reconectar
                         </button>
                     </div>
@@ -403,33 +399,36 @@ export default function PosIndex({
     }, [query, selectedCategory]);
 
     // --- Cart helpers ---
-    const addToCart = useCallback((product: Product, qty = 1) => {
-        if (product.stock <= 0) {
-            playSound('error');
-            toast.error('Sin stock disponible');
-            return;
-        }
-        setCart((prev) => {
-            const idx = prev.findIndex((i) => i.product.id === product.id);
-            if (idx !== -1) {
-                const updated = [...prev];
-                const newQty = Math.min(updated[idx].quantity + qty, product.stock);
-                if (newQty === updated[idx].quantity) {
-                    playSound('warning');
-                    toast.error('Stock máximo alcanzado');
-                    return prev;
-                }
-                updated[idx] = { ...updated[idx], quantity: newQty, subtotal: newQty * product.sale_price };
-                playSound('success');
-                return updated;
+    const addToCart = useCallback(
+        (product: Product, qty = 1) => {
+            if (product.stock <= 0) {
+                playSound('error');
+                toast.error('Sin stock disponible');
+                return;
             }
-            playSound('success');
-            return [{ product, quantity: qty, subtotal: qty * product.sale_price }, ...prev];
-        });
-        setQuery('');
-        setResults([]);
-        setTimeout(() => searchRef.current?.focus(), 0);
-    }, [playSound]);
+            setCart((prev) => {
+                const idx = prev.findIndex((i) => i.product.id === product.id);
+                if (idx !== -1) {
+                    const updated = [...prev];
+                    const newQty = Math.min(updated[idx].quantity + qty, product.stock);
+                    if (newQty === updated[idx].quantity) {
+                        playSound('warning');
+                        toast.error('Stock máximo alcanzado');
+                        return prev;
+                    }
+                    updated[idx] = { ...updated[idx], quantity: newQty, subtotal: newQty * product.sale_price };
+                    playSound('success');
+                    return updated;
+                }
+                playSound('success');
+                return [{ product, quantity: qty, subtotal: qty * product.sale_price }, ...prev];
+            });
+            setQuery('');
+            setResults([]);
+            setTimeout(() => searchRef.current?.focus(), 0);
+        },
+        [playSound],
+    );
 
     const updateQty = (productId: number, qty: number) => {
         setCart((prev) =>
@@ -522,13 +521,24 @@ export default function PosIndex({
             if (saleChange > 0) lines.push(`Cambio: ${formatCOP(saleChange)}`);
             toast.success(
                 (t) =>
-                    React.createElement('div', { className: 'text-sm' },
+                    React.createElement(
+                        'div',
+                        { className: 'text-sm' },
                         React.createElement('p', { className: 'font-semibold' }, '¡Venta registrada!'),
-                        saleChange > 0 && React.createElement('p', { className: 'mt-1 text-base font-bold text-green-700' }, `Cambio: ${formatCOP(saleChange)}`),
-                        saleId && React.createElement('button', {
-                            onClick: () => { toast.dismiss(t.id); router.visit(`/sales/${saleId}`); },
-                            className: 'mt-1 text-xs text-blue-600 underline hover:text-blue-800',
-                        }, `Ver venta ${saleCode || ''}`)
+                        saleChange > 0 &&
+                            React.createElement('p', { className: 'mt-1 text-base font-bold text-green-700' }, `Cambio: ${formatCOP(saleChange)}`),
+                        saleId &&
+                            React.createElement(
+                                'button',
+                                {
+                                    onClick: () => {
+                                        toast.dismiss(t.id);
+                                        router.visit(`/sales/${saleId}`);
+                                    },
+                                    className: 'mt-1 text-xs text-blue-600 underline hover:text-blue-800',
+                                },
+                                `Ver venta ${saleCode || ''}`,
+                            ),
                     ),
                 { duration: saleChange > 0 ? 6000 : 4000 },
             );
@@ -562,15 +572,23 @@ export default function PosIndex({
             } else {
                 toast.error(
                     (t) =>
-                        React.createElement('div', { className: 'text-sm' },
+                        React.createElement(
+                            'div',
+                            { className: 'text-sm' },
                             React.createElement('p', { className: 'mb-1 font-semibold' }, `${messages.length} errores:`),
-                            React.createElement('ul', { className: 'list-inside list-disc space-y-0.5' },
+                            React.createElement(
+                                'ul',
+                                { className: 'list-inside list-disc space-y-0.5' },
                                 ...messages.map((msg, i) => React.createElement('li', { key: i }, msg)),
                             ),
-                            React.createElement('button', {
-                                onClick: () => toast.dismiss(t.id),
-                                className: 'mt-2 text-xs text-red-300 underline',
-                            }, 'Cerrar'),
+                            React.createElement(
+                                'button',
+                                {
+                                    onClick: () => toast.dismiss(t.id),
+                                    className: 'mt-2 text-xs text-red-300 underline',
+                                },
+                                'Cerrar',
+                            ),
                         ),
                     { duration: 10000 },
                 );
@@ -906,10 +924,7 @@ export default function PosIndex({
                             </button>
                         </form>
                         <div className="mt-3 text-center">
-                            <a
-                                href="/dashboard"
-                                className="text-xs text-muted-foreground hover:underline"
-                            >
+                            <a href="/dashboard" className="text-xs text-muted-foreground hover:underline">
                                 Ir al inicio
                             </a>
                         </div>
@@ -1076,7 +1091,7 @@ export default function PosIndex({
                                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                             selectedCategory === String(cat.id)
                                                 ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                         }`}
                                     >
                                         {cat.name}
@@ -1090,9 +1105,15 @@ export default function PosIndex({
                                 <Keyboard className="h-3 w-3" />
                                 <kbd className="rounded border px-1">/</kbd> buscar
                             </span>
-                            <span><kbd className="rounded border px-1">Enter</kbd> agregar</span>
-                            <span><kbd className="rounded border px-1">Esc</kbd> limpiar</span>
-                            <span><kbd className="rounded border px-1">F9</kbd> cobrar</span>
+                            <span>
+                                <kbd className="rounded border px-1">Enter</kbd> agregar
+                            </span>
+                            <span>
+                                <kbd className="rounded border px-1">Esc</kbd> limpiar
+                            </span>
+                            <span>
+                                <kbd className="rounded border px-1">F9</kbd> cobrar
+                            </span>
                             <button
                                 type="button"
                                 onClick={() => setShowShortcuts(true)}
@@ -1107,17 +1128,36 @@ export default function PosIndex({
                         {showShortcuts && (
                             <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
                                 <div className="mb-2 flex items-center justify-between">
-                                    <h3 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atajos de teclado</h3>
-                                    <button type="button" onClick={() => setShowShortcuts(false)} className="text-muted-foreground hover:text-foreground">
+                                    <h3 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Atajos de teclado</h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowShortcuts(false)}
+                                        className="text-muted-foreground hover:text-foreground"
+                                    >
                                         <X className="h-3.5 w-3.5" />
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Buscar producto</span><kbd className="rounded border px-1.5 font-mono">/</kbd></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Agregar primer resultado</span><kbd className="rounded border px-1.5 font-mono">Enter</kbd></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Limpiar búsqueda</span><kbd className="rounded border px-1.5 font-mono">Esc</kbd></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Cobrar venta</span><kbd className="rounded border px-1.5 font-mono">F9</kbd></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Ver/ocultar atajos</span><kbd className="rounded border px-1.5 font-mono">?</kbd></div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Buscar producto</span>
+                                        <kbd className="rounded border px-1.5 font-mono">/</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Agregar primer resultado</span>
+                                        <kbd className="rounded border px-1.5 font-mono">Enter</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Limpiar búsqueda</span>
+                                        <kbd className="rounded border px-1.5 font-mono">Esc</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Cobrar venta</span>
+                                        <kbd className="rounded border px-1.5 font-mono">F9</kbd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Ver/ocultar atajos</span>
+                                        <kbd className="rounded border px-1.5 font-mono">?</kbd>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1274,7 +1314,7 @@ export default function PosIndex({
                                                 }}
                                                 onFocus={(e) => e.target.select()}
                                                 aria-label={`Cantidad de ${item.product.name}`}
-                                                className="h-7 w-10 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400 dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                className="h-7 w-10 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             />
                                             <button
                                                 type="button"
@@ -1318,8 +1358,8 @@ export default function PosIndex({
                                     <SelectItem value="fixed">$ Fijo</SelectItem>
                                 </SelectContent>
                             </Select>
-                            {discountType !== 'none' && (
-                                discountType === 'fixed' ? (
+                            {discountType !== 'none' &&
+                                (discountType === 'fixed' ? (
                                     <CurrencyInput
                                         value={Number(discountValue) || 0}
                                         onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
@@ -1336,8 +1376,7 @@ export default function PosIndex({
                                         className="h-7 w-20 text-xs"
                                         placeholder="0"
                                     />
-                                )
-                            )}
+                                ))}
                             {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
                         </div>
 

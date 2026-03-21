@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface Client {

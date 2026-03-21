@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { ArrowLeft, Save } from 'lucide-react';
 
 interface PageProps {
@@ -33,7 +33,7 @@ export default function Create({ branches, userBranchId }: PageProps) {
         notes: string;
         status: boolean;
     }>({
-        branch_id: userBranchId ? String(userBranchId) : (branches[0] ? String(branches[0].id) : ''),
+        branch_id: userBranchId ? String(userBranchId) : branches[0] ? String(branches[0].id) : '',
         name: '',
         nit: '',
         contact_name: '',
@@ -68,9 +68,7 @@ export default function Create({ branches, userBranchId }: PageProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle>Información del Proveedor</CardTitle>
-                        <CardDescription>
-                            Complete la información del proveedor. Los campos marcados con * son obligatorios.
-                        </CardDescription>
+                        <CardDescription>Complete la información del proveedor. Los campos marcados con * son obligatorios.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,16 +156,15 @@ export default function Create({ branches, userBranchId }: PageProps) {
                                         <Label htmlFor="branch_id">
                                             Sucursal <span className="text-red-500">*</span>
                                         </Label>
-                                        <Select
-                                            value={form.data.branch_id}
-                                            onValueChange={(v) => form.setData('branch_id', v)}
-                                        >
+                                        <Select value={form.data.branch_id} onValueChange={(v) => form.setData('branch_id', v)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecciona una sucursal" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {branches.map((b) => (
-                                                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                                                    <SelectItem key={b.id} value={String(b.id)}>
+                                                        {b.name}
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -177,11 +174,7 @@ export default function Create({ branches, userBranchId }: PageProps) {
 
                                 {/* Estado */}
                                 <div className="flex items-center gap-3 pt-2 sm:col-span-2">
-                                    <Switch
-                                        id="status"
-                                        checked={form.data.status}
-                                        onCheckedChange={(v) => form.setData('status', v)}
-                                    />
+                                    <Switch id="status" checked={form.data.status} onCheckedChange={(v) => form.setData('status', v)} />
                                     <Label htmlFor="status">Proveedor activo</Label>
                                 </div>
 
@@ -201,7 +194,9 @@ export default function Create({ branches, userBranchId }: PageProps) {
 
                             <div className="flex justify-end gap-2">
                                 <Link href={route('suppliers.index')}>
-                                    <Button variant="outline" type="button">Cancelar</Button>
+                                    <Button variant="outline" type="button">
+                                        Cancelar
+                                    </Button>
                                 </Link>
                                 <Button type="submit" disabled={form.processing} className="gap-1">
                                     <Save className="size-4" />

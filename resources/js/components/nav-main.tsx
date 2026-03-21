@@ -63,9 +63,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                 {items.map((item) => (
                     <SidebarMenuItem key={item.title} className="mb-2">
                         {/* Separador antes de Reportes (solo en modo expandido) */}
-                        {item.title === 'Reportes' && !isCollapsed && (
-                            <SidebarSeparator className="my-4" />
-                        )}
+                        {item.title === 'Reportes' && !isCollapsed && <SidebarSeparator className="my-4" />}
 
                         {item.children && !item.disabled ? (
                             isCollapsed ? (
@@ -89,9 +87,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                         </SidebarMenuButton>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent side="right" align="start" className="min-w-44">
-                                        <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                            {item.title}
-                                        </DropdownMenuLabel>
+                                        <DropdownMenuLabel className="text-xs text-muted-foreground">{item.title}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         {item.children
                                             .filter((child) => !child.roles || child.roles.includes(userRole))
@@ -197,9 +193,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     } rounded-lg px-3 py-2`}
                                 >
                                     {item.icon && (
-                                        <span
-                                            className={`${isItemActive(item) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}
-                                        >
+                                        <span className={`${isItemActive(item) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}>
                                             <item.icon className="size-5" />
                                         </span>
                                     )}

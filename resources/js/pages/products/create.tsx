@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
@@ -14,7 +15,6 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import { ArrowLeft, Save, Upload, UserCircle } from 'lucide-react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useState } from 'react';
 
 interface CreateProductProps {

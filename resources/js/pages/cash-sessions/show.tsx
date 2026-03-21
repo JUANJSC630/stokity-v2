@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
-import { formatDateTime } from '@/lib/format';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
+import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -85,14 +85,8 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                             <h1 className="text-lg font-bold">Turno #{session.id}</h1>
                             {session.branch && <p className="text-sm text-muted-foreground">Sucursal: {session.branch.name}</p>}
                             {session.opened_by && <p className="text-sm text-muted-foreground">Cajero: {session.opened_by.name}</p>}
-                            <p className="text-sm text-muted-foreground">
-                                Apertura: {formatDateTime(openedAt)}
-                            </p>
-                            {closedAt && (
-                                <p className="text-sm text-muted-foreground">
-                                    Cierre: {formatDateTime(closedAt)}
-                                </p>
-                            )}
+                            <p className="text-sm text-muted-foreground">Apertura: {formatDateTime(openedAt)}</p>
+                            {closedAt && <p className="text-sm text-muted-foreground">Cierre: {formatDateTime(closedAt)}</p>}
                             <p className="text-sm text-muted-foreground">Duración: {formatDuration(session.opened_at, session.closed_at)}</p>
                         </div>
                         <Badge

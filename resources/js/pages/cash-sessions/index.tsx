@@ -155,12 +155,8 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                             <td className="px-4 py-3 font-mono text-muted-foreground">#{s.id}</td>
                                             <td className="px-4 py-3">{s.branch?.name ?? '—'}</td>
                                             <td className="px-4 py-3">{s.opened_by?.name ?? '—'}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                {formatDateTime(s.opened_at)}
-                                            </td>
-                                            <td className="px-4 py-3 text-muted-foreground">
-                                                {s.closed_at ? formatDateTime(s.closed_at) : '—'}
-                                            </td>
+                                            <td className="px-4 py-3 text-muted-foreground">{formatDateTime(s.opened_at)}</td>
+                                            <td className="px-4 py-3 text-muted-foreground">{s.closed_at ? formatDateTime(s.closed_at) : '—'}</td>
                                             <td className="px-4 py-3 text-right">{formatCOP(s.opening_amount)}</td>
                                             <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">
                                                 {formatCOP(totalSales)}

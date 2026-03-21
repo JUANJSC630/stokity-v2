@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Product, type Supplier } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import { ArrowLeft, Loader2, Package, Save, Search, X } from 'lucide-react';
-import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import { useEffect, useRef, useState } from 'react';
 
 type MovementType = 'in' | 'out' | 'adjustment' | 'purchase' | 'write_off' | 'supplier_return';
@@ -77,42 +77,53 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (!value.trim()) { setSearchResults([]); setShowDropdown(false); return; }
+        if (!value.trim()) {
+            setSearchResults([]);
+            setShowDropdown(false);
+            return;
+        }
         debounceRef.current = setTimeout(async () => {
             setSearching(true);
             try {
                 const res = await axios.get('/api/products/search', { params: { q: value.trim() } });
                 setSearchResults(res.data);
                 setShowDropdown(true);
-            } catch { setSearchResults([]); }
-            finally { setSearching(false); }
+            } catch {
+                setSearchResults([]);
+            } finally {
+                setSearching(false);
+            }
         }, 250);
     };
 
     const selectProduct = (product: Product) => {
         setSelectedProductData(product);
         setData('product_id', product.id.toString());
-        setSearchQuery(''); setSearchResults([]); setShowDropdown(false);
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowDropdown(false);
     };
 
     const clearProduct = () => {
         setSelectedProductData(null);
         setData('product_id', '');
-        setSearchQuery(''); setSearchResults([]);
+        setSearchQuery('');
+        setSearchResults([]);
         setTimeout(() => inputRef.current?.focus(), 0);
     };
 
     const showSupplier = ['in', 'purchase', 'supplier_return'].includes(movementType);
     const showUnitCost = ['in', 'purchase'].includes(movementType);
 
-    const quantityLabel =
-        ['in', 'purchase'].includes(movementType) ? 'Cantidad a ingresar' :
-        ['out', 'write_off', 'supplier_return'].includes(movementType) ? 'Cantidad a retirar' :
-        movementType === 'adjustment' ? 'Nuevo stock total' : 'Cantidad';
+    const quantityLabel = ['in', 'purchase'].includes(movementType)
+        ? 'Cantidad a ingresar'
+        : ['out', 'write_off', 'supplier_return'].includes(movementType)
+          ? 'Cantidad a retirar'
+          : movementType === 'adjustment'
+            ? 'Nuevo stock total'
+            : 'Cantidad';
 
-    const quantityHelp = selectedProductData
-        ? `Stock actual: ${(selectedProductData.stock ?? 0).toLocaleString()}`
-        : '';
+    const quantityHelp = selectedProductData ? `Stock actual: ${(selectedProductData.stock ?? 0).toLocaleString()}` : '';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -135,8 +146,13 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                             <CardDescription>Complete los datos del movimiento de stock</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={(e) => { e.preventDefault(); post('/stock-movements'); }} className="space-y-5">
-
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    post('/stock-movements');
+                                }}
+                                className="space-y-5"
+                            >
                                 {/* ── Buscador de producto ── */}
                                 <div className="space-y-1.5">
                                     <Label>Producto *</Label>
@@ -149,16 +165,21 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                                     <span className="mx-1 text-muted-foreground">—</span>
                                                     <span className="font-medium">{selectedProductData.name}</span>
                                                 </span>
-                                                <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                                                    (selectedProductData.stock ?? 0) <= 0
-                                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                        : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                }`}>
+                                                <span
+                                                    className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                        (selectedProductData.stock ?? 0) <= 0
+                                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                                                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                                    }`}
+                                                >
                                                     Stock: {(selectedProductData.stock ?? 0).toLocaleString()}
                                                 </span>
-                                                <button type="button" onClick={clearProduct}
+                                                <button
+                                                    type="button"
+                                                    onClick={clearProduct}
                                                     className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                    title="Cambiar producto">
+                                                    title="Cambiar producto"
+                                                >
                                                     <X className="h-4 w-4" />
                                                 </button>
                                             </div>
@@ -168,7 +189,7 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                                 <Input
                                                     ref={inputRef}
                                                     placeholder="Buscar por nombre o código..."
-                                                    className="pl-9 pr-9"
+                                                    className="pr-9 pl-9"
                                                     value={searchQuery}
                                                     onChange={(e) => handleSearchChange(e.target.value)}
                                                     onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
@@ -185,16 +206,22 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                                 <ul className="max-h-60 overflow-y-auto py-1">
                                                     {searchResults.map((p) => (
                                                         <li key={p.id}>
-                                                            <button type="button"
+                                                            <button
+                                                                type="button"
                                                                 className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
-                                                                onClick={() => selectProduct(p)}>
-                                                                <span className="w-20 shrink-0 font-mono text-xs text-muted-foreground truncate">{p.code}</span>
+                                                                onClick={() => selectProduct(p)}
+                                                            >
+                                                                <span className="w-20 shrink-0 truncate font-mono text-xs text-muted-foreground">
+                                                                    {p.code}
+                                                                </span>
                                                                 <span className="flex-1 truncate font-medium">{p.name}</span>
-                                                                <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                                                                    (p.stock ?? 0) <= 0
-                                                                        ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                                        : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                                }`}>
+                                                                <span
+                                                                    className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                                        (p.stock ?? 0) <= 0
+                                                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                                                                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                                                                    }`}
+                                                                >
                                                                     {(p.stock ?? 0).toLocaleString()}
                                                                 </span>
                                                             </button>
@@ -239,8 +266,16 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                 <div className={`grid gap-4 ${showSupplier ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                                     <div className="space-y-1.5">
                                         <Label htmlFor="type">Tipo de Movimiento *</Label>
-                                        <Select value={data.type} onValueChange={(v) => { setMovementType(v as MovementType); setData('type', v as MovementType); }}>
-                                            <SelectTrigger id="type"><SelectValue /></SelectTrigger>
+                                        <Select
+                                            value={data.type}
+                                            onValueChange={(v) => {
+                                                setMovementType(v as MovementType);
+                                                setData('type', v as MovementType);
+                                            }}
+                                        >
+                                            <SelectTrigger id="type">
+                                                <SelectValue />
+                                            </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="in">Entrada de Stock</SelectItem>
                                                 <SelectItem value="purchase">Compra a Proveedor</SelectItem>
@@ -260,11 +295,15 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                                 value={data.supplier_id || '__none__'}
                                                 onValueChange={(v) => setData('supplier_id', v === '__none__' ? '' : v)}
                                             >
-                                                <SelectTrigger id="supplier_id"><SelectValue placeholder="Sin proveedor" /></SelectTrigger>
+                                                <SelectTrigger id="supplier_id">
+                                                    <SelectValue placeholder="Sin proveedor" />
+                                                </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="__none__">Sin proveedor</SelectItem>
                                                     {suppliers.map((s) => (
-                                                        <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                                        <SelectItem key={s.id} value={s.id.toString()}>
+                                                            {s.name}
+                                                        </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
@@ -349,10 +388,17 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                 {/* Submit */}
                                 <div className="flex justify-end pt-2">
                                     <Button type="submit" disabled={processing} className="gap-2">
-                                        {processing
-                                            ? <><Loader2 className="h-4 w-4 animate-spin" />Guardando...</>
-                                            : <><Save className="h-4 w-4" />Guardar Movimiento</>
-                                        }
+                                        {processing ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Guardando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save className="h-4 w-4" />
+                                                Guardar Movimiento
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
                             </form>

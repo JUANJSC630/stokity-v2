@@ -314,7 +314,11 @@ export default function TrashedProducts({
 
                     {/* Vista tabla en md+ */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table aria-label="Productos eliminados" columns={columns} data={productData.data.map((product) => ({ ...product, actions: null }))} />
+                        <Table
+                            aria-label="Productos eliminados"
+                            columns={columns}
+                            data={productData.data.map((product) => ({ ...product, actions: null }))}
+                        />
                     </div>
 
                     {/* Vista tarjetas en móvil */}

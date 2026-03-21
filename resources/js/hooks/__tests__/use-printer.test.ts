@@ -1,5 +1,5 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePrinter } from '../use-printer';
 
 // Access the mocked qzTray module

@@ -178,14 +178,18 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
-                                onClick={() => { setUseDenominations(false); }}
+                                onClick={() => {
+                                    setUseDenominations(false);
+                                }}
                                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${!useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
                             >
                                 Monto directo
                             </button>
                             <button
                                 type="button"
-                                onClick={() => { setUseDenominations(true); }}
+                                onClick={() => {
+                                    setUseDenominations(true);
+                                }}
                                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
                             >
                                 Contar por denominación
@@ -197,7 +201,10 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                 <label className="mb-1 block text-sm font-medium">Desglose por denominación</label>
                                 <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
                                     {DENOMINATIONS.map((denom) => (
-                                        <div key={denom} className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5 last:border-b-0 dark:border-neutral-800">
+                                        <div
+                                            key={denom}
+                                            className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5 last:border-b-0 dark:border-neutral-800"
+                                        >
                                             <span className="text-sm font-medium">{formatCOP(denom)}</span>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">×</span>
@@ -254,9 +261,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                 />
                             </div>
                         )}
-                        {form.errors.closing_amount_declared && (
-                            <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>
-                        )}
+                        {form.errors.closing_amount_declared && <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>}
                         <div>
                             <label className="mb-1 block text-sm font-medium">Notas del cierre (opcional)</label>
                             <textarea

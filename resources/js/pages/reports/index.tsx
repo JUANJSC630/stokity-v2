@@ -8,9 +8,9 @@ import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import toast from 'react-hot-toast';
 import { Activity, ArrowDownRight, ArrowUpRight, Calendar, DollarSign, Download, Package, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -391,9 +391,7 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
                                             </Label>
                                             <Select
                                                 value={localFilters.status || 'completed'}
-                                                onValueChange={(value) =>
-                                                    setLocalFilters((prev) => ({ ...prev, status: value }))
-                                                }
+                                                onValueChange={(value) => setLocalFilters((prev) => ({ ...prev, status: value }))}
                                             >
                                                 <SelectTrigger id="status" className="h-8 text-sm">
                                                     <SelectValue />

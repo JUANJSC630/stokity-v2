@@ -142,13 +142,20 @@ export default function ProductMovements({ product, movements }: Props) {
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':            return 'Entrada';
-            case 'out':           return 'Salida';
-            case 'adjustment':    return 'Ajuste';
-            case 'purchase':      return 'Compra';
-            case 'write_off':     return 'Baja';
-            case 'supplier_return': return 'Dev. Proveedor';
-            default:              return type; // muestra el valor crudo si aparece uno nuevo
+            case 'in':
+                return 'Entrada';
+            case 'out':
+                return 'Salida';
+            case 'adjustment':
+                return 'Ajuste';
+            case 'purchase':
+                return 'Compra';
+            case 'write_off':
+                return 'Baja';
+            case 'supplier_return':
+                return 'Dev. Proveedor';
+            default:
+                return type; // muestra el valor crudo si aparece uno nuevo
         }
     };
 
@@ -269,7 +276,12 @@ export default function ProductMovements({ product, movements }: Props) {
                     <CardContent>
                         {/* Vista tabla en md+ */}
                         <div className="hidden md:block">
-                            <Table aria-label="Movimientos de stock del producto" columns={columns} data={movements.data} emptyMessage="No se encontraron movimientos para este producto" />
+                            <Table
+                                aria-label="Movimientos de stock del producto"
+                                columns={columns}
+                                data={movements.data}
+                                emptyMessage="No se encontraron movimientos para este producto"
+                            />
                         </div>
 
                         {/* Vista tarjetas en móvil */}

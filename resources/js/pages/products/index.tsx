@@ -2,13 +2,13 @@ import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -347,19 +347,15 @@ export default function Products({
                 <div className="relative overflow-hidden rounded-md bg-card shadow">
                     {/* Vista tabla en md+ */}
                     <div className="hidden overflow-x-auto md:block">
-                        <Table
-                            columns={columns}
-                            data={products.data.map((product) => ({ ...product, actions: null }))}
-                            loading={isSearching}
-                        />
+                        <Table columns={columns} data={products.data.map((product) => ({ ...product, actions: null }))} loading={isSearching} />
                     </div>
 
                     {/* Vista tarjetas en móvil */}
                     <div className="block md:hidden">
                         {isSearching ? (
-                            <div className="p-2 space-y-4">
+                            <div className="space-y-4 p-2">
                                 {Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+                                    <div key={i} className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
                                         <div className="flex items-center gap-3">
                                             <Skeleton className="h-12 w-12 rounded-md" />
                                             <Skeleton className="h-4 w-2/3" />
