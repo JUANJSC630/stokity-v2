@@ -7,8 +7,8 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Services\StockMovementService;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,7 +28,7 @@ class StockMovementController extends Controller
         $query = StockMovement::with(['product', 'user', 'branch']);
 
         // Filtrar por sucursal si el usuario no es administrador
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->filled('branch') && $user->isAdmin()) {
             $query->where('branch_id', $request->branch);
@@ -99,15 +99,15 @@ class StockMovementController extends Controller
             : Branch::where('id', $user->branch_id)->get();
 
         return Inertia::render('stock-movements/create', [
-            'branches'        => $branches,
+            'branches' => $branches,
             'selectedProduct' => $selectedProduct,
-            'userBranchId'    => $user->branch_id,
-            'selectedType'    => $request->input('type', 'in'),
-            'now'             => now()->format('Y-m-d\TH:i'),
-            'suppliers'       => Supplier::when(!$user->isAdmin() && $user->branch_id, fn($q) => $q->where('branch_id', $user->branch_id))
-                                    ->where('status', true)
-                                    ->orderBy('name')
-                                    ->get(['id', 'name']),
+            'userBranchId' => $user->branch_id,
+            'selectedType' => $request->input('type', 'in'),
+            'now' => now()->format('Y-m-d\TH:i'),
+            'suppliers' => Supplier::when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+                ->where('status', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 
@@ -117,16 +117,16 @@ class StockMovementController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'product_id'    => 'required|exists:products,id',
-            'type'          => 'required|in:in,out,adjustment,purchase,write_off,supplier_return',
-            'quantity'      => [
+            'product_id' => 'required|exists:products,id',
+            'type' => 'required|in:in,out,adjustment,purchase,write_off,supplier_return',
+            'quantity' => [
                 'required', 'integer',
                 $request->input('type') === 'adjustment' ? 'min:0' : 'min:1',
             ],
-            'unit_cost'     => 'nullable|numeric|min:0',
-            'supplier_id'   => 'nullable|exists:suppliers,id',
-            'reference'     => 'nullable|string|max:255',
-            'notes'         => 'nullable|string|max:1000',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:1000',
             'movement_date' => 'required|date',
         ]);
 
@@ -134,7 +134,7 @@ class StockMovementController extends Controller
         $product = Product::findOrFail($request->product_id);
 
         // Verificar permisos de sucursal
-        if (!$user->isAdmin() && !$user->isManager() && $product->branch_id !== $user->branch_id) {
+        if (! $user->isAdmin() && ! $user->isManager() && $product->branch_id !== $user->branch_id) {
             return redirect()->back()->with('error', 'No tienes permisos para modificar este producto.');
         }
 
@@ -148,41 +148,41 @@ class StockMovementController extends Controller
 
         DB::transaction(function () use ($request, $user, $product) {
             // Re-read with row lock to prevent race conditions with concurrent sales
-            $locked        = Product::lockForUpdate()->findOrFail($product->id);
+            $locked = Product::lockForUpdate()->findOrFail($product->id);
             $previousStock = $locked->stock;
-            $quantity      = $request->quantity;
+            $quantity = $request->quantity;
 
             $newStock = match ($request->type) {
-                'in', 'purchase'                          => $previousStock + $quantity,
-                'out', 'write_off', 'supplier_return'     => max(0, $previousStock - $quantity),
-                'adjustment'                              => $quantity,
-                default                                   => $previousStock,
+                'in', 'purchase' => $previousStock + $quantity,
+                'out', 'write_off', 'supplier_return' => max(0, $previousStock - $quantity),
+                'adjustment' => $quantity,
+                default => $previousStock,
             };
 
             $supplierId = $request->supplier_id ? (int) $request->supplier_id : null;
 
             $this->stockMovements->record(
-                product:       $locked,
-                type:          $request->type,
-                quantity:      $quantity,
+                product: $locked,
+                type: $request->type,
+                quantity: $quantity,
                 previousStock: $previousStock,
-                newStock:      $newStock,
-                branchId:      $locked->branch_id,
-                userId:        $user->id,
-                reference:     $request->reference,
-                notes:         $request->notes,
-                supplierId:    $supplierId,
-                unitCost:      $request->unit_cost !== null ? (float) $request->unit_cost : null,
-                movementDate:  $request->movement_date,
+                newStock: $newStock,
+                branchId: $locked->branch_id,
+                userId: $user->id,
+                reference: $request->reference,
+                notes: $request->notes,
+                supplierId: $supplierId,
+                unitCost: $request->unit_cost !== null ? (float) $request->unit_cost : null,
+                movementDate: $request->movement_date,
             );
 
             // Auto-vincular producto al proveedor en el pivot cuando es una compra o entrada con proveedor
             if ($supplierId && in_array($request->type, ['purchase', 'in'])) {
-                if (!$locked->suppliers()->where('supplier_id', $supplierId)->exists()) {
+                if (! $locked->suppliers()->where('supplier_id', $supplierId)->exists()) {
                     $locked->suppliers()->attach($supplierId, [
                         'purchase_price' => $request->unit_cost !== null ? (float) $request->unit_cost : null,
-                        'supplier_code'  => null,
-                        'is_default'     => false,
+                        'supplier_code' => null,
+                        'is_default' => false,
                     ]);
                 }
             }
@@ -206,7 +206,7 @@ class StockMovementController extends Controller
     public function show(StockMovement $stockMovement): Response
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $stockMovement->branch_id !== $user->branch_id, 403, 'No tienes acceso a este movimiento.');
+        abort_if(! $user->isAdmin() && $stockMovement->branch_id !== $user->branch_id, 403, 'No tienes acceso a este movimiento.');
 
         $stockMovement->load(['product', 'user', 'branch', 'supplier']);
 
@@ -222,7 +222,7 @@ class StockMovementController extends Controller
     {
         $user = Auth::user();
 
-        abort_if(!$user->isAdmin() && $product->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $product->branch_id !== $user->branch_id, 403);
 
         $product->load(['category', 'branch']);
 
@@ -249,7 +249,7 @@ class StockMovementController extends Controller
         $query = StockMovement::query();
 
         // Filtrar por sucursal si el usuario no es admin
-        if (!$user->isAdmin() && !$user->isManager()) {
+        if (! $user->isAdmin() && ! $user->isManager()) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->filled('branch')) {
             $query->where('branch_id', $request->branch);
@@ -265,7 +265,7 @@ class StockMovementController extends Controller
 
         $statistics = [
             'total_movements' => $query->count(),
-            'total_in'  => $query->clone()->whereIn('type', ['in', 'purchase'])->sum('quantity'),
+            'total_in' => $query->clone()->whereIn('type', ['in', 'purchase'])->sum('quantity'),
             'total_out' => $query->clone()->whereIn('type', ['out', 'write_off', 'supplier_return'])->sum('quantity'),
             'total_cost' => $query->clone()->whereNotNull('unit_cost')->sum(DB::raw('quantity * unit_cost')),
             'movements_by_type' => $query->clone()

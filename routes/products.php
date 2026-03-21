@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\ProductController;
 use App\Http\Middleware\AdminOrManagerMiddleware;
-use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\BranchFilterMiddleware;
+use Illuminate\Support\Facades\Route;
 
 // Routes for product management (protected with auth and admin/manager middleware)
 // JSON API for POS product search (auth only, no branch middleware needed — controller handles it)

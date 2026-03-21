@@ -11,19 +11,19 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->user     = User::factory()->create([
-        'role'      => 'administrador',
+    $this->user = User::factory()->create([
+        'role' => 'administrador',
         'branch_id' => $this->branch->id,
-        'status'    => true,
+        'status' => true,
     ]);
-    $this->service  = new StockMovementService();
-    $this->product  = Product::factory()->create([
-        'branch_id'   => $this->branch->id,
+    $this->service = new StockMovementService;
+    $this->product = Product::factory()->create([
+        'branch_id' => $this->branch->id,
         'category_id' => $this->category->id,
-        'stock'       => 50,
-        'tax'         => 0,
+        'stock' => 50,
+        'tax' => 0,
     ]);
 });
 

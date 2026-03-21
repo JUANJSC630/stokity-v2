@@ -16,13 +16,14 @@ use Inertia\Inertia;
 class UserController extends Controller
 {
     public function __construct(private BlobStorageService $blobStorage) {}
+
     /**
      * Display a listing of the users.
      */
     public function index(Request $request)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para ver usuarios.');
         }
 
@@ -57,7 +58,7 @@ class UserController extends Controller
     public function create()
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para crear usuarios.');
         }
 
@@ -75,7 +76,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para crear usuarios.');
         }
 
@@ -84,7 +85,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'role' => 'required|in:administrador,encargado,vendedor',
             'branch_id' => [
-                Rule::requiredIf(fn() => $request->role !== 'administrador'),
+                Rule::requiredIf(fn () => $request->role !== 'administrador'),
                 'nullable',
                 'exists:branches,id',
             ],
@@ -98,7 +99,7 @@ class UserController extends Controller
             try {
                 $validated['photo'] = $this->blobStorage->upload($request->file('photo'), 'users');
             } catch (\Exception $e) {
-                \Log::error('Error al subir la foto: ' . $e->getMessage());
+                \Log::error('Error al subir la foto: '.$e->getMessage());
             }
         }
 
@@ -128,7 +129,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para ver usuarios.');
         }
 
@@ -143,7 +144,7 @@ class UserController extends Controller
     public function edit(User $user)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para editar usuarios.');
         }
 
@@ -162,7 +163,7 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para editar usuarios.');
         }
 
@@ -194,7 +195,7 @@ class UserController extends Controller
                 }
                 $validated['photo'] = $this->blobStorage->upload($request->file('photo'), 'users');
             } catch (\Exception $e) {
-                \Log::error('Error al actualizar la foto: ' . $e->getMessage());
+                \Log::error('Error al actualizar la foto: '.$e->getMessage());
             }
         }
 
@@ -243,7 +244,7 @@ class UserController extends Controller
     public function destroy(Request $request, User $user)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para eliminar usuarios.');
         }
 

@@ -35,7 +35,7 @@ class ClientSeeder extends Seeder
         ];
         foreach ($clientes as $data) {
             Client::firstOrCreate([
-                'document' => $data['document']
+                'document' => $data['document'],
             ], $data);
         }
     }

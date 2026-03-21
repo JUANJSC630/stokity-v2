@@ -12,43 +12,43 @@ use App\Models\SaleReturn;
 use App\Models\StockMovement;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
-    $this->admin    = adminUser($this->branch);
-    $this->seller   = vendedorUser($this->branch);
+    $this->client = Client::factory()->create();
+    $this->admin = adminUser($this->branch);
+    $this->seller = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create();
     PaymentMethod::factory()->create(['code' => 'cash']);
 
     $this->product = Product::factory()->create([
-        'branch_id'   => $this->branch->id,
+        'branch_id' => $this->branch->id,
         'category_id' => $this->category->id,
-        'sale_price'  => 10000,
-        'stock'       => 15,
-        'tax'         => 0,
+        'sale_price' => 10000,
+        'stock' => 15,
+        'tax' => 0,
     ]);
 
     // Create a completed sale with 5 units
     $this->sale = Sale::factory()->create([
-        'branch_id'      => $this->branch->id,
-        'client_id'      => $this->client->id,
-        'seller_id'      => $this->seller->id,
-        'status'         => 'completed',
+        'branch_id' => $this->branch->id,
+        'client_id' => $this->client->id,
+        'seller_id' => $this->seller->id,
+        'status' => 'completed',
         'payment_method' => 'cash',
-        'net'            => 50000,
-        'total'          => 50000,
-        'amount_paid'    => 50000,
-        'change_amount'  => 0,
-        'date'           => now(),
+        'net' => 50000,
+        'total' => 50000,
+        'amount_paid' => 50000,
+        'change_amount' => 0,
+        'date' => now(),
     ]);
 
     SaleProduct::create([
-        'sale_id'    => $this->sale->id,
+        'sale_id' => $this->sale->id,
         'product_id' => $this->product->id,
-        'quantity'   => 5,
-        'price'      => 10000,
-        'subtotal'   => 50000,
+        'quantity' => 5,
+        'price' => 10000,
+        'subtotal' => 50000,
     ]);
 });
 

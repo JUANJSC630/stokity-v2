@@ -7,7 +7,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
 
     BusinessSetting::factory()->create();
@@ -22,15 +22,15 @@ beforeEach(function () {
 function productPayload(array $overrides = []): array
 {
     return array_merge([
-        'name'           => 'Producto Test',
-        'code'           => '88888888',
+        'name' => 'Producto Test',
+        'code' => '88888888',
         'purchase_price' => 5000,
-        'sale_price'     => 10000,
-        'tax'            => 19,
-        'stock'          => 50,
-        'min_stock'      => 5,
-        'category_id'    => test()->category->id,
-        'branch_id'      => test()->branch->id,
+        'sale_price' => 10000,
+        'tax' => 19,
+        'stock' => 50,
+        'min_stock' => 5,
+        'category_id' => test()->category->id,
+        'branch_id' => test()->branch->id,
     ], $overrides);
 }
 
@@ -79,7 +79,7 @@ describe('Product CRUD', function () {
         $response = $this->actingAs($admin)
             ->post(route('products.store'), productPayload([
                 'sale_price' => -100,
-                'code'       => '55555555',
+                'code' => '55555555',
             ]));
 
         $response->assertSessionHasErrors('sale_price');
@@ -89,9 +89,9 @@ describe('Product CRUD', function () {
         $admin = adminUser($this->branch);
 
         Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'code'        => 'DUPE1234',
+            'code' => 'DUPE1234',
         ]);
 
         $response = $this->actingAs($admin)

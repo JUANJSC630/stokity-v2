@@ -6,16 +6,15 @@ use App\Models\Branch;
 use App\Models\BusinessSetting;
 use App\Models\CashSession;
 use App\Models\Client;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
-use App\Models\PaymentMethod;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use App\Http\Resources\SaleResource;
 
 class SaleController extends Controller
 {
@@ -30,7 +29,7 @@ class SaleController extends Controller
 
         // Solo cargar relaciones si no hay búsqueda, para la tabla
         $with = ['branch'];
-        if (!$request->search) {
+        if (! $request->search) {
             $with[] = 'client';
             $with[] = 'seller';
         }
@@ -38,7 +37,7 @@ class SaleController extends Controller
 
         // Filtrar por sucursal del usuario si no es administrador
         $user = Auth::user();
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -83,19 +82,19 @@ class SaleController extends Controller
     public function create(Request $request)
     {
         $user = Auth::user();
-        
+
         // Solo mostrar sucursales disponibles según el rol
-        $branches = $user->isAdmin() 
+        $branches = $user->isAdmin()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
-            
+
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
 
         return Inertia::render('sales/create', [
             'branches' => $branches,
-            'clients'  => $clients,
-            'sellers'  => $sellers,
+            'clients' => $clients,
+            'sellers' => $sellers,
         ]);
     }
 
@@ -107,10 +106,10 @@ class SaleController extends Controller
         $isPending = $request->input('status') === 'pending';
 
         // Validar sesión de caja si está habilitado (solo para ventas completadas)
-        if (!$isPending) {
-            $settings    = BusinessSetting::getSettings();
+        if (! $isPending) {
+            $settings = BusinessSetting::getSettings();
             $openSession = CashSession::getOpenForUser(Auth::id(), (int) $request->branch_id);
-            if (!$openSession && $settings->require_cash_session) {
+            if (! $openSession && $settings->require_cash_session) {
                 return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
             }
         }
@@ -119,23 +118,23 @@ class SaleController extends Controller
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
         $validated = $request->validate([
-            'branch_id'      => 'required|exists:branches,id',
-            'client_id'      => 'required|exists:clients,id',
-            'seller_id'      => 'required|exists:users,id',
-            'net'            => 'required|numeric|min:0',
-            'total'          => 'required|numeric|min:0',
-            'amount_paid'    => $isPending ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
-            'change_amount'  => $isPending ? 'nullable|numeric' : 'required|numeric',
-            'payment_method' => $isPending ? 'nullable|string' : 'required|string|in:' . implode(',', $activePaymentMethods),
-            'date'           => 'required|date',
-            'status'         => 'required|string|in:completed,pending,cancelled',
-            'discount_type'  => 'required|string|in:none,percentage,fixed',
+            'branch_id' => 'required|exists:branches,id',
+            'client_id' => 'required|exists:clients,id',
+            'seller_id' => 'required|exists:users,id',
+            'net' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+            'amount_paid' => $isPending ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
+            'change_amount' => $isPending ? 'nullable|numeric' : 'required|numeric',
+            'payment_method' => $isPending ? 'nullable|string' : 'required|string|in:'.implode(',', $activePaymentMethods),
+            'date' => 'required|date',
+            'status' => 'required|string|in:completed,pending,cancelled',
+            'discount_type' => 'required|string|in:none,percentage,fixed',
             'discount_value' => 'required|numeric|min:0',
-            'notes'          => 'nullable|string|max:500',
-            'products'            => 'required|array|min:1',
-            'products.*.id'       => 'required|exists:products,id',
+            'notes' => 'nullable|string|max:500',
+            'products' => 'required|array|min:1',
+            'products.*.id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price'    => 'required|numeric|min:0',
+            'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
         ], [
             'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
@@ -143,7 +142,7 @@ class SaleController extends Controller
 
         // Verificar stock disponible y calcular impuesto por producto
         $stockCheck = $this->validateStockAndTax($request->products);
-        if (!empty($stockCheck['errors'])) {
+        if (! empty($stockCheck['errors'])) {
             return back()->withErrors($stockCheck['errors'])->withInput();
         }
         $totalTax = $stockCheck['totalTax'];
@@ -154,22 +153,22 @@ class SaleController extends Controller
 
         // Generate unique sale code: timestamp + random (with retry on collision)
         do {
-            $code = now()->format('YmdHis') . rand(1000, 9999);
+            $code = now()->format('YmdHis').rand(1000, 9999);
         } while (Sale::withTrashed()->where('code', $code)->exists());
         $validated['code'] = $code;
-        $validated['tax']             = $totalTax;
+        $validated['tax'] = $totalTax;
         $validated['discount_amount'] = $discountAmount;
-        $validated['total']           = max(0, $gross - $discountAmount);
+        $validated['total'] = max(0, $gross - $discountAmount);
 
         // For pending sales, replace null payment fields with safe defaults
         if ($isPending) {
             $validated['payment_method'] = $validated['payment_method'] ?? '';
-            $validated['amount_paid']    = $validated['amount_paid']    ?? 0;
-            $validated['change_amount']  = $validated['change_amount']  ?? 0;
+            $validated['amount_paid'] = $validated['amount_paid'] ?? 0;
+            $validated['change_amount'] = $validated['change_amount'] ?? 0;
         }
 
         // Attach open cash session if available
-        if (!$isPending) {
+        if (! $isPending) {
             $openSession = $openSession ?? CashSession::getOpenForUser(Auth::id(), (int) $validated['branch_id']);
             $validated['session_id'] = $openSession?->id;
         }
@@ -177,56 +176,56 @@ class SaleController extends Controller
         $products = $validated['products'];
         unset($validated['products']);
 
-        $saleId   = null;
+        $saleId = null;
         $saleCode = null;
         try {
-        DB::transaction(function () use ($validated, $products, $isPending, &$saleId, &$saleCode) {
-            $sale     = Sale::create($validated);
-            $saleId   = $sale->id;
-            $saleCode = $sale->code;
+            DB::transaction(function () use ($validated, $products, $isPending, &$saleId, &$saleCode) {
+                $sale = Sale::create($validated);
+                $saleId = $sale->id;
+                $saleCode = $sale->code;
 
-            foreach ($products as $prod) {
-                $sale->saleProducts()->create([
-                    'product_id' => $prod['id'],
-                    'quantity'   => $prod['quantity'],
-                    'price'      => $prod['price'],
-                    'subtotal'   => $prod['subtotal'],
-                ]);
+                foreach ($products as $prod) {
+                    $sale->saleProducts()->create([
+                        'product_id' => $prod['id'],
+                        'quantity' => $prod['quantity'],
+                        'price' => $prod['price'],
+                        'subtotal' => $prod['subtotal'],
+                    ]);
 
-                // Solo descontar stock en ventas completadas
-                if (!$isPending) {
-                    // lockForUpdate() acquires a row-level DB lock, preventing
-                    // concurrent transactions from reading or modifying this
-                    // product's stock until this transaction commits or rolls back.
-                    $product = Product::lockForUpdate()->find($prod['id']);
-                    if ($product) {
-                        // Re-check stock inside the lock — the pre-check above
-                        // can be stale if another transaction ran concurrently.
-                        if ($product->stock < $prod['quantity']) {
-                            throw new \RuntimeException(
-                                "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                    // Solo descontar stock en ventas completadas
+                    if (! $isPending) {
+                        // lockForUpdate() acquires a row-level DB lock, preventing
+                        // concurrent transactions from reading or modifying this
+                        // product's stock until this transaction commits or rolls back.
+                        $product = Product::lockForUpdate()->find($prod['id']);
+                        if ($product) {
+                            // Re-check stock inside the lock — the pre-check above
+                            // can be stale if another transaction ran concurrently.
+                            if ($product->stock < $prod['quantity']) {
+                                throw new \RuntimeException(
+                                    "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                                );
+                            }
+
+                            $previousStock = $product->stock;
+                            $product->stock -= $prod['quantity'];
+                            $product->save();
+
+                            $this->stockMovements->record(
+                                product: $product,
+                                type: 'out',
+                                quantity: $prod['quantity'],
+                                previousStock: $previousStock,
+                                newStock: $product->stock,
+                                branchId: $sale->branch_id,
+                                userId: Auth::id(),
+                                reference: $sale->code,
+                                notes: "Venta #{$sale->code}",
                             );
                         }
-
-                        $previousStock  = $product->stock;
-                        $product->stock -= $prod['quantity'];
-                        $product->save();
-
-                        $this->stockMovements->record(
-                            product: $product,
-                            type: 'out',
-                            quantity: $prod['quantity'],
-                            previousStock: $previousStock,
-                            newStock: $product->stock,
-                            branchId: $sale->branch_id,
-                            userId: Auth::id(),
-                            reference: $sale->code,
-                            notes: "Venta #{$sale->code}",
-                        );
                     }
                 }
-            }
-        });
+            });
         } catch (\RuntimeException $e) {
             return back()->withErrors(['stock' => $e->getMessage()])->withInput();
         }
@@ -237,6 +236,7 @@ class SaleController extends Controller
                 return redirect()->route('pos.index')
                     ->with('success', 'Cotización guardada exitosamente.');
             }
+
             return redirect()->route('pos.index')
                 ->with('last_sale_id', $saleId)
                 ->with('last_sale_code', $saleCode)
@@ -256,32 +256,32 @@ class SaleController extends Controller
         $query = Sale::with(['client:id,name', 'saleProducts.product:id,name,tax,stock,image'])
             ->where('status', 'pending');
 
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
         $sales = $query->orderBy('created_at', 'desc')->get()
-            ->map(fn($sale) => [ // @phpstan-ignore return.type, argument.type
-                'id'            => $sale->id,
-                'code'          => $sale->code,
-                'client_id'     => $sale->client_id,
-                'client_name'   => $sale->client?->name ?? 'Consumidor Final',
-                'discount_type'  => $sale->discount_type,
+            ->map(fn ($sale) => [ // @phpstan-ignore return.type, argument.type
+                'id' => $sale->id,
+                'code' => $sale->code,
+                'client_id' => $sale->client_id,
+                'client_name' => $sale->client?->name ?? 'Consumidor Final',
+                'discount_type' => $sale->discount_type,
                 'discount_value' => $sale->discount_value,
                 'product_count' => $sale->saleProducts->count(),
-                'net'           => $sale->net,
-                'total'         => $sale->total,
-                'notes'         => $sale->notes,
-                'created_at'    => $sale->created_at,
-                'products'      => $sale->saleProducts->map(fn($sp) => [
-                    'product_id'   => $sp->product_id,
+                'net' => $sale->net,
+                'total' => $sale->total,
+                'notes' => $sale->notes,
+                'created_at' => $sale->created_at,
+                'products' => $sale->saleProducts->map(fn ($sp) => [
+                    'product_id' => $sp->product_id,
                     'product_name' => $sp->product?->name,
-                    'quantity'     => $sp->quantity,
-                    'price'        => $sp->price,
-                    'subtotal'     => $sp->subtotal,
-                    'tax'          => $sp->product?->tax ?? 0,
-                    'stock'        => $sp->product?->stock,
-                    'image_url'    => $sp->product?->image_url ?? null,
+                    'quantity' => $sp->quantity,
+                    'price' => $sp->price,
+                    'subtotal' => $sp->subtotal,
+                    'tax' => $sp->product?->tax ?? 0,
+                    'stock' => $sp->product?->stock,
+                    'image_url' => $sp->product?->image_url ?? null,
                 ]),
             ]);
 
@@ -298,24 +298,24 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
         $validated = $request->validate([
-            'payment_method'      => 'required|string|in:' . implode(',', $activePaymentMethods),
-            'amount_paid'         => 'required|numeric|min:0',
-            'change_amount'       => 'required|numeric',
-            'net'                 => 'required|numeric|min:0',
-            'total'               => 'required|numeric|min:0',
-            'discount_type'       => 'nullable|string|in:none,percentage,fixed',
-            'discount_value'      => 'nullable|numeric|min:0',
-            'products'            => 'required|array|min:1',
-            'products.*.id'       => 'required|exists:products,id',
+            'payment_method' => 'required|string|in:'.implode(',', $activePaymentMethods),
+            'amount_paid' => 'required|numeric|min:0',
+            'change_amount' => 'required|numeric',
+            'net' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+            'discount_type' => 'nullable|string|in:none,percentage,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
+            'products' => 'required|array|min:1',
+            'products.*.id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price'    => 'required|numeric|min:0',
+            'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
         ], [
             'payment_method.in' => 'El método de pago seleccionado no es válido.',
@@ -324,79 +324,79 @@ class SaleController extends Controller
         $products = $validated['products'];
 
         // Validar sesión de caja si está habilitado
-        $settings    = BusinessSetting::getSettings();
+        $settings = BusinessSetting::getSettings();
         $openSession = CashSession::getOpenForUser(Auth::id(), $sale->branch_id);
-        if (!$openSession && $settings->require_cash_session) {
+        if (! $openSession && $settings->require_cash_session) {
             return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar una venta.']);
         }
 
         // Verificar stock y recalcular tax/total server-side (prevent frontend manipulation)
         $stockCheck = $this->validateStockAndTax($products);
-        if (!empty($stockCheck['errors'])) {
+        if (! empty($stockCheck['errors'])) {
             return back()->withErrors($stockCheck['errors']);
         }
         $totalTax = $stockCheck['totalTax'];
 
         // Recalculate discount and total server-side
-        $discountType  = $validated['discount_type'] ?? 'none';
+        $discountType = $validated['discount_type'] ?? 'none';
         $discountValue = $validated['discount_value'] ?? 0;
         $gross = $validated['net'] + $totalTax;
         $discountAmount = $this->calculateDiscount($discountType, $discountValue, $gross);
         $serverTotal = max(0, $gross - $discountAmount);
 
         try {
-        DB::transaction(function () use ($sale, $validated, $products, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
-            $sale->update([
-                'payment_method'  => $validated['payment_method'],
-                'amount_paid'     => $validated['amount_paid'],
-                'change_amount'   => $validated['change_amount'],
-                'net'             => $validated['net'],
-                'tax'             => $totalTax,
-                'discount_type'   => $discountType,
-                'discount_value'  => $discountValue,
-                'discount_amount' => $discountAmount,
-                'total'           => $serverTotal,
-                'status'          => 'completed',
-                'date'            => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
-                'session_id'      => $openSession?->id,
-            ]);
-
-            // Replace products with current cart
-            $sale->saleProducts()->delete();
-            foreach ($products as $prod) {
-                $sale->saleProducts()->create([
-                    'product_id' => $prod['id'],
-                    'quantity'   => $prod['quantity'],
-                    'price'      => $prod['price'],
-                    'subtotal'   => $prod['subtotal'],
+            DB::transaction(function () use ($sale, $validated, $products, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
+                $sale->update([
+                    'payment_method' => $validated['payment_method'],
+                    'amount_paid' => $validated['amount_paid'],
+                    'change_amount' => $validated['change_amount'],
+                    'net' => $validated['net'],
+                    'tax' => $totalTax,
+                    'discount_type' => $discountType,
+                    'discount_value' => $discountValue,
+                    'discount_amount' => $discountAmount,
+                    'total' => $serverTotal,
+                    'status' => 'completed',
+                    'date' => now()->setTimezone('America/Bogota')->format('Y-m-d H:i'),
+                    'session_id' => $openSession?->id,
                 ]);
 
-                $product = Product::lockForUpdate()->find($prod['id']);
-                if ($product) {
-                    if ($product->stock < $prod['quantity']) {
-                        throw new \RuntimeException(
-                            "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                // Replace products with current cart
+                $sale->saleProducts()->delete();
+                foreach ($products as $prod) {
+                    $sale->saleProducts()->create([
+                        'product_id' => $prod['id'],
+                        'quantity' => $prod['quantity'],
+                        'price' => $prod['price'],
+                        'subtotal' => $prod['subtotal'],
+                    ]);
+
+                    $product = Product::lockForUpdate()->find($prod['id']);
+                    if ($product) {
+                        if ($product->stock < $prod['quantity']) {
+                            throw new \RuntimeException(
+                                "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
+                            );
+                        }
+
+                        $previousStock = $product->stock;
+                        $product->stock -= $prod['quantity'];
+                        $product->save();
+
+                        $this->stockMovements->record(
+                            product: $product,
+                            type: 'out',
+                            quantity: $prod['quantity'],
+                            previousStock: $previousStock,
+                            newStock: $product->stock,
+                            branchId: $sale->branch_id,
+                            userId: Auth::id(),
+                            reference: $sale->code,
+                            notes: "Venta #{$sale->code}",
                         );
                     }
-
-                    $previousStock  = $product->stock;
-                    $product->stock -= $prod['quantity'];
-                    $product->save();
-
-                    $this->stockMovements->record(
-                        product: $product,
-                        type: 'out',
-                        quantity: $prod['quantity'],
-                        previousStock: $previousStock,
-                        newStock: $product->stock,
-                        branchId: $sale->branch_id,
-                        userId: Auth::id(),
-                        reference: $sale->code,
-                        notes: "Venta #{$sale->code}",
-                    );
                 }
-            }
-        });
+            });
         } catch (\RuntimeException $e) {
             return back()->withErrors(['stock' => $e->getMessage()]);
         }
@@ -417,27 +417,27 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
         $validated = $request->validate([
-            'net'            => 'required|numeric|min:0',
-            'total'          => 'required|numeric|min:0',
-            'discount_type'  => 'nullable|string|in:none,percentage,fixed',
+            'net' => 'required|numeric|min:0',
+            'total' => 'required|numeric|min:0',
+            'discount_type' => 'nullable|string|in:none,percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
-            'products'       => 'required|array|min:1',
-            'products.*.id'       => 'required|exists:products,id',
+            'products' => 'required|array|min:1',
+            'products.*.id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
-            'products.*.price'    => 'required|numeric|min:0',
+            'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($sale, $validated) {
             $sale->update([
-                'net'            => $validated['net'],
-                'total'          => $validated['total'],
-                'discount_type'  => $validated['discount_type'] ?? 'none',
+                'net' => $validated['net'],
+                'total' => $validated['total'],
+                'discount_type' => $validated['discount_type'] ?? 'none',
                 'discount_value' => $validated['discount_value'] ?? 0,
             ]);
 
@@ -446,9 +446,9 @@ class SaleController extends Controller
             foreach ($validated['products'] as $prod) {
                 $sale->saleProducts()->create([
                     'product_id' => $prod['id'],
-                    'quantity'   => $prod['quantity'],
-                    'price'      => $prod['price'],
-                    'subtotal'   => $prod['subtotal'],
+                    'quantity' => $prod['quantity'],
+                    'price' => $prod['price'],
+                    'subtotal' => $prod['subtotal'],
                 ]);
             }
         });
@@ -466,7 +466,7 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (!$user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
@@ -482,7 +482,7 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
+        abort_if(! $user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
         $sale->load([
@@ -564,13 +564,13 @@ class SaleController extends Controller
         $business = \App\Models\BusinessSetting::getSettings();
 
         return Inertia::render('sales/show', [
-            'sale'             => $saleData,
-            'businessName'     => $business->name,
-            'businessNit'      => $business->nit,
-            'businessAddress'  => $business->address,
-            'businessPhone'    => $business->phone,
-            'businessLogoUrl'  => $business->logo_url,
-            'ticketConfig'     => $business->getTicketConfig(),
+            'sale' => $saleData,
+            'businessName' => $business->name,
+            'businessNit' => $business->nit,
+            'businessAddress' => $business->address,
+            'businessPhone' => $business->phone,
+            'businessLogoUrl' => $business->logo_url,
+            'ticketConfig' => $business->getTicketConfig(),
         ]);
     }
 
@@ -580,7 +580,7 @@ class SaleController extends Controller
     public function edit(Sale $sale)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
@@ -602,13 +602,13 @@ class SaleController extends Controller
     public function update(Request $request, Sale $sale)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
         // Obtener códigos de métodos de pago activos para validación
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
-        
+
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|exists:clients,id',
@@ -616,7 +616,7 @@ class SaleController extends Controller
             'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
+            'payment_method' => 'required|string|in:'.implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'status' => 'required|string|in:completed,pending,cancelled',
         ], [
@@ -634,7 +634,7 @@ class SaleController extends Controller
     public function destroy(Sale $sale)
     {
         // Verificar que el usuario sea administrador
-        if (!auth()->user()->isAdmin()) {
+        if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para eliminar ventas.');
         }
 
@@ -674,14 +674,15 @@ class SaleController extends Controller
      */
     private function validateStockAndTax(array $products): array
     {
-        $errors   = [];
+        $errors = [];
         $totalTax = 0;
 
         foreach ($products as $index => $prod) {
             $product = Product::find($prod['id']);
 
-            if (!$product) {
+            if (! $product) {
                 $errors["stock_{$prod['id']}"] = "Producto ID {$prod['id']} no encontrado.";
+
                 continue;
             }
 
@@ -689,7 +690,7 @@ class SaleController extends Controller
                 $available = $product->stock;
                 $key = is_int($index) ? "products.{$index}.quantity" : "stock_{$prod['id']}";
                 $errors[$key] = "{$product->name}: necesitas {$prod['quantity']}, "
-                    . ($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
+                    .($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
             }
 
             $productTax = $product->tax ?? 0;
@@ -706,8 +707,8 @@ class SaleController extends Controller
     {
         return match ($type) {
             'percentage' => round($gross * ($value / 100), 2),
-            'fixed'      => min($value, $gross),
-            default      => 0,
+            'fixed' => min($value, $gross),
+            default => 0,
         };
     }
 }

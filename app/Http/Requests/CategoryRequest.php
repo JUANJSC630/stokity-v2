@@ -37,11 +37,9 @@ class CategoryRequest extends FormRequest
 
         return $rules;
     }
-    
+
     /**
      * Get custom messages for validator errors.
-     *
-     * @return array
      */
     public function messages(): array
     {

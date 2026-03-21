@@ -22,7 +22,7 @@ class SaleFactory extends Factory
         $net = $this->faker->randomFloat(2, 10, 1000);
         $tax = $net * 0.19; // 19% de impuesto como ejemplo
         $total = $net + $tax;
-        
+
         $paymentMethods = ['cash', 'credit_card', 'debit_card', 'transfer', 'other'];
 
         return [

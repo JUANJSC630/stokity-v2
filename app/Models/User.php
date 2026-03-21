@@ -51,7 +51,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
-    
+
     /**
      * The accessors to append to the model's array form.
      *
@@ -78,18 +78,14 @@ class User extends Authenticatable
 
     /**
      * Check if the user is an admin.
-     *
-     * @return bool
      */
     public function isAdmin(): bool
     {
         return $this->role === 'administrador';
     }
-    
+
     /**
      * Check if the user is a manager.
-     *
-     * @return bool
      */
     public function isManager(): bool
     {
@@ -98,8 +94,6 @@ class User extends Authenticatable
 
     /**
      * Check if the user is a seller.
-     *
-     * @return bool
      */
     public function isSeller(): bool
     {
@@ -113,7 +107,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(Branch::class, 'manager_id');
     }
-    
+
     /**
      * Get the branch the user belongs to.
      */
@@ -121,11 +115,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Branch::class);
     }
-    
+
     /**
      * Get the photo URL attribute.
-     *
-     * @return string
      */
     public function getPhotoUrlAttribute(): string
     {
@@ -136,19 +128,17 @@ class User extends Authenticatable
             }
 
             // Legacy local file
-            $path = 'uploads/users/' . $this->photo;
+            $path = 'uploads/users/'.$this->photo;
             if (file_exists(public_path($path))) {
-                return asset($path) . '?v=' . filemtime(public_path($path));
+                return asset($path).'?v='.filemtime(public_path($path));
             }
         }
 
         return asset('stokity-icon.png');
     }
-    
+
     /**
      * Update the last login timestamp.
-     *
-     * @return void
      */
     public function updateLastLogin(): void
     {

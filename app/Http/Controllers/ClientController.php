@@ -72,7 +72,7 @@ class ClientController extends Controller
         $user = Auth::user();
 
         $salesQuery = $client->sales()
-            ->when(!$user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id));
+            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id));
 
         $sales = (clone $salesQuery)
             ->with('seller')
@@ -85,15 +85,15 @@ class ClientController extends Controller
             ->first();
 
         $stats = [
-            'total_sales'   => (int) $statsRow->total_sales,
-            'total_spent'   => (float) $statsRow->total_spent,
+            'total_sales' => (int) $statsRow->total_sales,
+            'total_spent' => (float) $statsRow->total_spent,
             'last_purchase' => $statsRow->last_purchase,
         ];
 
         return Inertia::render('clients/show', [
             'client' => $client,
-            'sales'  => $sales,
-            'stats'  => $stats,
+            'sales' => $sales,
+            'stats' => $stats,
         ]);
     }
 
@@ -114,10 +114,10 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'document' => 'required|string|max:20|unique:clients,document,' . $client->id,
+            'document' => 'required|string|max:20|unique:clients,document,'.$client->id,
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'email' => 'nullable|string|email|max:255|unique:clients,email,' . $client->id,
+            'email' => 'nullable|string|email|max:255|unique:clients,email,'.$client->id,
             'birthdate' => 'nullable|date',
         ]);
 

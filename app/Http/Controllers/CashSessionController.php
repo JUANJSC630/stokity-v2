@@ -17,8 +17,10 @@ use Inertia\Inertia;
 class CashSessionController extends Controller
 {
     // Payment method code groupings
-    private const CASH_CODES     = ['cash', 'efectivo'];
-    private const CARD_CODES     = ['credit_card', 'debit_card', 'tarjeta_credito', 'tarjeta_debito'];
+    private const CASH_CODES = ['cash', 'efectivo'];
+
+    private const CARD_CODES = ['credit_card', 'debit_card', 'tarjeta_credito', 'tarjeta_debito'];
+
     private const TRANSFER_CODES = ['nequi', 'daviplata', 'addi', 'transfer', 'transferencia', 'pse', 'bancolombia'];
 
     /**
@@ -26,7 +28,7 @@ class CashSessionController extends Controller
      */
     public function currentSession()
     {
-        $user     = Auth::user();
+        $user = Auth::user();
         $settings = BusinessSetting::getSettings();
 
         $session = $user->branch_id
@@ -34,7 +36,7 @@ class CashSessionController extends Controller
             : null;
 
         return response()->json([
-            'session'            => $session ? $session->load(['branch:id,name', 'openedBy:id,name']) : null,
+            'session' => $session ? $session->load(['branch:id,name', 'openedBy:id,name']) : null,
             'requireCashSession' => (bool) $settings->require_cash_session,
         ]);
     }
@@ -44,13 +46,13 @@ class CashSessionController extends Controller
      */
     public function index(Request $request)
     {
-        $user  = Auth::user();
+        $user = Auth::user();
         $query = CashSession::with(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name'])
             ->latest('opened_at');
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $query->where('opened_by_user_id', $user->id)
-                  ->where('branch_id', $user->branch_id);
+                ->where('branch_id', $user->branch_id);
         }
 
         if ($request->filled('branch_id') && $user->isAdmin()) {
@@ -71,10 +73,10 @@ class CashSessionController extends Controller
             : [];
 
         return Inertia::render('cash-sessions/index', [
-            'sessions'          => $sessions,
-            'filters'           => $request->only(['date_from', 'date_to', 'branch_id']),
+            'sessions' => $sessions,
+            'filters' => $request->only(['date_from', 'date_to', 'branch_id']),
             'availableBranches' => $availableBranches,
-            'isAdmin'           => $user->isAdmin(),
+            'isAdmin' => $user->isAdmin(),
         ]);
     }
 
@@ -85,13 +87,13 @@ class CashSessionController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->branch_id) {
+        if (! $user->branch_id) {
             return back()->withErrors(['branch' => 'Tu usuario no tiene sucursal asignada.']);
         }
 
         $validated = $request->validate([
             'opening_amount' => 'required|numeric|min:0',
-            'opening_notes'  => 'nullable|string|max:500',
+            'opening_notes' => 'nullable|string|max:500',
         ]);
 
         try {
@@ -108,12 +110,12 @@ class CashSessionController extends Controller
                 }
 
                 CashSession::create([
-                    'branch_id'           => $user->branch_id,
-                    'opened_by_user_id'   => $user->id,
-                    'status'              => 'open',
-                    'opening_amount'      => $validated['opening_amount'],
-                    'opening_notes'       => $validated['opening_notes'] ?? null,
-                    'opened_at'           => now()->setTimezone('America/Bogota'),
+                    'branch_id' => $user->branch_id,
+                    'opened_by_user_id' => $user->id,
+                    'status' => 'open',
+                    'opening_amount' => $validated['opening_amount'],
+                    'opening_notes' => $validated['opening_notes'] ?? null,
+                    'opened_at' => now()->setTimezone('America/Bogota'),
                 ]);
             });
         } catch (\RuntimeException $e) {
@@ -130,7 +132,7 @@ class CashSessionController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isAdmin() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->isAdmin() && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 
@@ -143,8 +145,8 @@ class CashSessionController extends Controller
         $salesDetail = $this->buildSalesDetail($session->id, $paymentMethodNames->toArray());
 
         return Inertia::render('cash-sessions/show', [
-            'session'     => $session,
-            'movements'   => $movements,
+            'session' => $session,
+            'movements' => $movements,
             'salesDetail' => $salesDetail,
         ]);
     }
@@ -160,30 +162,30 @@ class CashSessionController extends Controller
             return redirect()->route('cash-sessions.show', $session)->withErrors(['session' => 'Esta sesión ya fue cerrada.']);
         }
 
-        if (!$user->isAdmin() && !$user->isManager() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->isAdmin() && ! $user->isManager() && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 
         $session->load(['branch:id,name', 'openedBy:id,name']);
-        $movements  = $session->movements()->with('user:id,name')->orderBy('created_at')->get();
+        $movements = $session->movements()->with('user:id,name')->orderBy('created_at')->get();
         $paymentMethodNames = PaymentMethod::pluck('name', 'code');
         $salesSummary = $this->buildSalesDetail($session->id, $paymentMethodNames->toArray());
-        $totalSales   = collect($salesSummary)->sum('total');
+        $totalSales = collect($salesSummary)->sum('total');
 
         // Expected cash (for non-blind display) — includes refunds
-        $totalCash      = collect($salesSummary)->where('group', 'cash')->sum('total');
-        $totalCashIn    = $movements->where('type', 'cash_in')->sum('amount');
-        $totalCashOut   = $movements->where('type', 'cash_out')->sum('amount');
-        $totalRefunds   = $this->calculateCashRefunds($session->id);
-        $expectedCash   = (float) $session->opening_amount + $totalCash + $totalCashIn - $totalCashOut - $totalRefunds;
+        $totalCash = collect($salesSummary)->where('group', 'cash')->sum('total');
+        $totalCashIn = $movements->where('type', 'cash_in')->sum('amount');
+        $totalCashOut = $movements->where('type', 'cash_out')->sum('amount');
+        $totalRefunds = $this->calculateCashRefunds($session->id);
+        $expectedCash = (float) $session->opening_amount + $totalCash + $totalCashIn - $totalCashOut - $totalRefunds;
 
         return Inertia::render('cash-sessions/close', [
-            'session'      => $session,
-            'movements'    => $movements,
+            'session' => $session,
+            'movements' => $movements,
             'salesSummary' => $salesSummary,
-            'totalSales'   => $totalSales,
+            'totalSales' => $totalSales,
             'expectedCash' => $user->isSeller() ? null : $expectedCash,
-            'isBlind'      => $user->isSeller(),
+            'isBlind' => $user->isSeller(),
         ]);
     }
 
@@ -198,13 +200,13 @@ class CashSessionController extends Controller
             return back()->withErrors(['session' => 'Esta sesión ya fue cerrada.']);
         }
 
-        if (!$user->isAdmin() && !$user->isManager() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->isAdmin() && ! $user->isManager() && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 
         $validated = $request->validate([
             'closing_amount_declared' => 'required|numeric|min:0',
-            'closing_notes'           => 'nullable|string|max:500',
+            'closing_notes' => 'nullable|string|max:500',
         ]);
 
         DB::transaction(function () use ($session, $user, $validated) {
@@ -223,10 +225,10 @@ class CashSessionController extends Controller
                 ->get()
                 ->keyBy('payment_method');
 
-            $totalSalesCash     = 0;
-            $totalSalesCard     = 0;
+            $totalSalesCash = 0;
+            $totalSalesCard = 0;
             $totalSalesTransfer = 0;
-            $totalSalesOther    = 0;
+            $totalSalesOther = 0;
 
             foreach ($salesByMethod as $method => $row) {
                 $t = (float) $row->total;
@@ -242,8 +244,8 @@ class CashSessionController extends Controller
             }
 
             // Cash movements
-            $movements    = CashMovement::where('session_id', $session->id)->get();
-            $totalCashIn  = (float) $movements->where('type', 'cash_in')->sum('amount');
+            $movements = CashMovement::where('session_id', $session->id)->get();
+            $totalCashIn = (float) $movements->where('type', 'cash_in')->sum('amount');
             $totalCashOut = (float) $movements->where('type', 'cash_out')->sum('amount');
 
             // Cash refunds: calculate actual refunded amount from return product quantities × sale prices
@@ -258,20 +260,20 @@ class CashSessionController extends Controller
             $discrepancy = (float) $validated['closing_amount_declared'] - $expectedCash;
 
             $session->update([
-                'closed_by_user_id'       => $user->id,
-                'status'                  => 'closed',
-                'closed_at'               => now()->setTimezone('America/Bogota'),
+                'closed_by_user_id' => $user->id,
+                'status' => 'closed',
+                'closed_at' => now()->setTimezone('America/Bogota'),
                 'closing_amount_declared' => $validated['closing_amount_declared'],
-                'closing_notes'           => $validated['closing_notes'] ?? null,
-                'total_sales_cash'        => $totalSalesCash,
-                'total_sales_card'        => $totalSalesCard,
-                'total_sales_transfer'    => $totalSalesTransfer,
-                'total_sales_other'       => $totalSalesOther,
-                'total_cash_in'           => $totalCashIn,
-                'total_cash_out'          => $totalCashOut,
-                'total_refunds_cash'      => $totalRefundsCash,
-                'expected_cash'           => $expectedCash,
-                'discrepancy'             => $discrepancy,
+                'closing_notes' => $validated['closing_notes'] ?? null,
+                'total_sales_cash' => $totalSalesCash,
+                'total_sales_card' => $totalSalesCard,
+                'total_sales_transfer' => $totalSalesTransfer,
+                'total_sales_other' => $totalSalesOther,
+                'total_cash_in' => $totalCashIn,
+                'total_cash_out' => $totalCashOut,
+                'total_refunds_cash' => $totalRefundsCash,
+                'expected_cash' => $expectedCash,
+                'discrepancy' => $discrepancy,
             ]);
         });
 
@@ -285,15 +287,15 @@ class CashSessionController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isAdmin() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->isAdmin() && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 
         $validated = $request->validate([
-            'type'    => 'required|in:cash_in,cash_out',
-            'amount'  => 'required|numeric|min:1',
+            'type' => 'required|in:cash_in,cash_out',
+            'amount' => 'required|numeric|min:1',
             'concept' => 'required|string|max:255',
-            'notes'   => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         try {
@@ -307,7 +309,7 @@ class CashSessionController extends Controller
 
                 CashMovement::create([
                     'session_id' => $session->id,
-                    'user_id'    => $user->id,
+                    'user_id' => $user->id,
                     ...$validated,
                 ]);
             });
@@ -330,7 +332,7 @@ class CashSessionController extends Controller
     {
         $returns = SaleReturn::whereHas('sale', function ($q) use ($sessionId) {
             $q->where('session_id', $sessionId)
-              ->whereIn('payment_method', self::CASH_CODES);
+                ->whereIn('payment_method', self::CASH_CODES);
         })->with(['sale.saleProducts'])->get();
 
         if ($returns->isEmpty()) {
@@ -376,10 +378,10 @@ class CashSessionController extends Controller
 
             return [
                 'method' => $method,
-                'name'   => $paymentMethodNames[$method] ?? ucfirst($method),
-                'group'  => $group,
-                'count'  => (int) data_get($row, 'count', 0),
-                'total'  => (float) data_get($row, 'total', 0),
+                'name' => $paymentMethodNames[$method] ?? ucfirst($method),
+                'group' => $group,
+                'count' => (int) data_get($row, 'count', 0),
+                'total' => (float) data_get($row, 'total', 0),
             ];
         })->toArray();
     }

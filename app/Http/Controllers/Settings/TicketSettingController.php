@@ -16,14 +16,14 @@ class TicketSettingController extends Controller
         $settings = BusinessSetting::getSettings();
 
         return Inertia::render('settings/ticket', [
-            'config'   => $settings->getTicketConfig(),
+            'config' => $settings->getTicketConfig(),
             'business' => [
-                'name'            => $settings->name,
-                'nit'             => $settings->nit,
-                'address'         => $settings->address,
-                'phone'           => $settings->phone,
+                'name' => $settings->name,
+                'nit' => $settings->nit,
+                'address' => $settings->address,
+                'phone' => $settings->phone,
                 'currency_symbol' => $settings->currency_symbol ?? '$',
-                'logo_url'        => $settings->logo_url,
+                'logo_url' => $settings->logo_url,
             ],
         ]);
     }
@@ -32,23 +32,23 @@ class TicketSettingController extends Controller
     {
         $validated = $request->validate([
             // Shared
-            'paper_width'         => 'required|in:58,80',
-            'header_size'         => 'required|in:normal,large',
-            'show_logo'           => 'boolean',
-            'show_nit'            => 'boolean',
-            'show_address'        => 'boolean',
-            'show_phone'          => 'boolean',
+            'paper_width' => 'required|in:58,80',
+            'header_size' => 'required|in:normal,large',
+            'show_logo' => 'boolean',
+            'show_nit' => 'boolean',
+            'show_address' => 'boolean',
+            'show_phone' => 'boolean',
             // Sale
-            'show_seller'         => 'boolean',
-            'show_branch'         => 'boolean',
-            'show_tax'            => 'boolean',
-            'footer_line1'        => 'nullable|string|max:60',
-            'footer_line2'        => 'nullable|string|max:60',
-            'sale_code_graphic'   => 'nullable|in:none,qr,barcode',
+            'show_seller' => 'boolean',
+            'show_branch' => 'boolean',
+            'show_tax' => 'boolean',
+            'footer_line1' => 'nullable|string|max:60',
+            'footer_line2' => 'nullable|string|max:60',
+            'sale_code_graphic' => 'nullable|in:none,qr,barcode',
             // Return
-            'return_show_seller'  => 'boolean',
-            'return_show_branch'  => 'boolean',
-            'return_show_reason'  => 'boolean',
+            'return_show_seller' => 'boolean',
+            'return_show_branch' => 'boolean',
+            'return_show_reason' => 'boolean',
             'return_footer_line1' => 'nullable|string|max:60',
             'return_footer_line2' => 'nullable|string|max:60',
             'return_code_graphic' => 'nullable|in:none,qr,barcode',

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ArchivedUser extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -27,7 +27,7 @@ class ArchivedUser extends Model
         'archive_reason',
         'archived_by',
     ];
-    
+
     /**
      * The attributes that should be cast.
      *
@@ -37,7 +37,7 @@ class ArchivedUser extends Model
         'archived_at' => 'datetime',
         'status' => 'boolean',
     ];
-    
+
     /**
      * Get the original user.
      */
@@ -45,7 +45,7 @@ class ArchivedUser extends Model
     {
         return $this->belongsTo(User::class);
     }
-    
+
     /**
      * Get the user who archived this user.
      */
@@ -53,7 +53,7 @@ class ArchivedUser extends Model
     {
         return $this->belongsTo(User::class, 'archived_by');
     }
-    
+
     /**
      * Get the branch the user belongs to.
      */
@@ -61,16 +61,14 @@ class ArchivedUser extends Model
     {
         return $this->belongsTo(Branch::class);
     }
-    
+
     /**
      * Get the photo URL attribute.
-     *
-     * @return string
      */
     public function getPhotoUrlAttribute(): string
     {
         return $this->photo
-            ? asset('uploads/users/' . $this->photo)
+            ? asset('uploads/users/'.$this->photo)
             : asset('stokity-icon.png');
     }
 }

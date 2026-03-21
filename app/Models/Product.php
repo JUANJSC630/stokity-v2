@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -90,8 +90,6 @@ class Product extends Model
 
     /**
      * Get the image URL attribute.
-     *
-     * @return string
      */
     public function getImageUrlAttribute(): string
     {
@@ -103,7 +101,7 @@ class Product extends Model
 
             // Legacy local file
             if ($this->image !== 'default-product.png') {
-                $path = 'uploads/products/' . $this->image;
+                $path = 'uploads/products/'.$this->image;
                 if (file_exists(public_path($path))) {
                     return asset($path);
                 }
@@ -121,8 +119,6 @@ class Product extends Model
 
     /**
      * Determine if the product is low in stock.
-     *
-     * @return bool
      */
     public function isLowStock(): bool
     {

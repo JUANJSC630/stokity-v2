@@ -17,16 +17,16 @@ class BranchFilterMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        
+
         // Si el usuario no es administrador y tiene una sucursal asignada
-        if ($user && !$user->isAdmin() && $user->branch_id) {
+        if ($user && ! $user->isAdmin() && $user->branch_id) {
             // Agregar el branch_id del usuario a la request para que los controladores lo usen
             $request->merge(['user_branch_id' => $user->branch_id]);
-            
+
             // También agregar una variable global para usar en las vistas
             view()->share('userBranchId', $user->branch_id);
         }
-        
+
         return $next($request);
     }
-} 
+}

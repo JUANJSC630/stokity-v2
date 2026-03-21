@@ -9,7 +9,7 @@ class ReportExportService
     /**
      * Create a StreamedResponse that writes CSV rows to php://output.
      *
-     * @param callable(resource): void $writer  Callback that receives the output handle and writes rows
+     * @param  callable(resource): void  $writer  Callback that receives the output handle and writes rows
      */
     public function streamCsv(string $filename, callable $writer): StreamedResponse
     {
@@ -20,18 +20,18 @@ class ReportExportService
             $writer($output);
             fclose($output);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control'       => 'no-cache, must-revalidate',
-            'Pragma'              => 'no-cache',
-            'Expires'             => '0',
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
     /**
      * Write a single CSV row to a file handle.
      *
-     * @param resource $handle
+     * @param  resource  $handle
      */
     private function writeRow($handle, array $row): void
     {
@@ -45,9 +45,9 @@ class ReportExportService
 
     public function generatePdfHtml(array $filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods): string
     {
-        $totalSales  = collect($salesData)->sum('total_sales');
+        $totalSales = collect($salesData)->sum('total_sales');
         $totalAmount = collect($salesData)->sum('total_amount');
-        $avgSale     = $totalSales > 0 ? $totalAmount / $totalSales : 0;
+        $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
         $html = $this->pdfHeader('REPORTE DE VENTAS - STOKITY V2');
 
@@ -67,7 +67,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>PRODUCTOS MÁS VENDIDOS</h3>
                 <table><thead><tr><th>Código</th><th>Nombre del Producto</th><th class="number">Cantidad Vendida</th><th class="currency">Monto Total</th><th class="number">Número de Ventas</th></tr></thead><tbody>';
             foreach ($topProducts as $product) {
-                $html .= '<tr><td>' . e($product->code) . '</td><td>' . e($product->name) . '</td><td class="number">' . $product->total_quantity . '</td><td class="currency">$ ' . number_format($product->total_amount, 2, ',', '.') . '</td><td class="number">' . $product->sales_count . '</td></tr>';
+                $html .= '<tr><td>'.e($product->code).'</td><td>'.e($product->name).'</td><td class="number">'.$product->total_quantity.'</td><td class="currency">$ '.number_format($product->total_amount, 2, ',', '.').'</td><td class="number">'.$product->sales_count.'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -77,7 +77,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>VENTAS POR SUCURSAL</h3>
                 <table><thead><tr><th>ID</th><th>Nombre de Sucursal</th><th>Nombre Comercial</th><th class="number">Total Ventas</th><th class="currency">Monto Total</th><th class="currency">Promedio por Venta</th></tr></thead><tbody>';
             foreach ($salesByBranch as $branch) {
-                $html .= '<tr><td>' . $branch->id . '</td><td>' . e($branch->name) . '</td><td>' . e($branch->business_name ?? 'N/A') . '</td><td class="number">' . $branch->total_sales . '</td><td class="currency">$ ' . number_format($branch->total_amount, 2, ',', '.') . '</td><td class="currency">$ ' . number_format($branch->average_sale, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.$branch->id.'</td><td>'.e($branch->name).'</td><td>'.e($branch->business_name ?? 'N/A').'</td><td class="number">'.$branch->total_sales.'</td><td class="currency">$ '.number_format($branch->total_amount, 2, ',', '.').'</td><td class="currency">$ '.number_format($branch->average_sale, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -87,7 +87,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>VENTAS POR VENDEDOR</h3>
                 <table><thead><tr><th>ID</th><th>Nombre del Vendedor</th><th>Email</th><th class="number">Total Ventas</th><th class="currency">Monto Total</th><th class="currency">Promedio por Venta</th></tr></thead><tbody>';
             foreach ($salesBySeller as $seller) {
-                $html .= '<tr><td>' . $seller->id . '</td><td>' . e($seller->name) . '</td><td>' . e($seller->email) . '</td><td class="number">' . $seller->total_sales . '</td><td class="currency">$ ' . number_format($seller->total_amount, 2, ',', '.') . '</td><td class="currency">$ ' . number_format($seller->average_sale, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.$seller->id.'</td><td>'.e($seller->name).'</td><td>'.e($seller->email).'</td><td class="number">'.$seller->total_sales.'</td><td class="currency">$ '.number_format($seller->total_amount, 2, ',', '.').'</td><td class="currency">$ '.number_format($seller->average_sale, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -97,7 +97,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>DEVOLUCIONES POR PRODUCTO</h3>
                 <table><thead><tr><th>ID</th><th>Código</th><th>Nombre del Producto</th><th class="number">Cantidad Devuelta</th><th class="number">Número de Devoluciones</th></tr></thead><tbody>';
             foreach ($returnsData as $return) {
-                $html .= '<tr><td>' . $return->id . '</td><td>' . e($return->code) . '</td><td>' . e($return->name) . '</td><td class="number">' . $return->returned_quantity . '</td><td class="number">' . $return->return_count . '</td></tr>';
+                $html .= '<tr><td>'.$return->id.'</td><td>'.e($return->code).'</td><td>'.e($return->name).'</td><td class="number">'.$return->returned_quantity.'</td><td class="number">'.$return->return_count.'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -107,7 +107,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>MÉTODOS DE PAGO</h3>
                 <table><thead><tr><th>Método de Pago</th><th class="number">Número de Transacciones</th><th class="currency">Monto Total</th><th class="currency">Promedio por Transacción</th></tr></thead><tbody>';
             foreach ($paymentMethods as $method) {
-                $html .= '<tr><td>' . ucfirst(str_replace('_', ' ', $method->payment_method)) . '</td><td class="number">' . $method->transaction_count . '</td><td class="currency">$ ' . number_format($method->total_amount, 2, ',', '.') . '</td><td class="currency">$ ' . number_format($method->average_amount, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.ucfirst(str_replace('_', ' ', $method->payment_method)).'</td><td class="number">'.$method->transaction_count.'</td><td class="currency">$ '.number_format($method->total_amount, 2, ',', '.').'</td><td class="currency">$ '.number_format($method->average_amount, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -120,9 +120,9 @@ class ReportExportService
     public function streamGeneralCsv(string $filename, array $filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods): StreamedResponse
     {
         return $this->streamCsv($filename, function ($h) use ($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods) {
-            $totalSales  = collect($salesData)->sum('total_sales');
+            $totalSales = collect($salesData)->sum('total_sales');
             $totalAmount = collect($salesData)->sum('total_amount');
-            $avgSale     = $totalSales > 0 ? $totalAmount / $totalSales : 0;
+            $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
             $this->writeRow($h, ['Reporte', 'Ventas General']);
             $this->writeRow($h, ['Generado', now()->format('d/m/Y H:i:s')]);
@@ -257,7 +257,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>TOP PRODUCTOS</h3>
                 <table><thead><tr><th>Producto</th><th>Ventas</th><th>Monto</th></tr></thead><tbody>';
             foreach ($topProducts as $product) {
-                $html .= '<tr><td>' . e($product->name) . '</td><td>' . $product->total_quantity . '</td><td>$ ' . number_format($product->total_amount, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.e($product->name).'</td><td>'.$product->total_quantity.'</td><td>$ '.number_format($product->total_amount, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -271,15 +271,15 @@ class ReportExportService
     {
         return $this->streamCsv($filename, function ($h) use ($topProducts) {
             $this->writeRow($h, ['REPORTE DE PRODUCTOS - STOKITY V2']);
-            $this->writeRow($h, ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')]);
-            $this->writeRow($h, ['Usuario: ' . auth()->user()->name]);
+            $this->writeRow($h, ['Fecha de generación: '.now()->format('d/m/Y H:i:s')]);
+            $this->writeRow($h, ['Usuario: '.auth()->user()->name]);
             $this->writeRow($h, []);
 
             if (count($topProducts) > 0) {
                 $this->writeRow($h, ['TOP PRODUCTOS']);
                 $this->writeRow($h, ['Producto', 'Ventas', 'Monto']);
                 foreach ($topProducts as $product) {
-                    $this->writeRow($h, [$product->name, $product->total_quantity, '$ ' . number_format($product->total_amount, 2, ',', '.')]);
+                    $this->writeRow($h, [$product->name, $product->total_quantity, '$ '.number_format($product->total_amount, 2, ',', '.')]);
                 }
                 $this->writeRow($h, []);
             }
@@ -300,7 +300,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>RENDIMIENTO DE VENDEDORES</h3>
                 <table><thead><tr><th>Vendedor</th><th>Ventas</th><th>Monto</th><th>Promedio</th></tr></thead><tbody>';
             foreach ($sellersData as $seller) {
-                $html .= '<tr><td>' . e($seller['name']) . '</td><td>' . $seller['total_sales'] . '</td><td>$ ' . number_format($seller['total_amount'], 2, ',', '.') . '</td><td>$ ' . number_format($seller['average_sale'], 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.e($seller['name']).'</td><td>'.$seller['total_sales'].'</td><td>$ '.number_format($seller['total_amount'], 2, ',', '.').'</td><td>$ '.number_format($seller['average_sale'], 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -339,7 +339,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>RENDIMIENTO DE SUCURSALES</h3>
                 <table><thead><tr><th>Sucursal</th><th>Ventas</th><th>Monto</th><th>Promedio</th></tr></thead><tbody>';
             foreach ($branchesData as $branch) {
-                $html .= '<tr><td>' . e($branch->name) . '</td><td>' . $branch->total_sales . '</td><td>$ ' . number_format($branch->total_amount, 2, ',', '.') . '</td><td>$ ' . number_format($branch->average_sale, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.e($branch->name).'</td><td>'.$branch->total_sales.'</td><td>$ '.number_format($branch->total_amount, 2, ',', '.').'</td><td>$ '.number_format($branch->average_sale, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -377,10 +377,10 @@ class ReportExportService
         // Summary
         $html .= '<div class="section"><h3>RESUMEN DE DEVOLUCIONES</h3>
             <table><thead><tr><th>Métrica</th><th>Valor</th></tr></thead><tbody>
-            <tr><td>Total de Devoluciones</td><td>' . $returnsData->total_returns . '</td></tr>
-            <tr><td>Ventas Únicas con Devolución</td><td>' . $returnsData->unique_sales_returned . '</td></tr>
-            <tr><td>Monto Total de Devoluciones</td><td>$ ' . number_format($returnsData->total_amount, 2, ',', '.') . '</td></tr>
-            <tr><td>Promedio por Devolución</td><td>$ ' . number_format($returnsData->average_return, 2, ',', '.') . '</td></tr>
+            <tr><td>Total de Devoluciones</td><td>'.$returnsData->total_returns.'</td></tr>
+            <tr><td>Ventas Únicas con Devolución</td><td>'.$returnsData->unique_sales_returned.'</td></tr>
+            <tr><td>Monto Total de Devoluciones</td><td>$ '.number_format($returnsData->total_amount, 2, ',', '.').'</td></tr>
+            <tr><td>Promedio por Devolución</td><td>$ '.number_format($returnsData->average_return, 2, ',', '.').'</td></tr>
             </tbody></table></div>';
 
         // By product
@@ -388,7 +388,7 @@ class ReportExportService
             $html .= '<div class="section"><h3>DEVOLUCIONES POR PRODUCTO</h3>
                 <table><thead><tr><th>Producto</th><th>Cantidad Devuelta</th><th>Devoluciones</th><th>Monto</th></tr></thead><tbody>';
             foreach ($returnsByProduct as $product) {
-                $html .= '<tr><td>' . e($product->name) . '</td><td>' . $product->returned_quantity . '</td><td>' . $product->return_count . '</td><td>$ ' . number_format($product->total_amount, 2, ',', '.') . '</td></tr>';
+                $html .= '<tr><td>'.e($product->name).'</td><td>'.$product->returned_quantity.'</td><td>'.$product->return_count.'</td><td>$ '.number_format($product->total_amount, 2, ',', '.').'</td></tr>';
             }
             $html .= '</tbody></table></div>';
         }
@@ -402,23 +402,23 @@ class ReportExportService
     {
         return $this->streamCsv($filename, function ($h) use ($returnsData, $returnsByProduct) {
             $this->writeRow($h, ['REPORTE DE DEVOLUCIONES - STOKITY V2']);
-            $this->writeRow($h, ['Fecha de generación: ' . now()->format('d/m/Y H:i:s')]);
-            $this->writeRow($h, ['Usuario: ' . auth()->user()->name]);
+            $this->writeRow($h, ['Fecha de generación: '.now()->format('d/m/Y H:i:s')]);
+            $this->writeRow($h, ['Usuario: '.auth()->user()->name]);
             $this->writeRow($h, []);
 
             $this->writeRow($h, ['RESUMEN DE DEVOLUCIONES']);
             $this->writeRow($h, ['Métrica', 'Valor']);
             $this->writeRow($h, ['Total de Devoluciones', $returnsData->total_returns]);
             $this->writeRow($h, ['Ventas Únicas con Devolución', $returnsData->unique_sales_returned]);
-            $this->writeRow($h, ['Monto Total de Devoluciones', '$ ' . number_format($returnsData->total_amount, 2, ',', '.')]);
-            $this->writeRow($h, ['Promedio por Devolución', '$ ' . number_format($returnsData->average_return, 2, ',', '.')]);
+            $this->writeRow($h, ['Monto Total de Devoluciones', '$ '.number_format($returnsData->total_amount, 2, ',', '.')]);
+            $this->writeRow($h, ['Promedio por Devolución', '$ '.number_format($returnsData->average_return, 2, ',', '.')]);
             $this->writeRow($h, []);
 
             if (count($returnsByProduct) > 0) {
                 $this->writeRow($h, ['DEVOLUCIONES POR PRODUCTO']);
                 $this->writeRow($h, ['Producto', 'Cantidad Devuelta', 'Devoluciones', 'Monto']);
                 foreach ($returnsByProduct as $product) {
-                    $this->writeRow($h, [$product->name, $product->returned_quantity, $product->return_count, '$ ' . number_format($product->total_amount, 2, ',', '.')]);
+                    $this->writeRow($h, [$product->name, $product->returned_quantity, $product->return_count, '$ '.number_format($product->total_amount, 2, ',', '.')]);
                 }
                 $this->writeRow($h, []);
             }
@@ -433,7 +433,7 @@ class ReportExportService
 
     private function pdfHeader(string $title): string
     {
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' . e($title) . '</title>
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'.e($title).'</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
@@ -457,10 +457,10 @@ class ReportExportService
             .number { text-align: center; }
         </style></head><body>
         <div class="header">
-            <h1>' . e($title) . '</h1>
+            <h1>'.e($title).'</h1>
             <p>Sistema de Gestión de Inventario y Ventas</p>
-            <p>Fecha de generación: ' . now()->format('d/m/Y H:i:s') . '</p>
-            <p>Usuario: ' . e(auth()->user()->name) . '</p>
+            <p>Fecha de generación: '.now()->format('d/m/Y H:i:s').'</p>
+            <p>Usuario: '.e(auth()->user()->name).'</p>
         </div>';
     }
 
@@ -477,9 +477,9 @@ class ReportExportService
     {
         return '<div class="summary"><h2>RESUMEN EJECUTIVO</h2>
             <div class="summary-grid">
-                <div class="summary-item"><strong>' . number_format($totalSales) . '</strong><span>Total de Ventas</span></div>
-                <div class="summary-item"><strong>$ ' . number_format($totalAmount, 2, ',', '.') . '</strong><span>Monto Total</span></div>
-                <div class="summary-item"><strong>$ ' . number_format($avgSale, 2, ',', '.') . '</strong><span>Promedio por Venta</span></div>
+                <div class="summary-item"><strong>'.number_format($totalSales).'</strong><span>Total de Ventas</span></div>
+                <div class="summary-item"><strong>$ '.number_format($totalAmount, 2, ',', '.').'</strong><span>Monto Total</span></div>
+                <div class="summary-item"><strong>$ '.number_format($avgSale, 2, ',', '.').'</strong><span>Promedio por Venta</span></div>
             </div></div>';
     }
 
@@ -489,26 +489,26 @@ class ReportExportService
         $hasFilters = false;
 
         if ($filters['date_from']) {
-            $html .= '<p><strong>Fecha desde:</strong> ' . $filters['date_from'] . '</p>';
+            $html .= '<p><strong>Fecha desde:</strong> '.$filters['date_from'].'</p>';
             $hasFilters = true;
         }
         if ($filters['date_to']) {
-            $html .= '<p><strong>Fecha hasta:</strong> ' . $filters['date_to'] . '</p>';
+            $html .= '<p><strong>Fecha hasta:</strong> '.$filters['date_to'].'</p>';
             $hasFilters = true;
         }
         if ($filters['branch_id']) {
-            $html .= '<p><strong>Sucursal ID:</strong> ' . $filters['branch_id'] . '</p>';
+            $html .= '<p><strong>Sucursal ID:</strong> '.$filters['branch_id'].'</p>';
             $hasFilters = true;
         }
-        if (!empty($filters['category_id'])) {
-            $html .= '<p><strong>Categoría ID:</strong> ' . $filters['category_id'] . '</p>';
+        if (! empty($filters['category_id'])) {
+            $html .= '<p><strong>Categoría ID:</strong> '.$filters['category_id'].'</p>';
             $hasFilters = true;
         }
-        if (!$hasFilters) {
+        if (! $hasFilters) {
             $html .= '<p>Sin filtros aplicados (todos los datos)</p>';
         }
 
-        return $html . '</div>';
+        return $html.'</div>';
     }
 
     private function salesByPeriodTable($salesData): string
@@ -529,18 +529,18 @@ class ReportExportService
             </thead><tbody>';
 
         foreach ($salesData as $sale) {
-            $html .= '<tr><td>' . $sale['period'] . '</td>';
+            $html .= '<tr><td>'.$sale['period'].'</td>';
             foreach (['completed', 'cancelled', 'pending'] as $status) {
                 $s = $sale[$status];
-                $html .= '<td class="number">' . $s['total_sales'] . '</td>'
-                    . '<td class="currency">$ ' . number_format($s['total_amount'], 2, ',', '.') . '</td>'
-                    . '<td class="currency">$ ' . number_format($s['net_amount'], 2, ',', '.') . '</td>'
-                    . '<td class="currency">$ ' . number_format($s['tax_amount'], 2, ',', '.') . '</td>'
-                    . '<td class="currency">$ ' . number_format($s['average_sale'], 2, ',', '.') . '</td>';
+                $html .= '<td class="number">'.$s['total_sales'].'</td>'
+                    .'<td class="currency">$ '.number_format($s['total_amount'], 2, ',', '.').'</td>'
+                    .'<td class="currency">$ '.number_format($s['net_amount'], 2, ',', '.').'</td>'
+                    .'<td class="currency">$ '.number_format($s['tax_amount'], 2, ',', '.').'</td>'
+                    .'<td class="currency">$ '.number_format($s['average_sale'], 2, ',', '.').'</td>';
             }
             $html .= '</tr>';
         }
 
-        return $html . '</tbody></table></div>';
+        return $html.'</tbody></table></div>';
     }
 }

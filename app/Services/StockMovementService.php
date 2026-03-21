@@ -25,18 +25,18 @@ class StockMovementService
         mixed $movementDate = null,
     ): StockMovement {
         return StockMovement::create([
-            'product_id'     => $product->id,
-            'user_id'        => $userId,
-            'branch_id'      => $branchId,
-            'supplier_id'    => $supplierId,
-            'type'           => $type,
-            'quantity'       => $quantity,
+            'product_id' => $product->id,
+            'user_id' => $userId,
+            'branch_id' => $branchId,
+            'supplier_id' => $supplierId,
+            'type' => $type,
+            'quantity' => $quantity,
             'previous_stock' => $previousStock,
-            'new_stock'      => $newStock,
-            'unit_cost'      => $unitCost ?? $product->purchase_price,
-            'reference'      => $reference,
-            'notes'          => $notes,
-            'movement_date'  => $movementDate ?? now(),
+            'new_stock' => $newStock,
+            'unit_cost' => $unitCost ?? $product->purchase_price,
+            'reference' => $reference,
+            'notes' => $notes,
+            'movement_date' => $movementDate ?? now(),
         ]);
     }
 }

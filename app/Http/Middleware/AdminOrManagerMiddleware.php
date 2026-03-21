@@ -15,14 +15,14 @@ class AdminOrManagerMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || (!$request->user()->isAdmin() && !$request->user()->isManager())) {
+        if (! $request->user() || (! $request->user()->isAdmin() && ! $request->user()->isManager())) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'Unauthorized. Admin or Manager access required.'], 403);
             }
-            
+
             return redirect()->route('dashboard')->with('error', 'No tienes permisos para acceder a esta sección.');
         }
-        
+
         return $next($request);
     }
 }

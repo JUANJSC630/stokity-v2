@@ -12,10 +12,10 @@ beforeEach(function () {
     PaymentMethod::factory()->create(['code' => 'cash']);
 
     $this->session = CashSession::factory()->create([
-        'branch_id'         => $this->branch->id,
+        'branch_id' => $this->branch->id,
         'opened_by_user_id' => vendedorUser($this->branch)->id,
-        'status'            => 'open',
-        'opening_amount'    => 100000,
+        'status' => 'open',
+        'opening_amount' => 100000,
     ]);
 });
 
@@ -25,10 +25,10 @@ describe('Blind Close Security (B3)', function () {
 
         // Re-create session owned by this vendedor
         $session = CashSession::factory()->create([
-            'branch_id'         => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'opened_by_user_id' => $vendedor->id,
-            'status'            => 'open',
-            'opening_amount'    => 100000,
+            'status' => 'open',
+            'opening_amount' => 100000,
         ]);
 
         $response = $this->actingAs($vendedor)

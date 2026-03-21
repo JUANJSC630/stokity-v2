@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
 use App\Models\Branch;
 use App\Models\Category;
-use App\Models\SaleReturn;
+use App\Models\Sale;
 use App\Models\SaleProduct;
-use App\Services\ReportQueryService;
+use App\Models\SaleReturn;
 use App\Services\ReportExportService;
+use App\Services\ReportQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -28,8 +28,8 @@ class ReportController extends Controller
         $filters = $this->queries->getFilters($request);
 
         $dashboardData = [
-            'sales_summary'   => $this->queries->getSalesSummary($filters),
-            'top_products'    => $this->queries->getTopProducts($filters),
+            'sales_summary' => $this->queries->getSalesSummary($filters),
+            'top_products' => $this->queries->getTopProducts($filters),
             'sales_by_branch' => $this->queries->getSalesByBranch($filters),
             'sales_by_seller' => $this->queries->getSalesBySeller($filters),
             'returns_summary' => $this->queries->getReturnsSummary($filters),
@@ -40,12 +40,12 @@ class ReportController extends Controller
 
         return Inertia::render('reports/index', [
             'dashboardData' => $dashboardData,
-            'filters'       => $filters,
-            'branches'      => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
-            'categories'    => Category::where('status', true)->get(),
-            'user'          => [
-                'is_admin'    => $user->isAdmin(),
-                'branch_id'   => $user->branch_id,
+            'filters' => $filters,
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
         ]);
@@ -61,20 +61,20 @@ class ReportController extends Controller
 
         $salesData = $this->queries->getSalesByPeriod($filters, $groupBy);
 
-        $totalSales  = $salesData->sum('total_sales');
+        $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
         return Inertia::render('reports/sales-detail', [
-            'salesData'    => $salesData->toArray(),
+            'salesData' => $salesData->toArray(),
             'salesSummary' => [
-                'total_sales'  => $totalSales,
+                'total_sales' => $totalSales,
                 'total_amount' => $totalAmount,
                 'average_sale' => $averageSale,
             ],
-            'filters'    => $filters,
-            'groupBy'    => $groupBy,
-            'branches'   => Branch::where('status', true)->get(),
+            'filters' => $filters,
+            'groupBy' => $groupBy,
+            'branches' => Branch::where('status', true)->get(),
             'categories' => Category::where('status', true)->get(),
         ]);
     }
@@ -87,9 +87,9 @@ class ReportController extends Controller
         $filters = $this->queries->getFilters($request);
 
         $productsData = [
-            'top_products'         => $this->queries->getTopProducts($filters, 20),
+            'top_products' => $this->queries->getTopProducts($filters, 20),
             'products_by_category' => $this->queries->getProductsByCategory($filters),
-            'low_stock_products'   => $this->queries->getLowStockProducts($filters),
+            'low_stock_products' => $this->queries->getLowStockProducts($filters),
             'products_performance' => $this->queries->getProductsPerformance($filters),
         ];
 
@@ -97,12 +97,12 @@ class ReportController extends Controller
 
         return Inertia::render('reports/products-report', [
             'productsData' => $productsData,
-            'filters'      => $filters,
-            'branches'     => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
-            'categories'   => Category::where('status', true)->get(),
-            'user'         => [
-                'is_admin'    => $user->isAdmin(),
-                'branch_id'   => $user->branch_id,
+            'filters' => $filters,
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
         ]);
@@ -117,20 +117,20 @@ class ReportController extends Controller
 
         $sellersData = [
             'sellers_performance' => $this->queries->getSellersPerformance($filters),
-            'sellers_comparison'  => $this->queries->getSellersComparison($filters),
-            'sellers_by_branch'   => $this->queries->getSellersByBranch($filters),
+            'sellers_comparison' => $this->queries->getSellersComparison($filters),
+            'sellers_by_branch' => $this->queries->getSellersByBranch($filters),
         ];
 
         $user = Auth::user();
 
         return Inertia::render('reports/sellers-report', [
             'sellersData' => $sellersData,
-            'filters'     => $filters,
-            'branches'    => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
-            'categories'  => Category::where('status', true)->get(),
-            'user'        => [
-                'is_admin'    => $user->isAdmin(),
-                'branch_id'   => $user->branch_id,
+            'filters' => $filters,
+            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
         ]);
@@ -145,15 +145,15 @@ class ReportController extends Controller
 
         $branchesData = [
             'branches_performance' => $this->queries->getBranchesPerformance($filters),
-            'branches_comparison'  => $this->queries->getBranchesComparison($filters),
-            'branches_by_region'   => $this->queries->getBranchesByRegion($filters),
+            'branches_comparison' => $this->queries->getBranchesComparison($filters),
+            'branches_by_region' => $this->queries->getBranchesByRegion($filters),
         ];
 
         return Inertia::render('reports/branches-report', [
             'branchesData' => $branchesData,
-            'filters'      => $filters,
-            'branches'     => Branch::where('status', true)->get(),
-            'categories'   => Category::where('status', true)->get(),
+            'filters' => $filters,
+            'branches' => Branch::where('status', true)->get(),
+            'categories' => Category::where('status', true)->get(),
         ]);
     }
 
@@ -164,10 +164,10 @@ class ReportController extends Controller
     {
         $filters = $this->queries->getFilters($request);
 
-        $summary          = $this->queries->getReturnsSummary($filters);
+        $summary = $this->queries->getReturnsSummary($filters);
         $returnsByProduct = $this->queries->getReturnsByProduct($filters);
-        $returnsByReason  = $this->queries->getReturnsByReason($filters);
-        $returnsTrend     = $this->queries->getReturnsTrend($filters);
+        $returnsByReason = $this->queries->getReturnsByReason($filters);
+        $returnsTrend = $this->queries->getReturnsTrend($filters);
 
         // Return rate
         $totalSales = Sale::whereIn('status', ['completed', 'cancelled'])
@@ -179,7 +179,7 @@ class ReportController extends Controller
         $returnRate = $totalSales > 0 ? ($summary->total_returns / $totalSales) * 100 : 0;
 
         // Pre-load product sales to avoid N+1
-        $productIds    = $returnsByProduct->pluck('id')->all();
+        $productIds = $returnsByProduct->pluck('id')->all();
         $salesByProduct = SaleProduct::join('sales', 'sale_products.sale_id', '=', 'sales.id')
             ->whereIn('sale_products.product_id', $productIds)
             ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
@@ -192,37 +192,38 @@ class ReportController extends Controller
 
         $returnsData = [
             'returns_summary' => [
-                'total_returns'  => $summary->total_returns,
-                'total_amount'   => $summary->total_amount,
+                'total_returns' => $summary->total_returns,
+                'total_amount' => $summary->total_amount,
                 'average_return' => $summary->average_return,
-                'return_rate'    => round($returnRate, 2),
+                'return_rate' => round($returnRate, 2),
             ],
             'returns_by_product' => $returnsByProduct->map(function ($product) use ($salesByProduct) {
                 $productSales = $salesByProduct[$product->id] ?? 0;
                 $rate = $productSales > 0 ? ($product->returned_quantity / $productSales) * 100 : 0;
 
                 return [
-                    'id'             => $product->id,
-                    'name'           => $product->name,
-                    'code'           => $product->code,
-                    'total_returns'  => $product->return_count,
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'total_returns' => $product->return_count,
                     'total_quantity' => $product->returned_quantity,
-                    'total_amount'   => $product->total_amount ?? 0,
-                    'return_rate'    => round($rate, 2),
+                    'total_amount' => $product->total_amount ?? 0,
+                    'return_rate' => round($rate, 2),
                 ];
             }),
             'returns_by_reason' => $returnsByReason->map(function ($reason) use ($summary) {
                 $percentage = $summary->total_returns > 0 ? ($reason->return_count / $summary->total_returns) * 100 : 0;
+
                 return [
-                    'reason'       => $reason->reason,
-                    'count'        => $reason->return_count,
+                    'reason' => $reason->reason,
+                    'count' => $reason->return_count,
                     'total_amount' => $reason->total_amount ?? 0,
-                    'percentage'   => round($percentage, 2),
+                    'percentage' => round($percentage, 2),
                 ];
             }),
             'returns_trend' => $returnsTrend->map(fn ($trend) => [
-                'date'           => $trend->date,
-                'returns_count'  => $trend->return_count,
+                'date' => $trend->date,
+                'returns_count' => $trend->return_count,
                 'returns_amount' => $trend->return_amount ?? 0,
             ]),
         ];
@@ -231,12 +232,12 @@ class ReportController extends Controller
 
         return Inertia::render('reports/returns-report', [
             'returnsData' => $returnsData,
-            'filters'     => $filters,
-            'branches'    => Branch::where('status', true)->get(),
-            'categories'  => Category::where('status', true)->get(),
-            'user'        => [
-                'is_admin'    => $user->isAdmin(),
-                'branch_id'   => $user->branch_id,
+            'filters' => $filters,
+            'branches' => Branch::where('status', true)->get(),
+            'categories' => Category::where('status', true)->get(),
+            'user' => [
+                'is_admin' => $user->isAdmin(),
+                'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
         ]);
@@ -272,48 +273,48 @@ class ReportController extends Controller
                 $q->where('branch_id', $branchFilter);
             }
         })
-        ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
-        ->selectRaw('sales.branch_id, COUNT(*) as return_count')
-        ->groupBy('sales.branch_id')
-        ->get()
-        ->keyBy('branch_id');
+            ->join('sales', 'sale_returns.sale_id', '=', 'sales.id')
+            ->selectRaw('sales.branch_id, COUNT(*) as return_count')
+            ->groupBy('sales.branch_id')
+            ->get()
+            ->keyBy('branch_id');
 
         $branchIds = $salesRows->pluck('branch_id')->merge($returnsByBranch->keys())->unique();
-        $branches  = \App\Models\Branch::whereIn('id', $branchIds)->get()->keyBy('id');
+        $branches = \App\Models\Branch::whereIn('id', $branchIds)->get()->keyBy('id');
 
         $availableBranches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         $grouped = $salesRows->groupBy('branch_id')->map(function ($rows, $branchId) use ($branches, $returnsByBranch) {
-            $branch      = $branches->get($branchId);
+            $branch = $branches->get($branchId);
             $returnCount = $returnsByBranch->get($branchId)?->return_count ?? 0;
 
             $paymentMethods = $rows->map(fn ($r) => [
                 'payment_method' => $r->payment_method,
-                'sale_count'     => (int) $r->sale_count,
-                'revenue'        => (float) $r->revenue,
+                'sale_count' => (int) $r->sale_count,
+                'revenue' => (float) $r->revenue,
                 'total_received' => (float) $r->total_received,
-                'total_change'   => (float) $r->total_change,
+                'total_change' => (float) $r->total_change,
             ])->values();
 
-            $cashRow      = $rows->firstWhere('payment_method', 'cash');
-            $netCash      = $cashRow ? (float) $cashRow->revenue - (float) $cashRow->total_change : 0;
+            $cashRow = $rows->firstWhere('payment_method', 'cash');
+            $netCash = $cashRow ? (float) $cashRow->revenue - (float) $cashRow->total_change : 0;
             $totalRevenue = $rows->sum('revenue');
 
             return [
-                'branch_id'     => $branchId,
-                'branch_name'   => $branch?->name ?? "Sucursal #{$branchId}",
-                'return_count'  => (int) $returnCount,
-                'payment_rows'  => $paymentMethods,
-                'net_cash'      => $netCash,
+                'branch_id' => $branchId,
+                'branch_name' => $branch?->name ?? "Sucursal #{$branchId}",
+                'return_count' => (int) $returnCount,
+                'payment_rows' => $paymentMethods,
+                'net_cash' => $netCash,
                 'total_revenue' => (float) $totalRevenue,
             ];
         })->values();
 
         return Inertia::render('reports/cash-balance', [
-            'data'              => $grouped,
-            'filters'           => ['date' => $date, 'branch_id' => $branchFilter],
+            'data' => $grouped,
+            'filters' => ['date' => $date, 'branch_id' => $branchFilter],
             'availableBranches' => $availableBranches,
-            'isAdmin'           => $user->isAdmin(),
+            'isAdmin' => $user->isAdmin(),
         ]);
     }
 
@@ -326,12 +327,12 @@ class ReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $filters        = $this->queries->getFilters($request);
-        $salesData      = $this->queries->getSalesByPeriod($filters, 'day');
-        $topProducts    = $this->queries->getTopProducts($filters, 20);
-        $salesByBranch  = $this->queries->getSalesByBranch($filters);
-        $salesBySeller  = $this->queries->getSalesBySeller($filters);
-        $returnsData    = $this->queries->getReturnsByProduct($filters);
+        $filters = $this->queries->getFilters($request);
+        $salesData = $this->queries->getSalesByPeriod($filters, 'day');
+        $topProducts = $this->queries->getTopProducts($filters, 20);
+        $salesByBranch = $this->queries->getSalesByBranch($filters);
+        $salesBySeller = $this->queries->getSalesBySeller($filters);
+        $returnsData = $this->queries->getReturnsByProduct($filters);
         $paymentMethods = $this->queries->getPaymentMethodsSummary($filters);
 
         $html = $this->exports->generatePdfHtml($filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods);
@@ -339,7 +340,7 @@ class ReportController extends Controller
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHtml($html);
         $pdf->setPaper('A4', 'landscape');
 
-        return $pdf->download('reporte-ventas-' . now()->format('Y-m-d-H-i-s') . '.pdf');
+        return $pdf->download('reporte-ventas-'.now()->format('Y-m-d-H-i-s').'.pdf');
     }
 
     /**
@@ -347,16 +348,16 @@ class ReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        $filters        = $this->queries->getFilters($request);
-        $salesData      = $this->queries->getSalesByPeriod($filters, 'day');
-        $topProducts    = $this->queries->getTopProducts($filters, 50);
-        $salesByBranch  = $this->queries->getSalesByBranch($filters);
-        $salesBySeller  = $this->queries->getSalesBySeller($filters);
-        $returnsData    = $this->queries->getReturnsByProduct($filters);
+        $filters = $this->queries->getFilters($request);
+        $salesData = $this->queries->getSalesByPeriod($filters, 'day');
+        $topProducts = $this->queries->getTopProducts($filters, 50);
+        $salesByBranch = $this->queries->getSalesByBranch($filters);
+        $salesBySeller = $this->queries->getSalesBySeller($filters);
+        $returnsData = $this->queries->getReturnsByProduct($filters);
         $paymentMethods = $this->queries->getPaymentMethodsSummary($filters);
 
         return $this->exports->streamGeneralCsv(
-            'reporte-ventas-' . now()->format('Y-m-d-H-i-s') . '.csv',
+            'reporte-ventas-'.now()->format('Y-m-d-H-i-s').'.csv',
             $filters, $salesData, $topProducts, $salesByBranch, $salesBySeller, $returnsData, $paymentMethods,
         );
     }
@@ -366,11 +367,11 @@ class ReportController extends Controller
      */
     public function exportSalesDetailPdf(Request $request)
     {
-        $filters   = $this->queries->getFilters($request);
-        $groupBy   = $request->get('group_by', 'day');
+        $filters = $this->queries->getFilters($request);
+        $groupBy = $request->get('group_by', 'day');
         $salesData = $this->queries->getSalesByPeriod($filters, $groupBy);
 
-        $totalSales  = $salesData->sum('total_sales');
+        $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
@@ -379,7 +380,7 @@ class ReportController extends Controller
         $pdf = \PDF::loadHTML($html);
         $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->download('reporte-detalle-ventas-' . now()->format('Y-m-d-H-i-s') . '.pdf');
+        return $pdf->download('reporte-detalle-ventas-'.now()->format('Y-m-d-H-i-s').'.pdf');
     }
 
     /**
@@ -387,16 +388,16 @@ class ReportController extends Controller
      */
     public function exportSalesDetailExcel(Request $request)
     {
-        $filters   = $this->queries->getFilters($request);
-        $groupBy   = $request->get('group_by', 'day');
+        $filters = $this->queries->getFilters($request);
+        $groupBy = $request->get('group_by', 'day');
         $salesData = $this->queries->getSalesByPeriod($filters, $groupBy);
 
-        $totalSales  = $salesData->sum('total_sales');
+        $totalSales = $salesData->sum('total_sales');
         $totalAmount = $salesData->sum('total_amount');
         $averageSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
 
         return $this->exports->streamSalesDetailCsv(
-            'reporte-detalle-ventas-' . now()->format('Y-m-d-H-i-s') . '.csv',
+            'reporte-detalle-ventas-'.now()->format('Y-m-d-H-i-s').'.csv',
             $filters, $salesData, $totalSales, $totalAmount, $averageSale, $groupBy,
         );
     }
@@ -406,17 +407,17 @@ class ReportController extends Controller
      */
     public function exportProductsPdf(Request $request)
     {
-        $filters           = $this->queries->getFilters($request);
-        $productsData      = $this->queries->getProductsPerformance($filters);
-        $topProducts       = $this->queries->getTopProducts($filters, 10);
+        $filters = $this->queries->getFilters($request);
+        $productsData = $this->queries->getProductsPerformance($filters);
+        $topProducts = $this->queries->getTopProducts($filters, 10);
         $productsByCategory = $this->queries->getProductsByCategory($filters);
-        $lowStockProducts  = $this->queries->getLowStockProducts();
+        $lowStockProducts = $this->queries->getLowStockProducts();
 
         $html = $this->exports->generateProductsPdfHtml($filters, $productsData, $topProducts, $productsByCategory, $lowStockProducts);
 
         $pdf = \PDF::loadHTML($html);
 
-        return $pdf->download('reporte_productos_' . now()->format('Y-m-d_H-i-s') . '.pdf');
+        return $pdf->download('reporte_productos_'.now()->format('Y-m-d_H-i-s').'.pdf');
     }
 
     /**
@@ -424,14 +425,14 @@ class ReportController extends Controller
      */
     public function exportProductsExcel(Request $request)
     {
-        $filters           = $this->queries->getFilters($request);
-        $productsData      = $this->queries->getProductsPerformance($filters);
-        $topProducts       = $this->queries->getTopProducts($filters, 10);
+        $filters = $this->queries->getFilters($request);
+        $productsData = $this->queries->getProductsPerformance($filters);
+        $topProducts = $this->queries->getTopProducts($filters, 10);
         $productsByCategory = $this->queries->getProductsByCategory($filters);
-        $lowStockProducts  = $this->queries->getLowStockProducts();
+        $lowStockProducts = $this->queries->getLowStockProducts();
 
         return $this->exports->streamProductsCsv(
-            'reporte_productos_' . now()->format('Y-m-d_H-i-s') . '.csv',
+            'reporte_productos_'.now()->format('Y-m-d_H-i-s').'.csv',
             $filters, $productsData, $topProducts, $productsByCategory, $lowStockProducts,
         );
     }
@@ -441,16 +442,16 @@ class ReportController extends Controller
      */
     public function exportSellersPdf(Request $request)
     {
-        $filters           = $this->queries->getFilters($request);
-        $sellersData       = $this->queries->getSellersPerformance($filters);
+        $filters = $this->queries->getFilters($request);
+        $sellersData = $this->queries->getSellersPerformance($filters);
         $sellersComparison = $this->queries->getSellersComparison($filters);
-        $sellersByBranch   = $this->queries->getSellersByBranch($filters);
+        $sellersByBranch = $this->queries->getSellersByBranch($filters);
 
         $html = $this->exports->generateSellersPdfHtml($filters, $sellersData, $sellersComparison, $sellersByBranch);
 
         $pdf = \PDF::loadHTML($html);
 
-        return $pdf->download('reporte_vendedores_' . now()->format('Y-m-d_H-i-s') . '.pdf');
+        return $pdf->download('reporte_vendedores_'.now()->format('Y-m-d_H-i-s').'.pdf');
     }
 
     /**
@@ -458,13 +459,13 @@ class ReportController extends Controller
      */
     public function exportSellersExcel(Request $request)
     {
-        $filters           = $this->queries->getFilters($request);
-        $sellersData       = $this->queries->getSellersPerformance($filters);
+        $filters = $this->queries->getFilters($request);
+        $sellersData = $this->queries->getSellersPerformance($filters);
         $sellersComparison = $this->queries->getSellersComparison($filters);
-        $sellersByBranch   = $this->queries->getSellersByBranch($filters);
+        $sellersByBranch = $this->queries->getSellersByBranch($filters);
 
         return $this->exports->streamSellersCsv(
-            'reporte_vendedores_' . now()->format('Y-m-d_H-i-s') . '.csv',
+            'reporte_vendedores_'.now()->format('Y-m-d_H-i-s').'.csv',
             $filters, $sellersData, $sellersComparison, $sellersByBranch,
         );
     }
@@ -474,15 +475,15 @@ class ReportController extends Controller
      */
     public function exportBranchesPdf(Request $request)
     {
-        $filters            = $this->queries->getFilters($request);
-        $branchesData       = $this->queries->getBranchesPerformance($filters);
+        $filters = $this->queries->getFilters($request);
+        $branchesData = $this->queries->getBranchesPerformance($filters);
         $branchesComparison = $this->queries->getBranchesComparison($filters);
 
         $html = $this->exports->generateBranchesPdfHtml($filters, $branchesData, $branchesComparison, collect());
 
         $pdf = \PDF::loadHTML($html);
 
-        return $pdf->download('reporte_sucursales_' . now()->format('Y-m-d_H-i-s') . '.pdf');
+        return $pdf->download('reporte_sucursales_'.now()->format('Y-m-d_H-i-s').'.pdf');
     }
 
     /**
@@ -490,13 +491,13 @@ class ReportController extends Controller
      */
     public function exportBranchesExcel(Request $request)
     {
-        $filters            = $this->queries->getFilters($request);
-        $branchesData       = $this->queries->getBranchesPerformance($filters);
+        $filters = $this->queries->getFilters($request);
+        $branchesData = $this->queries->getBranchesPerformance($filters);
         $branchesComparison = $this->queries->getBranchesComparison($filters);
-        $branchesByRegion   = $this->queries->getBranchesByRegion($filters);
+        $branchesByRegion = $this->queries->getBranchesByRegion($filters);
 
         return $this->exports->streamBranchesCsv(
-            'reporte_sucursales_' . now()->format('Y-m-d_H-i-s') . '.csv',
+            'reporte_sucursales_'.now()->format('Y-m-d_H-i-s').'.csv',
             $filters, $branchesData, $branchesComparison, $branchesByRegion,
         );
     }
@@ -506,17 +507,17 @@ class ReportController extends Controller
      */
     public function exportReturnsPdf(Request $request)
     {
-        $filters          = $this->queries->getFilters($request);
-        $returnsData      = $this->queries->getReturnsSummary($filters);
+        $filters = $this->queries->getFilters($request);
+        $returnsData = $this->queries->getReturnsSummary($filters);
         $returnsByProduct = $this->queries->getReturnsByProduct($filters);
-        $returnsByReason  = $this->queries->getReturnsByReason($filters);
-        $returnsTrend     = $this->queries->getReturnsTrend($filters);
+        $returnsByReason = $this->queries->getReturnsByReason($filters);
+        $returnsTrend = $this->queries->getReturnsTrend($filters);
 
         $html = $this->exports->generateReturnsPdfHtml($filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend);
 
         $pdf = \PDF::loadHTML($html);
 
-        return $pdf->download('reporte_devoluciones_' . now()->format('Y-m-d_H-i-s') . '.pdf');
+        return $pdf->download('reporte_devoluciones_'.now()->format('Y-m-d_H-i-s').'.pdf');
     }
 
     /**
@@ -524,14 +525,14 @@ class ReportController extends Controller
      */
     public function exportReturnsExcel(Request $request)
     {
-        $filters          = $this->queries->getFilters($request);
-        $returnsData      = $this->queries->getReturnsSummary($filters);
+        $filters = $this->queries->getFilters($request);
+        $returnsData = $this->queries->getReturnsSummary($filters);
         $returnsByProduct = $this->queries->getReturnsByProduct($filters);
-        $returnsByReason  = $this->queries->getReturnsByReason($filters);
-        $returnsTrend     = $this->queries->getReturnsTrend($filters);
+        $returnsByReason = $this->queries->getReturnsByReason($filters);
+        $returnsTrend = $this->queries->getReturnsTrend($filters);
 
         return $this->exports->streamReturnsCsv(
-            'reporte_devoluciones_' . now()->format('Y-m-d_H-i-s') . '.csv',
+            'reporte_devoluciones_'.now()->format('Y-m-d_H-i-s').'.csv',
             $filters, $returnsData, $returnsByProduct, $returnsByReason, $returnsTrend,
         );
     }

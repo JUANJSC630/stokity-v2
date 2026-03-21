@@ -15,11 +15,11 @@ class CashSessionFactory extends Factory
     public function definition(): array
     {
         return [
-            'branch_id'         => Branch::factory(),
+            'branch_id' => Branch::factory(),
             'opened_by_user_id' => User::factory(),
-            'status'            => 'open',
-            'opening_amount'    => 100000,
-            'opened_at'         => now(),
+            'status' => 'open',
+            'opening_amount' => 100000,
+            'opened_at' => now(),
         ];
     }
 
@@ -33,12 +33,12 @@ class CashSessionFactory extends Factory
     public function closed(): static
     {
         return $this->state(fn () => [
-            'status'                  => 'closed',
-            'closed_at'               => now(),
-            'closed_by_user_id'       => User::factory(),
+            'status' => 'closed',
+            'closed_at' => now(),
+            'closed_by_user_id' => User::factory(),
             'closing_amount_declared' => 100000,
-            'expected_cash'           => 100000,
-            'discrepancy'             => 0,
+            'expected_cash' => 100000,
+            'discrepancy' => 0,
         ]);
     }
 }

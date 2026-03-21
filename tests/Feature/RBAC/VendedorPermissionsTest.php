@@ -7,7 +7,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
     $this->vendedor = vendedorUser($this->branch);
 
@@ -68,15 +68,15 @@ describe('Vendedor — Forbidden Routes', function () {
     it('cannot POST /products', function () {
         $response = $this->actingAs($this->vendedor)
             ->post(route('products.store'), [
-                'name'           => 'Test',
-                'code'           => '99999999',
+                'name' => 'Test',
+                'code' => '99999999',
                 'purchase_price' => 5000,
-                'sale_price'     => 10000,
-                'tax'            => 0,
-                'stock'          => 10,
-                'min_stock'      => 1,
-                'category_id'    => $this->category->id,
-                'branch_id'      => $this->branch->id,
+                'sale_price' => 10000,
+                'tax' => 0,
+                'stock' => 10,
+                'min_stock' => 1,
+                'category_id' => $this->category->id,
+                'branch_id' => $this->branch->id,
             ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -84,20 +84,20 @@ describe('Vendedor — Forbidden Routes', function () {
 
     it('cannot PUT /products/{id}', function () {
         $product = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
         ]);
 
         $response = $this->actingAs($this->vendedor)
             ->put(route('products.update', $product), [
-                'name'           => 'Updated',
-                'code'           => $product->code,
+                'name' => 'Updated',
+                'code' => $product->code,
                 'purchase_price' => 5000,
-                'sale_price'     => 10000,
-                'tax'            => 0,
-                'min_stock'      => 1,
-                'category_id'    => $this->category->id,
-                'branch_id'      => $this->branch->id,
+                'sale_price' => 10000,
+                'tax' => 0,
+                'min_stock' => 1,
+                'category_id' => $this->category->id,
+                'branch_id' => $this->branch->id,
             ]);
 
         $response->assertRedirect(route('dashboard'));
@@ -105,7 +105,7 @@ describe('Vendedor — Forbidden Routes', function () {
 
     it('cannot DELETE /products/{id}', function () {
         $product = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
         ]);
 

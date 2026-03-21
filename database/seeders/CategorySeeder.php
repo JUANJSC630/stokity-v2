@@ -14,13 +14,13 @@ class CategorySeeder extends Seeder
     {
         $names = [
             'Bebidas', 'Lácteos', 'Carnes', 'Frutas', 'Verduras',
-            'Aseo', 'Panadería', 'Dulces', 'Electrodomésticos', 'Ropa'
+            'Aseo', 'Panadería', 'Dulces', 'Electrodomésticos', 'Ropa',
         ];
         foreach ($names as $name) {
             Category::firstOrCreate([
-                'name' => $name
+                'name' => $name,
             ], [
-                'description' => 'Categoría de ' . strtolower($name),
+                'description' => 'Categoría de '.strtolower($name),
                 'status' => true,
             ]);
         }

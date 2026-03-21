@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
-use App\Models\Product;
 use App\Models\Branch;
-use App\Models\User;
-use App\Models\Category;
-use App\Models\SaleReturn;
 use App\Models\Client;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -30,37 +28,35 @@ class DashboardController extends Controller
 
         // Filtros por sucursal si el usuario no es administrador
         $branchFilter = null;
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $branchFilter = $user->branch_id;
         }
 
         // Métricas principales
         $startOfDay = $currentDate->copy()->startOfDay();
         $endOfDay = $currentDate->copy()->endOfDay();
-        
 
-        
         // Consolidated aggregates: 1 query per period instead of 3
-        $todayAgg     = $this->getSalesAggregates($startOfDay, $endOfDay, $branchFilter);
-        $monthAgg     = $this->getSalesAggregates($startOfMonth, $endOfMonth, $branchFilter);
+        $todayAgg = $this->getSalesAggregates($startOfDay, $endOfDay, $branchFilter);
+        $monthAgg = $this->getSalesAggregates($startOfMonth, $endOfMonth, $branchFilter);
 
         $metrics = [
-            'total_sales_today'   => $todayAgg->count,
-            'total_sales_month'   => $monthAgg->count,
+            'total_sales_today' => $todayAgg->count,
+            'total_sales_month' => $monthAgg->count,
             'total_revenue_today' => $todayAgg->revenue,
             'total_revenue_month' => $monthAgg->revenue,
-            'average_sale_today'  => $todayAgg->average,
-            'average_sale_month'  => $monthAgg->average,
-            'total_products'      => $this->getTotalProducts($branchFilter),
-            'low_stock_products'  => $this->getLowStockProducts($branchFilter),
-            'total_clients'       => $this->getTotalClients($branchFilter),
-            'total_users'         => $this->getTotalUsers($branchFilter),
+            'average_sale_today' => $todayAgg->average,
+            'average_sale_month' => $monthAgg->average,
+            'total_products' => $this->getTotalProducts($branchFilter),
+            'low_stock_products' => $this->getLowStockProducts($branchFilter),
+            'total_clients' => $this->getTotalClients($branchFilter),
+            'total_users' => $this->getTotalUsers($branchFilter),
         ];
 
         // Comparación con mes anterior (1 query instead of 2)
         $prevMonthAgg = $this->getSalesAggregates($startOfPreviousMonth, $endOfPreviousMonth, $branchFilter);
         $previousMonthMetrics = [
-            'total_sales'   => $prevMonthAgg->count,
+            'total_sales' => $prevMonthAgg->count,
             'total_revenue' => $prevMonthAgg->revenue,
         ];
 
@@ -71,7 +67,7 @@ class DashboardController extends Controller
 
         $prevDayAgg = $this->getSalesAggregates($startOfPreviousDay, $endOfPreviousDay, $branchFilter);
         $previousDayMetrics = [
-            'total_sales'   => $prevDayAgg->count,
+            'total_sales' => $prevDayAgg->count,
             'total_revenue' => $prevDayAgg->revenue,
         ];
 
@@ -98,8 +94,6 @@ class DashboardController extends Controller
 
         // Ventas por día (últimos 7 días)
         $dailySales = $this->getDailySales(7, $branchFilter);
-
-
 
         return Inertia::render('dashboard', [
             'metrics' => $metrics,
@@ -129,11 +123,11 @@ class DashboardController extends Controller
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
             ->first();
 
-        $count   = (int) ($result->count ?? 0);
+        $count = (int) ($result->count ?? 0);
         $revenue = (float) ($result->revenue ?? 0);
 
         return (object) [
-            'count'   => $count,
+            'count' => $count,
             'revenue' => $revenue,
             'average' => $count > 0 ? round($revenue / $count, 2) : 0,
         ];
@@ -145,11 +139,11 @@ class DashboardController extends Controller
     private function getTotalProducts($branchId = null)
     {
         $query = Product::where('status', true);
-        
+
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
-        
+
         return $query->count();
     }
 
@@ -160,11 +154,11 @@ class DashboardController extends Controller
     {
         $query = Product::where('status', true)
             ->whereRaw('stock <= min_stock');
-        
+
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
-        
+
         return $query->count();
     }
 
@@ -174,10 +168,10 @@ class DashboardController extends Controller
     private function getTotalClients($branchId = null)
     {
         $query = Client::query();
-        
+
         // Los clientes no están asociados a sucursales específicas
         // y no tienen campo status, así que contamos todos
-        
+
         return $query->count();
     }
 
@@ -187,11 +181,11 @@ class DashboardController extends Controller
     private function getTotalUsers($branchId = null)
     {
         $query = User::where('status', true);
-        
+
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
-        
+
         return $query->count();
     }
 
@@ -203,7 +197,7 @@ class DashboardController extends Controller
         if ($previous == 0) {
             return $current > 0 ? 100 : 0;
         }
-        
+
         return round((($current - $previous) / $previous) * 100, 2);
     }
 
@@ -262,7 +256,7 @@ class DashboardController extends Controller
     /**
      * Get recent sales
      */
-        private function getRecentSales($branchId = null, $limit = 5)
+    private function getRecentSales($branchId = null, $limit = 5)
     {
         $query = Sale::with(['branch', 'client', 'seller'])
             ->where('status', 'completed')
@@ -279,7 +273,7 @@ class DashboardController extends Controller
     /**
      * Get low stock products list
      */
-        private function getLowStockProductsList($branchId = null)
+    private function getLowStockProductsList($branchId = null)
     {
         $query = Product::with(['category', 'branch'])
             ->where('status', true)
@@ -323,20 +317,20 @@ class DashboardController extends Controller
         // Generar todos los días del período
         $allDays = collect();
         $currentDate = $startDate->copy();
-        
+
         while ($currentDate <= $endDate) {
             $dateKey = $currentDate->format('Y-m-d');
             $dayData = $salesData->get($dateKey);
-            
+
             $allDays->push([
                 'date' => $dateKey,
                 'total_sales' => $dayData ? (int) $dayData->total_sales : 0,
                 'total_amount' => $dayData ? (float) $dayData->total_amount : 0,
             ]);
-            
+
             $currentDate->addDay();
         }
 
         return $allDays;
     }
-} 
+}

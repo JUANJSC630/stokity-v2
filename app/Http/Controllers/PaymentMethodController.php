@@ -84,9 +84,9 @@ class PaymentMethodController extends Controller
     {
         // Verificar si hay ventas usando este método de pago
         $salesCount = $paymentMethod->sales()->count();
-        
+
         if ($salesCount > 0) {
-            return back()->with('error', 'No se puede eliminar este método de pago porque está siendo utilizado en ' . $salesCount . ' venta(s).');
+            return back()->with('error', 'No se puede eliminar este método de pago porque está siendo utilizado en '.$salesCount.' venta(s).');
         }
 
         $paymentMethod->delete();
@@ -108,8 +108,8 @@ class PaymentMethodController extends Controller
     public function reorder(Request $request)
     {
         $validated = $request->validate([
-            'order'              => 'required|array',
-            'order.*.id'         => 'required|integer|exists:payment_methods,id',
+            'order' => 'required|array',
+            'order.*.id' => 'required|integer|exists:payment_methods,id',
             'order.*.sort_order' => 'required|integer|min:0',
         ]);
 
@@ -126,9 +126,9 @@ class PaymentMethodController extends Controller
     public function toggleActive(PaymentMethod $paymentMethod)
     {
         $paymentMethod->update([
-            'is_active' => !$paymentMethod->is_active
+            'is_active' => ! $paymentMethod->is_active,
         ]);
 
         return back()->with('success', 'Estado del método de pago actualizado exitosamente.');
     }
-} 
+}

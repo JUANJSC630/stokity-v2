@@ -45,7 +45,7 @@ class PrintController extends Controller
      */
     public function sign(Request $request): Response
     {
-        $data       = $request->query('request', '');
+        $data = $request->query('request', '');
         $privateKey = base64_decode(config('services.qz_tray.private_key_b64', ''));
 
         if (! $privateKey || ! $data) {
@@ -64,17 +64,17 @@ class PrintController extends Controller
     public function receipt(Request $request, Sale $sale)
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo.');
+        abort_if(! $user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo.');
 
         $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
 
-        $business     = BusinessSetting::getSettings();
-        $config       = $business->getTicketConfig();
-        $paperWidth   = (int) $request->query('width', $config['paper_width']);
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $paperWidth = (int) $request->query('width', $config['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
 
         try {
             $this->printReceipt($printer, $sale, $business, $charsPerLine, $config);
@@ -95,21 +95,21 @@ class PrintController extends Controller
     public function cashSessionReport(Request $request, CashSession $session)
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
+        abort_if(! $user->isAdmin() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
 
         $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name', 'movements']);
 
-        $business     = BusinessSetting::getSettings();
-        $config       = $business->getTicketConfig();
-        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
-        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $sep  = str_repeat('-', $charsPerLine);
+        $sep = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
 
         try {
             $p = $printer;
@@ -117,12 +117,12 @@ class PrintController extends Controller
             // ── Header (same style as sale receipts) ─────────────────────────
             $this->printBusinessHeader($p, $business, $charsPerLine, $cfg);
 
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
             $p->text("ARQUEO DE CAJA\n");
             $p->setEmphasis(false);
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // ── Session info ─────────────────────────────────────────────────
             $p->setJustification(Printer::JUSTIFY_LEFT);
@@ -131,27 +131,37 @@ class PrintController extends Controller
             $openedAt = \Carbon\Carbon::parse($session->opened_at)->setTimezone($tz);
             $closedAt = $session->closed_at ? \Carbon\Carbon::parse($session->closed_at)->setTimezone($tz) : null;
 
-            $p->setEmphasis(true); $p->text('Turno:   '); $p->setEmphasis(false);
-            $p->text('#' . $session->id . "\n");
+            $p->setEmphasis(true);
+            $p->text('Turno:   ');
+            $p->setEmphasis(false);
+            $p->text('#'.$session->id."\n");
 
             if ($session->branch) {
-                $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
-                $p->text(' ' . $this->truncate($session->branch->name, $charsPerLine - 10) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Sucursal:');
+                $p->setEmphasis(false);
+                $p->text(' '.$this->truncate($session->branch->name, $charsPerLine - 10)."\n");
             }
             if ($session->openedBy) {
-                $p->setEmphasis(true); $p->text('Cajero:  '); $p->setEmphasis(false);
-                $p->text($this->truncate($session->openedBy->name, $charsPerLine - 9) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Cajero:  ');
+                $p->setEmphasis(false);
+                $p->text($this->truncate($session->openedBy->name, $charsPerLine - 9)."\n");
             }
 
-            $p->setEmphasis(true); $p->text('Apertura:'); $p->setEmphasis(false);
-            $p->text(' ' . $openedAt->format('d/m/Y H:i') . "\n");
+            $p->setEmphasis(true);
+            $p->text('Apertura:');
+            $p->setEmphasis(false);
+            $p->text(' '.$openedAt->format('d/m/Y H:i')."\n");
 
             if ($closedAt) {
-                $p->setEmphasis(true); $p->text('Cierre:  '); $p->setEmphasis(false);
-                $p->text($closedAt->format('d/m/Y H:i') . "\n");
+                $p->setEmphasis(true);
+                $p->text('Cierre:  ');
+                $p->setEmphasis(false);
+                $p->text($closedAt->format('d/m/Y H:i')."\n");
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // ── Sales summary ────────────────────────────────────────────────
             $salesByMethod = Sale::where('session_id', $session->id)
@@ -169,13 +179,13 @@ class PrintController extends Controller
                 $p->setEmphasis(false);
                 $totalSales = 0;
                 foreach ($salesByMethod as $row) {
-                    $code  = (string) data_get($row, 'payment_method', '');
-                    $name  = $pmNames->get($code, ucfirst($code)); // fallback to ucfirst if not found
+                    $code = (string) data_get($row, 'payment_method', '');
+                    $name = $pmNames->get($code, ucfirst($code)); // fallback to ucfirst if not found
                     $total = (float) data_get($row, 'total', 0);
                     $totalSales += $total;
-                    $this->printTotalRow($p, $name . ' (' . (int) data_get($row, 'count', 0) . '):', $this->formatMoney($total), $charsPerLine);
+                    $this->printTotalRow($p, $name.' ('.(int) data_get($row, 'count', 0).'):', $this->formatMoney($total), $charsPerLine);
                 }
-                $p->text($sep . "\n");
+                $p->text($sep."\n");
                 $p->setEmphasis(true);
                 $this->printTotalRow($p, 'Total ventas:', $this->formatMoney($totalSales), $charsPerLine);
                 $p->setEmphasis(false);
@@ -184,20 +194,24 @@ class PrintController extends Controller
             // ── Cash movements ───────────────────────────────────────────────
             $movements = $session->movements;
             if ($movements->isNotEmpty()) {
-                $p->text($sep . "\n");
-                $p->setEmphasis(true); $p->text("MOVIMIENTOS\n"); $p->setEmphasis(false);
+                $p->text($sep."\n");
+                $p->setEmphasis(true);
+                $p->text("MOVIMIENTOS\n");
+                $p->setEmphasis(false);
                 foreach ($movements as $m) {
                     /** @var \App\Models\CashMovement $m */
-                    $label = ($m->type === 'cash_in' ? '+' : '-') . ' ' . $this->truncate($m->concept, $charsPerLine - 12);
-                    $this->printTotalRow($p, $label . ':', $this->formatMoney($m->amount), $charsPerLine);
+                    $label = ($m->type === 'cash_in' ? '+' : '-').' '.$this->truncate($m->concept, $charsPerLine - 12);
+                    $this->printTotalRow($p, $label.':', $this->formatMoney($m->amount), $charsPerLine);
                 }
             }
 
             // ── Cuadre (only for closed sessions) ────────────────────────────
             if ($session->status === 'closed') {
-                $p->text($sep2 . "\n");
-                $p->setEmphasis(true); $p->text("CUADRE DE CAJA\n"); $p->setEmphasis(false);
-                $p->text($sep . "\n");
+                $p->text($sep2."\n");
+                $p->setEmphasis(true);
+                $p->text("CUADRE DE CAJA\n");
+                $p->setEmphasis(false);
+                $p->text($sep."\n");
                 $this->printTotalRow($p, '+ Fondo inicial:', $this->formatMoney($session->opening_amount), $charsPerLine);
                 $this->printTotalRow($p, '+ Ventas efectivo:', $this->formatMoney($session->total_sales_cash), $charsPerLine);
                 $this->printTotalRow($p, '+ Ingresos manuales:', $this->formatMoney($session->total_cash_in), $charsPerLine);
@@ -205,15 +219,15 @@ class PrintController extends Controller
                 if ((float) $session->total_refunds_cash > 0) {
                     $this->printTotalRow($p, '- Devoluciones:', $this->formatMoney($session->total_refunds_cash), $charsPerLine);
                 }
-                $p->text($sep . "\n");
+                $p->text($sep."\n");
                 $p->setEmphasis(true);
                 $this->printTotalRow($p, '= Esperado:', $this->formatMoney($session->expected_cash), $charsPerLine);
                 $this->printTotalRow($p, '  Contado:', $this->formatMoney($session->closing_amount_declared), $charsPerLine);
                 $p->setEmphasis(false);
-                $p->text($sep2 . "\n");
+                $p->text($sep2."\n");
                 $disc = (float) $session->discrepancy;
                 $discLabel = $disc > 0 ? 'SOBRANTE:' : ($disc < 0 ? 'FALTANTE:' : 'SIN DIFERENCIA:');
-                $discStr   = ($disc > 0 ? '+' : '') . $this->formatMoney(abs($disc));
+                $discStr = ($disc > 0 ? '+' : '').$this->formatMoney(abs($disc));
                 $p->setEmphasis(true);
                 $this->printTotalRow($p, $discLabel, $discStr, $charsPerLine);
                 $p->setEmphasis(false);
@@ -221,10 +235,10 @@ class PrintController extends Controller
 
             // ── Footer (arqueo — internal document, no customer message) ────
             $printedAt = \Carbon\Carbon::now('America/Bogota')->format('d/m/Y H:i');
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->text("Documento de uso interno\n");
-            $p->text("Impreso: " . $printedAt . "\n");
+            $p->text('Impreso: '.$printedAt."\n");
             $this->feedPastDeadZone($p);
             $p->cut();
         } finally {
@@ -243,118 +257,136 @@ class PrintController extends Controller
         $saleReturn->load(['sale.branch', 'sale.client', 'sale.seller', 'products']);
 
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $saleReturn->sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo de devolución.');
+        abort_if(! $user->isAdmin() && $saleReturn->sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo de devolución.');
 
-        $business     = BusinessSetting::getSettings();
-        $config       = $business->getTicketConfig();
-        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
-        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $sep  = str_repeat('-', $charsPerLine);
+        $sep = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
 
         try {
-            $p    = $printer;
+            $p = $printer;
             $sale = $saleReturn->sale;
 
             // ── Header (same style as sale receipts) ─────────────────────────
             $this->printBusinessHeader($p, $business, $charsPerLine, $cfg);
 
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
             $p->text("RECIBO DE DEVOLUCIÓN\n");
             $p->setEmphasis(false);
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // ── Return info ──────────────────────────────────────────────────
             $p->setJustification(Printer::JUSTIFY_LEFT);
-            $p->setEmphasis(true); $p->text('Devol.:  '); $p->setEmphasis(false);
-            $p->text(($saleReturn->id) . "\n");
+            $p->setEmphasis(true);
+            $p->text('Devol.:  ');
+            $p->setEmphasis(false);
+            $p->text(($saleReturn->id)."\n");
 
-            $p->setEmphasis(true); $p->text('Venta:   '); $p->setEmphasis(false);
-            $p->text($sale->code . "\n");
+            $p->setEmphasis(true);
+            $p->text('Venta:   ');
+            $p->setEmphasis(false);
+            $p->text($sale->code."\n");
 
-            $p->setEmphasis(true); $p->text('Fecha:   '); $p->setEmphasis(false);
-            $p->text($saleReturn->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
+            $p->setEmphasis(true);
+            $p->text('Fecha:   ');
+            $p->setEmphasis(false);
+            $p->text($saleReturn->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i')."\n");
 
             if ($sale->client) {
-                $p->setEmphasis(true); $p->text('Cliente: '); $p->setEmphasis(false);
-                $p->text($this->truncate($sale->client->name, $charsPerLine - 9) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Cliente: ');
+                $p->setEmphasis(false);
+                $p->text($this->truncate($sale->client->name, $charsPerLine - 9)."\n");
             }
             if ($cfg['return_show_seller'] && $sale->seller) {
-                $p->setEmphasis(true); $p->text('Vendedor:'); $p->setEmphasis(false);
-                $p->text(' ' . $this->truncate($sale->seller->name, $charsPerLine - 10) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Vendedor:');
+                $p->setEmphasis(false);
+                $p->text(' '.$this->truncate($sale->seller->name, $charsPerLine - 10)."\n");
             }
             if ($cfg['return_show_branch'] && $sale->branch) {
-                $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
-                $p->text(' ' . $this->truncate($sale->branch->name, $charsPerLine - 10) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Sucursal:');
+                $p->setEmphasis(false);
+                $p->text(' '.$this->truncate($sale->branch->name, $charsPerLine - 10)."\n");
             }
             if (($cfg['return_show_reason'] ?? true) && $saleReturn->reason) {
-                $p->setEmphasis(true); $p->text('Motivo:  '); $p->setEmphasis(false);
-                $p->text($this->truncate($saleReturn->reason, $charsPerLine - 9) . "\n");
+                $p->setEmphasis(true);
+                $p->text('Motivo:  ');
+                $p->setEmphasis(false);
+                $p->text($this->truncate($saleReturn->reason, $charsPerLine - 9)."\n");
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // ── Products ─────────────────────────────────────────────────────
             if ($charsPerLine < 40) {
-                $qtyW = 4; $priceW = 8; $subW = 8;
+                $qtyW = 4;
+                $priceW = 8;
+                $subW = 8;
             } else {
-                $qtyW = 5; $priceW = 10; $subW = 10;
+                $qtyW = 5;
+                $priceW = 10;
+                $subW = 10;
             }
             $nameW = $charsPerLine - $qtyW - $priceW - $subW - ($charsPerLine < 40 ? 2 : 3);
 
             $p->setEmphasis(true);
             $p->text(
                 str_pad('Producto', $nameW)
-                . str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
-                . str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
-                . str_pad('Total', $subW, ' ', STR_PAD_LEFT) . "\n"
+                .str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
+                .str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
+                .str_pad('Total', $subW, ' ', STR_PAD_LEFT)."\n"
             );
             $p->setEmphasis(false);
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             $net = 0;
             $tax = 0;
             foreach ($saleReturn->products as $product) {
-                $qty      = $product->pivot->quantity;
-                $price    = $product->sale_price ?? 0;
+                $qty = $product->pivot->quantity;
+                $price = $product->sale_price ?? 0;
                 $subtotal = $price * $qty;
-                $net     += $subtotal;
-                $tax     += $subtotal * (($product->tax ?? 0) / 100);
+                $net += $subtotal;
+                $tax += $subtotal * (($product->tax ?? 0) / 100);
 
                 $p->text(
                     str_pad($this->truncate($product->name, $nameW), $nameW)
-                    . str_pad(number_format($qty), $qtyW, ' ', STR_PAD_LEFT)
-                    . str_pad($this->formatMoney($price), $priceW, ' ', STR_PAD_LEFT)
-                    . str_pad($this->formatMoney($subtotal), $subW, ' ', STR_PAD_LEFT) . "\n"
+                    .str_pad(number_format($qty), $qtyW, ' ', STR_PAD_LEFT)
+                    .str_pad($this->formatMoney($price), $priceW, ' ', STR_PAD_LEFT)
+                    .str_pad($this->formatMoney($subtotal), $subW, ' ', STR_PAD_LEFT)."\n"
                 );
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // ── Totals ───────────────────────────────────────────────────────
             $this->printTotalRow($p, 'Subtotal:', $this->formatMoney($net), $charsPerLine);
             if ($cfg['show_tax'] && $tax > 0) {
                 $this->printTotalRow($p, 'Impuesto:', $this->formatMoney($tax), $charsPerLine);
             }
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
             $p->setEmphasis(true);
             $p->setTextSize(1, 2);
             $this->printTotalRow($p, 'TOTAL:', $this->formatMoney($net + $tax), $charsPerLine);
             $p->setTextSize(1, 1);
             $p->setEmphasis(false);
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
 
             // ── Code graphic (QR or barcode) ──────────────────────────────────
             $returnCodeGraphic = $cfg['return_code_graphic'] ?? 'none';
             if ($returnCodeGraphic !== 'none') {
-                $p->text(str_repeat('-', $charsPerLine) . "\n");
+                $p->text(str_repeat('-', $charsPerLine)."\n");
                 $this->printCodeGraphic($p, (string) $saleReturn->id, $returnCodeGraphic);
             }
 
@@ -369,7 +401,7 @@ class PrintController extends Controller
 
         return response()->json([
             'data' => base64_encode($bytes),
-            'id'   => $saleReturn->id,
+            'id' => $saleReturn->id,
         ]);
     }
 
@@ -378,17 +410,17 @@ class PrintController extends Controller
      */
     public function test(Request $request)
     {
-        $business     = BusinessSetting::getSettings();
-        $config       = $business->getTicketConfig();
-        $cfg          = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
-        $paperWidth   = (int) $request->query('width', $cfg['paper_width']);
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+        $paperWidth = (int) $request->query('width', $cfg['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $sep  = str_repeat('-', $charsPerLine);
+        $sep = str_repeat('-', $charsPerLine);
         $sep2 = str_repeat('=', $charsPerLine);
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
 
         try {
             $p = $printer;
@@ -408,17 +440,17 @@ class PrintController extends Controller
             $p->text("Stokity POS\n");
             $p->setTextSize(1, 1);
             $p->text("Prueba de impresora\n");
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
             $p->setJustification(Printer::JUSTIFY_LEFT);
             $p->text("Ancho: {$paperWidth} mm   Cols: {$charsPerLine}\n");
-            $p->text("Fecha: " . now()->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
-            $p->text($sep . "\n");
+            $p->text('Fecha: '.now()->setTimezone('America/Bogota')->format('d/m/Y H:i')."\n");
+            $p->text($sep."\n");
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
             $p->text("Si ves este recibo,\n");
             $p->text("la impresora funciona!\n");
             $p->setEmphasis(false);
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
             $this->feedPastDeadZone($p);
             $p->cut();
         } finally {
@@ -439,18 +471,18 @@ class PrintController extends Controller
      */
     public function testTemplate(Request $request)
     {
-        $business  = BusinessSetting::getSettings();
-        $dbConfig  = $business->getTicketConfig();
+        $business = BusinessSetting::getSettings();
+        $dbConfig = $business->getTicketConfig();
 
         // Merge form config (POST body) over DB config — allows preview of
         // unsaved changes. Only recognised keys are merged; unknown keys ignored.
         $formConfig = [];
         if ($request->isMethod('POST')) {
-            $allowed    = array_merge(array_keys(BusinessSetting::TICKET_DEFAULTS), ['template_type']);
+            $allowed = array_merge(array_keys(BusinessSetting::TICKET_DEFAULTS), ['template_type']);
             $bodyValues = $request->only($allowed);
             // Remove nulls (keys the form did not send) so DB values fill the gaps.
             // Keep false booleans — they are intentional "hide" settings.
-            $formConfig = array_filter($bodyValues, fn($v) => $v !== null);
+            $formConfig = array_filter($bodyValues, fn ($v) => $v !== null);
             if (isset($formConfig['paper_width'])) {
                 $formConfig['paper_width'] = (int) $formConfig['paper_width'];
             }
@@ -459,12 +491,12 @@ class PrintController extends Controller
         $templateType = $formConfig['template_type'] ?? 'sale';
         unset($formConfig['template_type']);
 
-        $config       = array_merge($dbConfig, $formConfig);
-        $paperWidth   = (int) ($config['paper_width'] ?? $dbConfig['paper_width']);
+        $config = array_merge($dbConfig, $formConfig);
+        $paperWidth = (int) ($config['paper_width'] ?? $dbConfig['paper_width']);
         $charsPerLine = $paperWidth >= 80 ? 48 : 32;
 
-        $connector = new DummyPrintConnector();
-        $printer   = $this->createPrinter($connector);
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
 
         try {
             if ($templateType === 'return') {
@@ -485,19 +517,19 @@ class PrintController extends Controller
      */
     private function printSaleTemplate(Printer $p, BusinessSetting $biz, int $cols, array $config): void
     {
-        $sale = new \stdClass();
-        $sale->code           = '20260303154938742';
-        $sale->created_at     = now()->setTimezone('America/Bogota');
-        $sale->net            = 24500;
-        $sale->tax            = 1500;
-        $sale->discount_type  = 'percentage';
+        $sale = new \stdClass;
+        $sale->code = '20260303154938742';
+        $sale->created_at = now()->setTimezone('America/Bogota');
+        $sale->net = 24500;
+        $sale->tax = 1500;
+        $sale->discount_type = 'percentage';
         $sale->discount_value = 10;
         $sale->discount_amount = 2600;
-        $sale->total          = 23400;
+        $sale->total = 23400;
         $sale->payment_method = 'cash';
-        $sale->amount_paid    = 25000;
-        $sale->change_amount  = 1600;
-        $sale->notes          = null;
+        $sale->amount_paid = 25000;
+        $sale->change_amount = 1600;
+        $sale->notes = null;
 
         $sale->client = (object) ['name' => 'Consumidor Final'];
         $sale->seller = (object) ['name' => 'Administrador User'];
@@ -522,89 +554,107 @@ class PrintController extends Controller
     {
         $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
 
-        $sep  = str_repeat('-', $cols);
+        $sep = str_repeat('-', $cols);
         $sep2 = str_repeat('=', $cols);
 
         // ── Header ──────────────────────────────────────────────────────────
         $this->printBusinessHeader($p, $biz, $cols, $cfg);
 
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
         $p->setJustification(Printer::JUSTIFY_CENTER);
         $p->setEmphasis(true);
         $p->text("RECIBO DE DEVOLUCIÓN\n");
         $p->setEmphasis(false);
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Return info ──────────────────────────────────────────────────────
         $p->setJustification(Printer::JUSTIFY_LEFT);
-        $p->setEmphasis(true); $p->text('Devol.:  '); $p->setEmphasis(false);
+        $p->setEmphasis(true);
+        $p->text('Devol.:  ');
+        $p->setEmphasis(false);
         $p->text("42\n");
 
-        $p->setEmphasis(true); $p->text('Venta:   '); $p->setEmphasis(false);
+        $p->setEmphasis(true);
+        $p->text('Venta:   ');
+        $p->setEmphasis(false);
         $p->text("20260303154938742\n");
 
-        $p->setEmphasis(true); $p->text('Fecha:   '); $p->setEmphasis(false);
-        $p->text(now()->setTimezone('America/Bogota')->format('d/m/Y H:i') . "\n");
+        $p->setEmphasis(true);
+        $p->text('Fecha:   ');
+        $p->setEmphasis(false);
+        $p->text(now()->setTimezone('America/Bogota')->format('d/m/Y H:i')."\n");
 
-        $p->setEmphasis(true); $p->text('Cliente: '); $p->setEmphasis(false);
+        $p->setEmphasis(true);
+        $p->text('Cliente: ');
+        $p->setEmphasis(false);
         $p->text("Consumidor Final\n");
 
         if ($cfg['return_show_seller']) {
-            $p->setEmphasis(true); $p->text('Vendedor:'); $p->setEmphasis(false);
+            $p->setEmphasis(true);
+            $p->text('Vendedor:');
+            $p->setEmphasis(false);
             $p->text(" Administrador User\n");
         }
         if ($cfg['return_show_branch']) {
-            $p->setEmphasis(true); $p->text('Sucursal:'); $p->setEmphasis(false);
+            $p->setEmphasis(true);
+            $p->text('Sucursal:');
+            $p->setEmphasis(false);
             $p->text(" Sucursal Principal\n");
         }
         if ($cfg['return_show_reason'] ?? true) {
-            $p->setEmphasis(true); $p->text('Motivo:  '); $p->setEmphasis(false);
+            $p->setEmphasis(true);
+            $p->text('Motivo:  ');
+            $p->setEmphasis(false);
             $p->text("Producto en mal estado\n");
         }
 
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Products ─────────────────────────────────────────────────────────
         if ($cols < 40) {
-            $qtyW = 4; $priceW = 8; $subW = 8;
+            $qtyW = 4;
+            $priceW = 8;
+            $subW = 8;
         } else {
-            $qtyW = 5; $priceW = 10; $subW = 10;
+            $qtyW = 5;
+            $priceW = 10;
+            $subW = 10;
         }
         $nameW = $cols - $qtyW - $priceW - $subW - ($cols < 40 ? 2 : 3);
 
         $p->setEmphasis(true);
         $p->text(
             str_pad('Producto', $nameW)
-            . str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
-            . str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
-            . str_pad('Total', $subW, ' ', STR_PAD_LEFT) . "\n"
+            .str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
+            .str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
+            .str_pad('Total', $subW, ' ', STR_PAD_LEFT)."\n"
         );
         $p->setEmphasis(false);
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         $p->text(
             str_pad($this->truncate('Chocolate Bon Bon', $nameW), $nameW)
-            . str_pad('1', $qtyW, ' ', STR_PAD_LEFT)
-            . str_pad($this->formatMoney(7500), $priceW, ' ', STR_PAD_LEFT)
-            . str_pad($this->formatMoney(7500), $subW, ' ', STR_PAD_LEFT) . "\n"
+            .str_pad('1', $qtyW, ' ', STR_PAD_LEFT)
+            .str_pad($this->formatMoney(7500), $priceW, ' ', STR_PAD_LEFT)
+            .str_pad($this->formatMoney(7500), $subW, ' ', STR_PAD_LEFT)."\n"
         );
 
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Totals ───────────────────────────────────────────────────────────
         $this->printTotalRow($p, 'Subtotal:', $this->formatMoney(7500), $cols);
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
         $p->setEmphasis(true);
         $p->setTextSize(1, 2);
         $this->printTotalRow($p, 'TOTAL:', $this->formatMoney(7500), $cols);
         $p->setTextSize(1, 1);
         $p->setEmphasis(false);
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
 
         // ── Code graphic ──────────────────────────────────────────────────────
         $returnCodeGraphic = $cfg['return_code_graphic'] ?? 'none';
         if ($returnCodeGraphic !== 'none') {
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
             $this->printCodeGraphic($p, '42', $returnCodeGraphic);
         }
 
@@ -665,29 +715,29 @@ class PrintController extends Controller
         }
 
         // Logo (optional)
-        if (!empty($cfg['show_logo']) && $biz->logo) {
+        if (! empty($cfg['show_logo']) && $biz->logo) {
             $this->printLogo($p, $biz->logo);
         }
 
         // Business name
         if ($cfg['header_size'] === 'large') {
             $p->setTextSize(2, 2);
-            $p->text($this->truncate($biz->name, (int) ($cols / 2)) . "\n");
+            $p->text($this->truncate($biz->name, (int) ($cols / 2))."\n");
             $p->setTextSize(1, 1);
         } else {
             $p->setEmphasis(true);
-            $p->text($this->truncate($biz->name, $cols) . "\n");
+            $p->text($this->truncate($biz->name, $cols)."\n");
             $p->setEmphasis(false);
         }
 
         if ($cfg['show_nit'] && $biz->nit) {
-            $p->text('NIT: ' . $biz->nit . "\n");
+            $p->text('NIT: '.$biz->nit."\n");
         }
         if ($cfg['show_address'] && $biz->address) {
-            $p->text($this->wrapCenter($biz->address, $cols) . "\n");
+            $p->text($this->wrapCenter($biz->address, $cols)."\n");
         }
         if ($cfg['show_phone'] && $biz->phone) {
-            $p->text('Tel: ' . $biz->phone . "\n");
+            $p->text('Tel: '.$biz->phone."\n");
         }
     }
 
@@ -700,12 +750,12 @@ class PrintController extends Controller
         try {
             if (str_starts_with($logo, 'http')) {
                 $logoPath = $this->downloadToTempFile($logo);
-                $tmpFile  = $logoPath;
+                $tmpFile = $logoPath;
             } else {
-                $logoPath = public_path('uploads/business/' . $logo);
+                $logoPath = public_path('uploads/business/'.$logo);
             }
 
-            if (empty($logoPath) || !file_exists($logoPath)) {
+            if (empty($logoPath) || ! file_exists($logoPath)) {
                 return;
             }
 
@@ -731,15 +781,15 @@ class PrintController extends Controller
             // Fix: write ESC * bytes manually with ESC J 24 (immediate paper feed)
             // so each band advances exactly 24 dots — no gaps.
             try {
-                $colData   = $image->toColumnFormat(true); // high-density 24-dot bands
-                $imgWidth  = $image->getWidth();
-                $nL        = $imgWidth & 0xFF;
-                $nH        = ($imgWidth >> 8) & 0xFF;
-                $escHeader = "\x1b\x2a\x21" . chr($nL) . chr($nH); // ESC * 33 nL nH
-                $conn      = $p->getPrintConnector();
+                $colData = $image->toColumnFormat(true); // high-density 24-dot bands
+                $imgWidth = $image->getWidth();
+                $nL = $imgWidth & 0xFF;
+                $nH = ($imgWidth >> 8) & 0xFF;
+                $escHeader = "\x1b\x2a\x21".chr($nL).chr($nH); // ESC * 33 nL nH
+                $conn = $p->getPrintConnector();
 
                 foreach ($colData as $rowData) {
-                    $conn->write($escHeader . $rowData . "\x1b\x4a\x18");
+                    $conn->write($escHeader.$rowData."\x1b\x4a\x18");
                     // ESC J 24 = feed exactly 24 dots (matches 24-dot band height)
                 }
             } catch (\Throwable) {
@@ -750,7 +800,7 @@ class PrintController extends Controller
             $p->text("\n");
             @unlink($resized);
         } catch (\Throwable $e) {
-            \Log::warning('printLogo failed: ' . $e->getMessage(), ['logo' => $logo]);
+            \Log::warning('printLogo failed: '.$e->getMessage(), ['logo' => $logo]);
         } finally {
             if ($tmpFile && file_exists($tmpFile)) {
                 @unlink($tmpFile);
@@ -766,17 +816,17 @@ class PrintController extends Controller
     {
         $sep = str_repeat('-', $cols);
 
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
         $p->setJustification(Printer::JUSTIFY_CENTER);
 
         $footer1 = $cfg['footer_line1'] ?? '¡Gracias por su compra!';
         $footer2 = $cfg['footer_line2'] ?? 'Vuelva pronto';
 
         if ($footer1) {
-            $p->text($footer1 . "\n");
+            $p->text($footer1."\n");
         }
         if ($footer2) {
-            $p->text($footer2 . "\n");
+            $p->text($footer2."\n");
         }
 
         $this->feedPastDeadZone($p);
@@ -814,20 +864,20 @@ class PrintController extends Controller
     {
         $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
 
-        $sep  = str_repeat('-', $cols);
+        $sep = str_repeat('-', $cols);
         $sep2 = str_repeat('=', $cols);
 
         // ── Header ──────────────────────────────────────────────────────────
         $this->printBusinessHeader($p, $biz, $cols, $cfg);
 
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
 
         // ── Sale info ────────────────────────────────────────────────────────
         $p->setJustification(Printer::JUSTIFY_LEFT);
         $p->setEmphasis(true);
         $p->text('Recibo:  ');
         $p->setEmphasis(false);
-        $p->text($sale->code . "\n");
+        $p->text($sale->code."\n");
 
         $p->setEmphasis(true);
         $p->text('Fecha:   ');
@@ -835,71 +885,71 @@ class PrintController extends Controller
         $date = ($sale->created_at instanceof \Carbon\Carbon)
             ? $sale->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i')
             : now()->format('d/m/Y H:i');
-        $p->text($date . "\n");
+        $p->text($date."\n");
 
         if ($sale->client) {
             $p->setEmphasis(true);
             $p->text('Cliente: ');
             $p->setEmphasis(false);
-            $p->text($this->truncate($sale->client->name, $cols - 9) . "\n");
+            $p->text($this->truncate($sale->client->name, $cols - 9)."\n");
         }
 
         if ($cfg['show_seller'] && $sale->seller) {
             $p->setEmphasis(true);
             $p->text('Vendedor:');
             $p->setEmphasis(false);
-            $p->text(' ' . $this->truncate($sale->seller->name, $cols - 10) . "\n");
+            $p->text(' '.$this->truncate($sale->seller->name, $cols - 10)."\n");
         }
 
         if ($cfg['show_branch'] && $sale->branch) {
             $p->setEmphasis(true);
             $p->text('Sucursal:');
             $p->setEmphasis(false);
-            $p->text(' ' . $this->truncate($sale->branch->name, $cols - 10) . "\n");
+            $p->text(' '.$this->truncate($sale->branch->name, $cols - 10)."\n");
         }
 
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Products ─────────────────────────────────────────────────────────
         if ($cols < 40) {
-            $qtyW   = 4;
+            $qtyW = 4;
             $priceW = 8;
-            $subW   = 8;
-            $nameW  = $cols - $qtyW - $priceW - $subW - 2;
+            $subW = 8;
+            $nameW = $cols - $qtyW - $priceW - $subW - 2;
         } else {
-            $qtyW   = 5;
+            $qtyW = 5;
             $priceW = 10;
-            $subW   = 10;
-            $nameW  = $cols - $qtyW - $priceW - $subW - 3;
+            $subW = 10;
+            $nameW = $cols - $qtyW - $priceW - $subW - 3;
         }
 
         $p->setEmphasis(true);
         $p->text(
             str_pad('Producto', $nameW)
-            . str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
-            . str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
-            . str_pad('Total', $subW, ' ', STR_PAD_LEFT)
-            . "\n"
+            .str_pad('Cant', $qtyW, ' ', STR_PAD_LEFT)
+            .str_pad('Precio', $priceW, ' ', STR_PAD_LEFT)
+            .str_pad('Total', $subW, ' ', STR_PAD_LEFT)
+            ."\n"
         );
         $p->setEmphasis(false);
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         foreach ($sale->saleProducts as $item) {
             $name = $this->truncate($item->product?->name ?? 'Producto', $nameW); // @phpstan-ignore nullsafe.neverNull
-            $qty  = number_format($item->quantity);
-            $pri  = $this->formatMoney($item->price);
-            $sub  = $this->formatMoney($item->subtotal ?? ($item->price * $item->quantity));
+            $qty = number_format($item->quantity);
+            $pri = $this->formatMoney($item->price);
+            $sub = $this->formatMoney($item->subtotal ?? ($item->price * $item->quantity));
 
             $p->text(
                 str_pad($name, $nameW)
-                . str_pad($qty, $qtyW, ' ', STR_PAD_LEFT)
-                . str_pad($pri, $priceW, ' ', STR_PAD_LEFT)
-                . str_pad($sub, $subW, ' ', STR_PAD_LEFT)
-                . "\n"
+                .str_pad($qty, $qtyW, ' ', STR_PAD_LEFT)
+                .str_pad($pri, $priceW, ' ', STR_PAD_LEFT)
+                .str_pad($sub, $subW, ' ', STR_PAD_LEFT)
+                ."\n"
             );
         }
 
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Totals ───────────────────────────────────────────────────────────
         $this->printTotalRow($p, 'Subtotal:', $this->formatMoney($sale->net), $cols);
@@ -914,16 +964,16 @@ class PrintController extends Controller
                 $pct = number_format($sale->discount_value, 0);
                 $label = $cols < 40 ? "Descto ({$pct}%):" : "Descuento ({$pct}%):";
             }
-            $this->printTotalRow($p, $label, '- ' . $this->formatMoney($sale->discount_amount), $cols);
+            $this->printTotalRow($p, $label, '- '.$this->formatMoney($sale->discount_amount), $cols);
         }
 
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
         $p->setEmphasis(true);
         $p->setTextSize(1, 2);
         $this->printTotalRow($p, 'TOTAL:', $this->formatMoney($sale->total), $cols);
         $p->setTextSize(1, 1);
         $p->setEmphasis(false);
-        $p->text($sep . "\n");
+        $p->text($sep."\n");
 
         // ── Payment info ─────────────────────────────────────────────────────
         $payLabel = $sale->payment_method ?? '';
@@ -943,19 +993,19 @@ class PrintController extends Controller
         }
 
         if ($sale->notes) {
-            $p->text($sep . "\n");
-            $p->text('Nota: ' . $this->truncate($sale->notes, $cols - 6) . "\n");
+            $p->text($sep."\n");
+            $p->text('Nota: '.$this->truncate($sale->notes, $cols - 6)."\n");
         }
 
         // ── Code graphic (QR or barcode) ──────────────────────────────────────
         $saleCodeGraphic = $cfg['sale_code_graphic'] ?? 'none';
         if ($saleCodeGraphic !== 'none') {
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
             $this->printCodeGraphic($p, (string) $sale->code, $saleCodeGraphic);
         }
 
         // ── Footer ───────────────────────────────────────────────────────────
-        $p->text($sep2 . "\n");
+        $p->text($sep2."\n");
         $this->printFooter($p, $cols, $cfg);
     }
 
@@ -996,28 +1046,30 @@ class PrintController extends Controller
      */
     private function printQrBitmap(Printer $p, string $data): void
     {
-        if (!class_exists(\chillerlan\QRCode\QRCode::class) || !extension_loaded('gd')) {
+        if (! class_exists(\chillerlan\QRCode\QRCode::class) || ! extension_loaded('gd')) {
             // Fallback: try native QR command (may not work on all printers)
             try {
                 $p->qrCode($data, Printer::QR_ECLEVEL_M, 6, Printer::QR_MODEL_2);
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
+
             return;
         }
 
         try {
             $options = new \chillerlan\QRCode\QROptions([
-                'outputType'    => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
-                'eccLevel'      => \chillerlan\QRCode\QRCode::ECC_M,
-                'scale'         => 8,           // 8 px/module → ~240 px for typical codes
-                'outputBase64'  => false,
-                'addQuietzone'  => true,
+                'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                'eccLevel' => \chillerlan\QRCode\QRCode::ECC_M,
+                'scale' => 8,           // 8 px/module → ~240 px for typical codes
+                'outputBase64' => false,
+                'addQuietzone' => true,
                 'quietzoneSize' => 2,
             ]);
 
             $pngData = (new \chillerlan\QRCode\QRCode($options))->render($data);
 
             // Save to a temp file so resizeLogoForPrint() can process it
-            $tmpQr = tempnam(sys_get_temp_dir(), 'stokity_qr_') . '.png';
+            $tmpQr = tempnam(sys_get_temp_dir(), 'stokity_qr_').'.png';
             file_put_contents($tmpQr, $pngData);
 
             // Convert to 1-bit (grayscale + threshold), capped at 360 × 360 px
@@ -1032,21 +1084,21 @@ class PrintController extends Controller
             // IMPORTANT: EscposImage uses lazy loading — getWidth() returns 0 until
             // toColumnFormat() (or similar) forces the image to be read from disk.
             // Always call toColumnFormat() first, then getWidth().
-            $image   = EscposImage::load($processed, false);
+            $image = EscposImage::load($processed, false);
             $colData = $image->toColumnFormat(true); // forces image load, caches result
             $imgWidth = $image->getWidth();
-            $nL       = $imgWidth & 0xFF;
-            $nH       = ($imgWidth >> 8) & 0xFF;
-            $header   = "\x1b\x2a\x21" . chr($nL) . chr($nH); // ESC * 33 nL nH
-            $conn     = $p->getPrintConnector();
+            $nL = $imgWidth & 0xFF;
+            $nH = ($imgWidth >> 8) & 0xFF;
+            $header = "\x1b\x2a\x21".chr($nL).chr($nH); // ESC * 33 nL nH
+            $conn = $p->getPrintConnector();
 
             foreach ($colData as $rowData) {
-                $conn->write($header . $rowData . "\x1b\x4a\x18"); // ESC J 24 per band
+                $conn->write($header.$rowData."\x1b\x4a\x18"); // ESC J 24 per band
             }
 
             @unlink($processed);
         } catch (\Throwable $e) {
-            \Log::warning('printQrBitmap failed: ' . $e->getMessage(), ['data' => $data]);
+            \Log::warning('printQrBitmap failed: '.$e->getMessage(), ['data' => $data]);
         }
     }
 
@@ -1060,12 +1112,12 @@ class PrintController extends Controller
      */
     private function printBarcodeBitmap(Printer $p, string $data): void
     {
-        if (!class_exists(\Picqer\Barcode\BarcodeGeneratorPNG::class) || !extension_loaded('gd')) {
+        if (! class_exists(\Picqer\Barcode\BarcodeGeneratorPNG::class) || ! extension_loaded('gd')) {
             return;
         }
 
         try {
-            $gen     = new \Picqer\Barcode\BarcodeGeneratorPNG();
+            $gen = new \Picqer\Barcode\BarcodeGeneratorPNG;
             // widthFactor=2 → ~290 px wide (fits 58mm); height=80 px ≈ 10 mm (scannable)
             $pngData = $gen->getBarcode(
                 $data,
@@ -1075,7 +1127,7 @@ class PrintController extends Controller
                 [0, 0, 0]
             );
 
-            $tmpBar = tempnam(sys_get_temp_dir(), 'stokity_bar_') . '.png';
+            $tmpBar = tempnam(sys_get_temp_dir(), 'stokity_bar_').'.png';
             file_put_contents($tmpBar, $pngData);
 
             // Convert to 1-bit, capped at 360 × 120 px to preserve bar height
@@ -1086,24 +1138,24 @@ class PrintController extends Controller
                 return;
             }
 
-            $image    = EscposImage::load($processed, false);
-            $colData  = $image->toColumnFormat(true); // force load FIRST
+            $image = EscposImage::load($processed, false);
+            $colData = $image->toColumnFormat(true); // force load FIRST
             $imgWidth = $image->getWidth();
-            $nL       = $imgWidth & 0xFF;
-            $nH       = ($imgWidth >> 8) & 0xFF;
-            $header   = "\x1b\x2a\x21" . chr($nL) . chr($nH);
-            $conn     = $p->getPrintConnector();
+            $nL = $imgWidth & 0xFF;
+            $nH = ($imgWidth >> 8) & 0xFF;
+            $header = "\x1b\x2a\x21".chr($nL).chr($nH);
+            $conn = $p->getPrintConnector();
 
             foreach ($colData as $rowData) {
-                $conn->write($header . $rowData . "\x1b\x4a\x18");
+                $conn->write($header.$rowData."\x1b\x4a\x18");
             }
 
             @unlink($processed);
 
             // Print the code as text below the barcode for readability
-            $p->text($data . "\n");
+            $p->text($data."\n");
         } catch (\Throwable $e) {
-            \Log::warning('printBarcodeBitmap failed: ' . $e->getMessage(), ['data' => $data]);
+            \Log::warning('printBarcodeBitmap failed: '.$e->getMessage(), ['data' => $data]);
         }
     }
 
@@ -1113,22 +1165,28 @@ class PrintController extends Controller
         $labelW = $cols - $valueW;
         $p->text(
             str_pad($label, $labelW)
-            . str_pad($value, $valueW, ' ', STR_PAD_LEFT)
-            . "\n"
+            .str_pad($value, $valueW, ' ', STR_PAD_LEFT)
+            ."\n"
         );
     }
 
     private function formatMoney(float|string $value): string
     {
         $num = is_string($value) ? (float) $value : $value;
-        return '$' . number_format($num, 0, ',', '.');
+
+        return '$'.number_format($num, 0, ',', '.');
     }
 
     private function truncate(string $text, int $max): string
     {
-        if ($max <= 0) return '';
-        if (mb_strlen($text) <= $max) return $text;
-        return mb_substr($text, 0, $max - 1) . '.';
+        if ($max <= 0) {
+            return '';
+        }
+        if (mb_strlen($text) <= $max) {
+            return $text;
+        }
+
+        return mb_substr($text, 0, $max - 1).'.';
     }
 
     private function wrapCenter(string $text, int $cols): string
@@ -1136,6 +1194,7 @@ class PrintController extends Controller
         if (mb_strlen($text) <= $cols) {
             return str_pad($text, $cols, ' ', STR_PAD_BOTH);
         }
+
         return mb_substr($text, 0, $cols);
     }
 
@@ -1151,11 +1210,11 @@ class PrintController extends Controller
                 curl_setopt_array($ch, [
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_TIMEOUT        => 10,
+                    CURLOPT_TIMEOUT => 10,
                     CURLOPT_SSL_VERIFYPEER => true,
                 ]);
-                $imgData    = curl_exec($ch);
-                $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $imgData = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
                 $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
                 curl_close($ch);
 
@@ -1165,9 +1224,9 @@ class PrintController extends Controller
 
                 $ext = match (true) {
                     str_contains((string) $contentType, 'webp') => 'webp',
-                    str_contains((string) $contentType, 'png')  => 'png',
-                    str_contains((string) $contentType, 'gif')  => 'gif',
-                    default                                      => 'jpg',
+                    str_contains((string) $contentType, 'png') => 'png',
+                    str_contains((string) $contentType, 'gif') => 'gif',
+                    default => 'jpg',
                 };
             } else {
                 $imgData = @file_get_contents($url);
@@ -1177,13 +1236,15 @@ class PrintController extends Controller
                 $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
             }
 
-            $tmpFile = sys_get_temp_dir() . '/stokity_logo_' . uniqid() . '.' . $ext;
+            $tmpFile = sys_get_temp_dir().'/stokity_logo_'.uniqid().'.'.$ext;
             file_put_contents($tmpFile, $imgData);
+
             return $tmpFile;
         } catch (\Throwable) {
             if ($tmpFile && file_exists($tmpFile)) {
                 @unlink($tmpFile);
             }
+
             return null;
         }
     }
@@ -1194,19 +1255,19 @@ class PrintController extends Controller
      */
     private function resizeLogoForPrint(string $srcPath, int $maxWidth = 360, int $maxHeight = 140): ?string
     {
-        if (!extension_loaded('gd')) {
+        if (! extension_loaded('gd')) {
             return null;
         }
         try {
             $mime = mime_content_type($srcPath);
-            $src  = match (true) {
-                str_contains($mime, 'png')  => imagecreatefrompng($srcPath),
+            $src = match (true) {
+                str_contains($mime, 'png') => imagecreatefrompng($srcPath),
                 str_contains($mime, 'jpeg') => imagecreatefromjpeg($srcPath),
-                str_contains($mime, 'gif')  => imagecreatefromgif($srcPath),
+                str_contains($mime, 'gif') => imagecreatefromgif($srcPath),
                 str_contains($mime, 'webp') => imagecreatefromwebp($srcPath),
-                default                     => null,
+                default => null,
             };
-            if (!$src) {
+            if (! $src) {
                 return null;
             }
 
@@ -1214,10 +1275,10 @@ class PrintController extends Controller
             $origH = imagesy($src);
 
             $scale = min(1.0, $maxWidth / $origW, $maxHeight / $origH);
-            $newW  = (int) (ceil($origW * $scale / 8) * 8);
-            $newH  = max(1, (int) round($origH * $scale));
+            $newW = (int) (ceil($origW * $scale / 8) * 8);
+            $newH = max(1, (int) round($origH * $scale));
 
-            $dst   = imagecreatetruecolor($newW, $newH);
+            $dst = imagecreatetruecolor($newW, $newH);
             $white = imagecolorallocate($dst, 255, 255, 255);
             $black = imagecolorallocate($dst, 0, 0, 0);
 
@@ -1236,7 +1297,7 @@ class PrintController extends Controller
                 }
             }
 
-            $tmpFile = tempnam(sys_get_temp_dir(), 'stokity_logo_r_') . '.png';
+            $tmpFile = tempnam(sys_get_temp_dir(), 'stokity_logo_r_').'.png';
             imagepng($dst, $tmpFile);
             imagedestroy($dst);
 

@@ -7,24 +7,22 @@ use App\Models\CashSession;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\PaymentMethod;
-use App\Models\Product;
 use App\Models\Sale;
-use App\Models\SaleProduct;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
-    $this->user     = vendedorUser($this->branch);
+    $this->client = Client::factory()->create();
+    $this->user = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create(['require_cash_session' => false]);
     PaymentMethod::factory()->create(['code' => 'cash']);
 
     $this->session = CashSession::factory()->create([
-        'branch_id'         => $this->branch->id,
+        'branch_id' => $this->branch->id,
         'opened_by_user_id' => $this->user->id,
-        'status'            => 'open',
-        'opening_amount'    => 100000,
+        'status' => 'open',
+        'opening_amount' => 100000,
     ]);
 });
 
@@ -53,31 +51,31 @@ describe('Close Cash Session', function () {
     it('calculates expected_cash correctly', function () {
         // Add a cash sale
         $sale = Sale::factory()->create([
-            'branch_id'      => $this->branch->id,
-            'session_id'     => $this->session->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branch->id,
+            'session_id' => $this->session->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 50000,
-            'net'            => 50000,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $this->user->id,
-            'date'           => now(),
+            'total' => 50000,
+            'net' => 50000,
+            'client_id' => $this->client->id,
+            'seller_id' => $this->user->id,
+            'date' => now(),
         ]);
 
         // Add cash movement in
         CashMovement::factory()->create([
             'session_id' => $this->session->id,
-            'user_id'    => $this->user->id,
-            'type'       => 'cash_in',
-            'amount'     => 20000,
+            'user_id' => $this->user->id,
+            'type' => 'cash_in',
+            'amount' => 20000,
         ]);
 
         // Add cash movement out
         CashMovement::factory()->create([
             'session_id' => $this->session->id,
-            'user_id'    => $this->user->id,
-            'type'       => 'cash_out',
-            'amount'     => 10000,
+            'user_id' => $this->user->id,
+            'type' => 'cash_out',
+            'amount' => 10000,
         ]);
 
         $this->actingAs($this->user)
@@ -106,9 +104,9 @@ describe('Close Cash Session', function () {
     it('cannot close another user session as vendedor', function () {
         $otherUser = vendedorUser($this->branch);
         $otherSession = CashSession::factory()->create([
-            'branch_id'         => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'opened_by_user_id' => $otherUser->id,
-            'status'            => 'open',
+            'status' => 'open',
         ]);
 
         $response = $this->actingAs($this->user)

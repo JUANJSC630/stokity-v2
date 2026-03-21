@@ -55,19 +55,19 @@ class CashSession extends Model
     ];
 
     protected $casts = [
-        'opening_amount'           => 'decimal:2',
-        'closing_amount_declared'  => 'decimal:2',
-        'total_sales_cash'         => 'decimal:2',
-        'total_sales_card'         => 'decimal:2',
-        'total_sales_transfer'     => 'decimal:2',
-        'total_sales_other'        => 'decimal:2',
-        'total_cash_in'            => 'decimal:2',
-        'total_cash_out'           => 'decimal:2',
-        'total_refunds_cash'       => 'decimal:2',
-        'expected_cash'            => 'decimal:2',
-        'discrepancy'              => 'decimal:2',
-        'opened_at'                => 'datetime',
-        'closed_at'                => 'datetime',
+        'opening_amount' => 'decimal:2',
+        'closing_amount_declared' => 'decimal:2',
+        'total_sales_cash' => 'decimal:2',
+        'total_sales_card' => 'decimal:2',
+        'total_sales_transfer' => 'decimal:2',
+        'total_sales_other' => 'decimal:2',
+        'total_cash_in' => 'decimal:2',
+        'total_cash_out' => 'decimal:2',
+        'total_refunds_cash' => 'decimal:2',
+        'expected_cash' => 'decimal:2',
+        'discrepancy' => 'decimal:2',
+        'opened_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
 
     public function branch(): BelongsTo

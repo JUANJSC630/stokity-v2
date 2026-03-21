@@ -11,4 +11,4 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
 });
 
 // API route for getting active payment methods (auth required for this route)
-Route::middleware('auth')->get('api/payment-methods/active', [PaymentMethodController::class, 'getActive'])->name('api.payment-methods.active'); 
+Route::middleware('auth')->get('api/payment-methods/active', [PaymentMethodController::class, 'getActive'])->name('api.payment-methods.active');

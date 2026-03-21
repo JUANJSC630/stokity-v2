@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Sale;
+use App\Models\Branch;
 use App\Models\Client;
 use App\Models\Product;
-use App\Models\Branch;
+use App\Models\Sale;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
@@ -25,7 +25,7 @@ class SaleSeeder extends Seeder
         // Generar ventas distribuidas entre todas las sucursales
         $branchesArray = $branches->toArray();
         $totalBranches = count($branchesArray);
-        
+
         for ($i = 1; $i <= 100; $i++) { // Aumentamos a 100 ventas para más datos
             // Distribuir ventas de manera más equilibrada entre sucursales
             $branchIndex = ($i - 1) % $totalBranches;
@@ -36,17 +36,17 @@ class SaleSeeder extends Seeder
             $net = 0;
             $tax = 0;
             $items = [];
-            
+
             foreach ($selectedProducts as $product) {
                 $quantity = rand(1, 3); // Cantidad más realista
                 $subtotal = $product->sale_price * $quantity;
                 $net += $subtotal;
-                
+
                 // Calcular impuesto por producto
                 $productTax = $product->tax ?? 0;
                 $productTaxAmount = $subtotal * ($productTax / 100);
                 $tax += $productTaxAmount;
-                
+
                 $items[] = [
                     'product_id' => $product->id,
                     'quantity' => $quantity,
@@ -54,13 +54,13 @@ class SaleSeeder extends Seeder
                     'subtotal' => $subtotal,
                 ];
             }
-            
+
             $total = $net + $tax;
             $paymentMethod = Arr::random($paymentMethods);
             $amountPaid = $total;
             $changeAmount = 0;
             $status = 'completed';
-            
+
             // Para pagos diferentes a efectivo, siempre se asume pago completo
             if ($paymentMethod !== 'cash') {
                 $amountPaid = $total;
@@ -68,7 +68,7 @@ class SaleSeeder extends Seeder
             } else {
                 // Solo para pagos en efectivo simulamos diferentes escenarios
                 $rand = rand(1, 100);
-                
+
                 if ($rand <= 70) {
                     // Caso 1: Pago exacto (70% de probabilidad)
                     $amountPaid = $total;
@@ -77,7 +77,7 @@ class SaleSeeder extends Seeder
                     // Caso 2: Paga con billete grande (25% de probabilidad)
                     // Redondear el total para trabajar con billetes realistas
                     $totalRedondeado = ceil($total / 1000) * 1000;
-                    
+
                     // Determinar con qué billete paga (siempre mayor al total)
                     if ($totalRedondeado <= 5000) {
                         $billete = 10000;
@@ -91,7 +91,7 @@ class SaleSeeder extends Seeder
                         // Para totales muy grandes, redondear al siguiente múltiplo de 50000
                         $billete = ceil($totalRedondeado / 50000) * 50000;
                     }
-                    
+
                     $amountPaid = $billete;
                     $changeAmount = $amountPaid - $total;
                 } else {
@@ -104,11 +104,11 @@ class SaleSeeder extends Seeder
                     $status = 'pending';
                 }
             }
-            
+
             // Generar fecha de venta distribuida en los últimos 7 días
             $saleDate = now()->subDays(rand(0, 7))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
             // Generar código de venta con timestamp
-            $saleCode = $saleDate->format('YmdHis') . rand(100, 999);
+            $saleCode = $saleDate->format('YmdHis').rand(100, 999);
             $sale = Sale::create([
                 'branch_id' => $branch->id,
                 'code' => $saleCode,
@@ -123,7 +123,7 @@ class SaleSeeder extends Seeder
                 'date' => now()->subDays(rand(0, 7)),
                 'status' => $status,
             ]);
-            
+
             // Guardar productos vendidos y actualizar stock
             foreach ($items as $item) {
                 $sale->saleProducts()->create([
@@ -132,7 +132,7 @@ class SaleSeeder extends Seeder
                     'price' => $item['price'],
                     'subtotal' => $item['subtotal'],
                 ]);
-                
+
                 // Actualizar stock del producto
                 $product = Product::find($item['product_id']);
                 if ($product) {

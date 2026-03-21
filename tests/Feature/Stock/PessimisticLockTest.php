@@ -7,7 +7,7 @@ use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
     BusinessSetting::factory()->create();
 });
@@ -15,10 +15,10 @@ beforeEach(function () {
 describe('Pessimistic Lock', function () {
     it('prevents overselling with pessimistic lock', function () {
         $product = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'stock'       => 1,
-            'tax'         => 0,
+            'stock' => 1,
+            'tax' => 0,
         ]);
 
         $results = collect(range(1, 2))->map(function () use ($product) {

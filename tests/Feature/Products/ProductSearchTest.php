@@ -7,19 +7,19 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->user     = vendedorUser($this->branch);
+    $this->user = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create();
     PaymentMethod::factory()->create(['code' => 'cash']);
 
     Product::factory()->create([
-        'branch_id'   => $this->branch->id,
+        'branch_id' => $this->branch->id,
         'category_id' => $this->category->id,
-        'name'        => 'Café Premium',
-        'code'        => 'CAFE100',
-        'status'      => true,
+        'name' => 'Café Premium',
+        'code' => 'CAFE100',
+        'status' => true,
     ]);
 });
 
@@ -43,11 +43,11 @@ describe('Product Search', function () {
     it('only returns products from user branch', function () {
         $otherBranch = Branch::factory()->create();
         Product::factory()->create([
-            'branch_id'   => $otherBranch->id,
+            'branch_id' => $otherBranch->id,
             'category_id' => $this->category->id,
-            'name'        => 'Café Remoto',
-            'code'        => 'CAFE200',
-            'status'      => true,
+            'name' => 'Café Remoto',
+            'code' => 'CAFE200',
+            'status' => true,
         ]);
 
         $response = $this->actingAs($this->user)
@@ -59,11 +59,11 @@ describe('Product Search', function () {
 
     it('only returns active products', function () {
         Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'name'        => 'Café Inactivo',
-            'code'        => 'CAFE300',
-            'status'      => false,
+            'name' => 'Café Inactivo',
+            'code' => 'CAFE300',
+            'status' => false,
         ]);
 
         $response = $this->actingAs($this->user)

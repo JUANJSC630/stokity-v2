@@ -92,4 +92,4 @@ class PaymentMethodSeeder extends Seeder
             );
         }
     }
-} 
+}

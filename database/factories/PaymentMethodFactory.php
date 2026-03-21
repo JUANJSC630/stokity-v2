@@ -13,11 +13,11 @@ class PaymentMethodFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'        => 'Efectivo',
-            'code'        => 'cash',
+            'name' => 'Efectivo',
+            'code' => 'cash',
             'description' => null,
-            'is_active'   => true,
-            'sort_order'  => 0,
+            'is_active' => true,
+            'sort_order' => 0,
         ];
     }
 }

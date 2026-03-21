@@ -36,19 +36,19 @@ class ProductSeeder extends Seeder
                 $cleanName = preg_replace('/[^A-Za-z0-9]/', '', $cleanName);
                 $cleanCategory = iconv('UTF-8', 'ASCII//TRANSLIT', $categoria->name);
                 $cleanCategory = preg_replace('/[^A-Za-z0-9]/', '', $cleanCategory);
-                
+
                 // Generar código único (puede ser numérico o alfanumérico)
                 $codeOptions = [
                     // Opción 1: Código numérico de 8 dígitos
                     str_pad(rand(10000000, 99999999), 8, '0', STR_PAD_LEFT),
                     // Opción 2: Código alfanumérico con prefijo (caracteres seguros)
-                    strtoupper(substr($cleanName, 0, 3)) . '-' . rand(1000, 9999),
+                    strtoupper(substr($cleanName, 0, 3)).'-'.rand(1000, 9999),
                     // Opción 3: Código con categoría (caracteres seguros)
-                    strtoupper(substr($cleanCategory, 0, 3)) . '-' . rand(10000, 99999),
+                    strtoupper(substr($cleanCategory, 0, 3)).'-'.rand(10000, 99999),
                 ];
-                
+
                 $code = $codeOptions[array_rand($codeOptions)];
-                
+
                 // Verificar que el código sea único
                 while (Product::where('code', $code)->exists()) {
                     $code = $codeOptions[array_rand($codeOptions)];
@@ -56,7 +56,7 @@ class ProductSeeder extends Seeder
 
                 // Precios realistas por categoría según mercado colombiano 2025
                 $preciosPorProducto = [];
-                
+
                 // Asignar precios específicos para cada producto
                 if ($categoria->name == 'Bebidas') {
                     $preciosPorProducto = [
@@ -189,7 +189,7 @@ class ProductSeeder extends Seeder
                         'Gorra Trucker' => [35000, 50000, 19],
                     ];
                 }
-                
+
                 // Si el producto está en la lista de precios específicos, usar esos valores
                 if (isset($preciosPorProducto[$nombre])) {
                     $purchase = $preciosPorProducto[$nombre][0];
@@ -237,14 +237,14 @@ class ProductSeeder extends Seeder
 
                 // Crear el producto en una sucursal aleatoria
                 $branch = $branches->random();
-                
+
                 Product::firstOrCreate([
                     'name' => $nombre,
                     'category_id' => $categoria->id,
                 ], [
                     'branch_id' => $branch->id,
                     'code' => $code,
-                    'description' => 'Producto colombiano: ' . $nombre,
+                    'description' => 'Producto colombiano: '.$nombre,
                     'purchase_price' => $purchase,
                     'sale_price' => $sale,
                     'tax' => $tax,

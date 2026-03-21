@@ -23,7 +23,7 @@ class SupplierController extends Controller
 
         $query = Supplier::with('branch');
 
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -56,8 +56,8 @@ class SupplierController extends Controller
 
         return Inertia::render('suppliers/index', [
             'suppliers' => $suppliers,
-            'branches'  => $branches,
-            'filters'   => $request->only(['search', 'status', 'branch']),
+            'branches' => $branches,
+            'filters' => $request->only(['search', 'status', 'branch']),
         ]);
     }
 
@@ -74,7 +74,7 @@ class SupplierController extends Controller
             : Branch::where('id', $user->branch_id)->get(['id', 'name']);
 
         return Inertia::render('suppliers/create', [
-            'branches'    => $branches,
+            'branches' => $branches,
             'userBranchId' => $user->branch_id,
         ]);
     }
@@ -88,19 +88,19 @@ class SupplierController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'branch_id'    => 'required|exists:branches,id',
-            'name'         => 'required|string|max:255',
-            'nit'          => 'nullable|string|max:20',
+            'branch_id' => 'required|exists:branches,id',
+            'name' => 'required|string|max:255',
+            'nit' => 'nullable|string|max:20',
             'contact_name' => 'nullable|string|max:255',
-            'phone'        => 'nullable|string|max:20',
-            'email'        => 'nullable|email|max:255',
-            'address'      => 'nullable|string|max:255',
-            'notes'        => 'nullable|string',
-            'status'       => 'boolean',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'status' => 'boolean',
         ]);
 
         // Non-admins are locked to their branch
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $validated['branch_id'] = $user->branch_id;
         }
 
@@ -116,7 +116,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
 
         $supplier->load(['branch', 'products' => function ($q) {
             $q->with('category')->withPivot(['purchase_price', 'supplier_code', 'is_default']);
@@ -142,10 +142,10 @@ class SupplierController extends Controller
             ->withQueryString();
 
         return Inertia::render('suppliers/show', [
-            'supplier'   => $supplier,
-            'movements'  => $movements,
-            'totalCost'  => $totalCost,
-            'filters'    => $request->only(['start_date', 'end_date']),
+            'supplier' => $supplier,
+            'movements' => $movements,
+            'totalCost' => $totalCost,
+            'filters' => $request->only(['start_date', 'end_date']),
         ]);
     }
 
@@ -156,7 +156,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
 
         $branches = $user->isAdmin()
             ? Branch::where('status', true)->get(['id', 'name'])
@@ -175,21 +175,21 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
 
         $validated = $request->validate([
-            'branch_id'    => 'required|exists:branches,id',
-            'name'         => 'required|string|max:255',
-            'nit'          => 'nullable|string|max:20',
+            'branch_id' => 'required|exists:branches,id',
+            'name' => 'required|string|max:255',
+            'nit' => 'nullable|string|max:20',
             'contact_name' => 'nullable|string|max:255',
-            'phone'        => 'nullable|string|max:20',
-            'email'        => 'nullable|email|max:255',
-            'address'      => 'nullable|string|max:255',
-            'notes'        => 'nullable|string',
-            'status'       => 'boolean',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'status' => 'boolean',
         ]);
 
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             $validated['branch_id'] = $user->branch_id;
         }
 
@@ -205,7 +205,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
 
         $supplier->delete();
 

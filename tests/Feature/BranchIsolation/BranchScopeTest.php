@@ -7,35 +7,34 @@ use App\Models\Client;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\SaleProduct;
 
 beforeEach(function () {
-    $this->branchA  = Branch::factory()->create();
-    $this->branchB  = Branch::factory()->create();
+    $this->branchA = Branch::factory()->create();
+    $this->branchB = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
-    $this->userA    = vendedorUser($this->branchA);
+    $this->client = Client::factory()->create();
+    $this->userA = vendedorUser($this->branchA);
 
     BusinessSetting::factory()->create(['require_cash_session' => false]);
     PaymentMethod::factory()->create(['code' => 'cash']);
 
     $this->productA = Product::factory()->create([
-        'branch_id'   => $this->branchA->id,
+        'branch_id' => $this->branchA->id,
         'category_id' => $this->category->id,
-        'name'        => 'Producto A',
-        'code'        => 'PRODA001',
-        'stock'       => 50,
-        'tax'         => 0,
-        'status'      => true,
+        'name' => 'Producto A',
+        'code' => 'PRODA001',
+        'stock' => 50,
+        'tax' => 0,
+        'status' => true,
     ]);
     $this->productB = Product::factory()->create([
-        'branch_id'   => $this->branchB->id,
+        'branch_id' => $this->branchB->id,
         'category_id' => $this->category->id,
-        'name'        => 'Producto B',
-        'code'        => 'PRODB001',
-        'stock'       => 50,
-        'tax'         => 0,
-        'status'      => true,
+        'name' => 'Producto B',
+        'code' => 'PRODB001',
+        'stock' => 50,
+        'tax' => 0,
+        'status' => true,
     ]);
 });
 
@@ -54,14 +53,14 @@ describe('Branch Isolation', function () {
         $sellerB = vendedorUser($this->branchB);
 
         Sale::factory()->create([
-            'branch_id'      => $this->branchB->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $sellerB->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branchB->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $sellerB->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 10000,
-            'net'            => 10000,
-            'date'           => now(),
+            'total' => 10000,
+            'net' => 10000,
+            'date' => now(),
         ]);
 
         $response = $this->actingAs($this->userA)
@@ -77,14 +76,14 @@ describe('Branch Isolation', function () {
         $sellerB = vendedorUser($this->branchB);
 
         $saleB = Sale::factory()->create([
-            'branch_id'      => $this->branchB->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $sellerB->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branchB->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $sellerB->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 10000,
-            'net'            => 10000,
-            'date'           => now(),
+            'total' => 10000,
+            'net' => 10000,
+            'date' => now(),
         ]);
 
         $response = $this->actingAs($this->userA)
@@ -104,9 +103,9 @@ describe('Branch Isolation', function () {
 
     it('user A does not see cash sessions from branch B', function () {
         \App\Models\CashSession::factory()->create([
-            'branch_id'         => $this->branchB->id,
+            'branch_id' => $this->branchB->id,
             'opened_by_user_id' => vendedorUser($this->branchB)->id,
-            'status'            => 'open',
+            'status' => 'open',
         ]);
 
         $response = $this->actingAs($this->userA)

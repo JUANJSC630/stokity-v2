@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Branch;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
@@ -23,10 +23,10 @@ class UserSeeder extends Seeder
             'vendedor',
         ];
         foreach ($roles as $role) {
-            $email = $role . '@example.com';
-            if (!User::where('email', $email)->exists()) {
+            $email = $role.'@example.com';
+            if (! User::where('email', $email)->exists()) {
                 User::factory()->create([
-                    'name' => ucfirst($role) . ' User',
+                    'name' => ucfirst($role).' User',
                     'email' => $email,
                     'role' => $role,
                     'branch_id' => $branchId,

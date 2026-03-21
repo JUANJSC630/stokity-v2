@@ -43,16 +43,16 @@ class ProfileController extends Controller
         } else {
             unset($validated['photo']);
         }
-        
+
         // Actualizar los datos del usuario
         $user->fill($validated);
-        
+
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
-        
+
         $user->save();
-        
+
         return to_route('profile.edit');
     }
 

@@ -12,9 +12,9 @@ function adminUser(?Branch $branch = null): User
     $branch ??= Branch::factory()->create();
 
     return User::factory()->create([
-        'role'      => 'administrador',
+        'role' => 'administrador',
         'branch_id' => $branch->id,
-        'status'    => true,
+        'status' => true,
     ]);
 }
 
@@ -23,9 +23,9 @@ function managerUser(?Branch $branch = null): User
     $branch ??= Branch::factory()->create();
 
     return User::factory()->create([
-        'role'      => 'encargado',
+        'role' => 'encargado',
         'branch_id' => $branch->id,
-        'status'    => true,
+        'status' => true,
     ]);
 }
 
@@ -34,8 +34,8 @@ function vendedorUser(?Branch $branch = null): User
     $branch ??= Branch::factory()->create();
 
     return User::factory()->create([
-        'role'      => 'vendedor',
+        'role' => 'vendedor',
         'branch_id' => $branch->id,
-        'status'    => true,
+        'status' => true,
     ]);
 }

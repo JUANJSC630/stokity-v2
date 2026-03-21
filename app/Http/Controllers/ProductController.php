@@ -37,7 +37,7 @@ class ProductController extends Controller
 
         // Filtrar por sucursal del usuario si no es administrador
         $user = Auth::user();
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -72,9 +72,9 @@ class ProductController extends Controller
             ->withQueryString();
 
         $categories = Category::where('status', true)->get();
-        
+
         // Solo mostrar todas las sucursales si es administrador
-        $branches = $user->isAdmin() 
+        $branches = $user->isAdmin()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -137,7 +137,7 @@ class ProductController extends Controller
         $product->load(['category', 'branch']);
 
         return Inertia::render('products/show', [
-            'product' => $product
+            'product' => $product,
         ]);
     }
 
@@ -164,10 +164,10 @@ class ProductController extends Controller
         $product->load('suppliers');
 
         return Inertia::render('products/edit', [
-            'product'      => $product,
-            'categories'   => $categories,
-            'branches'     => $branches,
-            'suppliers'    => $suppliers,
+            'product' => $product,
+            'categories' => $categories,
+            'branches' => $branches,
+            'suppliers' => $suppliers,
             'userBranchId' => $user->branch_id,
         ]);
     }
@@ -207,22 +207,22 @@ class ProductController extends Controller
     public function syncSuppliers(Request $request, Product $product): RedirectResponse
     {
         $request->validate([
-            'suppliers'                  => 'array',
-            'suppliers.*.supplier_id'    => [
+            'suppliers' => 'array',
+            'suppliers.*.supplier_id' => [
                 'required',
                 Rule::exists('suppliers', 'id')->where('branch_id', $product->branch_id),
             ],
             'suppliers.*.purchase_price' => 'nullable|numeric|min:0',
-            'suppliers.*.supplier_code'  => 'nullable|string|max:100',
-            'suppliers.*.is_default'     => 'boolean',
+            'suppliers.*.supplier_code' => 'nullable|string|max:100',
+            'suppliers.*.is_default' => 'boolean',
         ]);
 
         $syncData = [];
         foreach ($request->input('suppliers', []) as $item) {
             $syncData[(int) $item['supplier_id']] = [
                 'purchase_price' => $item['purchase_price'] ?? null,
-                'supplier_code'  => $item['supplier_code'] ?? null,
-                'is_default'     => (bool) ($item['is_default'] ?? false),
+                'supplier_code' => $item['supplier_code'] ?? null,
+                'is_default' => (bool) ($item['is_default'] ?? false),
             ];
         }
 
@@ -272,7 +272,7 @@ class ProductController extends Controller
         } else {
             // If user is not admin and has a branch, show only products from that branch
             $user = Auth::user();
-            if (!$user->isAdmin() && $user->branch_id) {
+            if (! $user->isAdmin() && $user->branch_id) {
                 $query->where('branch_id', $user->branch_id);
             }
         }
@@ -345,16 +345,16 @@ class ProductController extends Controller
         $previousStock = $product->stock;
 
         $newStock = match ($request->operation) {
-            'set'      => $request->stock,
-            'add'      => $previousStock + $request->stock,
+            'set' => $request->stock,
+            'add' => $previousStock + $request->stock,
             'subtract' => max(0, $previousStock - $request->stock),
-            default    => $previousStock,
+            default => $previousStock,
         };
 
         $quantity = match ($request->operation) {
-            'add'      => $request->stock,
+            'add' => $request->stock,
             'subtract' => $previousStock - $newStock,
-            default    => abs($newStock - $previousStock),
+            default => abs($newStock - $previousStock),
         };
 
         DB::transaction(function () use ($product, $previousStock, $newStock, $quantity, $request) {
@@ -364,9 +364,9 @@ class ProductController extends Controller
             $this->stockMovements->record(
                 product: $product,
                 type: match ($request->operation) {
-                    'add'      => 'in',
+                    'add' => 'in',
                     'subtract' => 'out',
-                    default    => 'adjustment',
+                    default => 'adjustment',
                 },
                 quantity: $quantity,
                 previousStock: $previousStock,
@@ -387,12 +387,12 @@ class ProductController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'q'           => 'required|string|min:1|max:100',
+            'q' => 'required|string|min:1|max:100',
             'category_id' => 'nullable|integer|exists:categories,id',
         ]);
 
         $user = Auth::user();
-        $q    = $request->q;
+        $q = $request->q;
 
         $query = Product::where('status', true)
             ->where(function ($sub) use ($q) {
@@ -400,7 +400,7 @@ class ProductController extends Controller
                     ->orWhere('code', 'like', "%{$q}%");
             });
 
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -415,7 +415,7 @@ class ProductController extends Controller
         $products = $query
             ->with(['category:id,name', 'branch:id,name'])
             ->orderByRaw('CASE WHEN code = ? THEN 0 ELSE 1 END', [$q])
-            ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [$q . '%'])
+            ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [$q.'%'])
             ->orderBy('name')
             ->limit(50)
             ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax', 'category_id', 'branch_id']);
@@ -440,11 +440,11 @@ class ProductController extends Controller
             $exists = Product::where('code', $code)->exists();
             $maxAttempts--;
         } while ($exists && $maxAttempts > 0);
-        
+
         if ($maxAttempts <= 0) {
             return response()->json(['error' => 'No se pudo generar un código único de 8 dígitos.'], 500);
         }
-        
+
         return response()->json(['code' => $code]);
     }
 }

@@ -4,11 +4,11 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\SaleReturn;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ReportQueryService
 {
@@ -24,24 +24,24 @@ class ReportQueryService
         $user = Auth::user();
 
         $filters = [
-            'date_from'   => $request->get('date_from'),
-            'date_to'     => $request->get('date_to'),
-            'branch_id'   => $request->get('branch_id'),
-            'seller_id'   => $request->get('seller_id'),
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
+            'branch_id' => $request->get('branch_id'),
+            'seller_id' => $request->get('seller_id'),
             'category_id' => $request->get('category_id'),
-            'status'      => $request->get('status', 'completed'),
+            'status' => $request->get('status', 'completed'),
         ];
 
         // Non-admin users are locked to their own branch
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $filters['branch_id'] = $user->branch_id;
         }
 
         // Default to current month when no dates specified
-        if (!$filters['date_from'] && !$filters['date_to']) {
+        if (! $filters['date_from'] && ! $filters['date_to']) {
             $now = now();
             $filters['date_from'] = $now->copy()->startOfMonth()->format('Y-m-d');
-            $filters['date_to']   = $now->copy()->endOfMonth()->format('Y-m-d');
+            $filters['date_to'] = $now->copy()->endOfMonth()->format('Y-m-d');
         }
 
         return $filters;
@@ -52,7 +52,7 @@ class ReportQueryService
      */
     public function getSalesSummary(array $filters): array
     {
-        $cacheKey = 'sales_summary_' . md5(serialize($filters));
+        $cacheKey = 'sales_summary_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -67,8 +67,8 @@ class ReportQueryService
                 DB::raw('SUM(amount_paid) as total_paid'),
             ])->first();
 
-            $previousPeriod  = $this->getPreviousPeriod($filters);
-            $previousQuery   = DB::table('sales')->whereNull('sales.deleted_at');
+            $previousPeriod = $this->getPreviousPeriod($filters);
+            $previousQuery = DB::table('sales')->whereNull('sales.deleted_at');
             $this->applyDbFilters($previousQuery, $previousPeriod);
 
             $previousSummary = $previousQuery->select([
@@ -78,19 +78,19 @@ class ReportQueryService
 
             return [
                 'current' => [
-                    'total_sales'  => (int) ($summary->total_sales ?? 0),
+                    'total_sales' => (int) ($summary->total_sales ?? 0),
                     'total_amount' => (float) ($summary->total_amount ?? 0),
-                    'net_amount'   => (float) ($summary->net_amount ?? 0),
-                    'tax_amount'   => (float) ($summary->tax_amount ?? 0),
+                    'net_amount' => (float) ($summary->net_amount ?? 0),
+                    'tax_amount' => (float) ($summary->tax_amount ?? 0),
                     'average_sale' => (float) ($summary->average_sale ?? 0),
-                    'total_paid'   => (float) ($summary->total_paid ?? 0),
+                    'total_paid' => (float) ($summary->total_paid ?? 0),
                 ],
                 'previous' => [
-                    'total_sales'  => (int) ($previousSummary->total_sales ?? 0),
+                    'total_sales' => (int) ($previousSummary->total_sales ?? 0),
                     'total_amount' => (float) ($previousSummary->total_amount ?? 0),
                 ],
                 'growth' => [
-                    'sales_count'  => $this->calculateGrowth($summary->total_sales ?? 0, $previousSummary->total_sales ?? 0),
+                    'sales_count' => $this->calculateGrowth($summary->total_sales ?? 0, $previousSummary->total_sales ?? 0),
                     'total_amount' => $this->calculateGrowth($summary->total_amount ?? 0, $previousSummary->total_amount ?? 0),
                 ],
             ];
@@ -104,7 +104,7 @@ class ReportQueryService
      */
     public function getTopProducts(array $filters, int $limit = 10): \Illuminate\Support\Collection
     {
-        $cacheKey = 'top_products_' . md5(serialize($filters)) . '_' . $limit;
+        $cacheKey = 'top_products_'.md5(serialize($filters)).'_'.$limit;
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters, $limit) {
             $results = DB::table('sales')
@@ -128,10 +128,11 @@ class ReportQueryService
                 ->get();
 
             return $results->map(function ($item) {
-                $item->id             = (int) $item->id;
+                $item->id = (int) $item->id;
                 $item->total_quantity = (int) $item->total_quantity;
-                $item->total_amount   = (float) $item->total_amount;
-                $item->sales_count    = (int) $item->sales_count;
+                $item->total_amount = (float) $item->total_amount;
+                $item->sales_count = (int) $item->sales_count;
+
                 return $item;
             });
         });
@@ -142,7 +143,7 @@ class ReportQueryService
      */
     public function getSalesByBranch(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_branch_' . md5(serialize($filters));
+        $cacheKey = 'sales_by_branch_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -168,7 +169,7 @@ class ReportQueryService
      */
     public function getSalesBySeller(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_seller_' . md5(serialize($filters));
+        $cacheKey = 'sales_by_seller_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -195,7 +196,7 @@ class ReportQueryService
      */
     public function getReturnsSummary(array $filters): object
     {
-        $cacheKey = 'returns_summary_' . md5(serialize($filters));
+        $cacheKey = 'returns_summary_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query();
@@ -240,10 +241,10 @@ class ReportQueryService
                 ])->first();
 
             return (object) [
-                'total_returns'         => $summary->total_returns ?? 0,
+                'total_returns' => $summary->total_returns ?? 0,
                 'unique_sales_returned' => $summary->unique_sales_returned ?? 0,
-                'total_amount'          => $amounts->total_amount ?? 0,
-                'average_return'        => $amounts->average_return ?? 0,
+                'total_amount' => $amounts->total_amount ?? 0,
+                'average_return' => $amounts->average_return ?? 0,
             ];
         });
     }
@@ -253,7 +254,7 @@ class ReportQueryService
      */
     public function getSalesByPeriod(array $filters, string $groupBy = 'day'): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_period_' . md5(serialize($filters)) . '_' . $groupBy;
+        $cacheKey = 'sales_by_period_'.md5(serialize($filters)).'_'.$groupBy;
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters, $groupBy): \Illuminate\Support\Collection {
             $query = DB::table('sales')
@@ -286,14 +287,14 @@ class ReportQueryService
             $dateFormat = $this->getDateFormat($groupBy);
 
             return $query->select([
-                    DB::raw("DATE_FORMAT(sales.date, '{$dateFormat}') as period"),
-                    'sales.status',
-                    DB::raw('COUNT(*) as total_sales'),
-                    DB::raw('COALESCE(SUM(sales.total), 0) as total_amount'),
-                    DB::raw('COALESCE(SUM(sales.net), 0) as net_amount'),
-                    DB::raw('COALESCE(SUM(sales.tax), 0) as tax_amount'),
-                    DB::raw('COALESCE(AVG(sales.total), 0) as average_sale'),
-                ])
+                DB::raw("DATE_FORMAT(sales.date, '{$dateFormat}') as period"),
+                'sales.status',
+                DB::raw('COUNT(*) as total_sales'),
+                DB::raw('COALESCE(SUM(sales.total), 0) as total_amount'),
+                DB::raw('COALESCE(SUM(sales.net), 0) as net_amount'),
+                DB::raw('COALESCE(SUM(sales.tax), 0) as tax_amount'),
+                DB::raw('COALESCE(AVG(sales.total), 0) as average_sale'),
+            ])
                 ->groupBy('period', 'sales.status')
                 ->orderBy('period')
                 ->orderBy('sales.status')
@@ -303,26 +304,26 @@ class ReportQueryService
                     $result = [
                         'period' => $periodGroup->first()->period,
                         'completed' => [
-                            'total_sales'  => 0, 'total_amount' => 0,
-                            'net_amount'   => 0, 'tax_amount'   => 0, 'average_sale' => 0,
+                            'total_sales' => 0, 'total_amount' => 0,
+                            'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
                         ],
                         'cancelled' => [
-                            'total_sales'  => 0, 'total_amount' => 0,
-                            'net_amount'   => 0, 'tax_amount'   => 0, 'average_sale' => 0,
+                            'total_sales' => 0, 'total_amount' => 0,
+                            'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
                         ],
                         'pending' => [
-                            'total_sales'  => 0, 'total_amount' => 0,
-                            'net_amount'   => 0, 'tax_amount'   => 0, 'average_sale' => 0,
+                            'total_sales' => 0, 'total_amount' => 0,
+                            'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
                         ],
                     ];
 
                     foreach ($periodGroup as $item) {
                         $status = $item->status;
                         $result[$status] = [
-                            'total_sales'  => (int) $item->total_sales,
+                            'total_sales' => (int) $item->total_sales,
                             'total_amount' => (float) $item->total_amount,
-                            'net_amount'   => (float) $item->net_amount,
-                            'tax_amount'   => (float) $item->tax_amount,
+                            'net_amount' => (float) $item->net_amount,
+                            'tax_amount' => (float) $item->tax_amount,
                             'average_sale' => (float) $item->average_sale,
                         ];
                     }
@@ -338,7 +339,7 @@ class ReportQueryService
      */
     public function getProductsByCategory(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'products_by_category_' . md5(serialize($filters));
+        $cacheKey = 'products_by_category_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $results = DB::table('sales')
@@ -361,10 +362,10 @@ class ReportQueryService
                 ->get();
 
             return $results->map(fn ($item) => [
-                'id'              => (int) $item->id,
-                'name'            => $item->name,
-                'total_quantity'  => (int) $item->total_quantity,
-                'total_amount'    => (float) $item->total_amount,
+                'id' => (int) $item->id,
+                'name' => $item->name,
+                'total_quantity' => (int) $item->total_quantity,
+                'total_amount' => (float) $item->total_amount,
                 'unique_products' => (int) $item->unique_products,
             ]);
         });
@@ -375,13 +376,13 @@ class ReportQueryService
      */
     public function getLowStockProducts(array $filters = []): \Illuminate\Support\Collection
     {
-        $cacheKey = 'low_stock_products_' . md5(serialize($filters));
+        $cacheKey = 'low_stock_products_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = Product::where('stock', '<=', DB::raw('min_stock'))
                 ->where('status', true);
 
-            if (!empty($filters['branch_id'])) {
+            if (! empty($filters['branch_id'])) {
                 $query->whereHas('stockMovements', function ($q) use ($filters) {
                     $q->where('branch_id', (int) $filters['branch_id']);
                 });
@@ -399,7 +400,7 @@ class ReportQueryService
      */
     public function getProductsPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'products_performance_' . md5(serialize($filters));
+        $cacheKey = 'products_performance_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $results = DB::table('products')
@@ -424,13 +425,13 @@ class ReportQueryService
                 ->get();
 
             return $results->map(fn ($item) => [
-                'id'             => (int) $item->id,
-                'name'           => $item->name,
-                'code'           => $item->code,
-                'stock'          => (int) $item->stock,
-                'sale_price'     => (float) $item->sale_price,
-                'sold_quantity'  => (int) $item->sold_quantity,
-                'sold_amount'    => (float) $item->sold_amount,
+                'id' => (int) $item->id,
+                'name' => $item->name,
+                'code' => $item->code,
+                'stock' => (int) $item->stock,
+                'sale_price' => (float) $item->sale_price,
+                'sold_quantity' => (int) $item->sold_quantity,
+                'sold_amount' => (float) $item->sold_amount,
                 'total_quantity' => (int) $item->total_quantity,
             ]);
         });
@@ -441,7 +442,7 @@ class ReportQueryService
      */
     public function getSellersPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_performance_' . md5(serialize($filters));
+        $cacheKey = 'sellers_performance_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters): \Illuminate\Support\Collection {
             $query = DB::table('sales')
@@ -463,14 +464,14 @@ class ReportQueryService
                 ->orderBy('total_amount', 'desc')
                 ->get()
                 ->map(fn ($item) => [
-                    'id'           => $item->id,
-                    'name'         => $item->name,
-                    'email'        => $item->email,
-                    'total_sales'  => (int) $item->total_sales,
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'email' => $item->email,
+                    'total_sales' => (int) $item->total_sales,
                     'total_amount' => (float) $item->total_amount,
                     'average_sale' => (float) $item->average_sale,
-                    'first_sale'   => $item->first_sale,
-                    'last_sale'    => $item->last_sale,
+                    'first_sale' => $item->first_sale,
+                    'last_sale' => $item->last_sale,
                 ]);
         });
     }
@@ -480,30 +481,30 @@ class ReportQueryService
      */
     public function getSellersComparison(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_comparison_' . md5(serialize($filters));
+        $cacheKey = 'sellers_comparison_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
-            $currentPeriod  = $this->getSellersPerformance($filters);
+            $currentPeriod = $this->getSellersPerformance($filters);
             $previousFilters = $this->getPreviousPeriod($filters);
-            $previousPeriod  = $this->getSellersPerformance($previousFilters);
+            $previousPeriod = $this->getSellersPerformance($previousFilters);
 
             $result = [];
 
             foreach ($currentPeriod as $current) {
-                $previous      = collect($previousPeriod)->where('id', $current['id'])->first();
+                $previous = collect($previousPeriod)->where('id', $current['id'])->first();
                 $previousSales = $previous ? $previous['total_sales'] : 0;
-                $currentSales  = $current['total_sales'];
+                $currentSales = $current['total_sales'];
 
                 $growthPercentage = $previousSales > 0
                     ? (($currentSales - $previousSales) / $previousSales) * 100
                     : 0;
 
                 $result[] = [
-                    'id'                    => $current['id'],
-                    'name'                  => $current['name'],
-                    'current_period_sales'  => $currentSales,
+                    'id' => $current['id'],
+                    'name' => $current['name'],
+                    'current_period_sales' => $currentSales,
                     'previous_period_sales' => $previousSales,
-                    'growth_percentage'     => round($growthPercentage, 2),
+                    'growth_percentage' => round($growthPercentage, 2),
                 ];
             }
 
@@ -516,7 +517,7 @@ class ReportQueryService
      */
     public function getSellersByBranch(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_by_branch_' . md5(serialize($filters));
+        $cacheKey = 'sellers_by_branch_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -544,7 +545,7 @@ class ReportQueryService
      */
     public function getBranchesPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'branches_performance_' . md5(serialize($filters));
+        $cacheKey = 'branches_performance_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -572,7 +573,7 @@ class ReportQueryService
      */
     public function getBranchesComparison(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'branches_comparison_' . md5(serialize($filters));
+        $cacheKey = 'branches_comparison_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -607,7 +608,7 @@ class ReportQueryService
      */
     public function getReturnsByProduct(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_by_product_' . md5(serialize($filters));
+        $cacheKey = 'returns_by_product_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query();
@@ -646,7 +647,7 @@ class ReportQueryService
      */
     public function getReturnsByReason(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_by_reason_' . md5(serialize($filters));
+        $cacheKey = 'returns_by_reason_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query();
@@ -681,7 +682,7 @@ class ReportQueryService
      */
     public function getReturnsTrend(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_trend_' . md5(serialize($filters));
+        $cacheKey = 'returns_trend_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query();
@@ -716,18 +717,18 @@ class ReportQueryService
      */
     public function getPaymentMethodsSummary(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'payment_methods_summary_' . md5(serialize($filters));
+        $cacheKey = 'payment_methods_summary_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
             $this->applyDbFilters($query, $filters);
 
             return $query->select([
-                    'sales.payment_method',
-                    DB::raw('COUNT(*) as transaction_count'),
-                    DB::raw('SUM(sales.total) as total_amount'),
-                    DB::raw('AVG(sales.total) as average_amount'),
-                ])
+                'sales.payment_method',
+                DB::raw('COUNT(*) as transaction_count'),
+                DB::raw('SUM(sales.total) as total_amount'),
+                DB::raw('AVG(sales.total) as average_amount'),
+            ])
                 ->groupBy('sales.payment_method')
                 ->orderBy('total_amount', 'desc')
                 ->get();
@@ -752,24 +753,22 @@ class ReportQueryService
     public function getPreviousPeriod(array $filters): array
     {
         $dateFrom = $filters['date_from'] ? Carbon::parse($filters['date_from']) : Carbon::now()->subMonth();
-        $dateTo   = $filters['date_to'] ? Carbon::parse($filters['date_to']) : Carbon::now();
+        $dateTo = $filters['date_to'] ? Carbon::parse($filters['date_to']) : Carbon::now();
 
         $duration = $dateFrom->diffInDays($dateTo);
 
         return [
-            'date_from'   => $dateFrom->subDays($duration)->format('Y-m-d'),
-            'date_to'     => $dateFrom->format('Y-m-d'),
-            'branch_id'   => $filters['branch_id'],
-            'seller_id'   => $filters['seller_id'],
+            'date_from' => $dateFrom->subDays($duration)->format('Y-m-d'),
+            'date_to' => $dateFrom->format('Y-m-d'),
+            'branch_id' => $filters['branch_id'],
+            'seller_id' => $filters['seller_id'],
             'category_id' => $filters['category_id'],
-            'status'      => $filters['status'],
+            'status' => $filters['status'],
         ];
     }
 
     /**
      * Apply standard sales filters to a DB query builder.
-     *
-     * @param \Illuminate\Database\Query\Builder $query
      */
     public function applyDbFilters(\Illuminate\Database\Query\Builder $query, array $filters): void
     {
@@ -796,7 +795,7 @@ class ReportQueryService
         }
         if ($filters['status'] && $filters['status'] !== 'all') {
             $query->where('sales.status', $filters['status']);
-        } elseif (!$filters['status']) {
+        } elseif (! $filters['status']) {
             $query->where('sales.status', 'completed');
         }
     }
@@ -807,9 +806,9 @@ class ReportQueryService
     public function getDateFormat(string $groupBy): string
     {
         return match ($groupBy) {
-            'week'  => '%Y-%u',
+            'week' => '%Y-%u',
             'month' => '%Y-%m',
-            'year'  => '%Y',
+            'year' => '%Y',
             default => '%Y-%m-%d',
         };
     }

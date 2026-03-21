@@ -16,20 +16,20 @@ class StockMovementFactory extends Factory
     public function definition(): array
     {
         $previousStock = $this->faker->numberBetween(10, 100);
-        $quantity      = $this->faker->numberBetween(1, 5);
+        $quantity = $this->faker->numberBetween(1, 5);
 
         return [
-            'product_id'     => Product::factory(),
-            'user_id'        => User::factory(),
-            'branch_id'      => Branch::factory(),
-            'type'           => 'in',
-            'quantity'        => $quantity,
+            'product_id' => Product::factory(),
+            'user_id' => User::factory(),
+            'branch_id' => Branch::factory(),
+            'type' => 'in',
+            'quantity' => $quantity,
             'previous_stock' => $previousStock,
-            'new_stock'      => $previousStock + $quantity,
-            'unit_cost'      => null,
-            'reference'      => null,
-            'notes'          => null,
-            'movement_date'  => now(),
+            'new_stock' => $previousStock + $quantity,
+            'unit_cost' => null,
+            'reference' => null,
+            'notes' => null,
+            'movement_date' => now(),
         ];
     }
 }

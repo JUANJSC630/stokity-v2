@@ -9,14 +9,14 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Rutas para las páginas del sidebar - La ruta de usuarios está definida en users.php
-    
+
     // Categories routes are defined in categories.php file
     // Products routes are defined in products.php file
-    
+
     // Clients routes are defined in clients.php file
-    
+
     Route::get('report-sales', function () {
         return Inertia::render('report-sales/index');
     })->name('report-sales');

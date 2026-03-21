@@ -13,8 +13,8 @@ class BusinessSettingFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'                 => 'Stokity Test',
-            'currency_symbol'      => '$',
+            'name' => 'Stokity Test',
+            'currency_symbol' => '$',
             'require_cash_session' => false,
         ];
     }

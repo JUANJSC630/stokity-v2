@@ -31,7 +31,7 @@ class BranchRequest extends FormRequest
             // El manager_id ahora se maneja exclusivamente desde UserController
         ];
     }
-    
+
     /**
      * Prepare the data for validation.
      *

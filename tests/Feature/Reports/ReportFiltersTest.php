@@ -8,9 +8,9 @@ use App\Models\PaymentMethod;
 use App\Models\Sale;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
+    $this->client = Client::factory()->create();
 
     BusinessSetting::factory()->create();
     PaymentMethod::factory()->create(['code' => 'cash']);
@@ -21,25 +21,25 @@ describe('Report Filters', function () {
         $admin = adminUser($this->branch);
 
         Sale::factory()->create([
-            'branch_id'      => $this->branch->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $admin->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branch->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $admin->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 50000,
-            'net'            => 50000,
-            'date'           => now(),
+            'total' => 50000,
+            'net' => 50000,
+            'date' => now(),
         ]);
 
         Sale::factory()->create([
-            'branch_id'      => $this->branch->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $admin->id,
-            'status'         => 'pending',
+            'branch_id' => $this->branch->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $admin->id,
+            'status' => 'pending',
             'payment_method' => '',
-            'total'          => 30000,
-            'net'            => 30000,
-            'date'           => now(),
+            'total' => 30000,
+            'net' => 30000,
+            'date' => now(),
         ]);
 
         $response = $this->actingAs($admin)
@@ -57,31 +57,31 @@ describe('Report Filters', function () {
         $admin = adminUser($this->branch);
 
         Sale::factory()->create([
-            'branch_id'      => $this->branch->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $admin->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branch->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $admin->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 10000,
-            'net'            => 10000,
-            'date'           => '2026-01-15 10:00:00',
+            'total' => 10000,
+            'net' => 10000,
+            'date' => '2026-01-15 10:00:00',
         ]);
 
         Sale::factory()->create([
-            'branch_id'      => $this->branch->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => $admin->id,
-            'status'         => 'completed',
+            'branch_id' => $this->branch->id,
+            'client_id' => $this->client->id,
+            'seller_id' => $admin->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 20000,
-            'net'            => 20000,
-            'date'           => '2026-03-15 10:00:00',
+            'total' => 20000,
+            'net' => 20000,
+            'date' => '2026-03-15 10:00:00',
         ]);
 
         $response = $this->actingAs($admin)
             ->get(route('reports.index', [
                 'date_from' => '2026-03-01',
-                'date_to'   => '2026-03-31',
+                'date_to' => '2026-03-31',
             ]));
 
         $response->assertOk();
@@ -92,14 +92,14 @@ describe('Report Filters', function () {
 
         $otherBranch = Branch::factory()->create();
         Sale::factory()->create([
-            'branch_id'      => $otherBranch->id,
-            'client_id'      => $this->client->id,
-            'seller_id'      => adminUser($otherBranch)->id,
-            'status'         => 'completed',
+            'branch_id' => $otherBranch->id,
+            'client_id' => $this->client->id,
+            'seller_id' => adminUser($otherBranch)->id,
+            'status' => 'completed',
             'payment_method' => 'cash',
-            'total'          => 10000,
-            'net'            => 10000,
-            'date'           => now(),
+            'total' => 10000,
+            'net' => 10000,
+            'date' => now(),
         ]);
 
         $response = $this->actingAs($manager)

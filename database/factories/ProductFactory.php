@@ -17,12 +17,12 @@ class ProductFactory extends Factory
         'Alimentos' => [],
         'Ropa' => [],
         'Hogar' => [],
-        'default' => []
+        'default' => [],
     ];
-    
+
     // Control de productos únicos a nivel global
     private static $allUsedNames = [];
-    
+
     // Descripciones específicas por tipo de producto
     private $productDescriptions = [
         // Electrónicos
@@ -101,7 +101,7 @@ class ProductFactory extends Factory
             'Producto nacional con garantía de satisfacción y soporte local.',
             'Artículo versátil diseñado para satisfacer las necesidades del mercado colombiano.',
             'Producto elaborado con los más altos estándares de calidad y materiales seleccionados.',
-        ]
+        ],
     ];
 
     /**
@@ -155,7 +155,7 @@ class ProductFactory extends Factory
                 'Auriculares inalámbricos Apple AirPods',
                 'Cámara de seguridad Ezviz',
                 'Tablet Amazon Fire',
-                'Impresora multifunción Epson EcoTank'
+                'Impresora multifunción Epson EcoTank',
             ],
             // Alimentos
             'Alimentos' => [
@@ -199,7 +199,7 @@ class ProductFactory extends Factory
                 'Tostadas Bimbo',
                 'Sopa Maggi',
                 'Pollo Zenú',
-                'Galletas Festival'
+                'Galletas Festival',
             ],
             // Ropa
             'Ropa' => [
@@ -242,7 +242,7 @@ class ProductFactory extends Factory
                 'Chalina Vélez',
                 'Pantalón formal Americanino',
                 'Pantalón jogger Gef',
-                'Polo Ralph Lauren'
+                'Polo Ralph Lauren',
             ],
             // Hogar
             'Hogar' => [
@@ -285,7 +285,7 @@ class ProductFactory extends Factory
                 'Tendedero plegable',
                 'Silla de escritorio HomeCenter',
                 'Aparador de madera',
-                'Candelabro decorativo'
+                'Candelabro decorativo',
             ],
             // Otros/Default
             'default' => [
@@ -328,7 +328,7 @@ class ProductFactory extends Factory
                 'Caja Tallada',
                 'Jarrón Decorativo',
                 'Muñeca de Trapo',
-                'Cinturón Tejido'
+                'Cinturón Tejido',
             ],
         ];
 
@@ -343,15 +343,15 @@ class ProductFactory extends Factory
 
         // Determinar el category_id para el producto actual
         $category_id = null;
-        
+
         // Si estamos creando este producto con un category_id específico, lo usamos
         if (isset($this->states['category_id'])) {
             $category_id = $this->states['category_id'];
-        } else if (Category::count() > 0) {
+        } elseif (Category::count() > 0) {
             // De lo contrario, seleccionamos una categoría aleatoria
             $category_id = $this->faker->randomElement(Category::pluck('id')->toArray());
         }
-        
+
         // Obtener la categoría y mapearla a nuestras categorías de productos
         $categoryName = 'default';
         if ($category_id) {
@@ -378,40 +378,40 @@ class ProductFactory extends Factory
         }
 
         // Si no encontramos productos para esta categoría, usamos los default
-        if (!isset($productsByCategory[$categoryName])) {
+        if (! isset($productsByCategory[$categoryName])) {
             $categoryName = 'default';
         }
-        
+
         // Asegurarnos que tenemos arreglos inicializados para esta categoría
-        if (!isset(self::$usedProducts[$categoryName])) {
+        if (! isset(self::$usedProducts[$categoryName])) {
             self::$usedProducts[$categoryName] = [];
         }
-        
+
         // Crear una lista de productos disponibles que no han sido usados en esta categoría
         $availableProducts = array_diff($productsByCategory[$categoryName], self::$usedProducts[$categoryName]);
-        
+
         // Si ya no hay productos disponibles, resetear para esta categoría específica
         // pero agregando un sufijo numérico para hacerlos únicos
         if (empty($availableProducts)) {
             // Para cada producto ya usado, crearemos una versión con sufijo
             foreach ($productsByCategory[$categoryName] as $baseProduct) {
                 $counter = 1;
-                $newProductName = $baseProduct . " #" . $counter;
-                
+                $newProductName = $baseProduct.' #'.$counter;
+
                 // Buscar un sufijo que no exista ya
                 while (in_array($newProductName, self::$allUsedNames)) {
                     $counter++;
-                    $newProductName = $baseProduct . " #" . $counter;
+                    $newProductName = $baseProduct.' #'.$counter;
                 }
-                
+
                 // Agregamos este nuevo producto a la lista de disponibles
                 $availableProducts[] = $newProductName;
             }
         }
-        
+
         // Seleccionar un producto al azar de los disponibles
         $productName = $this->faker->randomElement($availableProducts);
-        
+
         // Registrar este producto como usado
         self::$usedProducts[$categoryName][] = $productName;
         self::$allUsedNames[] = $productName;
@@ -422,7 +422,7 @@ class ProductFactory extends Factory
         // Generamos precios en formato colombiano
         $purchasePrice = $this->faker->numberBetween($priceRange['min'], $priceRange['max']);
         $salePrice = round($purchasePrice * $this->faker->randomFloat(2, 1.15, 1.4), -3); // Redondea a miles
-        
+
         // Generamos una descripción coherente con el producto
         $description = $this->getProductDescription($productName);
 
@@ -440,11 +440,11 @@ class ProductFactory extends Factory
             'status' => true,
         ];
     }
-    
+
     /**
      * Genera una descripción coherente con el producto basada en palabras clave
-     * 
-     * @param string $productName Nombre del producto
+     *
+     * @param  string  $productName  Nombre del producto
      * @return string Descripción personalizada
      */
     private function getProductDescription($productName)
@@ -455,10 +455,11 @@ class ProductFactory extends Factory
                 return $this->faker->randomElement($descriptions);
             }
         }
-        
+
         // Si no encontramos coincidencias específicas, generamos una descripción genérica
         // pero añadimos el nombre del producto para hacerla más específica
         $genericDesc = $this->faker->randomElement($this->productDescriptions['default']);
+
         return str_replace('Producto', $productName, $genericDesc);
     }
 
@@ -471,6 +472,7 @@ class ProductFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             $minStock = $attributes['min_stock'] ?? 5;
+
             return [
                 'stock' => $this->faker->numberBetween(0, $minStock - 1),
             ];

@@ -34,7 +34,7 @@ class BranchFactory extends Factory
     {
         return $this->state(function () {
             $manager = User::factory()->create(['role' => 'manager']);
-            
+
             return [
                 'manager_id' => $manager->id,
             ];

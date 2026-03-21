@@ -8,7 +8,7 @@ use App\Models\User;
 
 beforeEach(function () {
     $this->branch = Branch::factory()->create();
-    $this->user   = vendedorUser($this->branch);
+    $this->user = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create();
     PaymentMethod::factory()->create(['code' => 'cash']);
@@ -24,8 +24,8 @@ describe('Open Cash Session', function () {
         $response->assertRedirect(route('pos.index'));
         $this->assertDatabaseHas('cash_sessions', [
             'opened_by_user_id' => $this->user->id,
-            'branch_id'         => $this->branch->id,
-            'status'            => 'open',
+            'branch_id' => $this->branch->id,
+            'status' => 'open',
         ]);
     });
 
@@ -41,9 +41,9 @@ describe('Open Cash Session', function () {
 
     it('cannot open a second session while one is active', function () {
         CashSession::factory()->create([
-            'branch_id'         => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'opened_by_user_id' => $this->user->id,
-            'status'            => 'open',
+            'status' => 'open',
         ]);
 
         $response = $this->actingAs($this->user)
@@ -74,9 +74,9 @@ describe('Open Cash Session', function () {
 
     it('user without branch_id cannot open session', function () {
         $userNoBranch = User::factory()->create([
-            'role'      => 'vendedor',
+            'role' => 'vendedor',
             'branch_id' => null,
-            'status'    => true,
+            'status' => true,
         ]);
 
         $response = $this->actingAs($userNoBranch)

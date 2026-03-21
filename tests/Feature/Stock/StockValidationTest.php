@@ -8,10 +8,10 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
-    $this->seller   = vendedorUser($this->branch);
+    $this->client = Client::factory()->create();
+    $this->seller = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create(['require_cash_session' => false]);
     PaymentMethod::factory()->create(['code' => 'cash']);
@@ -20,30 +20,30 @@ beforeEach(function () {
 function stockSalePayload(array $products): array
 {
     return [
-        'branch_id'      => test()->branch->id,
-        'client_id'      => test()->client->id,
-        'seller_id'      => test()->seller->id,
-        'net'            => collect($products)->sum('subtotal'),
-        'total'          => collect($products)->sum('subtotal'),
-        'amount_paid'    => collect($products)->sum('subtotal'),
-        'change_amount'  => 0,
+        'branch_id' => test()->branch->id,
+        'client_id' => test()->client->id,
+        'seller_id' => test()->seller->id,
+        'net' => collect($products)->sum('subtotal'),
+        'total' => collect($products)->sum('subtotal'),
+        'amount_paid' => collect($products)->sum('subtotal'),
+        'change_amount' => 0,
         'payment_method' => 'cash',
-        'date'           => now()->format('Y-m-d H:i'),
-        'status'         => 'completed',
-        'discount_type'  => 'none',
+        'date' => now()->format('Y-m-d H:i'),
+        'status' => 'completed',
+        'discount_type' => 'none',
         'discount_value' => 0,
-        'products'       => $products,
+        'products' => $products,
     ];
 }
 
 describe('Stock Validation', function () {
     it('allows sale when stock equals requested quantity', function () {
         $product = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'stock'       => 5,
-            'sale_price'  => 10000,
-            'tax'         => 0,
+            'stock' => 5,
+            'sale_price' => 10000,
+            'tax' => 0,
         ]);
 
         $response = $this->actingAs($this->seller)
@@ -57,11 +57,11 @@ describe('Stock Validation', function () {
 
     it('rejects sale when stock is insufficient', function () {
         $product = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'stock'       => 4,
-            'sale_price'  => 10000,
-            'tax'         => 0,
+            'stock' => 4,
+            'sale_price' => 10000,
+            'tax' => 0,
         ]);
 
         $response = $this->actingAs($this->seller)
@@ -75,18 +75,18 @@ describe('Stock Validation', function () {
 
     it('rolls back all items when one fails stock check', function () {
         $productA = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'stock'       => 10,
-            'sale_price'  => 10000,
-            'tax'         => 0,
+            'stock' => 10,
+            'sale_price' => 10000,
+            'tax' => 0,
         ]);
         $productB = Product::factory()->create([
-            'branch_id'   => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'category_id' => $this->category->id,
-            'stock'       => 1,
-            'sale_price'  => 5000,
-            'tax'         => 0,
+            'stock' => 1,
+            'sale_price' => 5000,
+            'tax' => 0,
         ]);
 
         $response = $this->actingAs($this->seller)

@@ -11,12 +11,14 @@ class BusinessSetting extends Model
     use HasFactory;
 
     private const CACHE_KEY = 'business_settings';
+
     private const CACHE_TTL = 3600; // 1 hour
 
     protected static function booted(): void
     {
         static::saved(fn () => Cache::forget(self::CACHE_KEY));
     }
+
     protected $fillable = [
         'name',
         'logo',
@@ -37,23 +39,23 @@ class BusinessSetting extends Model
     /** Default ticket template configuration. */
     public const TICKET_DEFAULTS = [
         // ── Shared (header) ───────────────────────────────────────────────────
-        'paper_width'         => 58,
-        'header_size'         => 'large',
-        'show_logo'           => false,
-        'show_nit'            => true,
-        'show_address'        => true,
-        'show_phone'          => true,
+        'paper_width' => 58,
+        'header_size' => 'large',
+        'show_logo' => false,
+        'show_nit' => true,
+        'show_address' => true,
+        'show_phone' => true,
         // ── Sale ticket ───────────────────────────────────────────────────────
-        'show_seller'         => true,
-        'show_branch'         => true,
-        'show_tax'            => true,
-        'footer_line1'        => '¡Gracias por su compra!',
-        'footer_line2'        => 'Vuelva pronto',
-        'sale_code_graphic'   => 'none',   // none | qr | barcode
+        'show_seller' => true,
+        'show_branch' => true,
+        'show_tax' => true,
+        'footer_line1' => '¡Gracias por su compra!',
+        'footer_line2' => 'Vuelva pronto',
+        'sale_code_graphic' => 'none',   // none | qr | barcode
         // ── Return ticket ─────────────────────────────────────────────────────
-        'return_show_seller'  => true,
-        'return_show_branch'  => true,
-        'return_show_reason'  => true,
+        'return_show_seller' => true,
+        'return_show_branch' => true,
+        'return_show_reason' => true,
         'return_footer_line1' => 'Devolución procesada.',
         'return_footer_line2' => 'Gracias por su preferencia.',
         'return_code_graphic' => 'none',   // none | qr | barcode
@@ -74,7 +76,7 @@ class BusinessSetting extends Model
     {
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
             return static::first() ?? static::create([
-                'name'            => config('app.name', 'Mi Negocio'),
+                'name' => config('app.name', 'Mi Negocio'),
                 'currency_symbol' => '$',
             ]);
         });
@@ -110,9 +112,9 @@ class BusinessSetting extends Model
             }
 
             // Legacy local file
-            $path = public_path('uploads/business/' . $this->logo);
+            $path = public_path('uploads/business/'.$this->logo);
             if (file_exists($path)) {
-                return asset('uploads/business/' . $this->logo);
+                return asset('uploads/business/'.$this->logo);
             }
         }
 

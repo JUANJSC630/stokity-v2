@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class CategoryController extends Controller
 {
@@ -25,7 +23,6 @@ class CategoryController extends Controller
                 $q->where('name', 'like', "%{$search}%");
             });
         }
-
 
         // Restructure pagination data to match frontend expectations
         $categories = $query->orderBy('created_at', 'desc')

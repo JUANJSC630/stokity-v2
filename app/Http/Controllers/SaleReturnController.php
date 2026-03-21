@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnProduct;
-use App\Models\Product;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class SaleReturnController extends Controller
 {
@@ -18,22 +18,22 @@ class SaleReturnController extends Controller
     public function store(Request $request, $saleId)
     {
         $request->validate([
-            'products'                => 'required|array',
-            'products.*.product_id'   => 'required|exists:products,id',
-            'products.*.quantity'     => 'required|integer|min:1',
-            'reason'                  => 'nullable|string',
+            'products' => 'required|array',
+            'products.*.product_id' => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+            'reason' => 'nullable|string',
         ]);
 
         $sale = Sale::with('saleProducts')->findOrFail($saleId);
         $user = Auth::user();
 
         // Verify user belongs to the sale's branch (prevent cross-branch returns)
-        if (!$user->isAdmin() && $user->branch_id && $sale->branch_id !== $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a ventas de otra sucursal.');
         }
 
         // Validate sale status before processing return
-        if (!in_array($sale->status, ['completed', 'cancelled'])) {
+        if (! in_array($sale->status, ['completed', 'cancelled'])) {
             return back()->withErrors(['sale' => 'Solo se pueden devolver ventas completadas.']);
         }
 
@@ -56,10 +56,11 @@ class SaleReturnController extends Controller
                         }
                         foreach ($request->products as $item) {
                             $existing = $ret->products->firstWhere('id', $item['product_id']);
-                            if (!$existing || (int) $existing->pivot->quantity !== (int) $item['quantity']) {
+                            if (! $existing || (int) $existing->pivot->quantity !== (int) $item['quantity']) {
                                 return false;
                             }
                         }
+
                         return true;
                     });
 
@@ -70,12 +71,12 @@ class SaleReturnController extends Controller
                 $saleReturn = SaleReturn::create([
                     'sale_id' => $sale->id,
                     'user_id' => $user ? $user->id : null,
-                    'reason'  => $request->reason,
+                    'reason' => $request->reason,
                 ]);
 
                 foreach ($request->products as $item) {
                     $saleProduct = $sale->saleProducts->where('product_id', $item['product_id'])->first();
-                    if (!$saleProduct) {
+                    if (! $saleProduct) {
                         throw new \RuntimeException('Producto no pertenece a la venta.');
                     }
 
@@ -90,16 +91,16 @@ class SaleReturnController extends Controller
 
                     SaleReturnProduct::create([
                         'sale_return_id' => $saleReturn->id,
-                        'product_id'     => $item['product_id'],
-                        'quantity'       => $item['quantity'],
+                        'product_id' => $item['product_id'],
+                        'quantity' => $item['quantity'],
                     ]);
 
                     // Lock row to prevent concurrent stock corruption (same pattern as SaleController)
                     $product = Product::lockForUpdate()->find($item['product_id']);
-                    if (!$product) {
+                    if (! $product) {
                         throw new \RuntimeException('Producto no encontrado.');
                     }
-                    $previousStock  = $product->stock;
+                    $previousStock = $product->stock;
                     $product->stock += $item['quantity'];
                     $product->save();
 
@@ -138,5 +139,4 @@ class SaleReturnController extends Controller
 
         return back()->with('success', 'Devolución registrada correctamente.');
     }
-
 }

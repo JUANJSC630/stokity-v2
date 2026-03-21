@@ -19,6 +19,7 @@ class StockMovementSeeder extends Seeder
 
         if ($products->isEmpty() || $users->isEmpty()) {
             $this->command->info('No hay productos o usuarios disponibles para crear movimientos de stock.');
+
             return;
         }
 
@@ -31,7 +32,7 @@ class StockMovementSeeder extends Seeder
             'Transferencia entre sucursales',
             'Merma por vencimiento',
             'Donación',
-            'Promoción especial'
+            'Promoción especial',
         ];
 
         foreach ($products as $product) {
@@ -58,7 +59,7 @@ class StockMovementSeeder extends Seeder
             for ($i = 0; $i < rand(3, 8); $i++) {
                 $type = $movementTypes[array_rand($movementTypes)];
                 $quantity = rand(5, 30);
-                
+
                 switch ($type) {
                     case 'in':
                         $newStock = $currentStock + $quantity;

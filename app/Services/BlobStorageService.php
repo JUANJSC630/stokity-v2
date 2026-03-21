@@ -28,31 +28,30 @@ class BlobStorageService
     /**
      * Upload an image to Vercel Blob, converting it to WebP first.
      *
-     * @param  UploadedFile  $file
      * @param  string  $folder  e.g. "products" or "settings"
-     * @return string  The public URL of the uploaded blob
+     * @return string The public URL of the uploaded blob
      */
     public function upload(UploadedFile $file, string $folder): string
     {
         $webp = $this->toWebP($file);
-        $filename = uniqid((string) time(), true) . '.webp';
+        $filename = uniqid((string) time(), true).'.webp';
         $pathname = "stokity/{$folder}/{$filename}";
 
         $response = Http::withToken($this->token)
             ->timeout(30)
             ->withHeaders([
                 'content-type' => 'image/webp',
-                'x-access'     => 'public',
+                'x-access' => 'public',
             ])
             ->withBody($webp, 'image/webp')
-            ->put(self::BASE_URL . '/' . $pathname);
+            ->put(self::BASE_URL.'/'.$pathname);
 
         if ($response->failed()) {
             Log::error('Vercel Blob upload failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
-            throw new RuntimeException('Failed to upload image to Blob storage: ' . $response->body());
+            throw new RuntimeException('Failed to upload image to Blob storage: '.$response->body());
         }
 
         return $response->json('url');
@@ -88,7 +87,7 @@ class BlobStorageService
      */
     private function toWebP(UploadedFile $file): string
     {
-        if (!extension_loaded('gd')) {
+        if (! extension_loaded('gd')) {
             throw new RuntimeException('GD extension is required for WebP conversion.');
         }
 

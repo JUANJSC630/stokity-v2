@@ -16,11 +16,11 @@ class CashMovementFactory extends Factory
     {
         return [
             'session_id' => CashSession::factory(),
-            'user_id'    => User::factory(),
-            'type'       => 'cash_in',
-            'amount'     => $this->faker->numberBetween(10000, 100000),
-            'concept'    => $this->faker->sentence(3),
-            'notes'      => null,
+            'user_id' => User::factory(),
+            'type' => 'cash_in',
+            'amount' => $this->faker->numberBetween(10000, 100000),
+            'concept' => $this->faker->sentence(3),
+            'notes' => null,
         ];
     }
 }

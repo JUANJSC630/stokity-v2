@@ -20,4 +20,4 @@ Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
 
     // Product movements route - accessible to all authenticated users
     Route::get('/products/{product}/movements', [StockMovementController::class, 'productMovements'])->name('stock-movements.product');
-}); 
+});

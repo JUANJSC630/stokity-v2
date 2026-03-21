@@ -11,45 +11,45 @@ use App\Models\Sale;
 use App\Models\StockMovement;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create();
+    $this->branch = Branch::factory()->create();
     $this->category = Category::factory()->create();
-    $this->client   = Client::factory()->create();
-    $this->seller   = vendedorUser($this->branch);
+    $this->client = Client::factory()->create();
+    $this->seller = vendedorUser($this->branch);
 
     BusinessSetting::factory()->create(['require_cash_session' => false]);
     PaymentMethod::factory()->create(['code' => 'cash', 'is_active' => true]);
 
     $this->product = Product::factory()->create([
-        'branch_id'   => $this->branch->id,
+        'branch_id' => $this->branch->id,
         'category_id' => $this->category->id,
-        'sale_price'  => 10000,
-        'stock'       => 20,
-        'tax'         => 0,
-        'status'      => true,
+        'sale_price' => 10000,
+        'stock' => 20,
+        'tax' => 0,
+        'status' => true,
     ]);
 });
 
 function salePayload(array $overrides = []): array
 {
     return array_merge([
-        'branch_id'      => test()->branch->id,
-        'client_id'      => test()->client->id,
-        'seller_id'      => test()->seller->id,
-        'net'            => 20000,
-        'total'          => 20000,
-        'amount_paid'    => 25000,
-        'change_amount'  => 5000,
+        'branch_id' => test()->branch->id,
+        'client_id' => test()->client->id,
+        'seller_id' => test()->seller->id,
+        'net' => 20000,
+        'total' => 20000,
+        'amount_paid' => 25000,
+        'change_amount' => 5000,
         'payment_method' => 'cash',
-        'date'           => now()->format('Y-m-d H:i'),
-        'status'         => 'completed',
-        'discount_type'  => 'none',
+        'date' => now()->format('Y-m-d H:i'),
+        'status' => 'completed',
+        'discount_type' => 'none',
         'discount_value' => 0,
-        'notes'          => null,
-        'products'       => [
+        'notes' => null,
+        'products' => [
             [
-                'id'       => test()->product->id,
+                'id' => test()->product->id,
                 'quantity' => 2,
-                'price'    => 10000,
+                'price' => 10000,
                 'subtotal' => 20000,
             ],
         ],
@@ -64,7 +64,7 @@ describe('Create Sale — Happy Path', function () {
         $response->assertRedirect(route('sales.index'));
         $this->assertDatabaseHas('sales', [
             'branch_id' => $this->branch->id,
-            'status'    => 'completed',
+            'status' => 'completed',
         ]);
     });
 
@@ -98,9 +98,9 @@ describe('Create Sale — Happy Path', function () {
 
     it('associates sale with open cash session', function () {
         $session = CashSession::factory()->create([
-            'branch_id'         => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'opened_by_user_id' => $this->seller->id,
-            'status'            => 'open',
+            'status' => 'open',
         ]);
 
         $this->actingAs($this->seller)
@@ -113,7 +113,7 @@ describe('Create Sale — Happy Path', function () {
     it('calculates change_amount for cash sale', function () {
         $this->actingAs($this->seller)
             ->post(route('sales.store'), salePayload([
-                'amount_paid'   => 30000,
+                'amount_paid' => 30000,
                 'change_amount' => 10000,
             ]));
 
@@ -173,12 +173,12 @@ describe('Create Sale — Validation Errors', function () {
     });
 
     it('fails if product belongs to another branch', function () {
-        $otherBranch  = Branch::factory()->create();
+        $otherBranch = Branch::factory()->create();
         $otherProduct = Product::factory()->create([
-            'branch_id'   => $otherBranch->id,
+            'branch_id' => $otherBranch->id,
             'category_id' => $this->category->id,
-            'stock'       => 50,
-            'tax'         => 0,
+            'stock' => 50,
+            'tax' => 0,
         ]);
 
         // Stock validation in validateStockAndTax will check stock but won't fail for cross-branch.
@@ -207,7 +207,7 @@ describe('Create Sale — Discounts', function () {
     it('percentage discount calculates correctly', function () {
         $this->actingAs($this->seller)
             ->post(route('sales.store'), salePayload([
-                'discount_type'  => 'percentage',
+                'discount_type' => 'percentage',
                 'discount_value' => 10,
             ]));
 
@@ -221,7 +221,7 @@ describe('Create Sale — Discounts', function () {
     it('fixed discount calculates correctly', function () {
         $this->actingAs($this->seller)
             ->post(route('sales.store'), salePayload([
-                'discount_type'  => 'fixed',
+                'discount_type' => 'fixed',
                 'discount_value' => 5000,
             ]));
 
@@ -234,7 +234,7 @@ describe('Create Sale — Discounts', function () {
     it('net equals total minus discount', function () {
         $this->actingAs($this->seller)
             ->post(route('sales.store'), salePayload([
-                'discount_type'  => 'percentage',
+                'discount_type' => 'percentage',
                 'discount_value' => 20,
             ]));
 

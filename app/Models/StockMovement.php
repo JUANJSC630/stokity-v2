@@ -112,7 +112,7 @@ class StockMovement extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'in' => 'Entrada',
             'out' => 'Salida',
             'adjustment' => 'Ajuste',
@@ -128,7 +128,7 @@ class StockMovement extends Model
      */
     public function getTypeColorAttribute(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'in' => 'green',
             'out' => 'red',
             'adjustment' => 'yellow',

@@ -24,14 +24,14 @@ class BusinessSettingController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:100',
-            'nit'             => 'nullable|string|max:50',
-            'phone'           => 'nullable|string|max:30',
-            'email'           => 'nullable|email|max:100',
-            'address'         => 'nullable|string|max:255',
+            'name' => 'required|string|max:100',
+            'nit' => 'nullable|string|max:50',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email|max:100',
+            'address' => 'nullable|string|max:255',
             'currency_symbol' => 'nullable|string|max:5',
-            'logo'                 => 'nullable|image|max:4096',
-            'logo_url'             => 'nullable|url|max:500',
+            'logo' => 'nullable|image|max:4096',
+            'logo_url' => 'nullable|url|max:500',
             'require_cash_session' => 'nullable|boolean',
         ]);
 
@@ -43,7 +43,7 @@ class BusinessSettingController extends Controller
                 $this->blob->delete($settings->logo);
             }
             $validated['logo'] = $this->blob->upload($request->file('logo'), 'settings');
-        } elseif (!empty($validated['logo_url'])) {
+        } elseif (! empty($validated['logo_url'])) {
             // URL provided directly (e.g. an existing blob URL) — save as-is,
             // no new upload needed.
             $validated['logo'] = $validated['logo_url'];
