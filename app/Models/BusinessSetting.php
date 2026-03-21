@@ -3,9 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class BusinessSetting extends Model
 {
+    private const CACHE_KEY = 'business_settings';
+    private const CACHE_TTL = 3600; // 1 hour
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => Cache::forget(self::CACHE_KEY));
+    }
     protected $fillable = [
         'name',
         'logo',
@@ -61,10 +69,12 @@ class BusinessSetting extends Model
      */
     public static function getSettings(): self
     {
-        return static::first() ?? static::create([
-            'name'            => config('app.name', 'Mi Negocio'),
-            'currency_symbol' => '$',
-        ]);
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+            return static::first() ?? static::create([
+                'name'            => config('app.name', 'Mi Negocio'),
+                'currency_symbol' => '$',
+            ]);
+        });
     }
 
     /**

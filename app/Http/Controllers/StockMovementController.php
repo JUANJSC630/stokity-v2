@@ -138,6 +138,14 @@ class StockMovementController extends Controller
             return redirect()->back()->with('error', 'No tienes permisos para modificar este producto.');
         }
 
+        // Verificar que el proveedor pertenezca a la misma sucursal del producto
+        if ($request->supplier_id) {
+            $supplier = Supplier::find($request->supplier_id);
+            if ($supplier && $supplier->branch_id !== $product->branch_id) {
+                return redirect()->back()->withErrors(['supplier_id' => 'El proveedor no pertenece a la misma sucursal del producto.']);
+            }
+        }
+
         DB::transaction(function () use ($request, $user, $product) {
             // Re-read with row lock to prevent race conditions with concurrent sales
             $locked        = Product::lockForUpdate()->findOrFail($product->id);
@@ -197,6 +205,9 @@ class StockMovementController extends Controller
      */
     public function show(StockMovement $stockMovement): Response
     {
+        $user = Auth::user();
+        abort_if(!$user->isAdmin() && $stockMovement->branch_id !== $user->branch_id, 403, 'No tienes acceso a este movimiento.');
+
         $stockMovement->load(['product', 'user', 'branch', 'supplier']);
 
         return Inertia::render('stock-movements/show', [

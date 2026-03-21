@@ -317,8 +317,9 @@ export default function Show({ client, sales, stats }: Props) {
                                                         variant={link.active ? 'default' : 'outline'}
                                                         size="sm"
                                                         className="h-7 min-w-7 px-2 text-xs"
-                                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                                    />
+                                                    >
+                                                        {link.label.replace(/&laquo;/g, '«').replace(/&raquo;/g, '»')}
+                                                    </Button>
                                                 </Link>
                                             ))}
                                     </div>

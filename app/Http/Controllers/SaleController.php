@@ -142,28 +142,15 @@ class SaleController extends Controller
         ]);
 
         // Verificar stock disponible y calcular impuesto por producto
-        $totalTax = 0;
-        foreach ($request->products as $index => $prod) {
-            $product = Product::find($prod['id']);
-            if (!$product || $product->stock < $prod['quantity']) {
-                return back()->withErrors([
-                    "products.{$index}.quantity" => "Stock insuficiente para {$product->name}. Disponible: {$product->stock}",
-                ])->withInput();
-            }
-
-            // Calcular impuesto por producto
-            $productTax = $product->tax ?? 0;
-            $productTaxAmount = $prod['subtotal'] * ($productTax / 100);
-            $totalTax += $productTaxAmount;
+        $stockCheck = $this->validateStockAndTax($request->products);
+        if (!empty($stockCheck['errors'])) {
+            return back()->withErrors($stockCheck['errors'])->withInput();
         }
+        $totalTax = $stockCheck['totalTax'];
 
         // Calcular descuento server-side
         $gross = $validated['net'] + $totalTax;
-        $discountAmount = match ($validated['discount_type']) {
-            'percentage' => round($gross * ($validated['discount_value'] / 100), 2),
-            'fixed'      => min($validated['discount_value'], $gross),
-            default      => 0,
-        };
+        $discountAmount = $this->calculateDiscount($validated['discount_type'], $validated['discount_value'], $gross);
 
         // Generate unique sale code: timestamp + random (with retry on collision)
         do {
@@ -344,35 +331,17 @@ class SaleController extends Controller
         }
 
         // Verificar stock y recalcular tax/total server-side (prevent frontend manipulation)
-        $stockErrors = [];
-        $totalTax = 0;
-        foreach ($products as $prod) {
-            $product = Product::find($prod['id']);
-            if (!$product) {
-                $stockErrors["stock_{$prod['id']}"] = "Producto ID {$prod['id']} no encontrado.";
-                continue;
-            }
-            if ($product->stock < $prod['quantity']) {
-                $available = $product->stock;
-                $stockErrors["stock_{$prod['id']}"] = "{$product->name}: necesitas {$prod['quantity']}, " .
-                    ($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
-            }
-            $productTax = $product->tax ?? 0;
-            $totalTax += $prod['subtotal'] * ($productTax / 100);
+        $stockCheck = $this->validateStockAndTax($products);
+        if (!empty($stockCheck['errors'])) {
+            return back()->withErrors($stockCheck['errors']);
         }
-        if (!empty($stockErrors)) {
-            return back()->withErrors($stockErrors);
-        }
+        $totalTax = $stockCheck['totalTax'];
 
-        // Recalculate discount and total server-side (same logic as store())
+        // Recalculate discount and total server-side
         $discountType  = $validated['discount_type'] ?? 'none';
         $discountValue = $validated['discount_value'] ?? 0;
         $gross = $validated['net'] + $totalTax;
-        $discountAmount = match ($discountType) {
-            'percentage' => round($gross * ($discountValue / 100), 2),
-            'fixed'      => min($discountValue, $gross),
-            default      => 0,
-        };
+        $discountAmount = $this->calculateDiscount($discountType, $discountValue, $gross);
         $serverTotal = max(0, $gross - $discountAmount);
 
         try {
@@ -512,6 +481,9 @@ class SaleController extends Controller
      */
     public function show(Sale $sale)
     {
+        $user = Auth::user();
+        abort_if(!$user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
+
         // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
         $sale->load([
             'branch.manager',
@@ -692,5 +664,50 @@ class SaleController extends Controller
         });
 
         return redirect()->route('sales.index')->with('success', 'Venta eliminada exitosamente.');
+    }
+
+    /**
+     * Validate stock availability and calculate total tax for a set of products.
+     *
+     * @param  array  $products  Array of ['id' => int, 'quantity' => int, 'subtotal' => float]
+     * @return array{errors: array, totalTax: float}
+     */
+    private function validateStockAndTax(array $products): array
+    {
+        $errors   = [];
+        $totalTax = 0;
+
+        foreach ($products as $index => $prod) {
+            $product = Product::find($prod['id']);
+
+            if (!$product) {
+                $errors["stock_{$prod['id']}"] = "Producto ID {$prod['id']} no encontrado.";
+                continue;
+            }
+
+            if ($product->stock < $prod['quantity']) {
+                $available = $product->stock;
+                $key = is_int($index) ? "products.{$index}.quantity" : "stock_{$prod['id']}";
+                $errors[$key] = "{$product->name}: necesitas {$prod['quantity']}, "
+                    . ($available > 0 ? "solo hay {$available} disponible" : 'sin stock');
+            }
+
+            $productTax = $product->tax ?? 0;
+            $totalTax += $prod['subtotal'] * ($productTax / 100);
+        }
+
+        return ['errors' => $errors, 'totalTax' => $totalTax];
+    }
+
+    /**
+     * Calculate the discount amount server-side to prevent frontend manipulation.
+     */
+    private function calculateDiscount(string $type, float $value, float $gross): float
+    {
+        return match ($type) {
+            'percentage' => round($gross * ($value / 100), 2),
+            'fixed'      => min($value, $gross),
+            default      => 0,
+        };
     }
 }

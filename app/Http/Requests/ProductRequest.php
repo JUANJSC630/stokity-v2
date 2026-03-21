@@ -12,7 +12,17 @@ class ProductRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        // Admins can assign products to any branch
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Non-admins can only manage products in their own branch
+        $branchId = (int) $this->input('branch_id');
+
+        return $branchId === $user->branch_id;
     }
 
     /**

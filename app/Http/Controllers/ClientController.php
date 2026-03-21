@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class ClientController extends Controller
@@ -68,16 +69,25 @@ class ClientController extends Controller
      */
     public function show(Request $request, Client $client)
     {
-        $sales = $client->sales()
+        $user = Auth::user();
+
+        $salesQuery = $client->sales()
+            ->when(!$user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id));
+
+        $sales = (clone $salesQuery)
             ->with('seller')
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
+        $statsRow = (clone $salesQuery)
+            ->selectRaw('COUNT(*) as total_sales, COALESCE(SUM(total), 0) as total_spent, MAX(created_at) as last_purchase')
+            ->first();
+
         $stats = [
-            'total_sales'   => $client->sales()->count(),
-            'total_spent'   => (float) $client->sales()->sum('total'),
-            'last_purchase' => $client->sales()->max('created_at'),
+            'total_sales'   => (int) $statsRow->total_sales,
+            'total_spent'   => (float) $statsRow->total_spent,
+            'last_purchase' => $statsRow->last_purchase,
         ];
 
         return Inertia::render('clients/show', [

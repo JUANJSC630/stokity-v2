@@ -406,7 +406,7 @@ export default function TrashedProducts({
                                                 disabled={!link.url}
                                                 onClick={() => link.url && handlePaginationClick(link.url)}
                                             >
-                                                <span dangerouslySetInnerHTML={{ __html: link.label || '' }} />
+                                                <span>{(link.label || '').replace(/&laquo;/g, '«').replace(/&raquo;/g, '»')}</span>
                                             </Button>
                                         ),
                                 )}

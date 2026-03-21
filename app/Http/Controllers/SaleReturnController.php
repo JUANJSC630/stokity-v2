@@ -32,34 +32,41 @@ class SaleReturnController extends Controller
             abort(403, 'No tienes acceso a ventas de otra sucursal.');
         }
 
-        // Deduplication guard: reject if an identical return was submitted for this
-        // sale in the last 30 seconds (protects against double-clicks / network retries).
-        $incomingProductIds = collect($request->products)->pluck('product_id')->sort()->values()->toArray();
-
-        $recentDuplicate = SaleReturn::where('sale_id', $sale->id)
-            ->where('created_at', '>=', now()->subSeconds(30))
-            ->with('products')
-            ->get()
-            ->first(function (SaleReturn $ret) use ($incomingProductIds, $request): bool {
-                $existingIds = $ret->products->pluck('id')->sort()->values()->toArray();
-                if ($existingIds !== $incomingProductIds) {
-                    return false;
-                }
-                foreach ($request->products as $item) {
-                    $existing = $ret->products->firstWhere('id', $item['product_id']);
-                    if (!$existing || (int) $existing->pivot->quantity !== (int) $item['quantity']) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-
-        if ($recentDuplicate !== null) {
-            return back()->with('success', 'Devolución registrada correctamente.');
+        // Validate sale status before processing return
+        if (!in_array($sale->status, ['completed', 'cancelled'])) {
+            return back()->withErrors(['sale' => 'Solo se pueden devolver ventas completadas.']);
         }
 
         try {
             DB::transaction(function () use ($request, $sale, $user): void {
+                // Lock the sale to serialize returns — prevents double stock replenishment
+                $sale = Sale::with('saleProducts')->lockForUpdate()->findOrFail($sale->id);
+
+                // Deduplication guard inside the lock — reject identical returns within 30s
+                $incomingProductIds = collect($request->products)->pluck('product_id')->sort()->values()->toArray();
+
+                $recentDuplicate = SaleReturn::where('sale_id', $sale->id)
+                    ->where('created_at', '>=', now()->subSeconds(30))
+                    ->with('products')
+                    ->get()
+                    ->first(function (SaleReturn $ret) use ($incomingProductIds, $request): bool {
+                        $existingIds = $ret->products->pluck('id')->sort()->values()->toArray();
+                        if ($existingIds !== $incomingProductIds) {
+                            return false;
+                        }
+                        foreach ($request->products as $item) {
+                            $existing = $ret->products->firstWhere('id', $item['product_id']);
+                            if (!$existing || (int) $existing->pivot->quantity !== (int) $item['quantity']) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+
+                if ($recentDuplicate !== null) {
+                    return; // Silently skip — already processed
+                }
+
                 $saleReturn = SaleReturn::create([
                     'sale_id' => $sale->id,
                     'user_id' => $user ? $user->id : null,

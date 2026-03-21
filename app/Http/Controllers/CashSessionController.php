@@ -11,6 +11,7 @@ use App\Models\SaleReturn;
 use App\Models\SaleReturnProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class CashSessionController extends Controller
@@ -88,25 +89,36 @@ class CashSessionController extends Controller
             return back()->withErrors(['branch' => 'Tu usuario no tiene sucursal asignada.']);
         }
 
-        // Check no open session exists
-        $existing = CashSession::getOpenForUser($user->id, $user->branch_id);
-        if ($existing) {
-            return back()->withErrors(['session' => 'Ya tienes una sesión de caja abierta.']);
-        }
-
         $validated = $request->validate([
             'opening_amount' => 'required|numeric|min:0',
             'opening_notes'  => 'nullable|string|max:500',
         ]);
 
-        CashSession::create([
-            'branch_id'           => $user->branch_id,
-            'opened_by_user_id'   => $user->id,
-            'status'              => 'open',
-            'opening_amount'      => $validated['opening_amount'],
-            'opening_notes'       => $validated['opening_notes'] ?? null,
-            'opened_at'           => now()->setTimezone('America/Bogota'),
-        ]);
+        try {
+            DB::transaction(function () use ($user, $validated) {
+                // Lock para serializar apertura — evita dos sesiones abiertas simultáneas
+                $existing = CashSession::where('opened_by_user_id', $user->id)
+                    ->where('branch_id', $user->branch_id)
+                    ->where('status', 'open')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existing) {
+                    throw new \RuntimeException('Ya tienes una sesión de caja abierta.');
+                }
+
+                CashSession::create([
+                    'branch_id'           => $user->branch_id,
+                    'opened_by_user_id'   => $user->id,
+                    'status'              => 'open',
+                    'opening_amount'      => $validated['opening_amount'],
+                    'opening_notes'       => $validated['opening_notes'] ?? null,
+                    'opened_at'           => now()->setTimezone('America/Bogota'),
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['session' => $e->getMessage()]);
+        }
 
         return redirect()->route('pos.index')->with('success', 'Caja abierta correctamente.');
     }
@@ -170,7 +182,7 @@ class CashSessionController extends Controller
             'movements'    => $movements,
             'salesSummary' => $salesSummary,
             'totalSales'   => $totalSales,
-            'expectedCash' => $expectedCash,
+            'expectedCash' => $user->isSeller() ? null : $expectedCash,
             'isBlind'      => $user->isSeller(),
         ]);
     }
@@ -195,64 +207,73 @@ class CashSessionController extends Controller
             'closing_notes'           => 'nullable|string|max:500',
         ]);
 
-        // Aggregate sales by payment method group
-        $salesByMethod = Sale::where('session_id', $session->id)
-            ->where('status', 'completed')
-            ->selectRaw('payment_method, SUM(total) as total, COUNT(*) as count')
-            ->groupBy('payment_method')
-            ->get()
-            ->keyBy('payment_method');
+        DB::transaction(function () use ($session, $user, $validated) {
+            // Lock session to prevent concurrent close and ensure consistent totals
+            $session = CashSession::lockForUpdate()->findOrFail($session->id);
 
-        $totalSalesCash     = 0;
-        $totalSalesCard     = 0;
-        $totalSalesTransfer = 0;
-        $totalSalesOther    = 0;
-
-        foreach ($salesByMethod as $method => $row) {
-            $t = (float) $row->total;
-            if (in_array($method, self::CASH_CODES)) {
-                $totalSalesCash += $t;
-            } elseif (in_array($method, self::CARD_CODES)) {
-                $totalSalesCard += $t;
-            } elseif (in_array($method, self::TRANSFER_CODES)) {
-                $totalSalesTransfer += $t;
-            } else {
-                $totalSalesOther += $t;
+            if ($session->status !== 'open') {
+                throw new \RuntimeException('Esta sesión ya fue cerrada.');
             }
-        }
 
-        // Cash movements
-        $movements    = CashMovement::where('session_id', $session->id)->get();
-        $totalCashIn  = (float) $movements->where('type', 'cash_in')->sum('amount');
-        $totalCashOut = (float) $movements->where('type', 'cash_out')->sum('amount');
+            // Aggregate sales by payment method group
+            $salesByMethod = Sale::where('session_id', $session->id)
+                ->where('status', 'completed')
+                ->selectRaw('payment_method, SUM(total) as total, COUNT(*) as count')
+                ->groupBy('payment_method')
+                ->get()
+                ->keyBy('payment_method');
 
-        // Cash refunds: calculate actual refunded amount from return product quantities × sale prices
-        $totalRefundsCash = $this->calculateCashRefunds($session->id);
+            $totalSalesCash     = 0;
+            $totalSalesCard     = 0;
+            $totalSalesTransfer = 0;
+            $totalSalesOther    = 0;
 
-        $expectedCash = (float) $session->opening_amount
-            + $totalSalesCash
-            + $totalCashIn
-            - $totalCashOut
-            - $totalRefundsCash;
+            foreach ($salesByMethod as $method => $row) {
+                $t = (float) $row->total;
+                if (in_array($method, self::CASH_CODES)) {
+                    $totalSalesCash += $t;
+                } elseif (in_array($method, self::CARD_CODES)) {
+                    $totalSalesCard += $t;
+                } elseif (in_array($method, self::TRANSFER_CODES)) {
+                    $totalSalesTransfer += $t;
+                } else {
+                    $totalSalesOther += $t;
+                }
+            }
 
-        $discrepancy = (float) $validated['closing_amount_declared'] - $expectedCash;
+            // Cash movements
+            $movements    = CashMovement::where('session_id', $session->id)->get();
+            $totalCashIn  = (float) $movements->where('type', 'cash_in')->sum('amount');
+            $totalCashOut = (float) $movements->where('type', 'cash_out')->sum('amount');
 
-        $session->update([
-            'closed_by_user_id'       => $user->id,
-            'status'                  => 'closed',
-            'closed_at'               => now()->setTimezone('America/Bogota'),
-            'closing_amount_declared' => $validated['closing_amount_declared'],
-            'closing_notes'           => $validated['closing_notes'] ?? null,
-            'total_sales_cash'        => $totalSalesCash,
-            'total_sales_card'        => $totalSalesCard,
-            'total_sales_transfer'    => $totalSalesTransfer,
-            'total_sales_other'       => $totalSalesOther,
-            'total_cash_in'           => $totalCashIn,
-            'total_cash_out'          => $totalCashOut,
-            'total_refunds_cash'      => $totalRefundsCash,
-            'expected_cash'           => $expectedCash,
-            'discrepancy'             => $discrepancy,
-        ]);
+            // Cash refunds: calculate actual refunded amount from return product quantities × sale prices
+            $totalRefundsCash = $this->calculateCashRefunds($session->id);
+
+            $expectedCash = (float) $session->opening_amount
+                + $totalSalesCash
+                + $totalCashIn
+                - $totalCashOut
+                - $totalRefundsCash;
+
+            $discrepancy = (float) $validated['closing_amount_declared'] - $expectedCash;
+
+            $session->update([
+                'closed_by_user_id'       => $user->id,
+                'status'                  => 'closed',
+                'closed_at'               => now()->setTimezone('America/Bogota'),
+                'closing_amount_declared' => $validated['closing_amount_declared'],
+                'closing_notes'           => $validated['closing_notes'] ?? null,
+                'total_sales_cash'        => $totalSalesCash,
+                'total_sales_card'        => $totalSalesCard,
+                'total_sales_transfer'    => $totalSalesTransfer,
+                'total_sales_other'       => $totalSalesOther,
+                'total_cash_in'           => $totalCashIn,
+                'total_cash_out'          => $totalCashOut,
+                'total_refunds_cash'      => $totalRefundsCash,
+                'expected_cash'           => $expectedCash,
+                'discrepancy'             => $discrepancy,
+            ]);
+        });
 
         return redirect()->route('cash-sessions.show', $session)->with('success', 'Caja cerrada correctamente.');
     }
@@ -263,10 +284,6 @@ class CashSessionController extends Controller
     public function addMovement(Request $request, CashSession $session)
     {
         $user = Auth::user();
-
-        if ($session->status !== 'open') {
-            return back()->withErrors(['session' => 'La sesión ya está cerrada.']);
-        }
 
         if (!$user->isAdmin() && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
@@ -279,11 +296,24 @@ class CashSessionController extends Controller
             'notes'   => 'nullable|string|max:500',
         ]);
 
-        CashMovement::create([
-            'session_id' => $session->id,
-            'user_id'    => $user->id,
-            ...$validated,
-        ]);
+        try {
+            DB::transaction(function () use ($session, $user, $validated) {
+                // Re-verify session is still open inside lock to prevent adding movements to a closed session
+                $session = CashSession::lockForUpdate()->findOrFail($session->id);
+
+                if ($session->status !== 'open') {
+                    throw new \RuntimeException('La sesión ya está cerrada.');
+                }
+
+                CashMovement::create([
+                    'session_id' => $session->id,
+                    'user_id'    => $user->id,
+                    ...$validated,
+                ]);
+            });
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['session' => $e->getMessage()]);
+        }
 
         $label = $validated['type'] === 'cash_in' ? 'Ingreso registrado.' : 'Retiro registrado.';
 

@@ -202,8 +202,9 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                         disabled={!link.url}
                                         onClick={() => link.url && router.visit(link.url)}
                                         className={`rounded px-2 py-1 text-xs transition-colors ${link.active ? 'bg-orange-500 font-bold text-white' : link.url ? 'border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700' : 'cursor-default text-muted-foreground opacity-40'}`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
+                                    >
+                                        {link.label.replace(/&laquo;/g, '«').replace(/&raquo;/g, '»')}
+                                    </button>
                                 ))}
                             </div>
                         </div>

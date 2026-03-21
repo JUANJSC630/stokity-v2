@@ -39,6 +39,7 @@ class BlobStorageService
         $pathname = "stokity/{$folder}/{$filename}";
 
         $response = Http::withToken($this->token)
+            ->timeout(30)
             ->withHeaders([
                 'content-type' => 'image/webp',
                 'x-access'     => 'public',
@@ -75,6 +76,7 @@ class BlobStorageService
 
         try {
             Http::withToken($this->token)
+                ->timeout(10)
                 ->delete(self::BASE_URL, ['urls' => $blobUrls]);
         } catch (RequestException $e) {
             Log::warning('Vercel Blob delete failed', ['urls' => $blobUrls, 'error' => $e->getMessage()]);

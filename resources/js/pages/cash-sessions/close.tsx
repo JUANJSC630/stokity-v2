@@ -19,7 +19,7 @@ interface Props {
     movements: CashMovement[];
     isBlind: boolean;
     totalSales: number;
-    expectedCash: number;
+    expectedCash: number | null;
 }
 
 function formatCOP(value: number | string) {
@@ -168,7 +168,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         <div className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-sm dark:bg-blue-900/20">
                             <div className="flex justify-between">
                                 <span className="text-blue-700 dark:text-blue-300">Efectivo esperado en caja:</span>
-                                <span className="font-bold text-blue-800 dark:text-blue-200">{formatCOP(expectedCash)}</span>
+                                <span className="font-bold text-blue-800 dark:text-blue-200">{formatCOP(expectedCash ?? 0)}</span>
                             </div>
                         </div>
                     )}

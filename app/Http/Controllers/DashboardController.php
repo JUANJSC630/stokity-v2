@@ -40,35 +40,39 @@ class DashboardController extends Controller
         
 
         
+        // Consolidated aggregates: 1 query per period instead of 3
+        $todayAgg     = $this->getSalesAggregates($startOfDay, $endOfDay, $branchFilter);
+        $monthAgg     = $this->getSalesAggregates($startOfMonth, $endOfMonth, $branchFilter);
+
         $metrics = [
-            'total_sales_today' => $this->getTotalSales($startOfDay, $endOfDay, $branchFilter),
-            'total_sales_month' => $this->getTotalSales($startOfMonth, $endOfMonth, $branchFilter),
-            'total_revenue_today' => $this->getTotalRevenue($startOfDay, $endOfDay, $branchFilter),
-            'total_revenue_month' => $this->getTotalRevenue($startOfMonth, $endOfMonth, $branchFilter),
-            'average_sale_today' => $this->getAverageSale($startOfDay, $endOfDay, $branchFilter),
-            'average_sale_month' => $this->getAverageSale($startOfMonth, $endOfMonth, $branchFilter),
-            'total_products' => $this->getTotalProducts($branchFilter),
-            'low_stock_products' => $this->getLowStockProducts($branchFilter),
-            'total_clients' => $this->getTotalClients($branchFilter),
-            'total_users' => $this->getTotalUsers($branchFilter),
+            'total_sales_today'   => $todayAgg->count,
+            'total_sales_month'   => $monthAgg->count,
+            'total_revenue_today' => $todayAgg->revenue,
+            'total_revenue_month' => $monthAgg->revenue,
+            'average_sale_today'  => $todayAgg->average,
+            'average_sale_month'  => $monthAgg->average,
+            'total_products'      => $this->getTotalProducts($branchFilter),
+            'low_stock_products'  => $this->getLowStockProducts($branchFilter),
+            'total_clients'       => $this->getTotalClients($branchFilter),
+            'total_users'         => $this->getTotalUsers($branchFilter),
         ];
 
-
-
-        // Comparación con mes anterior
+        // Comparación con mes anterior (1 query instead of 2)
+        $prevMonthAgg = $this->getSalesAggregates($startOfPreviousMonth, $endOfPreviousMonth, $branchFilter);
         $previousMonthMetrics = [
-            'total_sales' => $this->getTotalSales($startOfPreviousMonth, $endOfPreviousMonth, $branchFilter),
-            'total_revenue' => $this->getTotalRevenue($startOfPreviousMonth, $endOfPreviousMonth, $branchFilter),
+            'total_sales'   => $prevMonthAgg->count,
+            'total_revenue' => $prevMonthAgg->revenue,
         ];
 
-        // Comparación con día anterior
+        // Comparación con día anterior (1 query instead of 2)
         $previousDay = $currentDate->copy()->subDay();
         $startOfPreviousDay = $previousDay->copy()->startOfDay();
         $endOfPreviousDay = $previousDay->copy()->endOfDay();
-        
+
+        $prevDayAgg = $this->getSalesAggregates($startOfPreviousDay, $endOfPreviousDay, $branchFilter);
         $previousDayMetrics = [
-            'total_sales' => $this->getTotalSales($startOfPreviousDay, $endOfPreviousDay, $branchFilter),
-            'total_revenue' => $this->getTotalRevenue($startOfPreviousDay, $endOfPreviousDay, $branchFilter),
+            'total_sales'   => $prevDayAgg->count,
+            'total_revenue' => $prevDayAgg->revenue,
         ];
 
         // Cálculo de crecimiento (día actual vs día anterior)
@@ -111,55 +115,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get total number of sales for a period
+     * Get sales aggregates (count, sum, average) for a period in a single query.
+     *
+     * @return object{count: int, revenue: float, average: float}
      */
-    private function getTotalSales($startDate, $endDate, $branchId = null)
+    private function getSalesAggregates($startDate, $endDate, $branchId = null): object
     {
-        $query = Sale::whereBetween('date', [$startDate, $endDate])
-            ->where('status', 'completed');
-        
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-        
-        $count = $query->count();
-        
-        return $count;
-    }
+        $result = DB::table('sales')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->whereNull('deleted_at')
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
+            ->first();
 
-    /**
-     * Get total revenue for a period
-     */
-    private function getTotalRevenue($startDate, $endDate, $branchId = null)
-    {
-        $query = Sale::whereBetween('date', [$startDate, $endDate])
-            ->where('status', 'completed');
-        
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-        
-        $sum = $query->sum('total');
-        
-        return $sum;
-    }
+        $count   = (int) ($result->count ?? 0);
+        $revenue = (float) ($result->revenue ?? 0);
 
-    /**
-     * Get average sale amount for a period
-     */
-    private function getAverageSale($startDate, $endDate, $branchId = null)
-    {
-        $query = Sale::whereBetween('date', [$startDate, $endDate])
-            ->where('status', 'completed');
-        
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-        
-        $totalSales = $query->count();
-        $totalRevenue = $query->sum('total');
-        
-        return $totalSales > 0 ? $totalRevenue / $totalSales : 0;
+        return (object) [
+            'count'   => $count,
+            'revenue' => $revenue,
+            'average' => $count > 0 ? round($revenue / $count, 2) : 0,
+        ];
     }
 
     /**

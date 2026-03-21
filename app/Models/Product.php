@@ -147,8 +147,10 @@ class Product extends Model
 
     /**
      * Get all stock movements for the product.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<StockMovement, $this>
      */
-    public function stockMovements()
+    public function stockMovements(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(StockMovement::class);
     }

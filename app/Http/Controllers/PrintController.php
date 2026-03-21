@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use Mike42\Escpos\EscposImage;
 use Mike42\Escpos\PrintConnectors\DummyPrintConnector;
 use Mike42\Escpos\Printer;
@@ -62,6 +63,9 @@ class PrintController extends Controller
      */
     public function receipt(Request $request, Sale $sale)
     {
+        $user = Auth::user();
+        abort_if(!$user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo.');
+
         $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
 
         $business     = BusinessSetting::getSettings();
@@ -90,6 +94,9 @@ class PrintController extends Controller
      */
     public function cashSessionReport(Request $request, CashSession $session)
     {
+        $user = Auth::user();
+        abort_if(!$user->isAdmin() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
+
         $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name', 'movements']);
 
         $business     = BusinessSetting::getSettings();
@@ -234,6 +241,9 @@ class PrintController extends Controller
     public function returnReceipt(Request $request, SaleReturn $saleReturn)
     {
         $saleReturn->load(['sale.branch', 'sale.client', 'sale.seller', 'products']);
+
+        $user = Auth::user();
+        abort_if(!$user->isAdmin() && $saleReturn->sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo de devolución.');
 
         $business     = BusinessSetting::getSettings();
         $config       = $business->getTicketConfig();

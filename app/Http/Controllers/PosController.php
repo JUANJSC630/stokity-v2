@@ -21,7 +21,7 @@ class PosController extends Controller
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
-        $clients = Client::orderBy('name')->get(['id', 'name', 'document']);
+        $clients = Client::orderBy('name')->limit(500)->get(['id', 'name', 'document']);
 
         $pendingSalesCount = Sale::where('status', 'pending')
             ->when(!$user->isAdmin() && $user->branch_id, fn($q) => $q->where('branch_id', $user->branch_id))
