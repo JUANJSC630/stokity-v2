@@ -11,6 +11,7 @@ declare module 'qz-tray' {
         setSignaturePromise(fn: (toSign: string) => (resolve: (v: string) => void, reject: (e: unknown) => void) => void): void;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface QZConfig {
         // opaque config object returned by configs.create()
     }

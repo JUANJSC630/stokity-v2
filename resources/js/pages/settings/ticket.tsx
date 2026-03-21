@@ -191,7 +191,7 @@ function CodeGraphicPlaceholder({ type }: { type: 'qr' | 'barcode' }) {
 }
 
 // ── Shared header section for both previews ───────────────────────────────────
-function PreviewHeader({ config, business, chars }: { config: TicketConfig; business: Business; chars: number }) {
+function PreviewHeader({ config, business }: { config: TicketConfig; business: Business }) {
     const mono: React.CSSProperties = { fontFamily: "'Courier New', Courier, monospace", fontSize: '12px' };
     return (
         <div style={{ textAlign: 'center', marginBottom: '2px' }}>
@@ -242,7 +242,7 @@ function SaleTicketPreview({ config, business }: { config: TicketConfig; busines
                 borderRadius: '4px',
             }}
         >
-            <PreviewHeader config={config} business={business} chars={chars} />
+            <PreviewHeader config={config} business={business} />
             <Sep double chars={chars} />
 
             {/* Sale info */}
@@ -357,7 +357,7 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
                 borderRadius: '4px',
             }}
         >
-            <PreviewHeader config={config} business={business} chars={chars} />
+            <PreviewHeader config={config} business={business} />
             <Sep double chars={chars} />
 
             {/* Return header */}

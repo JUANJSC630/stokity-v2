@@ -56,6 +56,7 @@ export default function PaymentMethodSelect({
         };
 
         fetchPaymentMethods();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (loading) {

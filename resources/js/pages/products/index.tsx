@@ -63,9 +63,6 @@ export default function Products({
     const isManager = auth.user.role === 'encargado';
     const canManageProducts = isAdmin || isManager;
 
-    // Ocultar filtro de sucursal si no es administrador
-    const showBranchFilter = isAdmin;
-
     // Debounced auto-search on text input change
     useEffect(() => {
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);

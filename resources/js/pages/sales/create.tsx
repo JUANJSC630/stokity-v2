@@ -193,7 +193,6 @@ export default function Create({ branches, clients }: Props) {
                 setSearching(false);
             }
         }, 350);
-        // eslint-disable-next-line
     }, [productSearch]);
 
     // Handler para Enter en el input de búsqueda

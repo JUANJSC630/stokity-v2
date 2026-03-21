@@ -50,7 +50,7 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
         setPrinting(true);
         try {
             await printer.printCashSession(session.id);
-        } catch (err) {
+        } catch {
             window.print(); // fallback
         } finally {
             setPrinting(false);

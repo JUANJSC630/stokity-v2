@@ -11,7 +11,6 @@ import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleP
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
-import ReactDOM from 'react-dom/client';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
 
@@ -194,80 +193,6 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
     const updateSaleData = () => {
         // Recargar la página para obtener los datos actualizados
         router.reload();
-    };
-
-    // Función helper para obtener todos los estilos CSS de la página actual
-    const getAllStylesheetHTML = () => {
-        let stylesHTML = '';
-        // Obtener estilos de las etiquetas <link>
-        const linkElements = document.querySelectorAll('link[rel="stylesheet"]');
-        linkElements.forEach((link) => {
-            stylesHTML += `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`;
-        });
-        // Obtener estilos de las etiquetas <style>
-        const styleElements = document.querySelectorAll('style');
-        styleElements.forEach((style) => {
-            stylesHTML += `<style>${style.innerHTML}</style>`;
-        });
-        return stylesHTML;
-    };
-
-    // Imprimir el ticket usando el componente SaleTicket en una nueva ventana
-    const handlePrintTicket = () => {
-        const printWindow = window.open('', '', 'width=400,height=600');
-        if (printWindow) {
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Ticket Venta ${sale.code}</title>
-                    ${getAllStylesheetHTML()}
-                    <style>
-                        @media print {
-                            body, html {
-                                background: white !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                width: 58mm !important;
-                                min-width: 58mm !important;
-                                max-width: 58mm !important;
-                            }
-                            @page {
-                                size: 58mm auto;
-                                margin: 0;
-                            }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div id="ticket-root"></div>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            // Espera a que el documento esté listo y renderiza el componente
-            const interval = setInterval(() => {
-                const rootDiv = printWindow.document.getElementById('ticket-root');
-                if (rootDiv) {
-                    clearInterval(interval);
-                    ReactDOM.createRoot(rootDiv).render(
-                        <SaleTicket
-                            sale={sale}
-                            businessName={businessName}
-                            businessNit={businessNit}
-                            businessAddress={businessAddress}
-                            businessPhone={businessPhone}
-                            businessLogoUrl={businessLogoUrl}
-                            ticketConfig={ticketConfig}
-                        />,
-                    );
-                    setTimeout(() => {
-                        printWindow.focus();
-                        printWindow.print();
-                        printWindow.close();
-                    }, 500);
-                }
-            }, 50);
-        }
     };
 
     const handlePrintReturnReceipt = async (saleReturnId: number) => {
