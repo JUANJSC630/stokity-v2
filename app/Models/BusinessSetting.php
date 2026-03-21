@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 class BusinessSetting extends Model
 {
+    use HasFactory;
+
     private const CACHE_KEY = 'business_settings';
     private const CACHE_TTL = 3600; // 1 hour
 

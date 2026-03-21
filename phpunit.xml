@@ -29,5 +29,9 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="APP_TIMEZONE" value="America/Bogota"/>
+        <env name="BLOB_STORE_URL" value=""/>
+        <env name="PRINTER_PRIVATE_KEY_B64" value=""/>
+        <env name="PRINTER_CERTIFICATE_B64" value=""/>
     </php>
 </phpunit>
