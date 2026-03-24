@@ -391,18 +391,22 @@ class ProductController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'q' => 'required|string|min:1|max:100',
+            'q' => 'nullable|string|max:100',
             'category_id' => 'nullable|integer|exists:categories,id',
+            'type' => 'nullable|string|in:producto,servicio',
         ]);
 
         $user = Auth::user();
-        $q = $request->q;
+        $q = $request->q ?? '';
 
-        $query = Product::where('status', true)
-            ->where(function ($sub) use ($q) {
+        $query = Product::where('status', true);
+
+        if ($q !== '') {
+            $query->where(function ($sub) use ($q) {
                 $sub->where('name', 'like', "%{$q}%")
                     ->orWhere('code', 'like', "%{$q}%");
             });
+        }
 
         if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
@@ -410,6 +414,10 @@ class ProductController extends Controller
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
         }
 
         // Ordering priority:

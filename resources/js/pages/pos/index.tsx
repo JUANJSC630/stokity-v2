@@ -315,6 +315,7 @@ export default function PosIndex({
     // Search
     const [query, setQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [selectedType, setSelectedType] = useState<'servicio' | ''>('');
     const [results, setResults] = useState<Product[]>([]);
     const [searching, setSearching] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);
@@ -378,18 +379,21 @@ export default function PosIndex({
     // --- Product search ---
     useEffect(() => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        const hasFilter = selectedType !== '' || selectedCategory !== '';
         if (!query || query.trim().length < 1) {
-            setResults([]);
-            if (!query) setSelectedCategory('');
-            return;
+            if (!hasFilter) {
+                setResults([]);
+                return;
+            }
         }
         setSearching(true);
         searchTimeout.current = setTimeout(async () => {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
             try {
-                const params: Record<string, string> = { q: query };
+                const params: Record<string, string> = { q: query || '' };
                 if (selectedCategory) params.category_id = selectedCategory;
+                if (selectedType) params.type = selectedType;
                 const res = await fetch(route('api.products.search') + '?' + new URLSearchParams(params), {
                     signal: abortRef.current.signal,
                 });
@@ -400,7 +404,7 @@ export default function PosIndex({
                 setSearching(false);
             }
         }, 250);
-    }, [query, selectedCategory]);
+    }, [query, selectedCategory, selectedType]);
 
     // --- Cart helpers ---
     const addToCartWithPrice = useCallback(
@@ -426,6 +430,8 @@ export default function PosIndex({
             });
             setQuery('');
             setResults([]);
+            setSelectedCategory('');
+            setSelectedType('');
             setTimeout(() => searchRef.current?.focus(), 0);
         },
         [playSound],
@@ -1136,20 +1142,33 @@ export default function PosIndex({
                             <div className="mt-2 flex flex-wrap gap-1.5">
                                 <button
                                     type="button"
-                                    onClick={() => setSelectedCategory('')}
+                                    onClick={() => { setSelectedCategory(''); setSelectedType(''); }}
                                     className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                        selectedCategory === ''
+                                        selectedCategory === '' && selectedType === ''
                                             ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                     }`}
                                 >
                                     Todas
                                 </button>
-                                {categories.map((cat) => (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSelectedType('servicio'); setSelectedCategory(''); }}
+                                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                        selectedType === 'servicio'
+                                            ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                    }`}
+                                >
+                                    Servicios
+                                </button>
+                                {categories
+                                    .filter((cat) => !/^servicios?$/i.test(cat.name.trim()))
+                                    .map((cat) => (
                                     <button
                                         key={cat.id}
                                         type="button"
-                                        onClick={() => setSelectedCategory(String(cat.id))}
+                                        onClick={() => { setSelectedCategory(String(cat.id)); setSelectedType(''); }}
                                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                             selectedCategory === String(cat.id)
                                                 ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
@@ -1227,10 +1246,10 @@ export default function PosIndex({
 
                     {/* Results */}
                     <div className="min-h-0 flex-1 overflow-y-auto">
-                        {query.trim().length >= 2 && results.length === 0 && !searching && (
+                        {results.length === 0 && !searching && (selectedType !== '' || query.trim().length >= 2) && (
                             <p className="px-4 py-8 text-center text-sm text-muted-foreground">No se encontraron productos</p>
                         )}
-                        {query.trim().length < 2 && cart.length === 0 && (
+                        {query.trim().length < 2 && selectedType === '' && selectedCategory === '' && cart.length === 0 && (
                             <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                                 <ShoppingCart className="h-12 w-12 opacity-20" />
                                 <p className="text-sm">Escribe para buscar productos</p>

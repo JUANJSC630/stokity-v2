@@ -32,30 +32,20 @@ interface EditProductProps {
     userBranchId?: number | null;
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Productos',
-        href: '/products',
-    },
-    {
-        title: 'Editar Producto',
-        href: '#', // Will be replaced dynamically
-    },
-];
-
 export default function EditProduct({ product, categories = [], branches = [], suppliers = [], userBranchId = null }: EditProductProps) {
-    // Actualizar la ruta en migas de pan
-    breadcrumbs[1].href = `/products/${product.id}/edit`;
+    const isService = product.type === 'servicio';
 
-    // Estado para la previsualización de la imagen
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Catálogo', href: '/products' },
+        { title: isService ? 'Editar Servicio' : 'Editar Producto', href: `/products/${product.id}/edit` },
+    ];
+
     const [imagePreview, setImagePreview] = useState<string | null>(product.image_url || null);
     const [isDragging, setIsDragging] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    // Estado para el diálogo de error
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMsg, setDialogMsg] = useState('');
 
-    // Supplier links state
     const [supplierLinks, setSupplierLinks] = useState<SupplierLink[]>(
         (product.suppliers ?? []).map((s) => ({
             supplier_id: s.id,
@@ -78,7 +68,6 @@ export default function EditProduct({ product, categories = [], branches = [], s
     };
 
     const removeSupplierLink = (id: number) => setSupplierLinks(supplierLinks.filter((s) => s.supplier_id !== id));
-
     const setDefault = (id: number) => setSupplierLinks(supplierLinks.map((s) => ({ ...s, is_default: s.supplier_id === id })));
 
     const handleSyncSuppliers = (e: React.FormEvent) => {
@@ -98,7 +87,6 @@ export default function EditProduct({ product, categories = [], branches = [], s
         );
     };
 
-    // Configurar formulario con Inertia
     const form = useForm({
         name: product.name,
         code: product.code,
@@ -110,96 +98,67 @@ export default function EditProduct({ product, categories = [], branches = [], s
         category_id: product.category_id,
         branch_id: product.branch_id,
         status: product.status,
+        type: product.type as 'producto' | 'servicio',
+        variable_price: product.variable_price,
         image: null as File | null,
-        _method: 'PUT', // Para simular PUT request con FormData
+        _method: 'PUT',
     });
 
     useScrollToError(form.errors);
 
-    // Generar código automáticamente usando axios (igual que en create)
     const handleGenerateCode = async () => {
         if (!form.data.name) {
-            setDialogMsg('Ingrese el nombre del producto primero');
+            setDialogMsg('Ingrese el nombre primero');
             setDialogOpen(true);
             return;
         }
         form.setData('code', '');
         try {
-            const response = await axios.post('/products/generate-code', {
-                name: form.data.name,
-            });
+            const response = await axios.post('/products/generate-code', { name: form.data.name });
             form.setData('code', response.data.code);
         } catch (error) {
-            if (axios.isAxiosError && axios.isAxiosError(error)) {
-                setDialogMsg(error.response?.data?.error || 'No se pudo generar el código');
-            } else {
-                setDialogMsg('No se pudo generar el código');
-            }
+            setDialogMsg(axios.isAxiosError(error) ? (error.response?.data?.error || 'No se pudo generar el código') : 'No se pudo generar el código');
             setDialogOpen(true);
         }
     };
 
-    // Manejar cambio de imagen
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         form.setData('image', file);
-
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
+            reader.onload = (e) => setImagePreview(e.target?.result as string);
             reader.readAsDataURL(file);
         }
     };
 
-    // Manejar envío del formulario
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.post(`/products/${product.id}`, {
-            forceFormData: true,
-            onSuccess: () => {
-                // Redirigir automáticamente a la página de productos (esto lo maneja Inertia)
-            },
-        });
+        form.post(`/products/${product.id}`, { forceFormData: true });
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); };
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files?.[0];
         if (file && file.type.startsWith('image/')) {
             form.setData('image', file);
-
             const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
+            reader.onload = (e) => setImagePreview(e.target?.result as string);
             reader.readAsDataURL(file);
         }
     };
 
-    // Manejar eliminación del producto
     const handleDelete = () => {
-        form.delete(`/products/${product.id}`, {
-            onSuccess: () => setShowDeleteModal(false),
-        });
+        form.delete(`/products/${product.id}`, { onSuccess: () => setShowDeleteModal(false) });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Editar Producto" />
-            {/* Diálogo de error */}
+            <Head title={isService ? 'Editar Servicio' : 'Editar Producto'} />
+
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -207,14 +166,12 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         <DialogDescription>{dialogMsg}</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={() => setDialogOpen(false)} autoFocus>
-                            Aceptar
-                        </Button>
+                        <Button onClick={() => setDialogOpen(false)} autoFocus>Aceptar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header with back button */}
                 <div className="flex items-center">
                     <Link href="/products">
                         <Button variant="ghost" size="sm" className="mr-4 flex items-center gap-1">
@@ -222,85 +179,80 @@ export default function EditProduct({ product, categories = [], branches = [], s
                             Volver
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-semibold">Editar Producto</h1>
+                    <h1 className="text-2xl font-semibold">{isService ? 'Editar Servicio' : 'Editar Producto'}</h1>
                 </div>
+
                 <Card>
                     <CardHeader>
-                        <CardTitle>Información del Producto</CardTitle>
-                        <CardDescription>Actualiza los datos del producto. Todos los campos marcados con * son obligatorios.</CardDescription>
+                        <CardTitle>{isService ? 'Información del Servicio' : 'Información del Producto'}</CardTitle>
+                        <CardDescription>Actualiza los datos. Todos los campos marcados con * son obligatorios.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Imagen */}
-                            <div className="flex w-full flex-col items-center space-y-2">
+                            <div className="space-y-2">
                                 <label htmlFor="image" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                     Imagen
                                 </label>
-                                <div
-                                    className={`group relative aspect-square w-full max-w-xs overflow-hidden rounded-md border-2 ${
-                                        isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
-                                    } bg-muted transition-all duration-200 hover:border-primary`}
-                                    onDragOver={handleDragOver}
-                                    onDragLeave={handleDragLeave}
-                                    onDrop={handleDrop}
-                                >
-                                    {imagePreview ? (
-                                        <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
-                                            <UserCircle className="size-12" strokeWidth={1.5} />
-                                            <p className="text-center text-xs">Sin imagen</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <label
-                                        htmlFor="image"
-                                        className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
+                                <div className="flex items-center gap-4">
+                                    <div
+                                        className={`group relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border-2 ${
+                                            isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
+                                        } bg-muted transition-all duration-200 hover:border-primary`}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
                                     >
-                                        <Upload className="size-4" />
-                                        Subir imagen
-                                        <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
-                                    </label>
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+                                                <UserCircle className="size-8" strokeWidth={1.5} />
+                                                <p className="text-center text-[10px]">Sin imagen</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label
+                                            htmlFor="image"
+                                            className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
+                                        >
+                                            <Upload className="size-4" />
+                                            Subir imagen
+                                            <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
+                                        </label>
+                                        {form.errors.image && <p className="text-xs text-red-500">{form.errors.image}</p>}
+                                        <p className="text-xs text-muted-foreground">JPG, PNG, GIF · máx 2MB</p>
+                                    </div>
                                 </div>
-                                {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                <p className="text-center text-xs text-muted-foreground">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                {/* Nombre del producto */}
+                                {/* Nombre */}
                                 <div className="w-full space-y-2">
                                     <label htmlFor="name" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                         Nombre *
                                     </label>
                                     <Input
                                         id="name"
-                                        placeholder="Nombre del producto"
+                                        placeholder="Nombre"
                                         value={form.data.name}
                                         onChange={(e) => form.setData('name', e.target.value)}
                                     />
                                     {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
                                 </div>
 
-                                {/* Código del producto */}
+                                {/* Código */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="code" className="text-sm font-medium">
-                                        Código *
-                                    </label>
+                                    <label htmlFor="code" className="text-sm font-medium">Código *</label>
                                     <div className="flex gap-2">
                                         <Input
                                             id="code"
-                                            placeholder="Código único del producto"
+                                            placeholder="Código único"
                                             value={form.data.code}
                                             onChange={(e) => form.setData('code', e.target.value)}
                                         />
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            size="icon"
-                                            title="Generar código automáticamente"
-                                            onClick={handleGenerateCode}
-                                        >
+                                        <Button type="button" variant="secondary" size="icon" title="Generar código" onClick={handleGenerateCode}>
                                             <Sparkles className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -316,32 +268,28 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                     side="top"
                                                     className="z-50 max-w-xs rounded bg-neutral-900 px-3 py-2 text-xs break-words whitespace-pre-line text-white shadow-lg sm:max-w-sm sm:text-sm"
                                                     sideOffset={6}
-                                                    style={{ wordBreak: 'break-word', whiteSpace: 'pre-line', fontSize: '0.95rem' }}
                                                 >
-                                                    <strong>¿Qué es el código del producto?</strong>
+                                                    <strong>¿Qué es el código?</strong>
                                                     <br />
-                                                    Puedes usar el botón "Generar código" para crear un código automático de 8 dígitos, o ingresar tu
-                                                    propio código personalizado (máximo 50 caracteres).
+                                                    Puedes usar el botón "Generar código" o ingresar uno personalizado (máx 50 caracteres).
                                                     <br />
                                                     <strong>Ejemplos:</strong> <span className="font-mono">12345678</span>,{' '}
-                                                    <span className="font-mono">SKU-001</span>, <span className="font-mono">CAMISA-ROJA-M</span>
+                                                    <span className="font-mono">SKU-001</span>
                                                     <Tooltip.Arrow className="fill-neutral-900" />
                                                 </Tooltip.Content>
                                             </Tooltip.Portal>
                                         </Tooltip.Root>{' '}
-                                        para identificar el producto.
+                                        para identificar el {isService ? 'servicio' : 'producto'}.
                                     </p>
                                 </div>
 
-                                {/* Precio de compra */}
+                                {/* Precio de compra / Costo del servicio */}
                                 <div className="w-full space-y-2">
                                     <label htmlFor="purchase_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                        Precio de compra *
+                                        {isService ? 'Costo del servicio' : 'Precio de compra *'}
                                     </label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
-                                            $
-                                        </span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <CurrencyInput
                                             id="purchase_price"
                                             className="w-full pl-6"
@@ -352,15 +300,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
                                 </div>
 
-                                {/* Precio de venta */}
+                                {/* Precio de venta / Precio base */}
                                 <div className="w-full space-y-2">
                                     <label htmlFor="sale_price" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                                        Precio de venta *
+                                        {isService ? 'Precio base *' : 'Precio de venta *'}
                                     </label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
-                                            $
-                                        </span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
                                         <CurrencyInput
                                             id="sale_price"
                                             className="w-full pl-6"
@@ -369,7 +315,29 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         />
                                     </div>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
+                                    {isService && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {form.data.variable_price ? 'Referencia — el vendedor puede modificarlo en cada venta.' : 'Precio fijo aplicado en el POS.'}
+                                        </p>
+                                    )}
                                 </div>
+
+                                {/* Precio variable — solo servicios */}
+                                {isService && (
+                                    <div className="w-full space-y-2 md:col-span-2">
+                                        <Label className="text-sm font-medium">Precio variable</Label>
+                                        <div className="flex items-center gap-3">
+                                            <Switch
+                                                id="variable_price"
+                                                checked={form.data.variable_price}
+                                                onCheckedChange={(checked) => form.setData('variable_price', checked)}
+                                            />
+                                            <Label htmlFor="variable_price" className="font-normal">
+                                                {form.data.variable_price ? 'Activado — el vendedor ingresa el precio en cada venta' : 'Desactivado — precio fijo'}
+                                            </Label>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Impuesto */}
                                 <div className="w-full space-y-2">
@@ -388,9 +356,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 value={form.data.tax}
                                                 onChange={(e) => form.setData('tax', Number(e.target.value))}
                                             />
-                                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
-                                                %
-                                            </span>
+                                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">%</span>
                                         </div>
                                         <button
                                             type="button"
@@ -400,56 +366,49 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                     : 'border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
                                             }`}
                                             onClick={() => form.setData('tax', form.data.tax === 19 ? 0 : 19)}
-                                            title={form.data.tax === 19 ? 'Poner IVA en 0%' : 'Poner IVA en 19%'}
                                         >
                                             {form.data.tax === 19 ? 'Sin IVA (0%)' : 'IVA 19%'}
                                         </button>
                                     </div>
                                     {form.errors.tax && <p className="text-xs text-destructive">{form.errors.tax}</p>}
-                                    <p className="text-xs text-muted-foreground">Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).</p>
+                                    <p className="text-xs text-muted-foreground">Porcentaje de impuesto (ej: 19 para IVA).</p>
                                 </div>
 
-                                {/* Stock actual (read-only — se modifica mediante movimientos de stock) */}
-                                <div className="w-full space-y-2">
-                                    <label className="text-sm font-medium">Stock actual</label>
-                                    <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
-                                        <span className="font-semibold">{product.stock}</span>
-                                        <span className="text-muted-foreground">unidades</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        El stock se actualiza mediante{' '}
-                                        <a href="/stock-movements/create" className="underline">
-                                            movimientos de stock
-                                        </a>
-                                        .
-                                    </p>
-                                </div>
+                                {/* Stock actual y mínimo — solo productos físicos */}
+                                {!isService && (
+                                    <>
+                                        <div className="w-full space-y-2">
+                                            <label className="text-sm font-medium">Stock actual</label>
+                                            <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                                                <span className="font-semibold">{product.stock}</span>
+                                                <span className="text-muted-foreground">unidades</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                El stock se actualiza mediante{' '}
+                                                <a href="/stock-movements/create" className="underline">movimientos de stock</a>.
+                                            </p>
+                                        </div>
 
-                                {/* Stock mínimo */}
-                                <div className="w-full space-y-2">
-                                    <label htmlFor="min_stock" className="text-sm font-medium">
-                                        Stock mínimo *
-                                    </label>
-                                    <Input
-                                        id="min_stock"
-                                        type="number"
-                                        min="0"
-                                        step="1"
-                                        className="w-full"
-                                        value={form.data.min_stock}
-                                        onChange={(e) => form.setData('min_stock', parseInt(e.target.value))}
-                                    />
-                                    {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
-                                    <p className="text-xs text-muted-foreground">
-                                        Se mostrará alerta cuando el stock sea menor o igual a este valor.
-                                    </p>
-                                </div>
+                                        <div className="w-full space-y-2">
+                                            <label htmlFor="min_stock" className="text-sm font-medium">Stock mínimo *</label>
+                                            <Input
+                                                id="min_stock"
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                className="w-full"
+                                                value={form.data.min_stock}
+                                                onChange={(e) => form.setData('min_stock', parseInt(e.target.value))}
+                                            />
+                                            {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
+                                            <p className="text-xs text-muted-foreground">Se mostrará alerta cuando el stock sea menor o igual a este valor.</p>
+                                        </div>
+                                    </>
+                                )}
 
                                 {/* Categoría */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="category_id" className="text-sm font-medium">
-                                        Categoría *
-                                    </label>
+                                    <label htmlFor="category_id" className="text-sm font-medium">Categoría *</label>
                                     <Select
                                         value={form.data.category_id.toString()}
                                         onValueChange={(value) => form.setData('category_id', parseInt(value))}
@@ -470,9 +429,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                                 {/* Sucursal */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="branch_id" className="text-sm font-medium">
-                                        Sucursal *
-                                    </label>
+                                    <label htmlFor="branch_id" className="text-sm font-medium">Sucursal *</label>
                                     <Select
                                         value={form.data.branch_id.toString()}
                                         onValueChange={(value) => form.setData('branch_id', parseInt(value))}
@@ -494,12 +451,10 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                                 {/* Descripción */}
                                 <div className="w-full space-y-2 md:col-span-2">
-                                    <label htmlFor="description" className="text-sm font-medium">
-                                        Descripción
-                                    </label>
+                                    <label htmlFor="description" className="text-sm font-medium">Descripción</label>
                                     <Textarea
                                         id="description"
-                                        placeholder="Descripción detallada del producto"
+                                        placeholder={isService ? 'Descripción detallada del servicio' : 'Descripción detallada del producto'}
                                         rows={5}
                                         value={form.data.description}
                                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => form.setData('description', e.target.value)}
@@ -522,7 +477,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         </Label>
                                     </div>
                                     <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                        Los productos inactivos no se mostrarán en el sistema
+                                        Los {isService ? 'servicios' : 'productos'} inactivos no se mostrarán en el sistema
                                     </p>
                                     {form.errors.status && <p className="text-xs text-destructive">{form.errors.status}</p>}
                                 </div>
@@ -530,9 +485,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                             <div className="flex flex-col gap-2 pt-4 md:flex-row md:justify-end">
                                 <Link href="/products">
-                                    <Button type="button" variant="outline" className="w-full md:w-auto">
-                                        Cancelar
-                                    </Button>
+                                    <Button type="button" variant="outline" className="w-full md:w-auto">Cancelar</Button>
                                 </Link>
                                 <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)} className="w-full md:w-auto">
                                     Eliminar
@@ -545,8 +498,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </form>
                     </CardContent>
                 </Card>
-                {/* Proveedores */}
-                {suppliers.length > 0 && (
+
+                {/* Proveedores — solo productos físicos */}
+                {!isService && suppliers.length > 0 && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Proveedores</CardTitle>
@@ -556,7 +510,6 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleSyncSuppliers} className="space-y-4">
-                                {/* Linked suppliers list */}
                                 {supplierLinks.length > 0 && (
                                     <div className="space-y-3">
                                         {supplierLinks.map((link) => (
@@ -615,7 +568,6 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                     </div>
                                 )}
 
-                                {/* Add supplier */}
                                 <div className="flex items-center gap-2">
                                     <Select value={supplierToAdd} onValueChange={setSupplierToAdd}>
                                         <SelectTrigger className="h-8 flex-1 text-sm">
@@ -626,20 +578,12 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 .filter((s) => !supplierLinks.some((l) => l.supplier_id === s.id))
                                                 .map((s) => (
                                                     <SelectItem key={s.id} value={String(s.id)}>
-                                                        {s.name}
-                                                        {s.nit ? ` — ${s.nit}` : ''}
+                                                        {s.name}{s.nit ? ` — ${s.nit}` : ''}
                                                     </SelectItem>
                                                 ))}
                                         </SelectContent>
                                     </Select>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 gap-1"
-                                        onClick={addSupplierLink}
-                                        disabled={!supplierToAdd}
-                                    >
+                                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={addSupplierLink} disabled={!supplierToAdd}>
                                         <Plus className="h-3.5 w-3.5" />
                                         Agregar
                                     </Button>
@@ -656,20 +600,15 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     </Card>
                 )}
 
-                {/* Modal de confirmación de eliminación */}
                 <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>¿Eliminar producto?</DialogTitle>
-                            <DialogDescription>Esta acción enviará el producto a la papelera. ¿Deseas continuar?</DialogDescription>
+                            <DialogTitle>¿Eliminar {isService ? 'servicio' : 'producto'}?</DialogTitle>
+                            <DialogDescription>Esta acción enviará el {isService ? 'servicio' : 'producto'} a la papelera. ¿Deseas continuar?</DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-                                Cancelar
-                            </Button>
-                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>
-                                Eliminar
-                            </Button>
+                            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>Eliminar</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

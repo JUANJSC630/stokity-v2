@@ -238,9 +238,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 <label htmlFor="image" className="text-sm font-medium">
                                     Imagen
                                 </label>
-                                <div className="flex flex-col items-center gap-4">
+                                <div className="flex items-center gap-4">
                                     <div
-                                        className={`group relative aspect-square w-full max-w-xs overflow-hidden rounded-md border-2 sm:max-w-md ${
+                                        className={`group relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-md border-2 ${
                                             isDragging ? 'border-dashed border-primary' : 'border-sidebar-border'
                                         } bg-muted transition-all duration-200 hover:border-primary`}
                                         onDragOver={handleDragOver}
@@ -250,14 +250,14 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                         {imagePreview ? (
                                             <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
                                         ) : (
-                                            <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
-                                                <UserCircle className="size-12" strokeWidth={1.5} />
-                                                <p className="text-center text-xs">Sin imagen</p>
+                                            <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+                                                <UserCircle className="size-8" strokeWidth={1.5} />
+                                                <p className="text-center text-[10px]">Sin imagen</p>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row">
+                                    <div className="flex flex-col gap-2">
                                         <label
                                             htmlFor="image"
                                             className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
@@ -266,12 +266,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             Subir imagen
                                             <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
                                         </label>
+                                        {form.errors.image && <p className="text-xs text-red-500">{form.errors.image}</p>}
+                                        <p className="text-xs text-muted-foreground">JPG, PNG, GIF · máx 2MB</p>
                                     </div>
-
-                                    {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                    <p className="text-center text-xs text-muted-foreground">
-                                        Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
-                                    </p>
                                 </div>
                             </div>
 

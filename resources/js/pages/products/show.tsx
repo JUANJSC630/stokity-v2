@@ -13,6 +13,8 @@ interface ProductShowProps {
 }
 
 export default function ProductShow({ product }: ProductShowProps) {
+    const isService = product.type === 'servicio';
+
     const downloadQr = () => {
         const svg = document.getElementById('product-qr') as SVGSVGElement | null;
         if (!svg) return;
@@ -38,7 +40,7 @@ export default function ProductShow({ product }: ProductShowProps) {
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
-            title: 'Productos',
+            title: 'Catálogo',
             href: '/products',
         },
         {
@@ -49,11 +51,11 @@ export default function ProductShow({ product }: ProductShowProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Producto: ${product.name}`} />
+            <Head title={`${isService ? 'Servicio' : 'Producto'}: ${product.name}`} />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-2xl font-semibold">Detalles del Producto</h1>
+                    <h1 className="text-2xl font-semibold">Detalles del {isService ? 'Servicio' : 'Producto'}</h1>
                     <div className="flex flex-wrap gap-2">
                         <Link href="/products">
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -61,37 +63,41 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 <span className="hidden sm:inline">Volver</span>
                             </Button>
                         </Link>
-                        <Link href={`/products/${product.id}/movements`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                    />
-                                </svg>
-                                <span className="hidden sm:inline">Movimientos</span>
-                            </Button>
-                        </Link>
-                        <Link href={`/stock-movements/create?product_id=${product.id}`}>
-                            <Button size="sm" className="flex items-center gap-1">
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                <span className="hidden sm:inline">Nuevo Movimiento</span>
-                            </Button>
-                        </Link>
-                        <Link href={`/stock-movements/create?product_id=${product.id}&type=write_off`}>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Registrar Baja</span>
-                            </Button>
-                        </Link>
+                        {!isService && (
+                            <>
+                                <Link href={`/products/${product.id}/movements`}>
+                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                            />
+                                        </svg>
+                                        <span className="hidden sm:inline">Movimientos</span>
+                                    </Button>
+                                </Link>
+                                <Link href={`/stock-movements/create?product_id=${product.id}`}>
+                                    <Button size="sm" className="flex items-center gap-1">
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Nuevo Movimiento</span>
+                                    </Button>
+                                </Link>
+                                <Link href={`/stock-movements/create?product_id=${product.id}&type=write_off`}>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Registrar Baja</span>
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                         <Link href={`/products/${product.id}/edit`}>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
                                 <Edit2 className="h-4 w-4" />
@@ -128,6 +134,20 @@ export default function ProductShow({ product }: ProductShowProps) {
                                         </Badge>
                                     )}
                                 </div>
+
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-neutral-500 dark:text-neutral-400">Tipo:</span>
+                                    {isService ? (
+                                        <Badge className="bg-purple-100 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                            Servicio
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-blue-100 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                            Producto
+                                        </Badge>
+                                    )}
+                                </div>
+
                                 <div className="flex flex-col justify-start py-2">
                                     <div className="flex flex-col items-center justify-between">
                                         <span className="text-sm text-muted-foreground">Código:</span>
@@ -171,13 +191,15 @@ export default function ProductShow({ product }: ProductShowProps) {
                     <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>{product.name}</CardTitle>
-                            <CardDescription>Información detallada del producto</CardDescription>
+                            <CardDescription>{isService ? 'Información detallada del servicio' : 'Información detallada del producto'}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Precios */}
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de compra</div>
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                        {isService ? 'Costo del servicio' : 'Precio de compra'}
+                                    </div>
                                     <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
                                         $
                                         {Number(product.purchase_price).toLocaleString('es-CO', {
@@ -187,13 +209,21 @@ export default function ProductShow({ product }: ProductShowProps) {
                                     </div>
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Precio de venta</div>
+                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                        {isService ? 'Precio base' : 'Precio de venta'}
+                                    </div>
                                     <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                        $
-                                        {Number(product.sale_price).toLocaleString('es-CO', {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 0,
-                                        })}
+                                        {isService && product.variable_price ? (
+                                            <span className="text-base font-medium text-purple-600 dark:text-purple-400">Variable</span>
+                                        ) : (
+                                            <>
+                                                $
+                                                {Number(product.sale_price).toLocaleString('es-CO', {
+                                                    minimumFractionDigits: 0,
+                                                    maximumFractionDigits: 0,
+                                                })}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="rounded-md bg-neutral-50 p-4 sm:col-span-2 lg:col-span-1 dark:bg-neutral-800">
@@ -204,24 +234,26 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 </div>
                             </div>
 
-                            {/* Inventario */}
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                            {product.stock}
-                                        </span>
-                                        {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
+                            {/* Inventario — solo para productos físicos */}
+                            {!isService && (
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                        <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
+                                                {product.stock}
+                                            </span>
+                                            {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
+                                        </div>
+                                    </div>
+                                    <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
+                                        <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
+                                        <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
+                                            {product.min_stock}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
-                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                        {product.min_stock}
-                                    </div>
-                                </div>
-                            </div>
+                            )}
 
                             {/* Descripción */}
                             <div>
