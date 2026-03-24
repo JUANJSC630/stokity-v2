@@ -299,3 +299,38 @@ export interface SupplierPivot {
     supplier_code: string | null;
     is_default: boolean;
 }
+
+export interface ExpenseCategory {
+    id: number;
+    name: string;
+    icon: string | null;
+    color: string | null;
+    is_system: boolean;
+}
+
+export interface ExpenseTemplate {
+    id: number;
+    branch_id: number;
+    expense_category_id: number | null;
+    name: string;
+    reference_amount: number;
+    is_active: boolean;
+    category: ExpenseCategory | null;
+    branch?: { id: number; name: string };
+}
+
+export interface Expense {
+    id: number;
+    branch_id: number;
+    user_id: number;
+    expense_category_id: number | null;
+    expense_template_id: number | null;
+    amount: number;
+    description: string | null;
+    expense_date: string;
+    notes: string | null;
+    category: ExpenseCategory | null;
+    template: ExpenseTemplate | null;
+    user: { id: number; name: string };
+    branch: { id: number; name: string };
+}

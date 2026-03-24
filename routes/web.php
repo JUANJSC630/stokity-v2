@@ -37,3 +37,4 @@ require __DIR__.'/payment-methods.php';
 require __DIR__.'/printing.php';
 require __DIR__.'/cash-sessions.php';
 require __DIR__.'/suppliers.php';
+require __DIR__.'/finances.php';

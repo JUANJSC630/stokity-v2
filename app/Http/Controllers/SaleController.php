@@ -176,20 +176,26 @@ class SaleController extends Controller
         $products = $validated['products'];
         unset($validated['products']);
 
+        // Snapshot de precios de costo al momento de la venta (1 query).
+        // Permite calcular COGS histórico correctamente aunque el precio cambie después.
+        $purchasePrices = Product::whereIn('id', collect($products)->pluck('id'))
+            ->pluck('purchase_price', 'id');
+
         $saleId = null;
         $saleCode = null;
         try {
-            DB::transaction(function () use ($validated, $products, $isPending, &$saleId, &$saleCode) {
+            DB::transaction(function () use ($validated, $products, $isPending, $purchasePrices, &$saleId, &$saleCode) {
                 $sale = Sale::create($validated);
                 $saleId = $sale->id;
                 $saleCode = $sale->code;
 
                 foreach ($products as $prod) {
                     $sale->saleProducts()->create([
-                        'product_id' => $prod['id'],
-                        'quantity' => $prod['quantity'],
-                        'price' => $prod['price'],
-                        'subtotal' => $prod['subtotal'],
+                        'product_id'              => $prod['id'],
+                        'quantity'                => $prod['quantity'],
+                        'price'                   => $prod['price'],
+                        'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
+                        'subtotal'                => $prod['subtotal'],
                     ]);
 
                     // Solo descontar stock en ventas completadas
@@ -323,6 +329,9 @@ class SaleController extends Controller
 
         $products = $validated['products'];
 
+        $purchasePrices = Product::whereIn('id', collect($products)->pluck('id'))
+            ->pluck('purchase_price', 'id');
+
         // Validar sesión de caja si está habilitado
         $settings = BusinessSetting::getSettings();
         $openSession = CashSession::getOpenForUser(Auth::id(), $sale->branch_id);
@@ -345,7 +354,7 @@ class SaleController extends Controller
         $serverTotal = max(0, $gross - $discountAmount);
 
         try {
-            DB::transaction(function () use ($sale, $validated, $products, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
+            DB::transaction(function () use ($sale, $validated, $products, $purchasePrices, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
                 $sale->update([
                     'payment_method' => $validated['payment_method'],
                     'amount_paid' => $validated['amount_paid'],
@@ -365,10 +374,11 @@ class SaleController extends Controller
                 $sale->saleProducts()->delete();
                 foreach ($products as $prod) {
                     $sale->saleProducts()->create([
-                        'product_id' => $prod['id'],
-                        'quantity' => $prod['quantity'],
-                        'price' => $prod['price'],
-                        'subtotal' => $prod['subtotal'],
+                        'product_id'              => $prod['id'],
+                        'quantity'                => $prod['quantity'],
+                        'price'                   => $prod['price'],
+                        'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
+                        'subtotal'                => $prod['subtotal'],
                     ]);
 
                     $product = Product::lockForUpdate()->find($prod['id']);
@@ -433,7 +443,10 @@ class SaleController extends Controller
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($sale, $validated) {
+        $purchasePrices = Product::whereIn('id', collect($validated['products'])->pluck('id'))
+            ->pluck('purchase_price', 'id');
+
+        DB::transaction(function () use ($sale, $validated, $purchasePrices) {
             $sale->update([
                 'net' => $validated['net'],
                 'total' => $validated['total'],
@@ -445,10 +458,11 @@ class SaleController extends Controller
             $sale->saleProducts()->delete();
             foreach ($validated['products'] as $prod) {
                 $sale->saleProducts()->create([
-                    'product_id' => $prod['id'],
-                    'quantity' => $prod['quantity'],
-                    'price' => $prod['price'],
-                    'subtotal' => $prod['subtotal'],
+                    'product_id'              => $prod['id'],
+                    'quantity'                => $prod['quantity'],
+                    'price'                   => $prod['price'],
+                    'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
+                    'subtotal'                => $prod['subtotal'],
                 ]);
             }
         });

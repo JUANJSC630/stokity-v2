@@ -25,7 +25,12 @@ class SaleProduct extends Model
         'product_id',
         'quantity',
         'price',
+        'purchase_price_snapshot',
         'subtotal',
+    ];
+
+    protected $casts = [
+        'purchase_price_snapshot' => 'decimal:2',
     ];
 
     public function sale(): BelongsTo

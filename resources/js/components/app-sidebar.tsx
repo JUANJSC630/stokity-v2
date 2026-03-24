@@ -14,6 +14,7 @@ import {
     LayoutGrid,
     Package,
     Package2,
+    Receipt,
     RotateCcw,
     ScanLine,
     Tags,
@@ -99,6 +100,18 @@ const allNavItems: NavItem[] = [
         href: '/payment-methods',
         icon: CreditCard,
         roles: ['administrador'], // Only admin
+    },
+    {
+        title: 'Finanzas',
+        href: '/finances',
+        icon: TrendingUp,
+        roles: ['administrador', 'encargado'],
+    },
+    {
+        title: 'Gastos',
+        href: '/expenses',
+        icon: Receipt,
+        roles: ['administrador', 'encargado'],
     },
     {
         title: 'Reportes',

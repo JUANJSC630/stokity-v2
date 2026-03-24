@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
         if (\App\Models\PaymentMethod::count() === 0) {
             $this->call(PaymentMethodSeeder::class);
         }
+        if (\App\Models\ExpenseCategory::count() === 0) {
+            $this->call(ExpenseCategorySeeder::class);
+        }
 
         // Test/development data — never run in production
         if (app()->environment('local', 'testing')) {
