@@ -166,8 +166,8 @@ Actualmente existen dos tipos que representan lo mismo (stock que entra al siste
 
 ---
 
-### F10 — Módulo de contabilidad básica: Estado de Resultados (P&L)
-**Prioridad: Alta**
+### ~~F10 — Módulo de contabilidad básica: Estado de Resultados (P&L)~~
+~~**Prioridad: Alta**~~ ✅ **COMPLETADO** (commits `e970c18`, `1906b82`)
 
 El negocio necesita saber cuánto dinero **le queda** al mes: no solo cuánto vendió, sino descontando el costo de lo que vendió y los gastos fijos del local (arriendo, empleados, servicios, etc.). Actualmente el sistema solo muestra ingresos brutos; no hay manera de registrar gastos ni calcular ganancia neta.
 
