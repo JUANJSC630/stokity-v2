@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
+use App\Models\ExpenseTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +21,12 @@ class FinanceController extends Controller
 
         [$dateFrom, $dateTo, $label] = $this->resolvePeriod($request);
 
-        $branchId = $user->isAdmin() && $request->filled('branch')
-            ? (int) $request->branch
-            : ($user->isAdmin() ? null : $user->branch_id);
+        // Default to the user's own branch; ?branch=0 means "all branches" (admin only); ?branch=N filters by N
+        $branchId = match(true) {
+            (int) $request->input('branch', -1) === 0 => null,       // explicit "all"
+            $request->filled('branch')                => (int) $request->branch, // specific branch
+            default                                   => $user->branch_id,       // default: own branch
+        };
 
         // ── Revenue: ventas completadas del período ──────────────────────────
         $salesQuery = DB::table('sales')
@@ -96,44 +101,25 @@ class FinanceController extends Controller
 
         $netProfit = $grossProfit - $totalExpenses;
 
-        // ── Tendencia últimos 6 meses ────────────────────────────────────────
-        $trend = $this->buildMonthlyTrend($branchId, 6);
-
-        // ── Top 10 productos por margen bruto ────────────────────────────────
-        $topProducts = DB::table('sale_products as sp')
-            ->join('sales as s', 'sp.sale_id', '=', 's.id')
-            ->join('products as p', 'sp.product_id', '=', 'p.id')
-            ->where('s.status', 'completed')
-            ->whereNull('s.deleted_at')
-            ->whereBetween('s.date', [$dateFrom->startOfDay()->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString()])
-            ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
-            ->select(
-                'p.id',
-                'p.name',
-                'p.code',
-                DB::raw('SUM(sp.quantity) as units_sold'),
-                DB::raw('SUM(sp.subtotal) as revenue'),
-                DB::raw('SUM(sp.quantity * COALESCE(sp.purchase_price_snapshot, p.purchase_price)) as cogs'),
-                DB::raw('SUM(sp.subtotal) - SUM(sp.quantity * COALESCE(sp.purchase_price_snapshot, p.purchase_price)) as gross_profit'),
-            )
-            ->groupBy('p.id', 'p.name', 'p.code')
-            ->orderByDesc('gross_profit')
-            ->limit(10)
-            ->get()
-            ->map(fn ($row) => [
-                'id' => $row->id,
-                'name' => $row->name,
-                'code' => $row->code,
-                'units_sold' => (int) $row->units_sold,
-                'revenue' => (float) $row->revenue,
-                'cogs' => (float) $row->cogs,
-                'gross_profit' => (float) $row->gross_profit,
-                'margin_pct' => $row->revenue > 0
-                    ? round(($row->gross_profit / $row->revenue) * 100, 1)
-                    : 0,
-            ]);
-
         $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+
+        // ── Gastos del período (lista inline) ────────────────────────────────
+        $expensesList = $expensesQuery->clone()
+            ->with(['category', 'template'])
+            ->orderByDesc('expense_date')
+            ->orderByDesc('id')
+            ->get();
+
+        // ── Plantillas pendientes del mes actual ─────────────────────────────
+        $now = Carbon::now('America/Bogota');
+        $pendingTemplates = ExpenseTemplate::with('category')
+            ->where('is_active', true)
+            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->get()
+            ->filter(fn ($t) => ! $t->isRegisteredForMonth($now->year, $now->month))
+            ->values();
+
+        $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
 
         return Inertia::render('finances/index', [
             'period' => $request->input('period', 'this_month'),
@@ -155,8 +141,13 @@ class FinanceController extends Controller
             'hasCOGSWarning' => $hasCOGSWarning,
 
             'expensesByCategory' => $expensesByCategory,
-            'monthlyTrend' => $trend,
-            'topProducts' => $topProducts,
+
+            // Inline expense management
+            'expenses' => $expensesList,
+            'pendingTemplates' => $pendingTemplates,
+            'categories' => $categories,
+            'currentMonth' => $now->translatedFormat('F Y'),
+            'userBranchId' => $user->branch_id,
         ]);
     }
 
@@ -170,6 +161,11 @@ class FinanceController extends Controller
         $tz = 'America/Bogota';
 
         return match ($request->input('period', 'this_month')) {
+            'this_week' => [
+                Carbon::now($tz)->startOfWeek(),
+                Carbon::now($tz)->endOfWeek(),
+                'Esta semana',
+            ],
             'last_month' => [
                 Carbon::now($tz)->subMonthNoOverflow()->startOfMonth(),
                 Carbon::now($tz)->subMonthNoOverflow()->endOfMonth(),
@@ -193,48 +189,4 @@ class FinanceController extends Controller
         };
     }
 
-    private function buildMonthlyTrend(?int $branchId, int $months): array
-    {
-        $tz = 'America/Bogota';
-        $rows = [];
-
-        for ($i = $months - 1; $i >= 0; $i--) {
-            $start = Carbon::now($tz)->subMonths($i)->startOfMonth();
-            $end = Carbon::now($tz)->subMonths($i)->endOfMonth();
-
-            $rev = (float) DB::table('sales')
-                ->where('status', 'completed')
-                ->whereNull('deleted_at')
-                ->whereBetween('date', [$start->toDateTimeString(), $end->toDateTimeString()])
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->sum('total');
-
-            $cogsMonth = (float) DB::table('sale_products as sp')
-                ->join('sales as s', 'sp.sale_id', '=', 's.id')
-                ->join('products as p', 'sp.product_id', '=', 'p.id')
-                ->where('s.status', 'completed')
-                ->whereNull('s.deleted_at')
-                ->whereBetween('s.date', [$start->toDateTimeString(), $end->toDateTimeString()])
-                ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
-                ->sum(DB::raw('sp.quantity * COALESCE(sp.purchase_price_snapshot, p.purchase_price)'));
-
-            $exp = (float) Expense::whereDate('expense_date', '>=', $start)
-                ->whereDate('expense_date', '<=', $end)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->sum('amount');
-
-            $gross = $rev - $cogsMonth;
-
-            $rows[] = [
-                'month' => $start->translatedFormat('M Y'),
-                'revenue' => $rev,
-                'cogs' => $cogsMonth,
-                'gross_profit' => $gross,
-                'expenses' => $exp,
-                'net_profit' => $gross - $exp,
-            ];
-        }
-
-        return $rows;
-    }
 }
