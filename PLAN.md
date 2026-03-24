@@ -489,12 +489,39 @@ Permite al negocio gestionar ventas que no se pagan en su totalidad en el moment
 
 #### Modalidades soportadas
 
-| Modalidad | Descripción | ¿Se entrega el producto? | ¿Genera venta? |
-|-----------|-------------|--------------------------|----------------|
-| `layaway` — Separado | El cliente abona una parte. El producto se reserva hasta que pague el total. | Solo al pagar el 100% | Al completar el pago |
-| `installments` — Cuotas | El cliente se lleva el producto y paga en N cuotas periódicas. | Inmediatamente | Al crear el crédito |
-| `due_date` — Fecha acordada | El cliente acuerda pagar en una fecha específica. | Inmediatamente | Al crear el crédito |
-| `hold` — Reservado | El producto queda apartado sin abono inicial ni fecha fija. | Solo al pagar | Al completar el pago |
+| Modalidad | ¿Se entrega el producto? | ¿Genera venta? | Reconocimiento de ingreso |
+|-----------|--------------------------|----------------|--------------------------|
+| `layaway` — Separado | Solo al pagar el 100% | Al completar el pago | Al completar el pago |
+| `installments` — Cuotas | Inmediatamente | Al crear el crédito | Al entregar (día 1, total) |
+| `due_date` — Fecha acordada | Inmediatamente | Al crear el crédito | Al entregar (día 1, total) |
+| `hold` — Reservado | Solo al pagar | Al completar el pago | Al completar el pago |
+
+---
+
+#### Modelo contable por modalidad
+
+**Separado y Reservado — ingreso diferido**
+- Los abonos parciales son *anticipos*, no ingresos. No aparecen en el P&L hasta cerrar la venta.
+- El stock queda *reservado* (no descontado) hasta el pago total.
+- Cada abono sí entra a la sesión de caja como `cash_in` (es dinero real que llega).
+- Al completar el pago: se crea la `Sale`, se descuenta el stock, el ingreso aparece en el P&L.
+
+**Cuotas y Fecha acordada — ingreso inmediato + cartera por cobrar**
+- La `Sale` se crea el día 1 con el total completo → el ingreso aparece en el P&L desde ese momento.
+- El stock se descuenta inmediatamente.
+- El balance pendiente queda registrado como *cartera por cobrar* en el módulo de finanzas.
+- Cada abono posterior: entra a caja como `cash_in` y reduce la cartera, pero no vuelve a sumar al P&L (ya se registró).
+- Esto refleja la realidad: el negocio vendió, entregó el producto, y tiene un derecho de cobro pendiente.
+
+**Impacto en el módulo de Finanzas (P&L)**
+- Nueva sección "Cartera por cobrar" — suma de balances pendientes de créditos `installments`/`due_date` activos.
+- El P&L existente no cambia — los ingresos de ventas de crédito se mezclan con ventas normales.
+- Diferenciador visual: las ventas con origen en crédito llevan un badge "Crédito" en el historial.
+
+**Impacto en Sesión de Caja**
+- Todo abono (`credit_payment`) genera un `cash_movement` de tipo `cash_in` vinculado a la sesión activa del usuario.
+- El campo `reference_type = 'credit_payment'` y `reference_id = credit_payment.id` permite trazabilidad completa.
+- En el cierre de caja, los abonos aparecen desglosados como "Abonos de crédito" separados de ventas normales.
 
 ---
 
@@ -502,23 +529,43 @@ Permite al negocio gestionar ventas que no se pagan en su totalidad en el moment
 
 **`credit_sales`** — registro principal del crédito
 ```
-id, sale_id (nullable — se crea al completar), client_id, branch_id, seller_id,
+id, sale_id (nullable — se crea al completar para layaway/hold),
+client_id, branch_id, seller_id,
 type (enum: layaway/installments/due_date/hold),
 total_amount, amount_paid, balance,
 installments_count (nullable), installment_amount (nullable),
-due_date (nullable), notes, status (enum: active/completed/cancelled),
+due_date (nullable), notes,
+status (enum: active/completed/cancelled),
 created_at, updated_at
 ```
 
 **`credit_payments`** — cada abono registrado
 ```
 id, credit_sale_id, amount, payment_method_id, notes,
-registered_by (user_id), payment_date, created_at
+registered_by (user_id), payment_date,
+cash_movement_id (FK → cash_movements — trazabilidad caja),
+created_at
 ```
 
-**`credit_sale_items`** — productos del crédito (snapshot)
+**`credit_sale_items`** — snapshot de productos al crear el crédito
 ```
 id, credit_sale_id, product_id, product_name, quantity, unit_price, subtotal
+```
+
+**Columna adicional en `products`**
+```
+reserved_stock INT DEFAULT 0  -- unidades apartadas en separados/reservas activos
+```
+
+**Columna adicional en `sales`**
+```
+credit_sale_id (nullable FK) -- vincula la venta al crédito que la originó
+```
+
+**Columna adicional en `cash_movements`**
+```
+reference_type VARCHAR(50) nullable  -- 'credit_payment'
+reference_id   BIGINT nullable       -- FK al abono correspondiente
 ```
 
 ---
@@ -526,86 +573,118 @@ id, credit_sale_id, product_id, product_name, quantity, unit_price, subtotal
 #### Flujo por modalidad
 
 **Separado (layaway)**
-1. Vendedor crea el crédito desde el POS o desde el módulo — registra los productos, el total y el abono inicial (puede ser $0 si es `hold`).
-2. El stock se reserva (no se descuenta aún — campo `reserved_stock` en `products` o tabla `stock_reservations`).
-3. Cada abono queda registrado en `credit_payments`.
-4. Cuando `balance = 0`: se crea la `sale` completa, se descuenta el stock real y el crédito pasa a `completed`.
+1. Vendedor registra productos, total y abono inicial (mínimo $0).
+2. `reserved_stock` aumenta en `products`. Stock real no cambia.
+3. POS y stock normal solo pueden vender `stock - reserved_stock`.
+4. Cada abono → `credit_payment` + `cash_movement (cash_in)` en sesión activa.
+5. `balance = 0` → se crea `Sale` completa, `stock` se descuenta, `reserved_stock` se libera, ingreso aparece en P&L.
 
 **Cuotas (installments)**
-1. El producto se entrega al crear el crédito → se descuenta el stock inmediatamente y se genera la `sale` marcada como crédito.
-2. El sistema calcula las fechas de cada cuota (`due_date` por cuota).
-3. El vendedor registra abonos contra el balance restante.
-4. Al pagar la última cuota: crédito → `completed`.
+1. Se crea la `Sale` inmediatamente → ingreso completo en P&L, stock descontado.
+2. El sistema calcula N fechas de cuota a partir de hoy (mensual por defecto).
+3. `credit_sale.balance = total` inicialmente.
+4. Cada abono → `credit_payment` + `cash_movement (cash_in)`, balance se reduce.
+5. `balance = 0` → crédito `completed`. La venta ya existía desde el paso 1.
 
 **Fecha acordada (due_date)**
-1. Similar a cuotas pero con una sola fecha de vencimiento.
-2. El producto se entrega inmediatamente.
-3. Alerta automática cuando se acerca/supera la fecha de pago.
+1. Se crea la `Sale` inmediatamente → ingreso en P&L, stock descontado.
+2. Una sola fecha límite de pago.
+3. Sin cuotas intermedias — el vendedor registra el pago cuando el cliente cancela.
+4. Si pasa la fecha y `balance > 0` → crédito marcado como "Vencido".
 
 **Reservado (hold)**
-1. Solo se guardan los productos. Sin abono ni fecha.
-2. Stock reservado hasta que el cliente decida comprar o cancele.
-3. Sin presión de fecha — el vendedor puede cancelar la reserva cuando quiera.
+1. Solo se guardan productos. Sin abono. Sin fecha.
+2. `reserved_stock` aumenta. Sin `Sale`.
+3. El vendedor registra el pago completo cuando el cliente regresa.
+4. Al pagar → igual que separado: `Sale` creada, stock descontado, reserva liberada.
 
 ---
 
 #### Backend
 
 **Migraciones**
-- `credit_sales` — tabla principal
-- `credit_payments` — tabla de abonos
-- `credit_sale_items` — snapshot de productos
-- `reserved_stock` (int, default 0) en `products` — para separados y reservas
+- `create_credit_sales_table`
+- `create_credit_payments_table`
+- `create_credit_sale_items_table`
+- `add_reserved_stock_to_products_table`
+- `add_credit_sale_id_to_sales_table`
+- `add_reference_to_cash_movements_table`
 
 **Modelos:** `CreditSale`, `CreditPayment`, `CreditSaleItem`
-- `CreditSale::balance()` — computed: `total_amount - amount_paid`
-- `CreditSale::isOverdue()` — `due_date < today && status = active`
-- `CreditSale::complete()` — crea la `Sale`, descuenta stock, libera reserva
+- `CreditSale::availableBalance()` → `total_amount - amount_paid`
+- `CreditSale::isOverdue()` → `due_date < today && status = active`
+- `CreditSale::complete()` → DB transaction: crea `Sale`, descuenta stock, libera `reserved_stock`, marca `completed`
+- `CreditSale::cancel()` → libera `reserved_stock`, marca `cancelled`
+
+**Servicio:** `CreditPaymentService::register(CreditSale, amount, method, user)`
+1. Valida que `amount <= balance`.
+2. Crea `CreditPayment`.
+3. Actualiza `credit_sales.amount_paid` y `balance`.
+4. Crea `CashMovement (cash_in)` vinculado al abono y a la sesión activa.
+5. Si `balance = 0` y tipo `layaway/hold` → llama `CreditSale::complete()`.
+6. Si `balance = 0` y tipo `installments/due_date` → solo marca `completed`.
+7. Todo en una sola transacción DB.
 
 **Controlador:** `CreditSaleController`
 - `index()` — listado con filtros (sucursal, estado, tipo, cliente)
-- `store()` — crea crédito + reserva stock si aplica
-- `show()` — detalle con historial de pagos
-- `addPayment()` — registra abono, recalcula balance, completa si `balance = 0`
-- `cancel()` — cancela crédito, libera stock reservado
-- `generateSale()` — convierte crédito completado en venta (layaway/hold)
+- `store()` — crea crédito + reserva stock si aplica + crea Sale si es installments/due_date
+- `show()` — detalle con historial de pagos y cuotas pendientes
+- `addPayment()` → delega a `CreditPaymentService`
+- `cancel()` — solo admin/encargado; libera stock
+- `receivables()` — endpoint para el widget de cartera en Finanzas
 
 **Reglas de negocio**
-- Un producto no puede superar `stock - reserved_stock` en ventas normales del POS.
+- `stock - reserved_stock` es el stock disponible real para el POS.
 - Solo admin/encargado puede cancelar un crédito activo.
-- Al cancelar, se libera el stock reservado.
-- El abono no puede superar el balance restante.
+- Un abono no puede superar el balance restante.
+- Si no hay sesión de caja abierta y `require_cash_session = true` → bloquear abono (igual que una venta normal).
+- Crédito de servicio (`type = servicio`): permitido, sin reserva de stock.
 
 ---
 
 #### Frontend
 
-**Sidebar:** `CreditCard` icon — "Créditos" (visible para vendedor, encargado, admin)
+**Sidebar:** `CreditCard` icon — "Créditos" (vendedor, encargado, admin)
+- Badge con conteo de créditos vencidos
 
 **Páginas:**
-- `/credits` — listado con tabs: Activos / Vencidos / Completados / Todos
-  - Filtros: sucursal, tipo, cliente, rango de fechas
-  - Cada fila: cliente, total, abonado, saldo, estado, próxima cuota / fecha límite
-- `/credits/create` — formulario: buscar cliente → buscar productos → seleccionar tipo → configurar condiciones → guardar
-- `/credits/{id}` — detalle: info del crédito + historial de abonos + botón "Registrar abono"
+- `/credits` — listado con tabs: **Activos** / **Vencidos** / **Completados** / **Todos**
+  - Cada fila: cliente, modalidad, total, abonado, saldo pendiente, fecha límite/cuota, estado
+- `/credits/create` — wizard en 3 pasos:
+  1. Seleccionar cliente + modalidad
+  2. Agregar productos (mismo buscador del POS)
+  3. Configurar condiciones (abono inicial, N cuotas o fecha límite) → confirmar
+- `/credits/{id}` — detalle completo:
+  - Info del crédito + productos
+  - Barra de progreso: abonado / total
+  - Historial de abonos con fecha, monto, método y quién registró
+  - Botón "Registrar abono"
+  - Botón "Cancelar crédito" (solo admin/encargado)
 - Modal "Registrar abono" — monto, método de pago, notas, confirmar
 
-**POS integration (opcional):**
-- Al hacer clic en "Guardar cotización" → opción adicional: "Guardar como crédito"
-- Permite crear el crédito directamente desde el flujo de venta normal.
+**Módulo de Finanzas — nuevos elementos:**
+- Widget "Cartera por cobrar": suma de balances de créditos `installments`/`due_date` activos, desglosado por sucursal
+- En el cierre de caja: sección "Abonos recibidos" desglosada de las ventas normales
+- Historial de ventas: badge "Crédito" en ventas originadas por el módulo
+
+**POS integration:**
+- Al completar una venta → opción adicional al botón "Cobrar": **"Registrar como crédito"**
+- Abre un mini-modal para seleccionar modalidad y condiciones sin salir del POS
 
 **Alertas visuales:**
-- Badge rojo "Vencido" en créditos con `due_date` pasada.
-- Badge amarillo "Vence pronto" (próximos 3 días).
-- Contador en el sidebar: número de créditos activos vencidos.
+- Badge rojo "Vencido" — `due_date` pasada y `balance > 0`
+- Badge amarillo "Vence en X días" — próximos 3 días
+- Contador en sidebar: número de créditos vencidos
 
 ---
 
 #### Casos borde
-- Devolución parcial en crédito activo: no permitida (cancelar el crédito completo).
-- Crédito de servicio: permitido — sin reserva de stock.
-- Descuento: se aplica al `total_amount` al crear, no por cuota.
-- Impresión: recibo de crédito al crear + recibo por cada abono.
+- **Devolución** en crédito activo: no permitida — se debe cancelar el crédito completo.
+- **Descuento**: se aplica sobre `total_amount` al crear. No se distribuye por cuota.
+- **Impresión**: recibo al crear el crédito + comprobante por cada abono (vía QZ Tray).
+- **Crédito de servicio**: sin `reserved_stock`, flujo idéntico al de productos.
+- **Stock insuficiente** al crear cuotas/fecha acordada: validar antes de crear la `Sale`.
+- **Cancelación con abonos ya registrados**: los `cash_movements` permanecen (el dinero entró a caja). Se registra una nota de devolución manual.
 
 ---
 
