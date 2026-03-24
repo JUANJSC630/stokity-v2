@@ -22,7 +22,7 @@ class StockMovementFactory extends Factory
             'product_id' => Product::factory(),
             'user_id' => User::factory(),
             'branch_id' => Branch::factory(),
-            'type' => 'in',
+            'type' => 'ingreso',
             'quantity' => $quantity,
             'previous_stock' => $previousStock,
             'new_stock' => $previousStock + $quantity,

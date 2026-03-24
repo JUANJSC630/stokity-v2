@@ -102,7 +102,7 @@ class StockMovementController extends Controller
             'branches' => $branches,
             'selectedProduct' => $selectedProduct,
             'userBranchId' => $user->branch_id,
-            'selectedType' => $request->input('type', 'in'),
+            'selectedType' => $request->input('type', 'ingreso'),
             'now' => now()->format('Y-m-d\TH:i'),
             'suppliers' => Supplier::when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
                 ->where('status', true)
@@ -118,7 +118,7 @@ class StockMovementController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'type' => 'required|in:in,out,adjustment,purchase,write_off,supplier_return',
+            'type' => 'required|in:ingreso,out,adjustment,write_off,supplier_return',
             'quantity' => [
                 'required', 'integer',
                 $request->input('type') === 'adjustment' ? 'min:0' : 'min:1',
@@ -153,7 +153,7 @@ class StockMovementController extends Controller
             $quantity = $request->quantity;
 
             $newStock = match ($request->type) {
-                'in', 'purchase' => $previousStock + $quantity,
+                'ingreso' => $previousStock + $quantity,
                 'out', 'write_off', 'supplier_return' => max(0, $previousStock - $quantity),
                 'adjustment' => $quantity,
                 default => $previousStock,
@@ -177,7 +177,7 @@ class StockMovementController extends Controller
             );
 
             // Auto-vincular producto al proveedor en el pivot cuando es una compra o entrada con proveedor
-            if ($supplierId && in_array($request->type, ['purchase', 'in'])) {
+            if ($supplierId && $request->type === 'ingreso') {
                 if (! $locked->suppliers()->where('supplier_id', $supplierId)->exists()) {
                     $locked->suppliers()->attach($supplierId, [
                         'purchase_price' => $request->unit_cost !== null ? (float) $request->unit_cost : null,
@@ -265,7 +265,7 @@ class StockMovementController extends Controller
 
         $statistics = [
             'total_movements' => $query->count(),
-            'total_in' => $query->clone()->whereIn('type', ['in', 'purchase'])->sum('quantity'),
+            'total_in' => $query->clone()->where('type', 'ingreso')->sum('quantity'),
             'total_out' => $query->clone()->whereIn('type', ['out', 'write_off', 'supplier_return'])->sum('quantity'),
             'total_cost' => $query->clone()->whereNotNull('unit_cost')->sum(DB::raw('quantity * unit_cost')),
             'movements_by_type' => $query->clone()

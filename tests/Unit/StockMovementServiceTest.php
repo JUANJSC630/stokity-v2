@@ -80,10 +80,10 @@ describe('StockMovementService::record()', function () {
         expect($movement->new_stock)->toBe($movement->previous_stock - $movement->quantity);
     });
 
-    it('type in increments: new_stock = previous_stock + quantity', function () {
+    it('type ingreso increments: new_stock = previous_stock + quantity', function () {
         $movement = $this->service->record(
             product: $this->product,
-            type: 'in',
+            type: 'ingreso',
             quantity: 5,
             previousStock: 50,
             newStock: 55,
@@ -101,7 +101,7 @@ describe('StockMovementService::record()', function () {
 
         $movement = $this->service->record(
             product: $this->product,
-            type: 'in',
+            type: 'ingreso',
             quantity: 10,
             previousStock: 50,
             newStock: 60,

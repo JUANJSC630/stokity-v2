@@ -80,7 +80,7 @@ describe('Sale Returns', function () {
         expect($this->product->fresh()->stock)->toBe($stockBefore + 3);
     });
 
-    it('creates a StockMovement of type in for return', function () {
+    it('creates a StockMovement of type ingreso for return', function () {
         $this->actingAs($this->admin)
             ->post(route('sales.returns.store', $this->sale), [
                 'products' => [
@@ -90,7 +90,7 @@ describe('Sale Returns', function () {
             ]);
 
         $movement = StockMovement::where('product_id', $this->product->id)
-            ->where('type', 'in')
+            ->where('type', 'ingreso')
             ->latest()
             ->first();
 

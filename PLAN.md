@@ -76,6 +76,95 @@ No hay forma de marcar clientes mayoristas con descuento automático.
 
 ---
 
+### ✅ F9 — Unificación de tipos de movimiento de stock: `in` + `purchase` → `ingreso`
+**Completado: 2026-03-23**
+
+Actualmente existen dos tipos que representan lo mismo (stock que entra al sistema): `in` ("Entrada de Stock") y `purchase` ("Compra a Proveedor"). Esto genera confusión porque:
+- El usuario no distingue cuándo usar uno u otro.
+- "Compra" en español puede interpretarse como venta al cliente (compra = lo que compra el cliente), no como una entrada de inventario.
+- En código, ambos se tratan igual: se suman al stock, habilitan proveedor y costo unitario, se agrupan con `whereIn('type', ['in', 'purchase'])`.
+
+**Solución:** Unificar ambos en un solo tipo `ingreso` ("Ingreso") que es semánticamente claro: cualquier unidad que entra al inventario es un ingreso. El proveedor y el costo unitario siguen siendo opcionales en un ingreso.
+
+**Tipos finales del enum:**
+
+| Valor DB | Etiqueta UI | Efecto en stock | Color |
+|----------|-------------|-----------------|-------|
+| `ingreso` | Ingreso | `+ cantidad` | verde |
+| `out` | Salida | `- cantidad` | rojo |
+| `adjustment` | Ajuste | `= cantidad` | amarillo |
+| `write_off` | Baja | `- cantidad` | naranja |
+| `supplier_return` | Devolución a proveedor | `- cantidad` | morado |
+
+**Implementación — Backend:**
+
+1. **Migración DB** (`database/migrations/`)
+   - Nuevo archivo: `2026_XX_XX_migrate_in_purchase_to_ingreso.php`
+   - En MySQL: `UPDATE stock_movements SET type = 'ingreso' WHERE type IN ('in', 'purchase')`
+   - Luego: `ALTER TABLE stock_movements MODIFY COLUMN type ENUM('ingreso','out','adjustment','write_off','supplier_return') NOT NULL`
+   - `down()`: revertir a `in`/`purchase` (asignar `ingreso` → `in`)
+
+2. **`app/Models/StockMovement.php`**
+   - `typeLabel()`: eliminar `'in'` y `'purchase'`, agregar `'ingreso' => 'Ingreso'`
+   - `typeColor()`: eliminar `'in'` y `'purchase'`, agregar `'ingreso' => 'green'`
+
+3. **`app/Http/Controllers/StockMovementController.php`**
+   - Validación `store()`: `'required|in:ingreso,out,adjustment,write_off,supplier_return'`
+   - `match($request->type)`: `'ingreso' => $prev + $qty` (eliminar `'in', 'purchase'`)
+   - `whereIn('type', ['in', 'purchase'])` → `where('type', 'ingreso')` (×2: `total_in` y `movements_by_type`)
+   - Auto-link proveedor: `in_array($request->type, ['purchase', 'in'])` → `$request->type === 'ingreso'`
+   - `selectedType` default: `'in'` → `'ingreso'`
+
+4. **`app/Http/Controllers/SupplierController.php`**
+   - `whereIn('type', ['in', 'purchase'])` → `where('type', 'ingreso')`
+
+5. **`app/Http/Controllers/SaleController.php`**
+   - `type: 'in'` (reposición de stock al cancelar venta) → `type: 'ingreso'`
+
+6. **`app/Http/Controllers/SaleReturnController.php`**
+   - `type: 'in'` (reposición de stock en devolución) → `type: 'ingreso'`
+
+7. **`app/Http/Controllers/ProductController.php`**
+   - `'add' => 'in'` → `'add' => 'ingreso'`
+
+**Implementación — Frontend:**
+
+8. **`resources/js/pages/stock-movements/create.tsx`**
+   - `MovementType`: reemplazar `'in' | 'purchase'` → `'ingreso'`
+   - Default state: `'in'` → `'ingreso'`
+   - Eliminar `<SelectItem value="in">` y `<SelectItem value="purchase">`, agregar `<SelectItem value="ingreso">Ingreso de Stock</SelectItem>`
+   - `showSupplier`: `['in', 'purchase', 'supplier_return']` → `['ingreso', 'supplier_return']`
+   - `showUnitCost`: `['in', 'purchase']` → `['ingreso']`
+   - `quantityLabel`: `['in', 'purchase']` → `['ingreso']`
+   - Etiqueta del proveedor: eliminar la distinción `purchase ? ' *' : ''` (en `ingreso` el proveedor es siempre opcional)
+
+9. **`resources/js/pages/stock-movements/index.tsx`**
+   - Actualizar filtro de tipo: eliminar opciones `in` / `purchase`, agregar `ingreso`
+
+10. **`resources/js/pages/stock-movements/product-movements.tsx`**
+    - Actualizar los `switch/case` de `getTypeColor()` y `getTypeLabel()`: eliminar `case 'purchase'` y `case 'in'`, agregar `case 'ingreso'`
+    - Actualizar el `+/-/=` badge: `movement.type === 'in'` → `movement.type === 'ingreso'`
+
+11. **`resources/js/pages/suppliers/show.tsx`**
+    - Eliminar `in: 'Entrada'` y `purchase: 'Compra'` del mapa de etiquetas/colores
+    - Agregar `ingreso: 'Ingreso'` con color verde
+
+**Implementación — Tests:**
+
+12. **`database/factories/StockMovementFactory.php`**
+    - `'type' => 'in'` → `'type' => 'ingreso'`
+
+13. **Tests existentes** — revisar cualquier aserción que use `'in'` o `'purchase'` como tipo de movimiento de stock y actualizarlos a `'ingreso'`
+
+**Orden de ejecución recomendado:**
+1. Migración DB (primero — define la verdad del schema)
+2. Modelo + Controladores backend
+3. Factories + Tests
+4. Frontend (puede ir en paralelo con paso 2-3)
+5. Verificar que `php artisan test` siga en verde
+
+---
+
 ### F2 — Transferencia de stock entre sucursales
 **Prioridad: Alta**
 
@@ -182,3 +271,10 @@ Cambios de precio no dejan rastro.
 - **Backend (Pest PHP):** 117 tests, 325 assertions — 15 archivos de test + 6 factories
 - **Frontend (Vitest):** 69 tests — 8 archivos cubriendo lib, hooks y componentes
 - **Larastan:** 0 errores · **TypeScript:** 0 errores · **ESLint:** 0 errores
+
+
+
+
+precio de compra vs precio de venta deberia mostrar ganancia neta
+
+ejemplo : el cliente quiere un reporte de estadistica de la ganancia neta para que pueda saber gastos y ganancias para que pueda distribuir gastos de distintas cosas, empleados etc , por ejemplo saber cuanto le queda al mes para reinvertir, pago de empleados etc 

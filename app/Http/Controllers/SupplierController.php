@@ -132,7 +132,7 @@ class SupplierController extends Controller
         }
 
         $totalCost = (float) $movementsQuery->clone()
-            ->whereIn('type', ['in', 'purchase'])
+            ->where('type', 'ingreso')
             ->whereNotNull('unit_cost')
             ->sum(DB::raw('quantity * unit_cost'));
 

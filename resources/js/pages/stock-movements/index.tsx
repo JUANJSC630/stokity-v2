@@ -10,12 +10,12 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowDownCircle, ArrowUpCircle, Equal, Eye, Package, Plus, RotateCcw, Search, ShoppingCart, Trash2, X } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Equal, Eye, Package, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface StockMovement {
     id: number;
-    type: 'in' | 'out' | 'adjustment';
+    type: 'ingreso' | 'out' | 'adjustment' | 'write_off' | 'supplier_return';
     quantity: number;
     previous_stock: number;
     new_stock: number;
@@ -104,14 +104,12 @@ export default function StockMovementsIndex({ movements, branches, products, fil
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'in':
+            case 'ingreso':
                 return 'bg-green-100 text-green-800';
             case 'out':
                 return 'bg-red-100 text-red-800';
             case 'adjustment':
                 return 'bg-yellow-100 text-yellow-800';
-            case 'purchase':
-                return 'bg-blue-100 text-blue-800';
             case 'write_off':
                 return 'bg-orange-100 text-orange-800';
             case 'supplier_return':
@@ -123,14 +121,12 @@ export default function StockMovementsIndex({ movements, branches, products, fil
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':
-                return 'Entrada';
+            case 'ingreso':
+                return 'Ingreso';
             case 'out':
                 return 'Salida';
             case 'adjustment':
                 return 'Ajuste';
-            case 'purchase':
-                return 'Compra';
             case 'write_off':
                 return 'Baja';
             case 'supplier_return':
@@ -143,14 +139,12 @@ export default function StockMovementsIndex({ movements, branches, products, fil
     const getTypeIcon = (type: string) => {
         const cls = 'mr-1 inline h-3 w-3';
         switch (type) {
-            case 'in':
+            case 'ingreso':
                 return <ArrowDownCircle className={cls} />;
             case 'out':
                 return <ArrowUpCircle className={cls} />;
             case 'adjustment':
                 return <Equal className={cls} />;
-            case 'purchase':
-                return <ShoppingCart className={cls} />;
             case 'write_off':
                 return <Trash2 className={cls} />;
             case 'supplier_return':
@@ -263,8 +257,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos los tipos</SelectItem>
-                                        <SelectItem value="in">Entrada</SelectItem>
-                                        <SelectItem value="purchase">Compra</SelectItem>
+                                        <SelectItem value="ingreso">Ingreso</SelectItem>
                                         <SelectItem value="out">Salida</SelectItem>
                                         <SelectItem value="write_off">Baja</SelectItem>
                                         <SelectItem value="supplier_return">Dev. Proveedor</SelectItem>
@@ -369,7 +362,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                     className={`flex h-8 w-8 items-center justify-center rounded-full ${getTypeColor(movement.type)}`}
                                                 >
                                                     <span className="text-xs font-medium">
-                                                        {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : '='}
+                                                        {movement.type === 'ingreso' ? '+' : movement.type === 'out' ? '-' : '='}
                                                     </span>
                                                 </div>
                                                 <div>

@@ -13,7 +13,7 @@ import axios from 'axios';
 import { ArrowLeft, Loader2, Package, Save, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-type MovementType = 'in' | 'out' | 'adjustment' | 'purchase' | 'write_off' | 'supplier_return';
+type MovementType = 'ingreso' | 'out' | 'adjustment' | 'write_off' | 'supplier_return';
 
 interface Props {
     branches: Branch[];
@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function StockMovementCreate({ suppliers = [], selectedProduct, selectedType = 'in', now }: Props) {
     const [selectedProductData, setSelectedProductData] = useState<Product | null>(selectedProduct || null);
-    const [movementType, setMovementType] = useState<MovementType>((selectedType as MovementType) || 'in');
+    const [movementType, setMovementType] = useState<MovementType>((selectedType as MovementType) || 'ingreso');
 
     // Product search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +62,7 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
 
     const { data, setData, post, processing, errors } = useForm({
         product_id: selectedProduct?.id?.toString() || '',
-        type: ((selectedType as MovementType) || 'in') as MovementType,
+        type: ((selectedType as MovementType) || 'ingreso') as MovementType,
         quantity: '',
         unit_cost: '',
         supplier_id: '',
@@ -112,10 +112,10 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
         setTimeout(() => inputRef.current?.focus(), 0);
     };
 
-    const showSupplier = ['in', 'purchase', 'supplier_return'].includes(movementType);
-    const showUnitCost = ['in', 'purchase'].includes(movementType);
+    const showSupplier = ['ingreso', 'supplier_return'].includes(movementType);
+    const showUnitCost = movementType === 'ingreso';
 
-    const quantityLabel = ['in', 'purchase'].includes(movementType)
+    const quantityLabel = movementType === 'ingreso'
         ? 'Cantidad a ingresar'
         : ['out', 'write_off', 'supplier_return'].includes(movementType)
           ? 'Cantidad a retirar'
@@ -277,9 +277,8 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="in">Entrada de Stock</SelectItem>
-                                                <SelectItem value="purchase">Compra a Proveedor</SelectItem>
-                                                <SelectItem value="out">Salida de Stock</SelectItem>
+                                                <SelectItem value="ingreso">Ingreso</SelectItem>
+                                                <SelectItem value="out">Salida</SelectItem>
                                                 <SelectItem value="write_off">Baja de Inventario</SelectItem>
                                                 <SelectItem value="supplier_return">Devolución a Proveedor</SelectItem>
                                                 <SelectItem value="adjustment">Ajuste de Stock</SelectItem>
@@ -290,7 +289,7 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
 
                                     {showSupplier && (
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="supplier_id">Proveedor{movementType === 'purchase' ? ' *' : ''}</Label>
+                                            <Label htmlFor="supplier_id">Proveedor</Label>
                                             <Select
                                                 value={data.supplier_id || '__none__'}
                                                 onValueChange={(v) => setData('supplier_id', v === '__none__' ? '' : v)}
@@ -355,7 +354,11 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                                             id="reference"
                                             value={data.reference}
                                             onChange={(e) => setData('reference', e.target.value)}
-                                            placeholder="Ej: Factura #001, Ajuste mensual..."
+                                            placeholder={
+                                                movementType === 'ingreso'
+                                                    ? 'Ej: Compra proveedor, Factura #001, Transferencia...'
+                                                    : 'Ej: Factura #001, Ajuste mensual...'
+                                            }
                                         />
                                         {errors.reference && <p className="text-sm text-red-600">{errors.reference}</p>}
                                     </div>

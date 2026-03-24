@@ -106,7 +106,7 @@ class SaleReturnController extends Controller
 
                     $this->stockMovements->record(
                         product: $product,
-                        type: 'in',
+                        type: 'ingreso',
                         quantity: $item['quantity'],
                         previousStock: $previousStock,
                         newStock: $product->stock,

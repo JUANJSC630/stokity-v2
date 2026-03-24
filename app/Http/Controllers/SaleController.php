@@ -648,7 +648,7 @@ class SaleController extends Controller
 
                     $this->stockMovements->record(
                         product: $product,
-                        type: 'in',
+                        type: 'ingreso',
                         quantity: $saleProduct->quantity,
                         previousStock: $previousStock,
                         newStock: $product->stock,

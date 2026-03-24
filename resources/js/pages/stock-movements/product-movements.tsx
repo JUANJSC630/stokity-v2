@@ -12,7 +12,7 @@ import { ArrowLeft, Eye, Plus } from 'lucide-react';
 
 interface StockMovement {
     id: number;
-    type: 'in' | 'out' | 'adjustment';
+    type: 'ingreso' | 'out' | 'adjustment' | 'write_off' | 'supplier_return';
     quantity: number;
     previous_stock: number;
     new_stock: number;
@@ -125,8 +125,7 @@ export default function ProductMovements({ product, movements }: Props) {
 
     const getTypeColor = (type: string) => {
         switch (type) {
-            case 'in':
-            case 'purchase':
+            case 'ingreso':
                 return 'bg-green-100 text-green-800';
             case 'out':
             case 'write_off':
@@ -142,20 +141,18 @@ export default function ProductMovements({ product, movements }: Props) {
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'in':
-                return 'Entrada';
+            case 'ingreso':
+                return 'Ingreso';
             case 'out':
                 return 'Salida';
             case 'adjustment':
                 return 'Ajuste';
-            case 'purchase':
-                return 'Compra';
             case 'write_off':
                 return 'Baja';
             case 'supplier_return':
                 return 'Dev. Proveedor';
             default:
-                return type; // muestra el valor crudo si aparece uno nuevo
+                return type;
         }
     };
 
@@ -300,7 +297,7 @@ export default function ProductMovements({ product, movements }: Props) {
                                                     className={`flex h-8 w-8 items-center justify-center rounded-full ${getTypeColor(movement.type)}`}
                                                 >
                                                     <span className="text-xs font-medium">
-                                                        {movement.type === 'in' ? '+' : movement.type === 'out' ? '-' : '='}
+                                                        {movement.type === 'ingreso' ? '+' : movement.type === 'out' ? '-' : '='}
                                                     </span>
                                                 </div>
                                                 <div>

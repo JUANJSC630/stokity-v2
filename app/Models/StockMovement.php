@@ -113,10 +113,9 @@ class StockMovement extends Model
     public function getTypeLabelAttribute(): string
     {
         return match ($this->type) {
-            'in' => 'Entrada',
+            'ingreso' => 'Ingreso',
             'out' => 'Salida',
             'adjustment' => 'Ajuste',
-            'purchase' => 'Compra',
             'write_off' => 'Baja',
             'supplier_return' => 'Devolución a proveedor',
             default => 'Desconocido',
@@ -129,10 +128,9 @@ class StockMovement extends Model
     public function getTypeColorAttribute(): string
     {
         return match ($this->type) {
-            'in' => 'green',
+            'ingreso' => 'green',
             'out' => 'red',
             'adjustment' => 'yellow',
-            'purchase' => 'blue',
             'write_off' => 'orange',
             'supplier_return' => 'purple',
             default => 'gray',

@@ -364,7 +364,7 @@ class ProductController extends Controller
             $this->stockMovements->record(
                 product: $product,
                 type: match ($request->operation) {
-                    'add' => 'in',
+                    'add' => 'ingreso',
                     'subtract' => 'out',
                     default => 'adjustment',
                 },
