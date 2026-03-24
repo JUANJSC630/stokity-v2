@@ -25,11 +25,11 @@ interface CreateProductProps {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Productos',
+        title: 'Catálogo',
         href: '/products',
     },
     {
-        title: 'Crear Producto',
+        title: 'Crear',
         href: '/products/create',
     },
 ];
@@ -54,6 +54,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         name: string;
         code: string;
         description: string;
+        type: 'producto' | 'servicio';
+        variable_price: boolean;
         purchase_price: number;
         sale_price: number;
         tax: number;
@@ -67,6 +69,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         name: '',
         code: '',
         description: '',
+        type: 'producto',
+        variable_price: false,
         purchase_price: 0,
         sale_price: 0,
         tax: defaultTax,
@@ -162,7 +166,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Crear Producto" />
+            <Head title="Crear" />
             {/* Diálogo de error */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent>
@@ -189,18 +193,46 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                             Volver
                         </Button>
                     </Link>
-                    <h1 className="text-xl font-semibold sm:text-2xl">Crear Nuevo Producto</h1>
+                    <h1 className="text-xl font-semibold sm:text-2xl">
+                        {form.data.type === 'servicio' ? 'Crear Servicio' : 'Crear Producto'}
+                    </h1>
                 </div>
 
                 <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
                     <CardHeader>
-                        <CardTitle>Información del Producto</CardTitle>
-                        <CardDescription>
-                            Complete la información necesaria para crear un nuevo producto. Todos los campos marcados con * son obligatorios.
-                        </CardDescription>
+                        <CardTitle>{form.data.type === 'servicio' ? 'Información del Servicio' : 'Información del Producto'}</CardTitle>
+                        <CardDescription>Complete la información. Los campos marcados con * son obligatorios.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Tipo: Producto / Servicio */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Tipo *</label>
+                                <div className="flex gap-2">
+                                    {(['producto', 'servicio'] as const).map((t) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => form.setData('type', t)}
+                                            className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                                                form.data.type === t
+                                                    ? t === 'servicio'
+                                                        ? 'border-purple-400 bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200'
+                                                        : 'border-blue-400 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                                                    : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400'
+                                            }`}
+                                        >
+                                            {t === 'producto' ? '📦 Producto' : '🔧 Servicio'}
+                                        </button>
+                                    ))}
+                                </div>
+                                {form.data.type === 'servicio' && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Los servicios no tienen stock. Ideal para restauraciones, reparaciones o trabajos a pedido.
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Imagen */}
                             <div className="col-span-2 space-y-2">
                                 <label htmlFor="image" className="text-sm font-medium">
@@ -356,7 +388,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 {/* Precio de compra */}
                                 <div className="space-y-2">
                                     <label htmlFor="purchase_price" className="text-sm font-medium">
-                                        Precio de compra *
+                                        {form.data.type === 'servicio' ? 'Costo del servicio' : 'Precio de compra'}
                                     </label>
                                     <div className="relative">
                                         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
@@ -373,7 +405,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                 {/* Precio de venta */}
                                 <div className="space-y-2">
                                     <label htmlFor="sale_price" className="text-sm font-medium">
-                                        Precio de venta *
+                                        {form.data.type === 'servicio' ? 'Precio base' : 'Precio de venta'} *
                                     </label>
                                     <div className="relative">
                                         <span className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
@@ -425,43 +457,66 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <p className="text-xs text-muted-foreground">Porcentaje de impuesto aplicado al producto (ej: 19 para IVA).</p>
                                 </div>
 
-                                {/* Stock inicial */}
-                                <div className="space-y-2">
-                                    <label htmlFor="stock" className="text-sm font-medium">
-                                        Stock inicial *
-                                    </label>
-                                    <Input
-                                        id="stock"
-                                        type="number"
-                                        step="1"
-                                        min="0"
-                                        value={form.data.stock}
-                                        onChange={(e) => form.setData('stock', Number(e.target.value))}
-                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                    />
-                                    <p className="text-xs text-muted-foreground">Cantidad inicial en inventario.</p>
-                                    {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
-                                </div>
+                                {/* Stock — solo para productos */}
+                                {form.data.type === 'producto' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label htmlFor="stock" className="text-sm font-medium">
+                                                Stock inicial *
+                                            </label>
+                                            <Input
+                                                id="stock"
+                                                type="number"
+                                                step="1"
+                                                min="0"
+                                                value={form.data.stock}
+                                                onChange={(e) => form.setData('stock', Number(e.target.value))}
+                                                className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                            />
+                                            <p className="text-xs text-muted-foreground">Cantidad inicial en inventario.</p>
+                                            {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
+                                        </div>
 
-                                {/* Stock mínimo */}
-                                <div className="space-y-2">
-                                    <label htmlFor="min_stock" className="text-sm font-medium">
-                                        Stock mínimo *
-                                    </label>
-                                    <Input
-                                        id="min_stock"
-                                        type="number"
-                                        step="1"
-                                        min="0"
-                                        value={form.data.min_stock}
-                                        onChange={(e) => form.setData('min_stock', Number(e.target.value))}
-                                        className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
-                                    />
-                                    {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
-                                    <p className="text-xs text-muted-foreground">
-                                        Se mostrará alerta cuando el stock sea menor o igual a este valor.
-                                    </p>
-                                </div>
+                                        <div className="space-y-2">
+                                            <label htmlFor="min_stock" className="text-sm font-medium">
+                                                Stock mínimo *
+                                            </label>
+                                            <Input
+                                                id="min_stock"
+                                                type="number"
+                                                step="1"
+                                                min="0"
+                                                value={form.data.min_stock}
+                                                onChange={(e) => form.setData('min_stock', Number(e.target.value))}
+                                                className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
+                                            />
+                                            {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
+                                            <p className="text-xs text-muted-foreground">
+                                                Se mostrará alerta cuando el stock sea menor o igual a este valor.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Precio variable — solo para servicios */}
+                                {form.data.type === 'servicio' && (
+                                    <div className="col-span-1 space-y-2 sm:col-span-2">
+                                        <Label className="text-sm font-medium">Precio variable</Label>
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                id="variable_price"
+                                                checked={form.data.variable_price}
+                                                onCheckedChange={(checked) => form.setData('variable_price', checked)}
+                                            />
+                                            <Label htmlFor="variable_price" className="font-normal">
+                                                {form.data.variable_price ? 'Sí — el vendedor ingresa el precio al vender' : 'No — usar el precio base siempre'}
+                                            </Label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Activa esto si el precio varía según el trabajo (ej: restauraciones a cotizar).
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Descripción */}
                                 <div className="col-span-1 space-y-2 sm:col-span-2">

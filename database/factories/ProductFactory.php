@@ -438,6 +438,8 @@ class ProductFactory extends Factory
             'category_id' => $category_id ?? (Category::inRandomOrder()->first()->id ?? Category::factory()),
             'branch_id' => Branch::inRandomOrder()->first() ?? Branch::factory(),
             'status' => true,
+            'type' => 'producto',
+            'variable_price' => false,
         ];
     }
 

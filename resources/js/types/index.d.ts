@@ -183,6 +183,8 @@ export interface Product {
     category_id: number;
     branch_id: number;
     status: boolean;
+    type: 'producto' | 'servicio';
+    variable_price: boolean;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;

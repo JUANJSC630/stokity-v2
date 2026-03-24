@@ -47,6 +47,8 @@ class Product extends Model
         'category_id',
         'branch_id',
         'status',
+        'type',
+        'variable_price',
     ];
 
     /**
@@ -61,6 +63,7 @@ class Product extends Model
         'status' => 'boolean',
         'stock' => 'integer',
         'min_stock' => 'integer',
+        'variable_price' => 'boolean',
     ];
 
     /**
@@ -120,9 +123,14 @@ class Product extends Model
     /**
      * Determine if the product is low in stock.
      */
+    public function isService(): bool
+    {
+        return $this->type === 'servicio';
+    }
+
     public function isLowStock(): bool
     {
-        return $this->stock <= $this->min_stock;
+        return ! $this->isService() && $this->stock <= $this->min_stock;
     }
 
     /**

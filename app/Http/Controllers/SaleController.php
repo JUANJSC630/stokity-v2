@@ -198,13 +198,13 @@ class SaleController extends Controller
                         'subtotal' => $prod['subtotal'],
                     ]);
 
-                    // Solo descontar stock en ventas completadas
+                    // Solo descontar stock en ventas completadas (no aplica a servicios)
                     if (! $isPending) {
                         // lockForUpdate() acquires a row-level DB lock, preventing
                         // concurrent transactions from reading or modifying this
                         // product's stock until this transaction commits or rolls back.
                         $product = Product::lockForUpdate()->find($prod['id']);
-                        if ($product) {
+                        if ($product && ! $product->isService()) {
                             // Re-check stock inside the lock — the pre-check above
                             // can be stale if another transaction ran concurrently.
                             if ($product->stock < $prod['quantity']) {
@@ -382,7 +382,7 @@ class SaleController extends Controller
                     ]);
 
                     $product = Product::lockForUpdate()->find($prod['id']);
-                    if ($product) {
+                    if ($product && ! $product->isService()) {
                         if ($product->stock < $prod['quantity']) {
                             throw new \RuntimeException(
                                 "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"
@@ -655,7 +655,7 @@ class SaleController extends Controller
         DB::transaction(function () use ($sale) {
             foreach ($sale->saleProducts as $saleProduct) {
                 $product = Product::lockForUpdate()->find($saleProduct->product_id);
-                if ($product) {
+                if ($product && ! $product->isService()) {
                     $previousStock = $product->stock;
                     $product->stock += $saleProduct->quantity;
                     $product->save();
@@ -700,7 +700,7 @@ class SaleController extends Controller
                 continue;
             }
 
-            if ($product->stock < $prod['quantity']) {
+            if (! $product->isService() && $product->stock < $prod['quantity']) {
                 $available = $product->stock;
                 $key = is_int($index) ? "products.{$index}.quantity" : "stock_{$prod['id']}";
                 $errors[$key] = "{$product->name}: necesitas {$prod['quantity']}, "

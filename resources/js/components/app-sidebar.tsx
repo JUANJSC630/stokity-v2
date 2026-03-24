@@ -54,7 +54,7 @@ const allNavItems: NavItem[] = [
         roles: ['administrador', 'encargado'], // Admin and manager
     },
     {
-        title: 'Productos',
+        title: 'Catálogo',
         href: '/products',
         icon: Package,
         roles: ['administrador', 'encargado'], // Admin and manager

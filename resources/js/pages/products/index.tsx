@@ -32,12 +32,13 @@ interface ProductsPageProps {
         status?: string;
         category?: string;
         branch?: string;
+        type?: string;
     };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Productos',
+        title: 'Catálogo',
         href: '/products',
     },
 ];
@@ -53,6 +54,7 @@ export default function Products({
     const [status, setStatus] = useState(filters.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
     const [branch, setBranch] = useState(filters?.branch || 'all');
+    const [typeFilter, setTypeFilter] = useState(filters?.type || 'all');
     const [isSearching, setIsSearching] = useState(false);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -67,7 +69,7 @@ export default function Products({
     useEffect(() => {
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         searchTimeoutRef.current = setTimeout(() => {
-            applyFilters(search, status, category, branch);
+            applyFilters(search, status, category, branch, typeFilter);
         }, 350);
         return () => {
             if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -83,38 +85,29 @@ export default function Products({
 
     const handleStatusChange = (newStatus: string) => {
         setStatus(newStatus);
-        const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        if (newStatus && newStatus !== 'all') params.append('status', newStatus);
-        if (category && category !== 'all') params.append('category', category);
-        if (branch && branch !== 'all') params.append('branch', branch);
-        router.visit(`/products?${params.toString()}`, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            only: ['products'],
-        });
+        applyFilters(search, newStatus, category, branch, typeFilter);
     };
 
-    const applyFilters = (searchParam = search, statusParam = status, categoryParam = category, branchParam = branch) => {
+    const handleTypeChange = (newType: string) => {
+        setTypeFilter(newType);
+        applyFilters(search, status, category, branch, newType);
+    };
+
+    const applyFilters = (
+        searchParam = search,
+        statusParam = status,
+        categoryParam = category,
+        branchParam = branch,
+        typeParam = typeFilter,
+    ) => {
         setIsSearching(true);
         const params = new URLSearchParams();
 
-        if (searchParam) {
-            params.append('search', searchParam);
-        }
-
-        if (statusParam && statusParam !== 'all') {
-            params.append('status', statusParam);
-        }
-
-        if (categoryParam && categoryParam !== 'all') {
-            params.append('category', categoryParam);
-        }
-
-        if (branchParam && branchParam !== 'all') {
-            params.append('branch', branchParam);
-        }
+        if (searchParam) params.append('search', searchParam);
+        if (statusParam && statusParam !== 'all') params.append('status', statusParam);
+        if (categoryParam && categoryParam !== 'all') params.append('category', categoryParam);
+        if (branchParam && branchParam !== 'all') params.append('branch', branchParam);
+        if (typeParam && typeParam !== 'all') params.append('type', typeParam);
 
         router.visit(`/products?${params.toString()}`, {
             preserveState: true,
@@ -171,12 +164,24 @@ export default function Products({
             key: 'stock',
             title: 'Stock',
             render: (_: unknown, row: Product) =>
-                row.stock <= row.min_stock ? (
+                row.type === 'servicio' ? (
+                    <span className="text-muted-foreground">—</span>
+                ) : row.stock <= row.min_stock ? (
                     <span className="inline-flex items-center justify-center rounded-md bg-red-100 px-2 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
                         {row.stock}
                     </span>
                 ) : (
                     <span className="text-neutral-700 dark:text-neutral-200">{row.stock}</span>
+                ),
+        },
+        {
+            key: 'type' as keyof (Product & { actions: null }),
+            title: 'Tipo',
+            render: (_: unknown, row: Product) =>
+                row.type === 'servicio' ? (
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Servicio</Badge>
+                ) : (
+                    <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Producto</Badge>
                 ),
         },
         {
@@ -217,17 +222,17 @@ export default function Products({
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Productos" />
+            <Head title="Catálogo" />
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Productos</h1>
+                    <h1 className="text-3xl font-bold">Catálogo</h1>
                     <div className="flex gap-2">
                         {canManageProducts && (
                             <>
                                 <Link href="/products/create">
                                     <Button size="sm" className="flex items-center gap-1">
                                         <Plus className="h-4 w-4" />
-                                        Nuevo Producto
+                                        Nuevo
                                     </Button>
                                 </Link>
                                 <Link href="/products/trashed">
@@ -240,11 +245,29 @@ export default function Products({
                     </div>
                 </div>
 
+                {/* Type tabs */}
+                <div className="flex gap-1">
+                    {[
+                        { value: 'all', label: 'Todos' },
+                        { value: 'producto', label: 'Productos' },
+                        { value: 'servicio', label: 'Servicios' },
+                    ].map((tab) => (
+                        <Button
+                            key={tab.value}
+                            size="sm"
+                            variant={typeFilter === tab.value ? 'default' : 'outline'}
+                            onClick={() => handleTypeChange(tab.value)}
+                        >
+                            {tab.label}
+                        </Button>
+                    ))}
+                </div>
+
                 <div className="flex flex-col gap-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Filtrar Productos</CardTitle>
-                            <CardDescription>Busca productos por código, nombre, estado, categoría o sucursal</CardDescription>
+                            <CardTitle>Filtrar</CardTitle>
+                            <CardDescription>Busca por código, nombre, estado, categoría o sucursal</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-5">

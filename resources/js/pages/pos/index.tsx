@@ -335,6 +335,10 @@ export default function PosIndex({
     const [movementConcept, setMovementConcept] = useState('');
     const [movementNotes, setMovementNotes] = useState('');
 
+    // Variable-price service modal
+    const [varPriceProduct, setVarPriceProduct] = useState<Product | null>(null);
+    const [varPriceValue, setVarPriceValue] = useState(0);
+
     // Printer
     const printer = usePrinter();
     const { play: playSound } = useSound();
@@ -399,35 +403,54 @@ export default function PosIndex({
     }, [query, selectedCategory]);
 
     // --- Cart helpers ---
-    const addToCart = useCallback(
-        (product: Product, qty = 1) => {
-            if (product.stock <= 0) {
-                playSound('error');
-                toast.error('Sin stock disponible');
-                return;
-            }
+    const addToCartWithPrice = useCallback(
+        (product: Product, qty = 1, overridePrice?: number) => {
+            const price = overridePrice ?? product.sale_price;
             setCart((prev) => {
                 const idx = prev.findIndex((i) => i.product.id === product.id);
                 if (idx !== -1) {
                     const updated = [...prev];
-                    const newQty = Math.min(updated[idx].quantity + qty, product.stock);
-                    if (newQty === updated[idx].quantity) {
+                    const isProduct = product.type !== 'servicio';
+                    const newQty = isProduct ? Math.min(updated[idx].quantity + qty, product.stock) : updated[idx].quantity + qty;
+                    if (isProduct && newQty === updated[idx].quantity) {
                         playSound('warning');
                         toast.error('Stock máximo alcanzado');
                         return prev;
                     }
-                    updated[idx] = { ...updated[idx], quantity: newQty, subtotal: newQty * product.sale_price };
+                    updated[idx] = { ...updated[idx], quantity: newQty, subtotal: newQty * price };
                     playSound('success');
                     return updated;
                 }
                 playSound('success');
-                return [{ product, quantity: qty, subtotal: qty * product.sale_price }, ...prev];
+                return [{ product: { ...product, sale_price: price }, quantity: qty, subtotal: qty * price }, ...prev];
             });
             setQuery('');
             setResults([]);
             setTimeout(() => searchRef.current?.focus(), 0);
         },
         [playSound],
+    );
+
+    const addToCart = useCallback(
+        (product: Product, qty = 1) => {
+            const isService = product.type === 'servicio';
+
+            if (!isService && product.stock <= 0) {
+                playSound('error');
+                toast.error('Sin stock disponible');
+                return;
+            }
+
+            // Services with variable price: show price input modal first
+            if (isService && product.variable_price) {
+                setVarPriceProduct(product);
+                setVarPriceValue(product.sale_price);
+                return;
+            }
+
+            addToCartWithPrice(product, qty);
+        },
+        [playSound, addToCartWithPrice],
     );
 
     const updateQty = (productId: number, qty: number) => {
@@ -932,6 +955,45 @@ export default function PosIndex({
                 </div>
             )}
 
+            {/* ── Variable-price service modal ── */}
+            {varPriceProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-neutral-900">
+                        <h2 className="mb-1 font-semibold">Precio del servicio</h2>
+                        <p className="mb-3 text-sm text-muted-foreground">{varPriceProduct.name}</p>
+                        <CurrencyInput
+                            value={varPriceValue}
+                            onChange={setVarPriceValue}
+                            className="w-full"
+                            autoFocus
+                        />
+                        <div className="mt-4 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setVarPriceProduct(null)}
+                                className="flex-1 rounded-lg border border-neutral-200 py-2 text-sm font-medium dark:border-neutral-700"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (varPriceValue <= 0) {
+                                        toast.error('Ingresa un precio válido');
+                                        return;
+                                    }
+                                    addToCartWithPrice(varPriceProduct, 1, varPriceValue);
+                                    setVarPriceProduct(null);
+                                }}
+                                className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+                            >
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Cash movement modal ── */}
             {showMovementModal && currentSession && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -1180,8 +1242,8 @@ export default function PosIndex({
                                     key={p.id}
                                     type="button"
                                     onClick={() => addToCart(p)}
-                                    disabled={p.stock <= 0}
-                                    aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}, stock ${p.stock}`}
+                                    disabled={p.type !== 'servicio' && p.stock <= 0}
+                                    aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}`}
                                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
                                 >
                                     {p.image_url ? (
@@ -1200,10 +1262,18 @@ export default function PosIndex({
                                         <p className="font-mono text-xs text-muted-foreground">{p.code}</p>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="font-semibold text-green-700 dark:text-green-300">{formatCOP(p.sale_price)}</span>
-                                        <Badge variant={p.stock > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
-                                            Stock: {p.stock}
-                                        </Badge>
+                                        <span className="font-semibold text-green-700 dark:text-green-300">
+                                            {p.type === 'servicio' && p.variable_price ? 'A cotizar' : formatCOP(p.sale_price)}
+                                        </span>
+                                        {p.type === 'servicio' ? (
+                                            <Badge className="bg-purple-100 text-[10px] text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                Servicio
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant={p.stock > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
+                                                Stock: {p.stock}
+                                            </Badge>
+                                        )}
                                     </div>
                                     <Plus className="h-5 w-5 flex-shrink-0 text-green-600" />
                                 </button>

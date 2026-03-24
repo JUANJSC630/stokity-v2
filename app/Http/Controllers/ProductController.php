@@ -67,6 +67,10 @@ class ProductController extends Controller
             $query->where('branch_id', $request->branch);
         }
 
+        if ($request->filled('type') && in_array($request->type, ['producto', 'servicio'])) {
+            $query->where('products.type', $request->type);
+        }
+
         $products = $query->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
@@ -82,7 +86,7 @@ class ProductController extends Controller
             'products' => $products,
             'categories' => $categories,
             'branches' => $branches,
-            'filters' => $request->only(['search', 'status', 'category', 'branch']),
+            'filters' => $request->only(['search', 'status', 'category', 'branch', 'type']),
         ]);
     }
 
@@ -418,7 +422,7 @@ class ProductController extends Controller
             ->orderByRaw('CASE WHEN name LIKE ? THEN 0 ELSE 1 END', [$q.'%'])
             ->orderBy('name')
             ->limit(50)
-            ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax', 'category_id', 'branch_id']);
+            ->get(['id', 'name', 'code', 'sale_price', 'stock', 'image', 'tax', 'category_id', 'branch_id', 'type', 'variable_price']);
 
         return response()->json($products);
     }

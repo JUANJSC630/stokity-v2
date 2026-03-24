@@ -44,11 +44,17 @@ class ProductRequest extends FormRequest
                 Rule::unique('products')->ignore($productId),
             ],
             'description' => 'nullable|string',
-            'purchase_price' => 'required|numeric|min:0',
+            'type' => 'sometimes|in:producto,servicio',
+            'variable_price' => 'boolean',
+            'purchase_price' => 'nullable|numeric|min:0',
             'sale_price' => 'required|numeric|min:0',
             'tax' => 'required|numeric|min:0|max:100',
-            'stock' => $this->isMethod('POST') ? 'required|integer|min:0' : 'sometimes|integer|min:0',
-            'min_stock' => 'required|integer|min:0',
+            'stock' => $this->isMethod('POST') && $this->input('type', 'producto') === 'producto'
+                ? 'required|integer|min:0'
+                : 'sometimes|integer|min:0',
+            'min_stock' => $this->input('type', 'producto') === 'servicio'
+                ? 'sometimes|integer|min:0'
+                : 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'category_id' => 'required|exists:categories,id',
             'branch_id' => 'required|exists:branches,id',
