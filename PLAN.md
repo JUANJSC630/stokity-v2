@@ -1,6 +1,6 @@
 # Stokity v2 — Plan de Trabajo
 
-> Última actualización: 2026-03-23
+> Última actualización: 2026-03-24
 
 ---
 
@@ -24,6 +24,7 @@
 | Reportes + exportación PDF/Excel | ✅ Funcional |
 | Módulo de Proveedores | ✅ Funcional |
 | Contabilidad básica (P&L + Gastos) | ✅ Funcional |
+| Créditos y pagos diferidos | 🔲 Pendiente |
 | Auto-formato inputs COP (CurrencyInput) | ✅ Funcional |
 | UX improvements (28 hallazgos) | ✅ Completo |
 | Auditoría pre-producción (28 hallazgos) | ✅ 24 corregidos, 4 descartados |
@@ -477,12 +478,147 @@ Cambios de precio no dejan rastro.
 
 ---
 
+---
+
+### F12 — Módulo de Créditos y Pagos Diferidos
+**Prioridad: Alta**
+
+Permite al negocio gestionar ventas que no se pagan en su totalidad en el momento — separados, cuotas, pagos en fecha acordada y reservas sin abono.
+
+---
+
+#### Modalidades soportadas
+
+| Modalidad | Descripción | ¿Se entrega el producto? | ¿Genera venta? |
+|-----------|-------------|--------------------------|----------------|
+| `layaway` — Separado | El cliente abona una parte. El producto se reserva hasta que pague el total. | Solo al pagar el 100% | Al completar el pago |
+| `installments` — Cuotas | El cliente se lleva el producto y paga en N cuotas periódicas. | Inmediatamente | Al crear el crédito |
+| `due_date` — Fecha acordada | El cliente acuerda pagar en una fecha específica. | Inmediatamente | Al crear el crédito |
+| `hold` — Reservado | El producto queda apartado sin abono inicial ni fecha fija. | Solo al pagar | Al completar el pago |
+
+---
+
+#### Modelo de datos
+
+**`credit_sales`** — registro principal del crédito
+```
+id, sale_id (nullable — se crea al completar), client_id, branch_id, seller_id,
+type (enum: layaway/installments/due_date/hold),
+total_amount, amount_paid, balance,
+installments_count (nullable), installment_amount (nullable),
+due_date (nullable), notes, status (enum: active/completed/cancelled),
+created_at, updated_at
+```
+
+**`credit_payments`** — cada abono registrado
+```
+id, credit_sale_id, amount, payment_method_id, notes,
+registered_by (user_id), payment_date, created_at
+```
+
+**`credit_sale_items`** — productos del crédito (snapshot)
+```
+id, credit_sale_id, product_id, product_name, quantity, unit_price, subtotal
+```
+
+---
+
+#### Flujo por modalidad
+
+**Separado (layaway)**
+1. Vendedor crea el crédito desde el POS o desde el módulo — registra los productos, el total y el abono inicial (puede ser $0 si es `hold`).
+2. El stock se reserva (no se descuenta aún — campo `reserved_stock` en `products` o tabla `stock_reservations`).
+3. Cada abono queda registrado en `credit_payments`.
+4. Cuando `balance = 0`: se crea la `sale` completa, se descuenta el stock real y el crédito pasa a `completed`.
+
+**Cuotas (installments)**
+1. El producto se entrega al crear el crédito → se descuenta el stock inmediatamente y se genera la `sale` marcada como crédito.
+2. El sistema calcula las fechas de cada cuota (`due_date` por cuota).
+3. El vendedor registra abonos contra el balance restante.
+4. Al pagar la última cuota: crédito → `completed`.
+
+**Fecha acordada (due_date)**
+1. Similar a cuotas pero con una sola fecha de vencimiento.
+2. El producto se entrega inmediatamente.
+3. Alerta automática cuando se acerca/supera la fecha de pago.
+
+**Reservado (hold)**
+1. Solo se guardan los productos. Sin abono ni fecha.
+2. Stock reservado hasta que el cliente decida comprar o cancele.
+3. Sin presión de fecha — el vendedor puede cancelar la reserva cuando quiera.
+
+---
+
+#### Backend
+
+**Migraciones**
+- `credit_sales` — tabla principal
+- `credit_payments` — tabla de abonos
+- `credit_sale_items` — snapshot de productos
+- `reserved_stock` (int, default 0) en `products` — para separados y reservas
+
+**Modelos:** `CreditSale`, `CreditPayment`, `CreditSaleItem`
+- `CreditSale::balance()` — computed: `total_amount - amount_paid`
+- `CreditSale::isOverdue()` — `due_date < today && status = active`
+- `CreditSale::complete()` — crea la `Sale`, descuenta stock, libera reserva
+
+**Controlador:** `CreditSaleController`
+- `index()` — listado con filtros (sucursal, estado, tipo, cliente)
+- `store()` — crea crédito + reserva stock si aplica
+- `show()` — detalle con historial de pagos
+- `addPayment()` — registra abono, recalcula balance, completa si `balance = 0`
+- `cancel()` — cancela crédito, libera stock reservado
+- `generateSale()` — convierte crédito completado en venta (layaway/hold)
+
+**Reglas de negocio**
+- Un producto no puede superar `stock - reserved_stock` en ventas normales del POS.
+- Solo admin/encargado puede cancelar un crédito activo.
+- Al cancelar, se libera el stock reservado.
+- El abono no puede superar el balance restante.
+
+---
+
+#### Frontend
+
+**Sidebar:** `CreditCard` icon — "Créditos" (visible para vendedor, encargado, admin)
+
+**Páginas:**
+- `/credits` — listado con tabs: Activos / Vencidos / Completados / Todos
+  - Filtros: sucursal, tipo, cliente, rango de fechas
+  - Cada fila: cliente, total, abonado, saldo, estado, próxima cuota / fecha límite
+- `/credits/create` — formulario: buscar cliente → buscar productos → seleccionar tipo → configurar condiciones → guardar
+- `/credits/{id}` — detalle: info del crédito + historial de abonos + botón "Registrar abono"
+- Modal "Registrar abono" — monto, método de pago, notas, confirmar
+
+**POS integration (opcional):**
+- Al hacer clic en "Guardar cotización" → opción adicional: "Guardar como crédito"
+- Permite crear el crédito directamente desde el flujo de venta normal.
+
+**Alertas visuales:**
+- Badge rojo "Vencido" en créditos con `due_date` pasada.
+- Badge amarillo "Vence pronto" (próximos 3 días).
+- Contador en el sidebar: número de créditos activos vencidos.
+
+---
+
+#### Casos borde
+- Devolución parcial en crédito activo: no permitida (cancelar el crédito completo).
+- Crédito de servicio: permitido — sin reserva de stock.
+- Descuento: se aplica al `total_amount` al crear, no por cuota.
+- Impresión: recibo de crédito al crear + recibo por cada abono.
+
+---
+
+**Estado:** 🔲 Pendiente de implementación
+
+---
+
 ## Roadmap futuro
 
 | Feature | Descripción |
 |---------|-------------|
 | Descuentos escalonados / por volumen | Precio diferente según cantidad comprada |
-| Cuentas por cobrar | Ventas a crédito con seguimiento de pagos parciales |
+| ~~Cuentas por cobrar~~ | Cubierto por F12 — Créditos y Pagos Diferidos |
 | Órdenes de compra (PO) | Documento formal de compra vinculado a proveedor y entrada de stock |
 | Factura electrónica DIAN | Requisito legal Colombia — integración con proveedor autorizado |
 | Split payment | Pago dividido en múltiples métodos en una misma venta |
