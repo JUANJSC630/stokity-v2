@@ -115,13 +115,14 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
     const showSupplier = ['ingreso', 'supplier_return'].includes(movementType);
     const showUnitCost = movementType === 'ingreso';
 
-    const quantityLabel = movementType === 'ingreso'
-        ? 'Cantidad a ingresar'
-        : ['out', 'write_off', 'supplier_return'].includes(movementType)
-          ? 'Cantidad a retirar'
-          : movementType === 'adjustment'
-            ? 'Nuevo stock total'
-            : 'Cantidad';
+    const quantityLabel =
+        movementType === 'ingreso'
+            ? 'Cantidad a ingresar'
+            : ['out', 'write_off', 'supplier_return'].includes(movementType)
+              ? 'Cantidad a retirar'
+              : movementType === 'adjustment'
+                ? 'Nuevo stock total'
+                : 'Cantidad';
 
     const quantityHelp = selectedProductData ? `Stock actual: ${(selectedProductData.stock ?? 0).toLocaleString()}` : '';
 

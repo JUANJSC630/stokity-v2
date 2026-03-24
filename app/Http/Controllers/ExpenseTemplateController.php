@@ -23,12 +23,12 @@ class ExpenseTemplateController extends Controller
             ->get();
 
         $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
-        $branches   = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('expenses/templates', [
-            'templates'  => $templates,
+            'templates' => $templates,
             'categories' => $categories,
-            'branches'   => $branches,
+            'branches' => $branches,
             'userBranchId' => $user->branch_id,
         ]);
     }
@@ -38,10 +38,10 @@ class ExpenseTemplateController extends Controller
         $user = Auth::user();
 
         $data = $request->validate([
-            'branch_id'           => 'required|exists:branches,id',
+            'branch_id' => 'required|exists:branches,id',
             'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'name'                => 'required|string|max:255',
-            'reference_amount'    => 'required|numeric|min:1',
+            'name' => 'required|string|max:255',
+            'reference_amount' => 'required|numeric|min:1',
         ]);
 
         // Encargado solo puede crear plantillas para su sucursal
@@ -63,9 +63,9 @@ class ExpenseTemplateController extends Controller
 
         $data = $request->validate([
             'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'name'                => 'required|string|max:255',
-            'reference_amount'    => 'required|numeric|min:1',
-            'is_active'           => 'boolean',
+            'name' => 'required|string|max:255',
+            'reference_amount' => 'required|numeric|min:1',
+            'is_active' => 'boolean',
         ]);
 
         $expenseTemplate->update($data);

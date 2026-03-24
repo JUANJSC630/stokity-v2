@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Expense;
-use App\Models\SaleProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +38,7 @@ class FinanceController extends Controller
             ->join('sales as s', 'sr.sale_id', '=', 's.id')
             ->join('sale_products as sp', function ($join) {
                 $join->on('sp.sale_id', '=', 's.id')
-                     ->on('sp.product_id', '=', 'srp.product_id');
+                    ->on('sp.product_id', '=', 'srp.product_id');
             })
             ->whereNull('s.deleted_at')
             ->whereBetween('sr.created_at', [$dateFrom->startOfDay(), $dateTo->copy()->endOfDay()])
@@ -59,7 +58,7 @@ class FinanceController extends Controller
             ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
             ->sum(DB::raw('sp.quantity * COALESCE(sp.purchase_price_snapshot, p.purchase_price)'));
 
-        $grossProfit    = $netRevenue - $cogs;
+        $grossProfit = $netRevenue - $cogs;
         $grossMarginPct = $netRevenue > 0 ? round($grossProfit / $netRevenue * 100, 1) : 0;
 
         // Detectar ventas sin snapshot (datos históricos pre-migración)
@@ -87,10 +86,10 @@ class FinanceController extends Controller
             ->get()
             ->map(fn ($row) => [
                 'category' => $row->category?->name ?? 'Sin categoría',
-                'icon'     => $row->category?->icon,
-                'color'    => $row->category?->color,
-                'amount'   => (float) $row->total,
-                'pct'      => $totalExpenses > 0 ? round($row->total / $totalExpenses * 100, 1) : 0,
+                'icon' => $row->category?->icon,
+                'color' => $row->category?->color,
+                'amount' => (float) $row->total,
+                'pct' => $totalExpenses > 0 ? round($row->total / $totalExpenses * 100, 1) : 0,
             ])
             ->sortByDesc('amount')
             ->values();
@@ -122,14 +121,14 @@ class FinanceController extends Controller
             ->limit(10)
             ->get()
             ->map(fn ($row) => [
-                'id'           => $row->id,
-                'name'         => $row->name,
-                'code'         => $row->code,
-                'units_sold'   => (int) $row->units_sold,
-                'revenue'      => (float) $row->revenue,
-                'cogs'         => (float) $row->cogs,
+                'id' => $row->id,
+                'name' => $row->name,
+                'code' => $row->code,
+                'units_sold' => (int) $row->units_sold,
+                'revenue' => (float) $row->revenue,
+                'cogs' => (float) $row->cogs,
                 'gross_profit' => (float) $row->gross_profit,
-                'margin_pct'   => $row->revenue > 0
+                'margin_pct' => $row->revenue > 0
                     ? round(($row->gross_profit / $row->revenue) * 100, 1)
                     : 0,
             ]);
@@ -137,27 +136,27 @@ class FinanceController extends Controller
         $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('finances/index', [
-            'period'          => $request->input('period', 'this_month'),
-            'dateFrom'        => $dateFrom->toDateString(),
-            'dateTo'          => $dateTo->toDateString(),
-            'periodLabel'     => $label,
-            'selectedBranch'  => $branchId,
-            'branches'        => $branches,
+            'period' => $request->input('period', 'this_month'),
+            'dateFrom' => $dateFrom->toDateString(),
+            'dateTo' => $dateTo->toDateString(),
+            'periodLabel' => $label,
+            'selectedBranch' => $branchId,
+            'branches' => $branches,
 
             // P&L
-            'revenue'         => $revenue,
-            'returnsTotal'    => $returnsTotal,
-            'netRevenue'      => $netRevenue,
-            'cogs'            => $cogs,
-            'grossProfit'     => $grossProfit,
-            'grossMarginPct'  => $grossMarginPct,
-            'totalExpenses'   => $totalExpenses,
-            'netProfit'       => $netProfit,
-            'hasCOGSWarning'  => $hasCOGSWarning,
+            'revenue' => $revenue,
+            'returnsTotal' => $returnsTotal,
+            'netRevenue' => $netRevenue,
+            'cogs' => $cogs,
+            'grossProfit' => $grossProfit,
+            'grossMarginPct' => $grossMarginPct,
+            'totalExpenses' => $totalExpenses,
+            'netProfit' => $netProfit,
+            'hasCOGSWarning' => $hasCOGSWarning,
 
             'expensesByCategory' => $expensesByCategory,
-            'monthlyTrend'       => $trend,
-            'topProducts'        => $topProducts,
+            'monthlyTrend' => $trend,
+            'topProducts' => $topProducts,
         ]);
     }
 
@@ -196,12 +195,12 @@ class FinanceController extends Controller
 
     private function buildMonthlyTrend(?int $branchId, int $months): array
     {
-        $tz   = 'America/Bogota';
+        $tz = 'America/Bogota';
         $rows = [];
 
         for ($i = $months - 1; $i >= 0; $i--) {
             $start = Carbon::now($tz)->subMonths($i)->startOfMonth();
-            $end   = Carbon::now($tz)->subMonths($i)->endOfMonth();
+            $end = Carbon::now($tz)->subMonths($i)->endOfMonth();
 
             $rev = (float) DB::table('sales')
                 ->where('status', 'completed')
@@ -227,12 +226,12 @@ class FinanceController extends Controller
             $gross = $rev - $cogsMonth;
 
             $rows[] = [
-                'month'        => $start->translatedFormat('M Y'),
-                'revenue'      => $rev,
-                'cogs'         => $cogsMonth,
+                'month' => $start->translatedFormat('M Y'),
+                'revenue' => $rev,
+                'cogs' => $cogsMonth,
                 'gross_profit' => $gross,
-                'expenses'     => $exp,
-                'net_profit'   => $gross - $exp,
+                'expenses' => $exp,
+                'net_profit' => $gross - $exp,
             ];
         }
 

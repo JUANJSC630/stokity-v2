@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ExpenseTemplate extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'branch_id',
         'expense_category_id',
@@ -20,7 +21,7 @@ class ExpenseTemplate extends Model
 
     protected $casts = [
         'reference_amount' => 'decimal:2',
-        'is_active'        => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function branch(): BelongsTo

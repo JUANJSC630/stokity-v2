@@ -48,7 +48,7 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
         name: template?.name ?? '',
         expense_category_id: template?.expense_category_id ? String(template.expense_category_id) : '',
         reference_amount: template?.reference_amount ?? 0,
-        branch_id: template?.branch_id ? String(template.branch_id) : (userBranchId ? String(userBranchId) : ''),
+        branch_id: template?.branch_id ? String(template.branch_id) : userBranchId ? String(userBranchId) : '',
         is_active: template?.is_active ?? true,
     });
 
@@ -218,10 +218,10 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-neutral-200 text-left text-xs font-medium text-muted-foreground dark:border-neutral-700">
-                                        <th className="pb-2 pr-4">Nombre</th>
-                                        <th className="pb-2 pr-4">Categoría</th>
-                                        <th className="pb-2 pr-4 text-right">Monto referencia</th>
-                                        <th className="pb-2 pr-4">Activa</th>
+                                        <th className="pr-4 pb-2">Nombre</th>
+                                        <th className="pr-4 pb-2">Categoría</th>
+                                        <th className="pr-4 pb-2 text-right">Monto referencia</th>
+                                        <th className="pr-4 pb-2">Activa</th>
                                         <th className="pb-2">Acciones</th>
                                     </tr>
                                 </thead>

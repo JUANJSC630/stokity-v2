@@ -198,7 +198,12 @@ export default function FinancesIndex({
                                 <>
                                     <div>
                                         <label className="mb-1 block text-xs font-medium text-muted-foreground">Desde</label>
-                                        <Input type="date" value={dateFromLocal} onChange={(e) => setDateFromLocal(e.target.value)} className="w-40" />
+                                        <Input
+                                            type="date"
+                                            value={dateFromLocal}
+                                            onChange={(e) => setDateFromLocal(e.target.value)}
+                                            className="w-40"
+                                        />
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-xs font-medium text-muted-foreground">Hasta</label>
@@ -256,7 +261,10 @@ export default function FinancesIndex({
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Gastos</p>
                                     <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{cop(totalExpenses)}</p>
-                                    <Link href="/expenses" className="mt-1 flex items-center gap-1 text-xs text-orange-600 hover:underline dark:text-orange-400">
+                                    <Link
+                                        href="/expenses"
+                                        className="mt-1 flex items-center gap-1 text-xs text-orange-600 hover:underline dark:text-orange-400"
+                                    >
                                         Ver detalle <ArrowUpRight className="h-3 w-3" />
                                     </Link>
                                 </div>
@@ -268,7 +276,9 @@ export default function FinancesIndex({
                     </Card>
 
                     {/* Ganancia neta — most prominent */}
-                    <Card className={`border-2 ${netProfitPositive ? 'border-green-300 dark:border-green-700' : 'border-red-300 dark:border-red-700'}`}>
+                    <Card
+                        className={`border-2 ${netProfitPositive ? 'border-green-300 dark:border-green-700' : 'border-red-300 dark:border-red-700'}`}
+                    >
                         <CardContent className="pt-4">
                             <div className="flex items-start justify-between">
                                 <div>
@@ -328,10 +338,14 @@ export default function FinancesIndex({
                                         <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(totalExpenses)}</td>
                                     </tr>
                                     <tr>
-                                        <td className={`py-3 text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                        <td
+                                            className={`py-3 text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
+                                        >
                                             = Ganancia neta
                                         </td>
-                                        <td className={`py-3 text-right text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                        <td
+                                            className={`py-3 text-right text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
+                                        >
                                             {cop(netProfit)}
                                         </td>
                                     </tr>
@@ -392,19 +406,16 @@ export default function FinancesIndex({
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-neutral-200 text-left text-xs font-medium text-muted-foreground dark:border-neutral-700">
-                                            <th className="pb-2 pr-4">Mes</th>
-                                            <th className="pb-2 pr-4 text-right">Ingresos</th>
-                                            <th className="pb-2 pr-4 text-right">G. bruta</th>
-                                            <th className="pb-2 pr-4 text-right">Gastos</th>
+                                            <th className="pr-4 pb-2">Mes</th>
+                                            <th className="pr-4 pb-2 text-right">Ingresos</th>
+                                            <th className="pr-4 pb-2 text-right">G. bruta</th>
+                                            <th className="pr-4 pb-2 text-right">Gastos</th>
                                             <th className="pb-2 text-right">G. neta</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {monthlyTrend.map((row) => (
-                                            <tr
-                                                key={row.month}
-                                                className="border-b border-neutral-100 last:border-0 dark:border-neutral-800"
-                                            >
+                                            <tr key={row.month} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
                                                 <td className="py-2 pr-4 font-medium capitalize">{row.month}</td>
                                                 <td className="py-2 pr-4 text-right">{cop(row.revenue)}</td>
                                                 <td className="py-2 pr-4 text-right text-green-700 dark:text-green-400">{cop(row.gross_profit)}</td>
@@ -436,19 +447,16 @@ export default function FinancesIndex({
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-neutral-200 text-left text-xs font-medium text-muted-foreground dark:border-neutral-700">
-                                            <th className="pb-2 pr-4">Producto</th>
-                                            <th className="pb-2 pr-4 text-right">Uds. vendidas</th>
-                                            <th className="pb-2 pr-4 text-right">Ingresos</th>
-                                            <th className="pb-2 pr-4 text-right">G. bruta</th>
+                                            <th className="pr-4 pb-2">Producto</th>
+                                            <th className="pr-4 pb-2 text-right">Uds. vendidas</th>
+                                            <th className="pr-4 pb-2 text-right">Ingresos</th>
+                                            <th className="pr-4 pb-2 text-right">G. bruta</th>
                                             <th className="pb-2 text-right">Margen</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {topProducts.map((p) => (
-                                            <tr
-                                                key={p.id}
-                                                className="border-b border-neutral-100 last:border-0 dark:border-neutral-800"
-                                            >
+                                            <tr key={p.id} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
                                                 <td className="py-2 pr-4">
                                                     <div className="font-medium">{p.name}</div>
                                                     <div className="text-xs text-muted-foreground">{p.code}</div>

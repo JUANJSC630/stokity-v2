@@ -14,11 +14,11 @@ class ExpenseTemplateFactory extends Factory
     public function definition(): array
     {
         return [
-            'branch_id'           => Branch::factory(),
+            'branch_id' => Branch::factory(),
             'expense_category_id' => null,
-            'name'                => $this->faker->randomElement(['Arriendo local', 'Factura EPM', 'Internet', 'Nómina empleada']),
-            'reference_amount'    => $this->faker->numberBetween(50000, 2000000),
-            'is_active'           => true,
+            'name' => $this->faker->randomElement(['Arriendo local', 'Factura EPM', 'Internet', 'Nómina empleada']),
+            'reference_amount' => $this->faker->numberBetween(50000, 2000000),
+            'is_active' => true,
         ];
     }
 }

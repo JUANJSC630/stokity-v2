@@ -15,14 +15,14 @@ class ExpenseFactory extends Factory
     public function definition(): array
     {
         return [
-            'branch_id'           => Branch::factory(),
-            'user_id'             => User::factory(),
+            'branch_id' => Branch::factory(),
+            'user_id' => User::factory(),
             'expense_category_id' => null,
             'expense_template_id' => null,
-            'amount'              => $this->faker->numberBetween(10000, 2000000),
-            'description'         => $this->faker->sentence(3),
-            'expense_date'        => $this->faker->dateTimeBetween('first day of this month', 'last day of this month')->format('Y-m-d'),
-            'notes'               => null,
+            'amount' => $this->faker->numberBetween(10000, 2000000),
+            'description' => $this->faker->sentence(3),
+            'expense_date' => $this->faker->dateTimeBetween('first day of this month', 'last day of this month')->format('Y-m-d'),
+            'notes' => null,
         ];
     }
 }

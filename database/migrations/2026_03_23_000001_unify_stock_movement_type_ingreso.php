@@ -10,6 +10,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'sqlite') {
             // SQLite doesn't enforce enums — just migrate the data
             DB::statement("UPDATE stock_movements SET type = 'ingreso' WHERE type IN ('in', 'purchase')");
+
             return;
         }
 
@@ -31,6 +32,7 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'sqlite') {
             DB::statement("UPDATE stock_movements SET type = 'in' WHERE type = 'ingreso'");
+
             return;
         }
 

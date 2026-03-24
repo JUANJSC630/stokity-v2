@@ -13,9 +13,9 @@ class ExpenseCategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'      => $this->faker->randomElement(['Arriendo', 'Nómina', 'Servicios públicos', 'Marketing', 'Transporte', 'Otros']),
-            'icon'      => 'Home',
-            'color'     => 'blue',
+            'name' => $this->faker->randomElement(['Arriendo', 'Nómina', 'Servicios públicos', 'Marketing', 'Transporte', 'Otros']),
+            'icon' => 'Home',
+            'color' => 'blue',
             'is_system' => false,
         ];
     }

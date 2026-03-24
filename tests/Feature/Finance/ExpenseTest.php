@@ -7,10 +7,10 @@ use App\Models\ExpenseTemplate;
 use App\Models\User;
 
 beforeEach(function () {
-    $this->branch   = Branch::factory()->create(['status' => true]);
-    $this->admin    = adminUser($this->branch);
-    $this->manager  = User::factory()->create(['role' => 'encargado', 'branch_id' => $this->branch->id]);
-    $this->seller   = User::factory()->create(['role' => 'vendedor',  'branch_id' => $this->branch->id]);
+    $this->branch = Branch::factory()->create(['status' => true]);
+    $this->admin = adminUser($this->branch);
+    $this->manager = User::factory()->create(['role' => 'encargado', 'branch_id' => $this->branch->id]);
+    $this->seller = User::factory()->create(['role' => 'vendedor',  'branch_id' => $this->branch->id]);
     $this->category = ExpenseCategory::factory()->create();
 });
 
@@ -18,11 +18,11 @@ describe('Expense CRUD', function () {
     it('admin can create an expense', function () {
         $this->actingAs($this->admin)
             ->post(route('expenses.store'), [
-                'branch_id'           => $this->branch->id,
+                'branch_id' => $this->branch->id,
                 'expense_category_id' => $this->category->id,
-                'amount'              => 150000,
-                'description'         => 'Factura EPM',
-                'expense_date'        => now()->toDateString(),
+                'amount' => 150000,
+                'description' => 'Factura EPM',
+                'expense_date' => now()->toDateString(),
             ])
             ->assertRedirect();
 
@@ -32,8 +32,8 @@ describe('Expense CRUD', function () {
     it('encargado can create an expense for their branch', function () {
         $this->actingAs($this->manager)
             ->post(route('expenses.store'), [
-                'branch_id'   => $this->branch->id,
-                'amount'      => 50000,
+                'branch_id' => $this->branch->id,
+                'amount' => 50000,
                 'expense_date' => now()->toDateString(),
             ])
             ->assertRedirect();
@@ -46,8 +46,8 @@ describe('Expense CRUD', function () {
 
         $this->actingAs($this->manager)
             ->post(route('expenses.store'), [
-                'branch_id'   => $other->id,
-                'amount'      => 50000,
+                'branch_id' => $other->id,
+                'amount' => 50000,
                 'expense_date' => now()->toDateString(),
             ])
             ->assertForbidden();
@@ -72,8 +72,8 @@ describe('Expense CRUD', function () {
     it('rejects amount below 1', function () {
         $this->actingAs($this->admin)
             ->post(route('expenses.store'), [
-                'branch_id'   => $this->branch->id,
-                'amount'      => 0,
+                'branch_id' => $this->branch->id,
+                'amount' => 0,
                 'expense_date' => now()->toDateString(),
             ])
             ->assertSessionHasErrors('amount');
@@ -81,7 +81,7 @@ describe('Expense CRUD', function () {
 
     it('bulk store creates multiple expenses from templates', function () {
         $template = ExpenseTemplate::factory()->create([
-            'branch_id'        => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'reference_amount' => 200000,
         ]);
 
@@ -89,10 +89,10 @@ describe('Expense CRUD', function () {
             ->post(route('expenses.store'), [
                 'expenses' => [
                     [
-                        'branch_id'          => $this->branch->id,
+                        'branch_id' => $this->branch->id,
                         'expense_template_id' => $template->id,
-                        'amount'             => 210000,
-                        'expense_date'       => now()->toDateString(),
+                        'amount' => 210000,
+                        'expense_date' => now()->toDateString(),
                     ],
                 ],
             ])

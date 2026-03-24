@@ -6,7 +6,6 @@ use App\Models\Client;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\SaleProduct;
-use App\Models\User;
 
 beforeEach(function () {
     $this->branch = Branch::factory()->create(['status' => true]);
@@ -20,19 +19,19 @@ beforeEach(function () {
 function cogsSalePayload(int $productId, float $price): array
 {
     return [
-        'branch_id'      => test()->branch->id,
-        'client_id'      => test()->client->id,
-        'seller_id'      => test()->seller->id,
+        'branch_id' => test()->branch->id,
+        'client_id' => test()->client->id,
+        'seller_id' => test()->seller->id,
         'payment_method' => 'cash',
-        'amount_paid'    => $price,
-        'change_amount'  => 0,
-        'net'            => $price,
-        'total'          => $price,
-        'discount_type'  => 'none',
+        'amount_paid' => $price,
+        'change_amount' => 0,
+        'net' => $price,
+        'total' => $price,
+        'discount_type' => 'none',
         'discount_value' => 0,
-        'status'         => 'completed',
-        'date'           => now()->format('Y-m-d H:i'),
-        'products'       => [
+        'status' => 'completed',
+        'date' => now()->format('Y-m-d H:i'),
+        'products' => [
             ['id' => $productId, 'quantity' => 1, 'price' => $price, 'subtotal' => $price],
         ],
     ];
@@ -41,12 +40,12 @@ function cogsSalePayload(int $productId, float $price): array
 describe('COGS Snapshot in SaleController', function () {
     it('saves purchase_price_snapshot when creating a sale', function () {
         $product = Product::factory()->create([
-            'branch_id'      => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'purchase_price' => 12000,
-            'sale_price'     => 25000,
-            'stock'          => 50,
-            'status'         => true,
-            'tax'            => 0,
+            'sale_price' => 25000,
+            'stock' => 50,
+            'status' => true,
+            'tax' => 0,
         ]);
 
         $this->actingAs($this->seller)
@@ -61,12 +60,12 @@ describe('COGS Snapshot in SaleController', function () {
 
     it('snapshot is not affected by later price changes', function () {
         $product = Product::factory()->create([
-            'branch_id'      => $this->branch->id,
+            'branch_id' => $this->branch->id,
             'purchase_price' => 5000,
-            'sale_price'     => 10000,
-            'stock'          => 50,
-            'status'         => true,
-            'tax'            => 0,
+            'sale_price' => 10000,
+            'stock' => 50,
+            'status' => true,
+            'tax' => 0,
         ]);
 
         $this->actingAs($this->seller)

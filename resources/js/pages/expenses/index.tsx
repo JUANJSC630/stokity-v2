@@ -71,9 +71,7 @@ function RegisterMonthlyExpensesModal({ open, onClose, templates, currentMonth }
     };
 
     const handleSubmit = () => {
-        const payload = entries
-            .filter((e) => !e.skip)
-            .map((e) => ({ template_id: e.template_id, amount: e.amount }));
+        const payload = entries.filter((e) => !e.skip).map((e) => ({ template_id: e.template_id, amount: e.amount }));
         if (payload.length === 0) {
             onClose();
             return;
@@ -224,10 +222,7 @@ function CreateExpenseModal({ open, onClose, categories, branches, userBranchId,
                                 {categories.map((c) => (
                                     <SelectItem key={c.id} value={String(c.id)}>
                                         <div className="flex items-center gap-2">
-                                            <span
-                                                className="inline-block h-2 w-2 rounded-full"
-                                                style={{ backgroundColor: c.color ?? '#94a3b8' }}
-                                            />
+                                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: c.color ?? '#94a3b8' }} />
                                             {c.name}
                                         </div>
                                     </SelectItem>
@@ -240,11 +235,7 @@ function CreateExpenseModal({ open, onClose, categories, branches, userBranchId,
                     {/* Description */}
                     <div className="space-y-1.5">
                         <Label>Descripción</Label>
-                        <Input
-                            value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                            placeholder="Ej: Arriendo local"
-                        />
+                        <Input value={data.description} onChange={(e) => setData('description', e.target.value)} placeholder="Ej: Arriendo local" />
                         {errors.description && <p className="text-xs text-red-600">{errors.description}</p>}
                     </div>
 
@@ -290,7 +281,7 @@ function CreateExpenseModal({ open, onClose, categories, branches, userBranchId,
                             onChange={(e) => setData('notes', e.target.value)}
                             rows={2}
                             placeholder="Observaciones adicionales..."
-                            className="border-input placeholder:text-muted-foreground flex min-h-[60px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
+                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
                         />
                     </div>
 
@@ -497,11 +488,11 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-neutral-200 text-left text-xs font-medium text-muted-foreground dark:border-neutral-700">
-                                        <th className="pb-2 pr-4">Fecha</th>
-                                        <th className="pb-2 pr-4">Categoría</th>
-                                        <th className="pb-2 pr-4">Descripción</th>
-                                        <th className="pb-2 pr-4 text-right">Monto</th>
-                                        <th className="pb-2 pr-4">Origen</th>
+                                        <th className="pr-4 pb-2">Fecha</th>
+                                        <th className="pr-4 pb-2">Categoría</th>
+                                        <th className="pr-4 pb-2">Descripción</th>
+                                        <th className="pr-4 pb-2 text-right">Monto</th>
+                                        <th className="pr-4 pb-2">Origen</th>
                                         <th className="pb-2">Acciones</th>
                                     </tr>
                                 </thead>
@@ -537,7 +528,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                     {expense.template ? (
                                                         <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Fijo</Badge>
                                                     ) : (
-                                                        <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Único</Badge>
+                                                        <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                            Único
+                                                        </Badge>
                                                     )}
                                                 </td>
                                                 <td className="py-2">

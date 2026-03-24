@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Expense extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'branch_id',
         'user_id',
@@ -21,7 +22,7 @@ class Expense extends Model
     ];
 
     protected $casts = [
-        'amount'       => 'decimal:2',
+        'amount' => 'decimal:2',
         'expense_date' => 'date',
     ];
 

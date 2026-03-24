@@ -14,16 +14,16 @@ class SaleProductFactory extends Factory
 
     public function definition(): array
     {
-        $price    = $this->faker->numberBetween(5000, 100000);
+        $price = $this->faker->numberBetween(5000, 100000);
         $quantity = $this->faker->numberBetween(1, 5);
 
         return [
-            'sale_id'                 => Sale::factory(),
-            'product_id'              => Product::factory(),
-            'quantity'                => $quantity,
-            'price'                   => $price,
+            'sale_id' => Sale::factory(),
+            'product_id' => Product::factory(),
+            'quantity' => $quantity,
+            'price' => $price,
             'purchase_price_snapshot' => null,
-            'subtotal'                => $price * $quantity,
+            'subtotal' => $price * $quantity,
         ];
     }
 }

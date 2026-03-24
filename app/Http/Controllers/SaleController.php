@@ -191,11 +191,11 @@ class SaleController extends Controller
 
                 foreach ($products as $prod) {
                     $sale->saleProducts()->create([
-                        'product_id'              => $prod['id'],
-                        'quantity'                => $prod['quantity'],
-                        'price'                   => $prod['price'],
+                        'product_id' => $prod['id'],
+                        'quantity' => $prod['quantity'],
+                        'price' => $prod['price'],
                         'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
-                        'subtotal'                => $prod['subtotal'],
+                        'subtotal' => $prod['subtotal'],
                     ]);
 
                     // Solo descontar stock en ventas completadas
@@ -374,11 +374,11 @@ class SaleController extends Controller
                 $sale->saleProducts()->delete();
                 foreach ($products as $prod) {
                     $sale->saleProducts()->create([
-                        'product_id'              => $prod['id'],
-                        'quantity'                => $prod['quantity'],
-                        'price'                   => $prod['price'],
+                        'product_id' => $prod['id'],
+                        'quantity' => $prod['quantity'],
+                        'price' => $prod['price'],
                         'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
-                        'subtotal'                => $prod['subtotal'],
+                        'subtotal' => $prod['subtotal'],
                     ]);
 
                     $product = Product::lockForUpdate()->find($prod['id']);
@@ -458,11 +458,11 @@ class SaleController extends Controller
             $sale->saleProducts()->delete();
             foreach ($validated['products'] as $prod) {
                 $sale->saleProducts()->create([
-                    'product_id'              => $prod['id'],
-                    'quantity'                => $prod['quantity'],
-                    'price'                   => $prod['price'],
+                    'product_id' => $prod['id'],
+                    'quantity' => $prod['quantity'],
+                    'price' => $prod['price'],
                     'purchase_price_snapshot' => $purchasePrices->get($prod['id']),
-                    'subtotal'                => $prod['subtotal'],
+                    'subtotal' => $prod['subtotal'],
                 ]);
             }
         });

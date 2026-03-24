@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ExpenseCategory extends Model
 {
     use HasFactory;
+
     protected $fillable = ['name', 'icon', 'color', 'is_system'];
 
     protected $casts = ['is_system' => 'boolean'];

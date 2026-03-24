@@ -18,7 +18,7 @@ class ExpenseController extends Controller
     public function index(Request $request): Response
     {
         $user = Auth::user();
-        $now  = Carbon::now('America/Bogota');
+        $now = Carbon::now('America/Bogota');
 
         $query = Expense::with(['category', 'template', 'user', 'branch'])
             ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
@@ -38,16 +38,16 @@ class ExpenseController extends Controller
             ->values();
 
         $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
-        $branches   = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('expenses/index', [
-            'expenses'         => $expenses,
+            'expenses' => $expenses,
             'pendingTemplates' => $pendingTemplates,
-            'categories'       => $categories,
-            'branches'         => $branches,
-            'currentMonth'     => $now->translatedFormat('F Y'),
-            'filters'          => $request->only(['branch', 'category', 'start_date', 'end_date']),
-            'userBranchId'     => $user->branch_id,
+            'categories' => $categories,
+            'branches' => $branches,
+            'currentMonth' => $now->translatedFormat('F Y'),
+            'filters' => $request->only(['branch', 'category', 'start_date', 'end_date']),
+            'userBranchId' => $user->branch_id,
         ]);
     }
 
@@ -59,13 +59,13 @@ class ExpenseController extends Controller
         if ($request->has('expenses')) {
             // Bulk: confirmación de múltiples plantillas
             $request->validate([
-                'expenses'                     => 'required|array|min:1',
-                'expenses.*.branch_id'         => 'required|exists:branches,id',
+                'expenses' => 'required|array|min:1',
+                'expenses.*.branch_id' => 'required|exists:branches,id',
                 'expenses.*.expense_category_id' => 'nullable|exists:expense_categories,id',
                 'expenses.*.expense_template_id' => 'nullable|exists:expense_templates,id',
-                'expenses.*.amount'            => 'required|numeric|min:1',
-                'expenses.*.description'       => 'nullable|string|max:255',
-                'expenses.*.expense_date'      => 'required|date',
+                'expenses.*.amount' => 'required|numeric|min:1',
+                'expenses.*.description' => 'nullable|string|max:255',
+                'expenses.*.expense_date' => 'required|date',
             ]);
 
             foreach ($request->expenses as $item) {
@@ -80,13 +80,13 @@ class ExpenseController extends Controller
 
         // Single expense
         $data = $request->validate([
-            'branch_id'           => 'required|exists:branches,id',
+            'branch_id' => 'required|exists:branches,id',
             'expense_category_id' => 'nullable|exists:expense_categories,id',
             'expense_template_id' => 'nullable|exists:expense_templates,id',
-            'amount'              => 'required|numeric|min:1',
-            'description'         => 'nullable|string|max:255',
-            'expense_date'        => 'required|date',
-            'notes'               => 'nullable|string|max:1000',
+            'amount' => 'required|numeric|min:1',
+            'description' => 'nullable|string|max:255',
+            'expense_date' => 'required|date',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         if (! $user->isAdmin() && (int) $data['branch_id'] !== $user->branch_id) {
@@ -107,10 +107,10 @@ class ExpenseController extends Controller
 
         $data = $request->validate([
             'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'amount'              => 'required|numeric|min:1',
-            'description'         => 'nullable|string|max:255',
-            'expense_date'        => 'required|date',
-            'notes'               => 'nullable|string|max:1000',
+            'amount' => 'required|numeric|min:1',
+            'description' => 'nullable|string|max:255',
+            'expense_date' => 'required|date',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $expense->update($data);
