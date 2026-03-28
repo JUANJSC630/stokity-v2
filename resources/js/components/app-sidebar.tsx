@@ -11,6 +11,7 @@ import {
     Building,
     Building2,
     CreditCard,
+    HandCoins,
     LayoutGrid,
     Package,
     Package2,
@@ -82,6 +83,12 @@ const allNavItems: NavItem[] = [
         href: '/sales',
         icon: Banknote,
         roles: ['administrador', 'encargado', 'vendedor'], // All roles
+    },
+    {
+        title: 'Créditos',
+        href: '/credits',
+        icon: HandCoins,
+        roles: ['administrador', 'encargado', 'vendedor'],
     },
     {
         title: 'Proveedores',

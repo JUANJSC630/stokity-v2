@@ -347,7 +347,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             {sale.notes && (
                                 <div className="col-span-2">
                                     <p className="text-xs text-muted-foreground">Notas</p>
-                                    <p className="text-sm font-medium">{sale.notes}</p>
+                                    <p className="line-clamp-3 text-sm font-medium">{sale.notes}</p>
                                 </div>
                             )}
                         </div>

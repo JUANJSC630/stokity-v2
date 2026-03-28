@@ -179,6 +179,11 @@ class CashSessionController extends Controller
         $totalRefunds = $this->calculateCashRefunds($session->id);
         $expectedCash = (float) $session->opening_amount + $totalCash + $totalCashIn - $totalCashOut - $totalRefunds;
 
+        // Credit payments in this session (abonos de crédito)
+        $creditPaymentsTotal = (float) $movements
+            ->where('reference_type', 'credit_payment')
+            ->sum('amount');
+
         return Inertia::render('cash-sessions/close', [
             'session' => $session,
             'movements' => $movements,
@@ -186,6 +191,7 @@ class CashSessionController extends Controller
             'totalSales' => $totalSales,
             'expectedCash' => $user->isSeller() ? null : $expectedCash,
             'isBlind' => $user->isSeller(),
+            'creditPaymentsTotal' => $creditPaymentsTotal,
         ]);
     }
 

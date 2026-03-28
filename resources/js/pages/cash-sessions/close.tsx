@@ -20,6 +20,7 @@ interface Props {
     isBlind: boolean;
     totalSales: number;
     expectedCash: number | null;
+    creditPaymentsTotal: number;
 }
 
 function formatCOP(value: number | string) {
@@ -33,7 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Cierre', href: '#' },
 ];
 
-export default function CashSessionClose({ session, salesSummary, movements, isBlind, totalSales, expectedCash }: Props) {
+export default function CashSessionClose({ session, salesSummary, movements, isBlind, totalSales, expectedCash, creditPaymentsTotal }: Props) {
     const form = useForm({
         closing_amount_declared: '',
         closing_notes: '',
@@ -156,6 +157,21 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         <div className="flex justify-between px-4 py-2 text-sm">
                             <span className="text-muted-foreground">Egresos manuales</span>
                             <span className="font-semibold text-red-600">-{formatCOP(cashMovementsOut)}</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Credit payments breakdown */}
+                {creditPaymentsTotal > 0 && (
+                    <div className="rounded-xl border border-blue-200 bg-white dark:border-blue-800 dark:bg-neutral-900">
+                        <div className="flex items-center justify-between border-b border-blue-200 px-4 py-3 dark:border-blue-800">
+                            <h2 className="font-semibold">Abonos de crédito</h2>
+                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                                {formatCOP(creditPaymentsTotal)}
+                            </Badge>
+                        </div>
+                        <div className="px-4 py-3 text-sm text-muted-foreground">
+                            Los abonos de crédito ya están incluidos en los ingresos manuales de arriba.
                         </div>
                     </div>
                 )}

@@ -202,7 +202,14 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'reference',
             title: 'Referencia',
-            render: (value) => (value || '-') as React.ReactNode,
+            render: (value) =>
+                (value ? (
+                    <div className="max-w-[160px] truncate" title={value as string}>
+                        {value as string}
+                    </div>
+                ) : (
+                    '-'
+                )) as React.ReactNode,
         },
         {
             key: 'user',
@@ -430,7 +437,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                         {movement.notes && (
                                             <div className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
                                                 <div className="mb-1 font-medium">Notas:</div>
-                                                <div className="rounded bg-neutral-50 p-2 dark:bg-neutral-800">{movement.notes}</div>
+                                                <div className="line-clamp-3 rounded bg-neutral-50 p-2 dark:bg-neutral-800">{movement.notes}</div>
                                             </div>
                                         )}
 

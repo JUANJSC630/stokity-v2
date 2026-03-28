@@ -46,6 +46,8 @@ interface Props {
     categories: ExpenseCategory[];
     currentMonth: string;
     userBranchId: number | null;
+    receivables: number;
+    activeCreditsCount: number;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -336,6 +338,8 @@ export default function FinancesIndex({
     categories,
     currentMonth,
     userBranchId,
+    receivables,
+    activeCreditsCount,
 }: Props) {
     const [localPeriod, setLocalPeriod] = useState<PeriodOption>(period);
     const [localBranch, setLocalBranch] = useState<string>(selectedBranch ? String(selectedBranch) : 'all');
@@ -540,6 +544,28 @@ export default function FinancesIndex({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Cartera por cobrar */}
+                {(receivables > 0 || activeCreditsCount > 0) && (
+                    <Card className="border-purple-100 dark:border-purple-900">
+                        <CardContent className="pt-4">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Cartera por cobrar</p>
+                                    <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{cop(receivables)}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo{activeCreditsCount !== 1 ? 's' : ''}
+                                        {' — '}
+                                        <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">Ver créditos</a>
+                                    </p>
+                                </div>
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/40">
+                                    <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Main content: P&L + Expenses side by side */}
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

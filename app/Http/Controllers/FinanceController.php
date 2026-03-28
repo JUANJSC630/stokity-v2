@@ -89,14 +89,19 @@ class FinanceController extends Controller
             ->groupBy('expense_category_id')
             ->with('category')
             ->get()
-            ->map(fn ($row) => [
-                'category' => $row->category?->name ?? 'Sin categoría',
-                'icon' => $row->category?->icon,
-                'color' => $row->category?->color,
-                'amount' => (float) $row->total,
-                'pct' => $totalExpenses > 0 ? round($row->total / $totalExpenses * 100, 1) : 0,
-            ])
-            ->sortByDesc('amount')
+            ->map(function ($row) use ($totalExpenses) {
+                /** @var Expense&object{total: numeric-string} $row */
+                $cat = $row->category;
+
+                return [
+                    'category' => $cat?->name ?? 'Sin categoría',
+                    'icon' => $cat?->icon,
+                    'color' => $cat?->color,
+                    'amount' => (float) $row->total,
+                    'pct' => $totalExpenses > 0 ? round((float) $row->total / $totalExpenses * 100, 1) : 0,
+                ];
+            })
+            ->sortByDesc(fn ($item) => $item['amount'])
             ->values();
 
         $netProfit = $grossProfit - $totalExpenses;
@@ -120,6 +125,16 @@ class FinanceController extends Controller
             ->values();
 
         $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
+
+        // Cartera por cobrar — saldos pendientes de créditos installments/due_date activos
+        $receivables = (float) \App\Models\CreditSale::whereIn('type', ['installments', 'due_date'])
+            ->whereIn('status', ['active', 'overdue'])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->sum('balance');
+
+        $activeCreditsCount = \App\Models\CreditSale::whereIn('status', ['active', 'overdue'])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->count();
 
         return Inertia::render('finances/index', [
             'period' => $request->input('period', 'this_month'),
@@ -148,6 +163,10 @@ class FinanceController extends Controller
             'categories' => $categories,
             'currentMonth' => $now->translatedFormat('F Y'),
             'userBranchId' => $user->branch_id,
+
+            // Cartera por cobrar
+            'receivables' => $receivables,
+            'activeCreditsCount' => $activeCreditsCount,
         ]);
     }
 

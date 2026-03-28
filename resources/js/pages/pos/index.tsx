@@ -15,6 +15,7 @@ import {
     ArrowUpCircle,
     ClipboardList,
     DoorOpen,
+    HandCoins,
     Keyboard,
     Minus,
     Plus,
@@ -321,6 +322,15 @@ export default function PosIndex({
     const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const abortRef = useRef<AbortController | null>(null);
+
+    // Credit mini-modal
+    const [showCreditModal, setShowCreditModal] = useState(false);
+    const [creditType, setCreditType] = useState<'layaway' | 'installments' | 'due_date' | 'hold'>('layaway');
+    const [creditInstallments, setCreditInstallments] = useState(3);
+    const [creditDueDate, setCreditDueDate] = useState('');
+    const [creditInitialPayment, setCreditInitialPayment] = useState(0);
+    const [creditInitialMethod, setCreditInitialMethod] = useState('efectivo');
+    const [creditNotes, setCreditNotes] = useState('');
 
     // Cash session
     const [currentSession, setCurrentSession] = useState<CashSession | null>(initialSession);
@@ -894,6 +904,53 @@ export default function PosIndex({
                 },
                 onError: (errors) => {
                     Object.values(errors).forEach((msg) => toast.error(String(msg)));
+                },
+                onFinish: () => setSubmitting(false),
+            },
+        );
+    }
+
+    function handleCreditSubmit() {
+        if (cart.length === 0) return;
+        if (!clientId || clientId === defaultClientId) {
+            toast.error('Selecciona un cliente para registrar un crédito');
+            return;
+        }
+
+        setSubmitting(true);
+        router.post(
+            '/credits',
+            {
+                type: creditType,
+                client_id: parseInt(clientId),
+                branch_id: parseInt(defaultBranchId),
+                due_date: creditDueDate || null,
+                installments_count: creditType === 'installments' ? creditInstallments : null,
+                initial_payment: creditInitialPayment > 0 ? creditInitialPayment : null,
+                initial_payment_method: creditInitialPayment > 0 ? creditInitialMethod : null,
+                notes: creditNotes || null,
+                items: cart.map((i) => ({
+                    product_id: i.product.id,
+                    quantity: i.quantity,
+                    unit_price: i.product.sale_price,
+                    subtotal: i.subtotal,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    toast.success('Crédito registrado exitosamente');
+                    setShowCreditModal(false);
+                    setCart([]);
+                    setClientId(defaultClientId);
+                    setFormKey((k) => k + 1);
+                    setCreditType('layaway');
+                    setCreditInitialPayment(0);
+                    setCreditNotes('');
+                    setCreditDueDate('');
+                    setTimeout(() => searchRef.current?.focus(), 0);
+                },
+                onError: (errors) => {
+                    Object.values(errors).forEach((e) => toast.error(String(e)));
                 },
                 onFinish: () => setSubmitting(false),
             },
@@ -1596,6 +1653,25 @@ export default function PosIndex({
                                 <ClipboardList className="h-4 w-4" />
                                 {activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (cart.length === 0) {
+                                        toast.error('Agrega al menos un producto');
+                                        return;
+                                    }
+                                    if (!clientId || clientId === defaultClientId) {
+                                        toast.error('Selecciona un cliente para registrar un crédito');
+                                        return;
+                                    }
+                                    setShowCreditModal(true);
+                                }}
+                                disabled={submitting || cart.length === 0}
+                                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                            >
+                                <HandCoins className="h-4 w-4" />
+                                Registrar como crédito
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1661,6 +1737,138 @@ export default function PosIndex({
                                         </div>
                                     </div>
                                 ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Credit mini-modal */}
+            {showCreditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => setShowCreditModal(false)} />
+                    <div className="relative mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-bold">Registrar como crédito</h2>
+                            <button type="button" onClick={() => setShowCreditModal(false)} className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        {/* Type selection */}
+                        <div className="mb-4 grid grid-cols-2 gap-2">
+                            {([
+                                { key: 'layaway' as const, label: 'Separado', desc: 'Entrega al completar pago' },
+                                { key: 'installments' as const, label: 'Cuotas', desc: 'Entrega inmediata, pago en cuotas' },
+                                { key: 'due_date' as const, label: 'Fecha acordada', desc: 'Entrega inmediata, pago en fecha' },
+                                { key: 'hold' as const, label: 'Reservado', desc: 'Sin abono, sin entrega' },
+                            ]).map((t) => (
+                                <button
+                                    key={t.key}
+                                    type="button"
+                                    onClick={() => {
+                                        setCreditType(t.key);
+                                        if (t.key === 'installments') {
+                                            const d = new Date();
+                                            d.setMonth(d.getMonth() + creditInstallments);
+                                            setCreditDueDate(d.toISOString().slice(0, 10));
+                                        } else if (t.key !== 'due_date') {
+                                            setCreditDueDate('');
+                                        }
+                                    }}
+                                    className={`rounded-lg border-2 p-3 text-left text-sm transition-colors ${creditType === t.key ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+                                >
+                                    <p className="font-semibold">{t.label}</p>
+                                    <p className="text-muted-foreground text-xs">{t.desc}</p>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Conditions */}
+                        <div className="mb-4 space-y-3">
+                            {creditType === 'installments' && (
+                                <div>
+                                    <Label className="mb-1 block text-sm">Número de cuotas</Label>
+                                    <select
+                                        value={creditInstallments}
+                                        onChange={(e) => {
+                                            const n = parseInt(e.target.value);
+                                            setCreditInstallments(n);
+                                            const d = new Date();
+                                            d.setMonth(d.getMonth() + n);
+                                            setCreditDueDate(d.toISOString().slice(0, 10));
+                                        }}
+                                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                                    >
+                                        {[2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                                            <option key={n} value={n}>{n} cuotas — {formatCOP(Math.round(total / n))} c/u</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            {(creditType === 'due_date' || creditType === 'installments') && (
+                                <div>
+                                    <Label className="mb-1 block text-sm">{creditType === 'installments' ? 'Fecha última cuota' : 'Fecha límite de pago'}</Label>
+                                    <Input
+                                        type="date"
+                                        value={creditDueDate}
+                                        min={new Date().toISOString().slice(0, 10)}
+                                        onChange={(e) => setCreditDueDate(e.target.value)}
+                                    />
+                                </div>
+                            )}
+                            {creditType !== 'hold' && (
+                                <div>
+                                    <Label className="mb-1 block text-sm">Abono inicial (opcional)</Label>
+                                    <CurrencyInput value={creditInitialPayment} onChange={setCreditInitialPayment} />
+                                    {creditInitialPayment > 0 && (
+                                        <div className="mt-2">
+                                            <Label className="mb-1 block text-sm">Método de pago del abono</Label>
+                                            <PaymentMethodSelect value={creditInitialMethod} onValueChange={setCreditInitialMethod} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <div>
+                                <Label className="mb-1 block text-sm">Notas (opcional)</Label>
+                                <Input value={creditNotes} onChange={(e) => setCreditNotes(e.target.value)} placeholder="Observaciones..." />
+                            </div>
+                        </div>
+
+                        {/* Summary */}
+                        <div className="mb-4 rounded-lg bg-neutral-50 p-3 dark:bg-neutral-800">
+                            <div className="flex justify-between text-sm">
+                                <span>Total del crédito</span>
+                                <span className="font-bold">{formatCOP(total)}</span>
+                            </div>
+                            {creditInitialPayment > 0 && (
+                                <div className="mt-1 flex justify-between text-sm text-green-600">
+                                    <span>Abono inicial</span>
+                                    <span>{formatCOP(creditInitialPayment)}</span>
+                                </div>
+                            )}
+                            {creditInitialPayment > 0 && (
+                                <div className="mt-1 flex justify-between text-sm text-orange-500">
+                                    <span>Saldo pendiente</span>
+                                    <span className="font-semibold">{formatCOP(total - creditInitialPayment)}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowCreditModal(false)}
+                                className="flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCreditSubmit}
+                                disabled={submitting || (creditInitialPayment > total)}
+                                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-40"
+                            >
+                                {submitting ? 'Registrando...' : 'Confirmar crédito'}
+                            </button>
                         </div>
                     </div>
                 </div>

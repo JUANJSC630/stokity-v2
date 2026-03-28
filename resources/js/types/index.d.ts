@@ -177,6 +177,8 @@ export interface Product {
     sale_price: number;
     tax: number;
     stock: number;
+    reserved_stock?: number;
+    available_stock?: number;
     min_stock: number;
     image: string | null;
     image_url: string;
@@ -196,6 +198,7 @@ export interface Product {
 export interface Sale {
     id: number;
     branch_id: number;
+    credit_sale_id?: number | null;
     code: string;
     client_id: number;
     seller_id: number;
@@ -300,6 +303,69 @@ export interface SupplierPivot {
     purchase_price: number | null;
     supplier_code: string | null;
     is_default: boolean;
+}
+
+export type CreditType = 'layaway' | 'installments' | 'due_date' | 'hold';
+export type CreditStatus = 'active' | 'overdue' | 'completed' | 'cancelled';
+
+export interface CreditSale {
+    id: number;
+    sale_id: number | null;
+    client_id: number;
+    branch_id: number;
+    seller_id: number;
+    code: string;
+    type: CreditType;
+    total_amount: number;
+    amount_paid: number;
+    balance: number;
+    installments_count: number | null;
+    installment_amount: number | null;
+    due_date: string | null;
+    notes: string | null;
+    status: CreditStatus;
+    type_label: string;
+    status_label: string;
+    created_at: string;
+    updated_at: string;
+    // Relations
+    sale?: Sale | null;
+    client?: Client | null;
+    seller?: { id: number; name: string } | null;
+    branch?: { id: number; name: string } | null;
+    items?: CreditSaleItem[];
+    payments?: CreditPayment[];
+}
+
+export interface CreditSaleItem {
+    id: number;
+    credit_sale_id: number;
+    product_id: number;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    purchase_price_snapshot: number | null;
+    product?: {
+        id: number;
+        name: string;
+        code: string;
+        image?: string | null;
+        image_url?: string;
+    } | null;
+}
+
+export interface CreditPayment {
+    id: number;
+    credit_sale_id: number;
+    amount: number;
+    payment_method: string;
+    registered_by: number;
+    cash_movement_id: number | null;
+    payment_date: string;
+    notes: string | null;
+    created_at: string;
+    registered_by_user?: { id: number; name: string } | null;
 }
 
 export interface ExpenseCategory {

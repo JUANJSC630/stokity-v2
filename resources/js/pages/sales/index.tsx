@@ -300,7 +300,14 @@ export default function Index({ sales, filters }: PageProps) {
         { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
         { key: 'payment_method', title: 'Método de pago', render: (_: unknown, row: Sale) => getPaymentMethodText(row.payment_method) },
         { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateTime(row.date) },
-        { key: 'status', title: 'Estado', render: (_: unknown, row: Sale) => getStatusBadge(row.status) },
+        { key: 'status', title: 'Estado', render: (_: unknown, row: Sale) => (
+            <div className="flex items-center gap-1.5">
+                {getStatusBadge(row.status)}
+                {row.credit_sale_id && (
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Crédito</Badge>
+                )}
+            </div>
+        ) },
         {
             key: 'actions',
             title: 'Acciones',

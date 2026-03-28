@@ -688,7 +688,7 @@ reference_id   BIGINT nullable       -- FK al abono correspondiente
 
 ---
 
-**Estado:** 🔲 Pendiente de implementación
+**Estado:** ✅ Implementado
 
 ---
 

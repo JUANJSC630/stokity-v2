@@ -522,7 +522,7 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                         <span className="text-muted-foreground">—</span>
                                                     )}
                                                 </td>
-                                                <td className="py-2 pr-4">{expense.description ?? '—'}</td>
+                                                <td className="max-w-[200px] truncate py-2 pr-4" title={expense.description ?? ''}>{expense.description ?? '—'}</td>
                                                 <td className="py-2 pr-4 text-right font-semibold">{cop(expense.amount)}</td>
                                                 <td className="py-2 pr-4">
                                                     {expense.template ? (

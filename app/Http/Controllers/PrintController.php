@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\BusinessSetting;
 use App\Models\CashSession;
+use App\Models\CreditPayment;
+use App\Models\CreditSale;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use Illuminate\Http\Request;
@@ -1305,5 +1307,229 @@ class PrintController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    // ── Credit Receipt ──────────────────────────────────────────────────────
+
+    /**
+     * Generate ESC/POS receipt for a credit sale, base64-encoded.
+     */
+    public function creditReceipt(Request $request, CreditSale $credit)
+    {
+        $user = Auth::user();
+        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+
+        $credit->load(['branch', 'client', 'seller', 'items.product']);
+
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $paperWidth = (int) $request->query('width', $config['paper_width'] ?? 58);
+        $cols = $paperWidth >= 80 ? 48 : 32;
+        $sep = str_repeat('-', $cols);
+        $sep2 = str_repeat('=', $cols);
+
+        $typeLabels = [
+            'layaway' => 'SEPARADO',
+            'installments' => 'CUOTAS',
+            'due_date' => 'FECHA ACORDADA',
+            'hold' => 'RESERVADO',
+        ];
+
+        $connector = new DummyPrintConnector;
+        $p = $this->createPrinter($connector);
+
+        try {
+            $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+            $this->printBusinessHeader($p, $business, $cols, $cfg);
+            $p->text($sep2 . "\n");
+
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->setEmphasis(true);
+            $p->setTextSize(2, 1);
+            $p->text("CREDITO\n");
+            $p->setTextSize(1, 1);
+            $p->text(($typeLabels[$credit->type] ?? $credit->type) . "\n");
+            $p->setEmphasis(false);
+
+            $p->text($sep . "\n");
+            $p->setJustification(Printer::JUSTIFY_LEFT);
+
+            $p->setEmphasis(true);
+            $p->text('Código:  ');
+            $p->setEmphasis(false);
+            $p->text($credit->code . "\n");
+
+            $date = $credit->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i');
+            $p->setEmphasis(true);
+            $p->text('Fecha:   ');
+            $p->setEmphasis(false);
+            $p->text($date . "\n");
+
+            if ($credit->client) {
+                $p->setEmphasis(true);
+                $p->text('Cliente: ');
+                $p->setEmphasis(false);
+                $p->text($this->truncate($credit->client->name, $cols - 9) . "\n");
+            }
+
+            if ($credit->seller) {
+                $p->setEmphasis(true);
+                $p->text('Vendedor:');
+                $p->setEmphasis(false);
+                $p->text(' ' . $this->truncate($credit->seller->name, $cols - 10) . "\n");
+            }
+
+            $p->text($sep . "\n");
+
+            // Products
+            foreach ($credit->items as $item) {
+                $name = $this->truncate($item->product_name, $cols - 12);
+                $qty = $item->quantity;
+                $sub = $this->formatMoney($item->subtotal);
+                $p->text($name . "\n");
+                $p->text(str_pad("  {$qty} x " . $this->formatMoney($item->unit_price), $cols - strlen($sub)) . $sub . "\n");
+            }
+
+            $p->text($sep . "\n");
+
+            // Totals
+            $p->setEmphasis(true);
+            $totalStr = $this->formatMoney($credit->total_amount);
+            $p->text(str_pad('TOTAL:', $cols - strlen($totalStr)) . $totalStr . "\n");
+            $p->setEmphasis(false);
+
+            $paidStr = $this->formatMoney($credit->amount_paid);
+            $p->text(str_pad('Abonado:', $cols - strlen($paidStr)) . $paidStr . "\n");
+
+            $balStr = $this->formatMoney($credit->balance);
+            $p->text(str_pad('Saldo:', $cols - strlen($balStr)) . $balStr . "\n");
+
+            if ($credit->due_date) {
+                $p->text("\n");
+                $p->setJustification(Printer::JUSTIFY_CENTER);
+                $p->text('Fecha limite: ' . $credit->due_date->format('d/m/Y') . "\n");
+            }
+
+            if ($credit->installments_count) {
+                $p->text($credit->installments_count . ' cuotas de ' . $this->formatMoney($credit->installment_amount ?? 0) . "\n");
+            }
+
+            $p->text("\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->text("Gracias por su compra\n");
+            $p->feed(3);
+            $p->cut();
+        } finally {
+            $bytes = $connector->getData();
+            $p->close();
+        }
+
+        return response()->json([
+            'data' => base64_encode($bytes),
+            'code' => $credit->code,
+        ]);
+    }
+
+    /**
+     * Generate ESC/POS receipt for a credit payment (abono), base64-encoded.
+     */
+    public function creditPaymentReceipt(Request $request, CreditPayment $payment)
+    {
+        $payment->load(['creditSale.client', 'creditSale.branch', 'registeredBy']);
+        $credit = $payment->creditSale;
+
+        $user = Auth::user();
+        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+
+        $business = BusinessSetting::getSettings();
+        $config = $business->getTicketConfig();
+        $paperWidth = (int) $request->query('width', $config['paper_width'] ?? 58);
+        $cols = $paperWidth >= 80 ? 48 : 32;
+        $sep = str_repeat('-', $cols);
+        $sep2 = str_repeat('=', $cols);
+
+        $connector = new DummyPrintConnector;
+        $p = $this->createPrinter($connector);
+
+        try {
+            $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
+            $this->printBusinessHeader($p, $business, $cols, $cfg);
+            $p->text($sep2 . "\n");
+
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+            $p->setEmphasis(true);
+            $p->setTextSize(2, 1);
+            $p->text("COMPROBANTE\n");
+            $p->setTextSize(1, 1);
+            $p->text("ABONO DE CREDITO\n");
+            $p->setEmphasis(false);
+
+            $p->text($sep . "\n");
+            $p->setJustification(Printer::JUSTIFY_LEFT);
+
+            $p->setEmphasis(true);
+            $p->text('Crédito: ');
+            $p->setEmphasis(false);
+            $p->text($credit->code . "\n");
+
+            $date = $payment->payment_date->setTimezone('America/Bogota')->format('d/m/Y H:i');
+            $p->setEmphasis(true);
+            $p->text('Fecha:   ');
+            $p->setEmphasis(false);
+            $p->text($date . "\n");
+
+            if ($credit->client) {
+                $p->setEmphasis(true);
+                $p->text('Cliente: ');
+                $p->setEmphasis(false);
+                $p->text($this->truncate($credit->client->name, $cols - 9) . "\n");
+            }
+
+            $p->text($sep . "\n");
+
+            // Payment detail
+            $p->setEmphasis(true);
+            $amtStr = $this->formatMoney($payment->amount);
+            $p->text(str_pad('ABONO:', $cols - strlen($amtStr)) . $amtStr . "\n");
+            $p->setEmphasis(false);
+
+            $p->text(str_pad('Método:', $cols - strlen($payment->payment_method)) . $payment->payment_method . "\n");
+
+            $p->text($sep . "\n");
+
+            // Credit balance
+            $credit->refresh();
+            $totalStr = $this->formatMoney($credit->total_amount);
+            $p->text(str_pad('Total crédito:', $cols - strlen($totalStr)) . $totalStr . "\n");
+
+            $paidStr = $this->formatMoney($credit->amount_paid);
+            $p->text(str_pad('Total abonado:', $cols - strlen($paidStr)) . $paidStr . "\n");
+
+            $balStr = $this->formatMoney($credit->balance);
+            $p->setEmphasis(true);
+            $p->text(str_pad('Saldo pendiente:', $cols - strlen($balStr)) . $balStr . "\n");
+            $p->setEmphasis(false);
+
+            $p->text("\n");
+            $p->setJustification(Printer::JUSTIFY_CENTER);
+
+            if ($credit->balance <= 0) {
+                $p->setEmphasis(true);
+                $p->text("*** CREDITO COMPLETADO ***\n");
+                $p->setEmphasis(false);
+            }
+
+            $p->text("Gracias por su abono\n");
+            $p->feed(3);
+            $p->cut();
+        } finally {
+            $bytes = $connector->getData();
+            $p->close();
+        }
+
+        return response()->json([
+            'data' => base64_encode($bytes),
+            'code' => $credit->code,
+        ]);
     }
 }

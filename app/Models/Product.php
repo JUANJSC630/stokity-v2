@@ -42,6 +42,7 @@ class Product extends Model
         'sale_price',
         'tax',
         'stock',
+        'reserved_stock',
         'min_stock',
         'image',
         'category_id',
@@ -62,6 +63,7 @@ class Product extends Model
         'tax' => 'decimal:2',
         'status' => 'boolean',
         'stock' => 'integer',
+        'reserved_stock' => 'integer',
         'min_stock' => 'integer',
         'variable_price' => 'boolean',
     ];
@@ -126,6 +128,15 @@ class Product extends Model
     public function isService(): bool
     {
         return $this->type === 'servicio';
+    }
+
+    public function availableStock(): int
+    {
+        if ($this->isService()) {
+            return PHP_INT_MAX;
+        }
+
+        return max(0, $this->stock - ($this->reserved_stock ?? 0));
     }
 
     public function isLowStock(): bool

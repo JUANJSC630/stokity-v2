@@ -35,6 +35,7 @@ class Sale extends Model
     protected $fillable = [
         'branch_id',
         'session_id',
+        'credit_sale_id',
         'code',
         'client_id',
         'seller_id',
@@ -98,5 +99,10 @@ class Sale extends Model
     public function saleReturns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);
+    }
+
+    public function creditSale(): BelongsTo
+    {
+        return $this->belongsTo(CreditSale::class);
     }
 }
