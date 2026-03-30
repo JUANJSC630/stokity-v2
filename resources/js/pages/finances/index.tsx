@@ -1,16 +1,17 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertTriangle, DollarSign, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { AlertTriangle, DollarSign, HelpCircle, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -74,6 +75,17 @@ const PERIOD_LABELS: Record<PeriodOption, string> = {
     this_year: 'Este año',
     custom: 'Personalizado',
 };
+
+function HelpTip({ text }: { text: string }) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <HelpCircle className="inline h-3.5 w-3.5 text-muted-foreground" />
+            </TooltipTrigger>
+            <TooltipContent side="top">{text}</TooltipContent>
+        </Tooltip>
+    );
+}
 
 // ─── RegisterMonthlyExpensesModal ──────────────────────────────────────────────
 
@@ -365,7 +377,7 @@ export default function FinancesIndex({
         );
     };
 
-    const handlePeriodClick = (p: PeriodOption) => {
+    const handlePeriodChange = (p: PeriodOption) => {
         setLocalPeriod(p);
         if (p !== 'custom') applyFilters(p, localBranch);
     };
@@ -381,6 +393,7 @@ export default function FinancesIndex({
     };
 
     const netProfitPositive = netProfit >= 0;
+    const showReceivables = receivables > 0 || activeCreditsCount > 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -416,14 +429,24 @@ export default function FinancesIndex({
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header + period selector */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-semibold">Finanzas</h1>
+                    <div>
+                        <h1 className="text-2xl font-semibold">Finanzas</h1>
+                        <p className="text-sm text-muted-foreground">Resumen de ingresos, gastos y rentabilidad del negocio</p>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* Period buttons */}
-                        {(Object.keys(PERIOD_LABELS) as PeriodOption[]).map((p) => (
-                            <Button key={p} size="sm" variant={localPeriod === p ? 'default' : 'outline'} onClick={() => handlePeriodClick(p)}>
-                                {PERIOD_LABELS[p]}
-                            </Button>
-                        ))}
+                        {/* Period dropdown */}
+                        <Select value={localPeriod} onValueChange={(v) => handlePeriodChange(v as PeriodOption)}>
+                            <SelectTrigger className="w-44">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(Object.keys(PERIOD_LABELS) as PeriodOption[]).map((p) => (
+                                    <SelectItem key={p} value={p}>
+                                        {PERIOD_LABELS[p]}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         {/* Branch selector */}
                         {branches.length > 0 && (
                             <Select value={localBranch} onValueChange={handleBranchChange}>
@@ -445,7 +468,7 @@ export default function FinancesIndex({
 
                 {/* Custom date range */}
                 {localPeriod === 'custom' && (
-                    <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-neutral-50 px-4 py-3 dark:bg-neutral-900">
                         <div>
                             <label className="mb-1 block text-xs font-medium text-muted-foreground">Desde</label>
                             <Input type="date" value={dateFromLocal} onChange={(e) => setDateFromLocal(e.target.value)} className="w-40" />
@@ -465,20 +488,20 @@ export default function FinancesIndex({
                     <div className="flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200">
                         <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                         <p className="text-sm">
-                            Algunas ventas antiguas usan el precio de costo actual como estimado. Los datos pueden variar levemente.
+                            Los datos de costo de productos pueden ser estimados en ventas anteriores.
                         </p>
                     </div>
                 )}
 
                 {/* KPI Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${showReceivables ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'}`}>
                     <Card className="border-blue-100 dark:border-blue-900">
                         <CardContent className="pt-4">
                             <div className="flex items-start justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Ingresos netos</p>
                                     <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{cop(netRevenue)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Ventas - devoluciones</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Total de ventas menos devoluciones del período</p>
                                 </div>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/40">
                                     <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -493,9 +516,10 @@ export default function FinancesIndex({
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Ganancia bruta</p>
                                     <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{cop(grossProfit)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        Ingresos - costo de ventas &bull; {grossMarginPct.toFixed(1)}%
-                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Lo que queda después de descontar el costo de los productos vendidos</p>
+                                    <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                                        {grossMarginPct.toFixed(1)}% de margen
+                                    </span>
                                 </div>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/40">
                                     <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -510,7 +534,9 @@ export default function FinancesIndex({
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Gastos</p>
                                     <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{cop(totalExpenses)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">{expenses.length} registro{expenses.length !== 1 ? 's' : ''}</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Total registrado en gastos operativos &bull; {expenses.length} registro{expenses.length !== 1 ? 's' : ''}
+                                    </p>
                                 </div>
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/40">
                                     <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -529,7 +555,7 @@ export default function FinancesIndex({
                                     >
                                         {cop(netProfit)}
                                     </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Ganancia bruta - gastos</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">Lo que realmente ganaste luego de todos los costos y gastos</p>
                                 </div>
                                 <div
                                     className={`flex h-10 w-10 items-center justify-center rounded-full ${netProfitPositive ? 'bg-green-50 dark:bg-green-900/40' : 'bg-red-50 dark:bg-red-900/40'}`}
@@ -543,42 +569,45 @@ export default function FinancesIndex({
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Cartera por cobrar */}
+                    {showReceivables && (
+                        <Card className="border-purple-100 dark:border-purple-900">
+                            <CardContent className="pt-4">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-muted-foreground">Cartera por cobrar</p>
+                                        <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{cop(receivables)}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo{activeCreditsCount !== 1 ? 's' : ''}
+                                            {' — '}
+                                            <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">Ver créditos</a>
+                                        </p>
+                                    </div>
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/40">
+                                        <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
-                {/* Cartera por cobrar */}
-                {(receivables > 0 || activeCreditsCount > 0) && (
-                    <Card className="border-purple-100 dark:border-purple-900">
-                        <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Cartera por cobrar</p>
-                                    <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{cop(receivables)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo{activeCreditsCount !== 1 ? 's' : ''}
-                                        {' — '}
-                                        <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">Ver créditos</a>
-                                    </p>
-                                </div>
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/40">
-                                    <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Main content: P&L + Expenses side by side */}
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {/* Main content: P&L + Expenses by category + Expenses list */}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     {/* P&L Statement */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Resumen del período</CardTitle>
+                            <CardTitle>¿Cómo le fue al negocio?</CardTitle>
+                            <CardDescription>Desglose de ingresos y gastos del período seleccionado</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <table className="w-full text-sm">
                                 <tbody>
                                     <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">Ingresos por ventas</td>
+                                        <td className="py-2 text-muted-foreground">
+                                            Ingresos por ventas <HelpTip text="Todo el dinero que ingresó por ventas en este período" />
+                                        </td>
                                         <td className="py-2 text-right">{cop(revenue)}</td>
                                     </tr>
                                     {returnsTotal > 0 && (
@@ -592,22 +621,28 @@ export default function FinancesIndex({
                                         <td className="py-2 text-right font-semibold">{cop(netRevenue)}</td>
                                     </tr>
                                     <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">(-) Costo de lo vendido</td>
+                                        <td className="py-2 text-muted-foreground">
+                                            (-) Costo de lo vendido <HelpTip text="Lo que te costó el inventario que vendiste" />
+                                        </td>
                                         <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(cogs)}</td>
                                     </tr>
                                     <tr className="border-b-2 border-neutral-200 dark:border-neutral-700">
-                                        <td className="py-2 font-semibold text-green-700 dark:text-green-400">= Ganancia bruta</td>
+                                        <td className="py-2 font-semibold text-green-700 dark:text-green-400">
+                                            = Ganancia bruta <HelpTip text="Diferencia entre lo que vendiste y lo que te costaron los productos" />
+                                        </td>
                                         <td className="py-2 text-right font-semibold text-green-700 dark:text-green-400">{cop(grossProfit)}</td>
                                     </tr>
                                     <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">(-) Gastos del período</td>
+                                        <td className="py-2 text-muted-foreground">
+                                            (-) Gastos del período <HelpTip text="Gastos operativos como arriendo, servicios, etc." />
+                                        </td>
                                         <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(totalExpenses)}</td>
                                     </tr>
                                     <tr>
                                         <td
                                             className={`py-3 text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
                                         >
-                                            = Ganancia neta
+                                            = Ganancia neta <HelpTip text="Lo que realmente ganaste después de todos los costos" />
                                         </td>
                                         <td
                                             className={`py-3 text-right text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
@@ -617,11 +652,18 @@ export default function FinancesIndex({
                                     </tr>
                                 </tbody>
                             </table>
+                        </CardContent>
+                    </Card>
 
-                            {/* Expenses by category */}
-                            {expensesByCategory.length > 0 && (
-                                <div className="mt-4 space-y-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
-                                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gastos por categoría</p>
+                    {/* Expenses by category */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gastos por categoría</CardTitle>
+                            <CardDescription>Distribución de gastos en el período</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {expensesByCategory.length > 0 ? (
+                                <div className="space-y-2">
                                     {expensesByCategory.map((row) => (
                                         <div key={row.category}>
                                             <div className="mb-0.5 flex items-center justify-between text-sm">
@@ -646,6 +688,8 @@ export default function FinancesIndex({
                                         </div>
                                     ))}
                                 </div>
+                            ) : (
+                                <p className="py-6 text-center text-sm text-muted-foreground">Sin gastos registrados en este período</p>
                             )}
                         </CardContent>
                     </Card>
@@ -668,8 +712,8 @@ export default function FinancesIndex({
                                     <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
                                         <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                                         <span>
-                                            <strong>{pendingTemplates.length}</strong> gasto{pendingTemplates.length > 1 ? 's' : ''} fijo
-                                            {pendingTemplates.length > 1 ? 's' : ''} sin registrar en {currentMonth}
+                                            Tienes <strong>{pendingTemplates.length}</strong> gasto{pendingTemplates.length > 1 ? 's' : ''} fijo
+                                            {pendingTemplates.length > 1 ? 's' : ''} sin registrar este mes ({currentMonth})
                                         </span>
                                     </div>
                                     <Button
@@ -693,49 +737,54 @@ export default function FinancesIndex({
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="max-h-[420px] space-y-1 overflow-y-auto">
-                                    {expenses.map((expense) => (
-                                        <div
-                                            key={expense.id}
-                                            className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-                                        >
-                                            <div className="flex min-w-0 items-center gap-2.5">
-                                                <span
-                                                    className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                                    style={{ backgroundColor: expense.category?.color ?? '#94a3b8' }}
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-medium">
-                                                        {expense.description || expense.category?.name || 'Sin descripción'}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {format(new Date(expense.expense_date), 'dd MMM', { locale: es })}
-                                                        {expense.category && ` · ${expense.category.name}`}
-                                                    </p>
+                                <>
+                                    <p className="mb-3 text-sm text-muted-foreground">
+                                        {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} · Total: <span className="font-semibold text-foreground">{cop(totalExpenses)}</span>
+                                    </p>
+                                    <div className="max-h-[520px] space-y-1 overflow-y-auto">
+                                        {expenses.map((expense) => (
+                                            <div
+                                                key={expense.id}
+                                                className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+                                            >
+                                                <div className="flex min-w-0 items-center gap-2.5">
+                                                    <span
+                                                        className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                                                        style={{ backgroundColor: expense.category?.color ?? '#94a3b8' }}
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-medium">
+                                                            {expense.description || expense.category?.name || 'Sin descripción'}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {format(new Date(expense.expense_date), 'dd MMM', { locale: es })}
+                                                            {expense.category && ` · ${expense.category.name}`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-shrink-0 items-center gap-1">
+                                                    <span className="text-sm font-semibold">{cop(expense.amount)}</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                                        onClick={() => setEditExpense(expense)}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-muted-foreground hover:text-red-600"
+                                                        onClick={() => handleDeleteExpense(expense.id)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-shrink-0 items-center gap-1">
-                                                <span className="text-sm font-semibold">{cop(expense.amount)}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                                    onClick={() => setEditExpense(expense)}
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-muted-foreground hover:text-red-600"
-                                                    onClick={() => handleDeleteExpense(expense.id)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                </>
                             )}
                         </CardContent>
                     </Card>

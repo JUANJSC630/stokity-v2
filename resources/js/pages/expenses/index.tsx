@@ -2,17 +2,19 @@ import PaginationFooter from '@/components/common/PaginationFooter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate, type PaginatedData } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertTriangle, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, HelpCircle, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
@@ -313,6 +315,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editExpense, setEditExpense] = useState<Expense | null>(null);
 
+    const hasActiveFilters = filterCategory !== 'all' || filterBranch !== 'all' || startDate !== '' || endDate !== '';
+    const activeFilterCount = [filterCategory !== 'all', filterBranch !== 'all', startDate !== '', endDate !== ''].filter(Boolean).length;
+
     const applyFilters = () => {
         router.get(
             '/expenses',
@@ -385,11 +390,21 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h1 className="text-2xl font-semibold">Gastos</h1>
-                    <Button onClick={() => setShowCreateModal(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Registrar gasto
-                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-semibold">Gastos</h1>
+                        <p className="mt-0.5 text-sm text-muted-foreground">Historial y control de todos tus gastos operativos</p>
+                    </div>
+                    <div className="flex gap-2">
+                        {pendingTemplates.length > 0 && (
+                            <Button variant="outline" onClick={() => setShowRegisterModal(true)}>
+                                Registrar gastos fijos
+                            </Button>
+                        )}
+                        <Button onClick={() => setShowCreateModal(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Registrar gasto
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Pending templates banner */}
@@ -413,69 +428,95 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                     </div>
                 )}
 
-                {/* Filters */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Filtros</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Categoría</label>
-                                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Todas" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas las categorías</SelectItem>
-                                        {categories.map((c) => (
-                                            <SelectItem key={c.id} value={String(c.id)}>
-                                                {c.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {isAdmin && (
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">Sucursal</label>
-                                    <Select value={filterBranch} onValueChange={setFilterBranch}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Todas" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las sucursales</SelectItem>
-                                            {branches.map((b) => (
-                                                <SelectItem key={b.id} value={String(b.id)}>
-                                                    {b.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                {/* Collapsible Filters */}
+                <Collapsible defaultOpen={hasActiveFilters}>
+                    <Card>
+                        <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer select-none">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle>Filtros</CardTitle>
+                                        {activeFilterCount > 0 && (
+                                            <Badge variant="secondary" className="text-xs">
+                                                {activeFilterCount} activo{activeFilterCount !== 1 ? 's' : ''}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]_&]:rotate-180" />
                                 </div>
-                            )}
+                            </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <CardContent>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium">Categoría</label>
+                                        <Select value={filterCategory} onValueChange={setFilterCategory}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Todas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todas las categorías</SelectItem>
+                                                {categories.map((c) => (
+                                                    <SelectItem key={c.id} value={String(c.id)}>
+                                                        {c.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Fecha desde</label>
-                                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                            </div>
+                                    {isAdmin && (
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium">Sucursal</label>
+                                            <Select value={filterBranch} onValueChange={setFilterBranch}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Todas" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Todas las sucursales</SelectItem>
+                                                    {branches.map((b) => (
+                                                        <SelectItem key={b.id} value={String(b.id)}>
+                                                            {b.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Fecha hasta</label>
-                                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                            </div>
-                        </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium">Fecha desde</label>
+                                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                                    </div>
 
-                        <div className="mt-4 flex gap-2">
-                            <Button onClick={applyFilters}>Filtrar</Button>
-                            <Button variant="outline" onClick={clearFilters}>
-                                <X className="mr-2 h-4 w-4" />
-                                Limpiar
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium">Fecha hasta</label>
+                                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
+                                    <Button onClick={applyFilters}>Filtrar</Button>
+                                    <Button variant="outline" onClick={clearFilters}>
+                                        <X className="mr-2 h-4 w-4" />
+                                        Limpiar
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
+
+                {/* Summary bar */}
+                {expenses.data.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-4 rounded-lg bg-neutral-50 px-4 py-2.5 text-sm dark:bg-neutral-900">
+                        <span className="text-muted-foreground">Total mostrado:</span>
+                        <span className="font-semibold">{cop(expenses.data.reduce((sum, e) => sum + Number(e.amount), 0))}</span>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground">{expenses.total} gasto{expenses.total !== 1 ? 's' : ''} en total</span>
+                    </div>
+                )}
 
                 {/* Table */}
                 <Card>
@@ -492,15 +533,41 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                         <th className="pr-4 pb-2">Categoría</th>
                                         <th className="pr-4 pb-2">Descripción</th>
                                         <th className="pr-4 pb-2 text-right">Monto</th>
-                                        <th className="pr-4 pb-2">Origen</th>
+                                        <th className="pr-4 pb-2">
+                                            <span className="inline-flex items-center gap-1">
+                                                Origen
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">Recurrente: gasto fijo mensual. Puntual: gasto registrado manualmente.</TooltipContent>
+                                                </Tooltip>
+                                            </span>
+                                        </th>
                                         <th className="pb-2">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {expenses.data.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                                                No se encontraron gastos
+                                            <td colSpan={6} className="py-12 text-center">
+                                                {hasActiveFilters ? (
+                                                    <div>
+                                                        <p className="text-muted-foreground">No se encontraron gastos con los filtros seleccionados</p>
+                                                        <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
+                                                            Limpiar filtros
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <p className="text-base font-medium">Sin gastos registrados</p>
+                                                        <p className="mt-1 text-sm text-muted-foreground">Comienza registrando tus gastos operativos del mes</p>
+                                                        <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            Registrar primer gasto
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     ) : (
@@ -526,10 +593,10 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                 <td className="py-2 pr-4 text-right font-semibold">{cop(expense.amount)}</td>
                                                 <td className="py-2 pr-4">
                                                     {expense.template ? (
-                                                        <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Fijo</Badge>
+                                                        <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Recurrente</Badge>
                                                     ) : (
                                                         <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                                                            Único
+                                                            Puntual
                                                         </Badge>
                                                     )}
                                                 </td>
@@ -565,7 +632,25 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                         {/* Mobile cards */}
                         <div className="block space-y-3 md:hidden">
                             {expenses.data.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-muted-foreground">No se encontraron gastos</p>
+                                <div className="py-12 text-center">
+                                    {hasActiveFilters ? (
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">No se encontraron gastos con los filtros seleccionados</p>
+                                            <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
+                                                Limpiar filtros
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-base font-medium">Sin gastos registrados</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">Comienza registrando tus gastos operativos del mes</p>
+                                            <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
+                                                <Plus className="mr-2 h-4 w-4" />
+                                                Registrar primer gasto
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
                                 expenses.data.map((expense) => (
                                     <div
@@ -595,9 +680,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                     <span className="text-sm text-muted-foreground">Sin categoría</span>
                                                 )}
                                                 {expense.template ? (
-                                                    <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Fijo</Badge>
+                                                    <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Recurrente</Badge>
                                                 ) : (
-                                                    <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Único</Badge>
+                                                    <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Puntual</Badge>
                                                 )}
                                             </div>
                                             <div className="flex gap-1">
