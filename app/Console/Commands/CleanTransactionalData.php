@@ -17,7 +17,6 @@ class CleanTransactionalData extends Command
         'credit_sale_items',
         'credit_sales',
         'sale_products',
-        'sale_return_items',
         'sale_returns',
         'sales',
         'cash_movements',
@@ -52,6 +51,10 @@ class CleanTransactionalData extends Command
         DB::statement('SET FOREIGN_KEY_CHECKS = 0');
 
         foreach ($this->tables as $table) {
+            if (! DB::getSchemaBuilder()->hasTable($table)) {
+                $this->line("  - {$table} (skipped, table not found)");
+                continue;
+            }
             DB::table($table)->truncate();
             $this->line("  ✓ {$table}");
         }
