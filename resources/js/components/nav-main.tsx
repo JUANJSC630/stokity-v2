@@ -136,37 +136,29 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                         <SidebarMenuSub>
                                             {item.children
                                                 .filter((child) => !child.roles || child.roles.includes(userRole))
-                                                .map((child) => (
-                                                    <SidebarMenuSubButton
-                                                        key={child.title}
-                                                        asChild
-                                                        isActive={isChildActive(child)}
-                                                        className="ml-2 w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)]"
-                                                    >
-                                                        <Link
-                                                            href={child.href}
-                                                            prefetch
-                                                            className={`flex w-full items-center gap-2 ${
-                                                                isChildActive(child)
-                                                                    ? 'bg-[var(--brand-primary)] font-semibold text-white shadow-md'
-                                                                    : 'text-gray-700 dark:text-gray-300'
-                                                            } rounded-lg px-3 py-2`}
-                                                        >
-                                                            {child.icon && (
-                                                                <span
-                                                                    className={`${isChildActive(child) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}
-                                                                >
-                                                                    <child.icon className="size-4" />
-                                                                </span>
-                                                            )}
-                                                            <span
-                                                                className={`${isChildActive(child) ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}
+                                                .map((child) => {
+                                                    const active = isChildActive(child);
+                                                    return (
+                                                        <SidebarMenuItem key={child.title}>
+                                                            <SidebarMenuSubButton
+                                                                asChild
+                                                                isActive={active}
+                                                                className="ml-2 w-full rounded-lg"
                                                             >
-                                                                {child.title}
-                                                            </span>
-                                                        </Link>
-                                                    </SidebarMenuSubButton>
-                                                ))}
+                                                                <Link href={child.href} prefetch>
+                                                                    {child.icon && (
+                                                                        <span className={`${active ? 'text-white' : 'text-[var(--brand-primary)]'} flex-shrink-0`}>
+                                                                            <child.icon className="size-4" />
+                                                                        </span>
+                                                                    )}
+                                                                    <span className={`${active ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}>
+                                                                        {child.title}
+                                                                    </span>
+                                                                </Link>
+                                                            </SidebarMenuSubButton>
+                                                        </SidebarMenuItem>
+                                                    );
+                                                })}
                                         </SidebarMenuSub>
                                     )}
                                 </>
@@ -176,14 +168,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             <SidebarMenuButton
                                 asChild
                                 tooltip={isCollapsed ? { children: item.title } : undefined}
-                                className={`w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)] ${item.highlight && !isItemActive(item) ? 'ring-1 ring-[var(--brand-primary-ring)]' : ''}`}
+                                className={`w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)] ${isItemActive(item) ? 'nav-item-active' : ''} ${item.highlight && !isItemActive(item) ? 'ring-1 ring-[var(--brand-primary-ring)]' : ''}`}
                             >
                                 <Link
                                     href={item.href}
                                     prefetch
                                     className={`flex w-full items-center gap-2 ${
                                         isItemActive(item)
-                                            ? 'bg-[var(--brand-primary)] font-semibold text-white shadow-md'
+                                            ? 'font-semibold shadow-md'
                                             : item.highlight
                                               ? 'bg-[var(--brand-primary-soft)] font-semibold text-[var(--brand-primary)] dark:bg-[var(--brand-primary-soft)] dark:text-[var(--brand-primary)]'
                                               : 'text-gray-700 dark:text-gray-300'

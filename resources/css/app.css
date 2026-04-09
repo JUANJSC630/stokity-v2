@@ -186,6 +186,19 @@
     }
 }
 
+/* ── Sidebar active item ─────────────────────────────────────────────────── */
+.nav-item-active,
+.nav-item-active:hover,
+.nav-item-active:focus-visible {
+    background-color: var(--brand-primary) !important;
+    color: white !important;
+    font-weight: 600;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+.nav-item-active span {
+    color: white !important;
+}
+
 /* ── Auth pages ─────────────────────────────────────────────────────────── */
 .auth-page {
     --primary-foreground: oklch(1 0 0);
