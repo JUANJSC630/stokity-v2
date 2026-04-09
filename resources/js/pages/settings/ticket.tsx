@@ -576,7 +576,7 @@ export default function TicketSettings({ config, business }: Props) {
                                     </a>
                                     .
                                 </p>
-                                {[
+                                {/* {[
                                     { key: 'show_logo', label: 'Mostrar logo' },
                                     { key: 'show_nit', label: 'Mostrar NIT' },
                                     { key: 'show_address', label: 'Mostrar dirección' },
@@ -592,7 +592,7 @@ export default function TicketSettings({ config, business }: Props) {
                                             onCheckedChange={toggle(key as keyof TicketConfig)}
                                         />
                                     </div>
-                                ))}
+                                ))} */}
                             </CardContent>
                         </Card>
 
