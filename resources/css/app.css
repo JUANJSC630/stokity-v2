@@ -97,14 +97,14 @@
 
 :root {
     /* Brand colors — overridden at runtime by BrandColors component */
-    --brand-primary: #C850C0;
+    --brand-primary: #c850c0;
     --brand-primary-rgb: 200, 80, 192;
-    --brand-secondary: #FFCC70;
+    --brand-secondary: #ffcc70;
     --brand-secondary-rgb: 255, 204, 112;
     /* Derived brand utilities (auto-cascade when rgb vars update) */
     --brand-primary-hover: rgba(var(--brand-primary-rgb), 0.15);
     --brand-primary-soft: rgba(var(--brand-primary-rgb), 0.08);
-    --brand-primary-ring: rgba(var(--brand-primary-rgb), 0.30);
+    --brand-primary-ring: rgba(var(--brand-primary-rgb), 0.3);
 
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);

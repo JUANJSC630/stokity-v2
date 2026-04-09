@@ -232,7 +232,7 @@ function ExpenseFormModal({
         description: expense?.description ?? '',
         amount: expense?.amount ?? 0,
         expense_date: expense?.expense_date?.slice(0, 10) ?? todayStr(),
-        branch_id: expense?.branch_id ? String(expense.branch_id) : (userBranchId ? String(userBranchId) : ''),
+        branch_id: expense?.branch_id ? String(expense.branch_id) : userBranchId ? String(userBranchId) : '',
         notes: expense?.notes ?? '',
     });
 
@@ -487,9 +487,7 @@ export default function FinancesIndex({
                 {hasCOGSWarning && (
                     <div className="flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200">
                         <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                        <p className="text-sm">
-                            Los datos de costo de productos pueden ser estimados en ventas anteriores.
-                        </p>
+                        <p className="text-sm">Los datos de costo de productos pueden ser estimados en ventas anteriores.</p>
                     </div>
                 )}
 
@@ -516,7 +514,9 @@ export default function FinancesIndex({
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">Ganancia bruta</p>
                                     <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{cop(grossProfit)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Lo que queda después de descontar el costo de los productos vendidos</p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Lo que queda después de descontar el costo de los productos vendidos
+                                    </p>
                                     <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
                                         {grossMarginPct.toFixed(1)}% de margen
                                     </span>
@@ -545,7 +545,9 @@ export default function FinancesIndex({
                         </CardContent>
                     </Card>
 
-                    <Card className={`border-2 ${netProfitPositive ? 'border-green-300 dark:border-green-700' : 'border-red-300 dark:border-red-700'}`}>
+                    <Card
+                        className={`border-2 ${netProfitPositive ? 'border-green-300 dark:border-green-700' : 'border-red-300 dark:border-red-700'}`}
+                    >
                         <CardContent className="pt-4">
                             <div className="flex items-start justify-between">
                                 <div>
@@ -579,9 +581,12 @@ export default function FinancesIndex({
                                         <p className="text-sm font-medium text-muted-foreground">Cartera por cobrar</p>
                                         <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{cop(receivables)}</p>
                                         <p className="mt-1 text-xs text-muted-foreground">
-                                            {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo{activeCreditsCount !== 1 ? 's' : ''}
+                                            {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo
+                                            {activeCreditsCount !== 1 ? 's' : ''}
                                             {' — '}
-                                            <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">Ver créditos</a>
+                                            <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">
+                                                Ver créditos
+                                            </a>
                                         </p>
                                     </div>
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/40">
@@ -739,7 +744,8 @@ export default function FinancesIndex({
                             ) : (
                                 <>
                                     <p className="mb-3 text-sm text-muted-foreground">
-                                        {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} · Total: <span className="font-semibold text-foreground">{cop(totalExpenses)}</span>
+                                        {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} · Total:{' '}
+                                        <span className="font-semibold text-foreground">{cop(totalExpenses)}</span>
                                     </p>
                                     <div className="max-h-[520px] space-y-1 overflow-y-auto">
                                         {expenses.map((expense) => (

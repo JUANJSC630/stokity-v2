@@ -7,11 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type CreditPayment, type CreditSale, type PaymentMethod } from '@/types';
+import { type BreadcrumbItem, type CreditSale, type PaymentMethod } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertCircle, ArrowLeft, Ban, DollarSign, FileText, HandCoins, Package, Printer } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Ban, DollarSign, FileText, HandCoins, Package } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -45,9 +45,9 @@ function ProgressBar({ paid, total }: { paid: number; total: number }) {
         <div className="space-y-2">
             <div className="flex items-baseline justify-between">
                 <span className="text-2xl font-bold">{cop(paid)}</span>
-                <span className="text-muted-foreground text-sm">de {cop(total)}</span>
+                <span className="text-sm text-muted-foreground">de {cop(total)}</span>
             </div>
-            <div className="bg-muted h-4 overflow-hidden rounded-full">
+            <div className="h-4 overflow-hidden rounded-full bg-muted">
                 <div
                     className={`h-full rounded-full transition-all duration-500 ${pct >= 100 ? 'bg-green-500' : pct > 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
                     style={{ width: `${pct}%` }}
@@ -112,11 +112,13 @@ function PaymentModal({ open, onClose, credit }: { open: boolean; onClose: () =>
                             <p className="text-sm text-red-500">El abono no puede ser mayor al saldo restante de {cop(maxAmount)}</p>
                         )}
                         <div className="flex gap-2">
-                            {[10000, 20000, 50000].filter((v) => v <= maxAmount).map((v) => (
-                                <Button key={v} variant="outline" size="sm" onClick={() => setAmount(v)}>
-                                    {cop(v)}
-                                </Button>
-                            ))}
+                            {[10000, 20000, 50000]
+                                .filter((v) => v <= maxAmount)
+                                .map((v) => (
+                                    <Button key={v} variant="outline" size="sm" onClick={() => setAmount(v)}>
+                                        {cop(v)}
+                                    </Button>
+                                ))}
                             <Button variant="outline" size="sm" onClick={() => setAmount(maxAmount)}>
                                 Pagar todo
                             </Button>
@@ -137,7 +139,11 @@ function PaymentModal({ open, onClose, credit }: { open: boolean; onClose: () =>
                     <Button variant="outline" onClick={onClose} disabled={submitting}>
                         Cancelar
                     </Button>
-                    <Button onClick={handleSubmit} disabled={submitting || amount <= 0 || amount > maxAmount} className="bg-green-600 hover:bg-green-700">
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={submitting || amount <= 0 || amount > maxAmount}
+                        className="bg-green-600 hover:bg-green-700"
+                    >
                         {submitting ? 'Registrando...' : `Registrar ${cop(amount)}`}
                     </Button>
                 </DialogFooter>
@@ -178,8 +184,8 @@ function CancelModal({ open, onClose, credit }: { open: boolean; onClose: () => 
                     <DialogDescription>
                         {credit.amount_paid > 0 ? (
                             <>
-                                Este crédito tiene abonos registrados por <strong>{cop(credit.amount_paid)}</strong>.
-                                Los abonos permanecerán en caja pero el crédito se marcará como cancelado.
+                                Este crédito tiene abonos registrados por <strong>{cop(credit.amount_paid)}</strong>. Los abonos permanecerán en caja
+                                pero el crédito se marcará como cancelado.
                                 {(credit.type === 'layaway' || credit.type === 'hold') && ' El stock reservado se liberará.'}
                             </>
                         ) : (
@@ -240,7 +246,7 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                                 </Badge>
                                 <Badge variant="outline">{TYPE_LABELS[credit.type]}</Badge>
                             </div>
-                            <p className="text-muted-foreground text-sm">
+                            <p className="text-sm text-muted-foreground">
                                 Creado {format(new Date(credit.created_at), "d 'de' MMMM yyyy, h:mm a", { locale: es })}
                             </p>
                         </div>
@@ -301,7 +307,9 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                             {credit.installments_count && (
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Cuotas</span>
-                                    <span>{credit.installments_count} x {cop(Number(credit.installment_amount ?? 0))}</span>
+                                    <span>
+                                        {credit.installments_count} x {cop(Number(credit.installment_amount ?? 0))}
+                                    </span>
                                 </div>
                             )}
                             {credit.due_date && (
@@ -320,8 +328,10 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                             )}
                             {credit.notes && (
                                 <div className="border-t pt-2">
-                                    <p className="text-muted-foreground mb-1">Notas</p>
-                                    <p className="line-clamp-3 text-sm" title={credit.notes ?? ''}>{credit.notes}</p>
+                                    <p className="mb-1 text-muted-foreground">Notas</p>
+                                    <p className="line-clamp-3 text-sm" title={credit.notes ?? ''}>
+                                        {credit.notes}
+                                    </p>
                                 </div>
                             )}
                         </CardContent>
@@ -338,7 +348,7 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border">
-                            <div className="bg-muted/50 grid grid-cols-[1fr_80px_100px_100px] gap-2 px-4 py-2 text-xs font-medium">
+                            <div className="grid grid-cols-[1fr_80px_100px_100px] gap-2 bg-muted/50 px-4 py-2 text-xs font-medium">
                                 <span>Producto</span>
                                 <span className="text-center">Cant.</span>
                                 <span className="text-right">Precio</span>
@@ -348,7 +358,7 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                                 <div key={item.id} className="grid grid-cols-[1fr_80px_100px_100px] items-center gap-2 border-t px-4 py-3 text-sm">
                                     <div>
                                         <p className="font-medium">{item.product_name}</p>
-                                        {item.product?.code && <p className="text-muted-foreground text-xs">{item.product.code}</p>}
+                                        {item.product?.code && <p className="text-xs text-muted-foreground">{item.product.code}</p>}
                                     </div>
                                     <span className="text-center">{item.quantity}</span>
                                     <span className="text-right">{cop(item.unit_price)}</span>
@@ -377,19 +387,21 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                                     <div key={payment.id} className="flex items-center justify-between rounded-lg border px-4 py-3">
                                         <div>
                                             <p className="font-medium">{cop(payment.amount)}</p>
-                                            <p className="text-muted-foreground text-xs">
-                                                {format(new Date(payment.payment_date), "d MMM yyyy, h:mm a", { locale: es })}
+                                            <p className="text-xs text-muted-foreground">
+                                                {format(new Date(payment.payment_date), 'd MMM yyyy, h:mm a', { locale: es })}
                                                 {' — '}
                                                 {payment.registered_by_user?.name ?? 'Usuario'}
                                             </p>
-                                            {payment.notes && <p className="text-muted-foreground mt-1 line-clamp-2 text-xs italic">{payment.notes}</p>}
+                                            {payment.notes && (
+                                                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground italic">{payment.notes}</p>
+                                            )}
                                         </div>
                                         <Badge variant="outline">{payment.payment_method}</Badge>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-muted-foreground py-6 text-center text-sm">No hay abonos registrados aún</p>
+                            <p className="py-6 text-center text-sm text-muted-foreground">No hay abonos registrados aún</p>
                         )}
                     </CardContent>
                 </Card>

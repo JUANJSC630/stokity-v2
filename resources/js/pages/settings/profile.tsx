@@ -4,7 +4,6 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Camera } from 'lucide-react';
 import { FormEventHandler, useEffect, useState } from 'react';
 
-import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';

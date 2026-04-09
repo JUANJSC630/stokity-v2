@@ -43,7 +43,7 @@ class ImmediateSaleStrategy implements CreditStrategyInterface
     public function createSaleForCredit(CreditSale $credit, User $user): Sale
     {
         do {
-            $code = now()->format('YmdHis') . rand(1000, 9999);
+            $code = now()->format('YmdHis').rand(1000, 9999);
         } while (Sale::withTrashed()->where('code', $code)->exists());
 
         $session = CashSession::getOpenForUser($user->id, $credit->branch_id);
@@ -85,7 +85,7 @@ class ImmediateSaleStrategy implements CreditStrategyInterface
             ]);
 
             // Deduct stock immediately (product is delivered)
-            if ($product && !$product->isService()) {
+            if ($product && ! $product->isService()) {
                 if ($product->stock < $item->quantity) {
                     throw new \RuntimeException(
                         "Stock insuficiente para {$product->name}. Disponible: {$product->stock}"

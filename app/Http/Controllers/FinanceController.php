@@ -22,10 +22,10 @@ class FinanceController extends Controller
         [$dateFrom, $dateTo, $label] = $this->resolvePeriod($request);
 
         // Default to the user's own branch; ?branch=0 means "all branches" (admin only); ?branch=N filters by N
-        $branchId = match(true) {
+        $branchId = match (true) {
             (int) $request->input('branch', -1) === 0 => null,       // explicit "all"
-            $request->filled('branch')                => (int) $request->branch, // specific branch
-            default                                   => $user->branch_id,       // default: own branch
+            $request->filled('branch') => (int) $request->branch, // specific branch
+            default => $user->branch_id,       // default: own branch
         };
 
         // ── Revenue: ventas completadas del período ──────────────────────────
@@ -207,5 +207,4 @@ class FinanceController extends Controller
             ],
         };
     }
-
 }

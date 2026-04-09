@@ -1,5 +1,5 @@
-import AllRightsReserved from '@/components/common/AllRightsReserved';
 import BrandColors from '@/components/brand-colors';
+import AllRightsReserved from '@/components/common/AllRightsReserved';
 import { type BusinessSetting, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, BarChart2, Package, ShoppingCart, Wallet } from 'lucide-react';
@@ -55,7 +55,11 @@ export default function Welcome() {
                     {/* Badge */}
                     <div
                         className="welcome-animate welcome-d1 mb-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
-                        style={{ background: 'rgba(var(--brand-primary-rgb), 0.09)', color: 'var(--brand-primary)', border: '1px solid rgba(var(--brand-primary-rgb), 0.2)' }}
+                        style={{
+                            background: 'rgba(var(--brand-primary-rgb), 0.09)',
+                            color: 'var(--brand-primary)',
+                            border: '1px solid rgba(var(--brand-primary-rgb), 0.2)',
+                        }}
                     >
                         <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--brand-primary)' }} />
                         Sistema de Gestión POS
@@ -86,10 +90,7 @@ export default function Welcome() {
                     </h1>
 
                     {/* Accent line */}
-                    <div
-                        className="welcome-animate welcome-d4 my-5 h-0.5 w-12 rounded-full"
-                        style={{ background: 'var(--brand-primary)' }}
-                    />
+                    <div className="welcome-animate welcome-d4 my-5 h-0.5 w-12 rounded-full" style={{ background: 'var(--brand-primary)' }} />
 
                     {/* Tagline */}
                     <p

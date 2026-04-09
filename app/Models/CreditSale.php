@@ -62,14 +62,20 @@ class CreditSale extends Model
 
     // --- Type constants ---
     public const TYPE_LAYAWAY = 'layaway';
+
     public const TYPE_INSTALLMENTS = 'installments';
+
     public const TYPE_DUE_DATE = 'due_date';
+
     public const TYPE_HOLD = 'hold';
 
     // --- Status constants ---
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_OVERDUE = 'overdue';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     /** Types that create a Sale immediately */
@@ -173,8 +179,8 @@ class CreditSale extends Model
     {
         $count = self::where('branch_id', $branchId)->count() + 1;
 
-        return 'CR-' . str_pad((string) $branchId, 2, '0', STR_PAD_LEFT)
-            . '-' . str_pad((string) $count, 5, '0', STR_PAD_LEFT);
+        return 'CR-'.str_pad((string) $branchId, 2, '0', STR_PAD_LEFT)
+            .'-'.str_pad((string) $count, 5, '0', STR_PAD_LEFT);
     }
 
     // --- Label helpers ---

@@ -35,7 +35,7 @@ class CreditPaymentService
 
         if (bccomp((string) $amount, (string) $credit->balance, 2) > 0) {
             throw new \RuntimeException(
-                "El abono no puede ser mayor al saldo restante de $" . number_format($credit->balance, 0, ',', '.')
+                'El abono no puede ser mayor al saldo restante de $'.number_format($credit->balance, 0, ',', '.')
             );
         }
 

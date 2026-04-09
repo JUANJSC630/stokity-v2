@@ -1024,12 +1024,7 @@ export default function PosIndex({
                     <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-neutral-900">
                         <h2 className="mb-1 font-semibold">Precio del servicio</h2>
                         <p className="mb-3 text-sm text-muted-foreground">{varPriceProduct.name}</p>
-                        <CurrencyInput
-                            value={varPriceValue}
-                            onChange={setVarPriceValue}
-                            className="w-full"
-                            autoFocus
-                        />
+                        <CurrencyInput value={varPriceValue} onChange={setVarPriceValue} className="w-full" autoFocus />
                         <div className="mt-4 flex gap-2">
                             <button
                                 type="button"
@@ -1192,14 +1187,19 @@ export default function PosIndex({
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="h-11 pl-9 text-base"
                             />
-                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>}
+                            {searching && (
+                                <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>
+                            )}
                         </div>
                         {/* Category filter */}
                         {categories.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-1.5">
                                 <button
                                     type="button"
-                                    onClick={() => { setSelectedCategory(''); setSelectedType(''); }}
+                                    onClick={() => {
+                                        setSelectedCategory('');
+                                        setSelectedType('');
+                                    }}
                                     className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedCategory === '' && selectedType === ''
                                             ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
@@ -1210,7 +1210,10 @@ export default function PosIndex({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => { setSelectedType('servicio'); setSelectedCategory(''); }}
+                                    onClick={() => {
+                                        setSelectedType('servicio');
+                                        setSelectedCategory('');
+                                    }}
                                     className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedType === 'servicio'
                                             ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
@@ -1222,19 +1225,22 @@ export default function PosIndex({
                                 {categories
                                     .filter((cat) => !/^servicios?$/i.test(cat.name.trim()))
                                     .map((cat) => (
-                                    <button
-                                        key={cat.id}
-                                        type="button"
-                                        onClick={() => { setSelectedCategory(String(cat.id)); setSelectedType(''); }}
-                                        className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                            selectedCategory === String(cat.id)
-                                                ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                        }`}
-                                    >
-                                        {cat.name}
-                                    </button>
-                                ))}
+                                        <button
+                                            key={cat.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedCategory(String(cat.id));
+                                                setSelectedType('');
+                                            }}
+                                            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                                selectedCategory === String(cat.id)
+                                                    ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                    : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                            }`}
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    ))}
                             </div>
                         )}
                         {/* Keyboard hints */}
@@ -1748,19 +1754,23 @@ export default function PosIndex({
                     <div className="relative mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-lg font-bold">Registrar como crédito</h2>
-                            <button type="button" onClick={() => setShowCreditModal(false)} className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <button
+                                type="button"
+                                onClick={() => setShowCreditModal(false)}
+                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
 
                         {/* Type selection */}
                         <div className="mb-4 grid grid-cols-2 gap-2">
-                            {([
+                            {[
                                 { key: 'layaway' as const, label: 'Separado', desc: 'Entrega al completar pago' },
                                 { key: 'installments' as const, label: 'Cuotas', desc: 'Entrega inmediata, pago en cuotas' },
                                 { key: 'due_date' as const, label: 'Fecha acordada', desc: 'Entrega inmediata, pago en fecha' },
                                 { key: 'hold' as const, label: 'Reservado', desc: 'Sin abono, sin entrega' },
-                            ]).map((t) => (
+                            ].map((t) => (
                                 <button
                                     key={t.key}
                                     type="button"
@@ -1777,7 +1787,7 @@ export default function PosIndex({
                                     className={`rounded-lg border-2 p-3 text-left text-sm transition-colors ${creditType === t.key ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                                 >
                                     <p className="font-semibold">{t.label}</p>
-                                    <p className="text-muted-foreground text-xs">{t.desc}</p>
+                                    <p className="text-xs text-muted-foreground">{t.desc}</p>
                                 </button>
                             ))}
                         </div>
@@ -1796,17 +1806,21 @@ export default function PosIndex({
                                             d.setMonth(d.getMonth() + n);
                                             setCreditDueDate(d.toISOString().slice(0, 10));
                                         }}
-                                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     >
                                         {[2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
-                                            <option key={n} value={n}>{n} cuotas — {formatCOP(Math.round(total / n))} c/u</option>
+                                            <option key={n} value={n}>
+                                                {n} cuotas — {formatCOP(Math.round(total / n))} c/u
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                             )}
                             {(creditType === 'due_date' || creditType === 'installments') && (
                                 <div>
-                                    <Label className="mb-1 block text-sm">{creditType === 'installments' ? 'Fecha última cuota' : 'Fecha límite de pago'}</Label>
+                                    <Label className="mb-1 block text-sm">
+                                        {creditType === 'installments' ? 'Fecha última cuota' : 'Fecha límite de pago'}
+                                    </Label>
                                     <Input
                                         type="date"
                                         value={creditDueDate}
@@ -1864,7 +1878,7 @@ export default function PosIndex({
                             <button
                                 type="button"
                                 onClick={handleCreditSubmit}
-                                disabled={submitting || (creditInitialPayment > total)}
+                                disabled={submitting || creditInitialPayment > total}
                                 className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-40"
                             >
                                 {submitting ? 'Registrando...' : 'Confirmar crédito'}

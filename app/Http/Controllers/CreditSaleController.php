@@ -29,7 +29,7 @@ class CreditSaleController extends Controller
         $user = Auth::user();
         $query = CreditSale::with(['client', 'seller:id,name', 'branch:id,name']);
 
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -68,7 +68,7 @@ class CreditSaleController extends Controller
 
         // Count for badges
         $overdueCount = CreditSale::query()
-            ->when(!$user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
             ->where('status', CreditSale::STATUS_OVERDUE)
             ->count();
 
@@ -89,7 +89,7 @@ class CreditSaleController extends Controller
         $clients = Client::orderBy('name')->get();
 
         $products = Product::where('status', true)
-            ->when(!$user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
             ->orderBy('name')
             ->get()
             ->map(fn ($p) => [
@@ -123,7 +123,7 @@ class CreditSaleController extends Controller
         // Validate cash session requirement
         $settings = BusinessSetting::getSettings();
         $openSession = CashSession::getOpenForUser($user->id, (int) ($request->branch_id ?? $user->branch_id));
-        if (!$openSession && $settings->require_cash_session) {
+        if (! $openSession && $settings->require_cash_session) {
             return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar un crédito.']);
         }
 
@@ -147,11 +147,11 @@ class CreditSaleController extends Controller
             $credit = $this->creditService->create($validated, $validated['items'], $user);
 
             // Register initial payment if provided
-            if (!empty($validated['initial_payment']) && $validated['initial_payment'] > 0) {
+            if (! empty($validated['initial_payment']) && $validated['initial_payment'] > 0) {
                 $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
                 $method = $validated['initial_payment_method'] ?? 'efectivo';
 
-                if (!in_array($method, $activePaymentMethods)) {
+                if (! in_array($method, $activePaymentMethods)) {
                     $method = $activePaymentMethods[0] ?? 'efectivo';
                 }
 
@@ -179,7 +179,7 @@ class CreditSaleController extends Controller
     public function show(CreditSale $credit)
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
 
         $credit->load([
             'client',
@@ -208,12 +208,12 @@ class CreditSaleController extends Controller
     public function addPayment(Request $request, CreditSale $credit)
     {
         $user = Auth::user();
-        abort_if(!$user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
 
         // Validate cash session requirement
         $settings = BusinessSetting::getSettings();
         $openSession = CashSession::getOpenForUser($user->id, $credit->branch_id);
-        if (!$openSession && $settings->require_cash_session) {
+        if (! $openSession && $settings->require_cash_session) {
             return back()->withErrors(['session' => 'Debes abrir la caja antes de registrar un abono.']);
         }
 
@@ -221,7 +221,7 @@ class CreditSaleController extends Controller
 
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
-            'payment_method' => 'required|string|in:' . implode(',', $activePaymentMethods),
+            'payment_method' => 'required|string|in:'.implode(',', $activePaymentMethods),
             'notes' => 'nullable|string|max:500',
         ], [
             'payment_method.in' => 'El método de pago seleccionado no es válido.',
@@ -255,11 +255,11 @@ class CreditSaleController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->isAdmin() && $user->role !== 'encargado') {
+        if (! $user->isAdmin() && $user->role !== 'encargado') {
             abort(403, 'No tienes permisos para cancelar créditos.');
         }
 
-        abort_if(!$user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
 
         try {
             $this->creditService->cancel($credit, $user);
@@ -281,7 +281,7 @@ class CreditSaleController extends Controller
         $query = CreditSale::whereIn('type', [CreditSale::TYPE_INSTALLMENTS, CreditSale::TYPE_DUE_DATE])
             ->whereIn('status', [CreditSale::STATUS_ACTIVE, CreditSale::STATUS_OVERDUE]);
 
-        if (!$user->isAdmin() && $user->branch_id) {
+        if (! $user->isAdmin() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -307,7 +307,7 @@ class CreditSaleController extends Controller
         $user = Auth::user();
 
         $count = CreditSale::whereIn('status', [CreditSale::STATUS_OVERDUE])
-            ->when(!$user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
             ->count();
 
         // Also count active credits past due_date that haven't been marked overdue yet
@@ -315,7 +315,7 @@ class CreditSaleController extends Controller
             ->whereNotNull('due_date')
             ->where('due_date', '<', now())
             ->where('balance', '>', 0)
-            ->when(!$user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
             ->count();
 
         return response()->json(['count' => $count]);

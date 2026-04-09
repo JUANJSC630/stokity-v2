@@ -193,9 +193,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                             Volver
                         </Button>
                     </Link>
-                    <h1 className="text-xl font-semibold sm:text-2xl">
-                        {form.data.type === 'servicio' ? 'Crear Servicio' : 'Crear Producto'}
-                    </h1>
+                    <h1 className="text-xl font-semibold sm:text-2xl">{form.data.type === 'servicio' ? 'Crear Servicio' : 'Crear Producto'}</h1>
                 </div>
 
                 <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
@@ -506,7 +504,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 onCheckedChange={(checked) => form.setData('variable_price', checked)}
                                             />
                                             <Label htmlFor="variable_price" className="font-normal">
-                                                {form.data.variable_price ? 'Sí — el vendedor ingresa el precio al vender' : 'No — usar el precio base siempre'}
+                                                {form.data.variable_price
+                                                    ? 'Sí — el vendedor ingresa el precio al vender'
+                                                    : 'No — usar el precio base siempre'}
                                             </Label>
                                         </div>
                                         <p className="text-xs text-muted-foreground">

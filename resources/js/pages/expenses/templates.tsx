@@ -203,7 +203,9 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h1 className="text-2xl font-semibold">Gastos fijos recurrentes</h1>
-                        <p className="mt-0.5 text-sm text-muted-foreground">Configura los gastos que se repiten cada mes para registrarlos fácilmente</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                            Configura los gastos que se repiten cada mes para registrarlos fácilmente
+                        </p>
                     </div>
                     <Button onClick={() => setShowCreate(true)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -220,7 +222,9 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                         {templates.length === 0 ? (
                             <div className="py-12 text-center">
                                 <p className="text-base font-medium">Sin gastos fijos configurados</p>
-                                <p className="mt-1 text-sm text-muted-foreground">Agrega los gastos que pagas cada mes, como arriendo, servicios o suscripciones</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Agrega los gastos que pagas cada mes, como arriendo, servicios o suscripciones
+                                </p>
                                 <Button className="mt-4" onClick={() => setShowCreate(true)}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Agregar primer gasto fijo
@@ -321,7 +325,9 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 {t.is_active ? (
-                                                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Se registra mensualmente</Badge>
+                                                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                        Se registra mensualmente
+                                                    </Badge>
                                                 ) : (
                                                     <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Pausada</Badge>
                                                 )}

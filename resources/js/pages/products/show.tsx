@@ -142,9 +142,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                                             Servicio
                                         </Badge>
                                     ) : (
-                                        <Badge className="bg-blue-100 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                            Producto
-                                        </Badge>
+                                        <Badge className="bg-blue-100 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">Producto</Badge>
                                     )}
                                 </div>
 
@@ -191,7 +189,9 @@ export default function ProductShow({ product }: ProductShowProps) {
                     <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>{product.name}</CardTitle>
-                            <CardDescription>{isService ? 'Información detallada del servicio' : 'Información detallada del producto'}</CardDescription>
+                            <CardDescription>
+                                {isService ? 'Información detallada del servicio' : 'Información detallada del producto'}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Precios */}

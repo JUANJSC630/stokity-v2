@@ -514,7 +514,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                         <span className="text-muted-foreground">Total mostrado:</span>
                         <span className="font-semibold">{cop(expenses.data.reduce((sum, e) => sum + Number(e.amount), 0))}</span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-muted-foreground">{expenses.total} gasto{expenses.total !== 1 ? 's' : ''} en total</span>
+                        <span className="text-muted-foreground">
+                            {expenses.total} gasto{expenses.total !== 1 ? 's' : ''} en total
+                        </span>
                     </div>
                 )}
 
@@ -540,7 +542,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                     <TooltipTrigger asChild>
                                                         <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                                                     </TooltipTrigger>
-                                                    <TooltipContent side="top">Recurrente: gasto fijo mensual. Puntual: gasto registrado manualmente.</TooltipContent>
+                                                    <TooltipContent side="top">
+                                                        Recurrente: gasto fijo mensual. Puntual: gasto registrado manualmente.
+                                                    </TooltipContent>
                                                 </Tooltip>
                                             </span>
                                         </th>
@@ -553,7 +557,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                             <td colSpan={6} className="py-12 text-center">
                                                 {hasActiveFilters ? (
                                                     <div>
-                                                        <p className="text-muted-foreground">No se encontraron gastos con los filtros seleccionados</p>
+                                                        <p className="text-muted-foreground">
+                                                            No se encontraron gastos con los filtros seleccionados
+                                                        </p>
                                                         <Button variant="outline" size="sm" className="mt-3" onClick={clearFilters}>
                                                             Limpiar filtros
                                                         </Button>
@@ -561,7 +567,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                 ) : (
                                                     <div>
                                                         <p className="text-base font-medium">Sin gastos registrados</p>
-                                                        <p className="mt-1 text-sm text-muted-foreground">Comienza registrando tus gastos operativos del mes</p>
+                                                        <p className="mt-1 text-sm text-muted-foreground">
+                                                            Comienza registrando tus gastos operativos del mes
+                                                        </p>
                                                         <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
                                                             <Plus className="mr-2 h-4 w-4" />
                                                             Registrar primer gasto
@@ -589,11 +597,15 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                         <span className="text-muted-foreground">—</span>
                                                     )}
                                                 </td>
-                                                <td className="max-w-[200px] truncate py-2 pr-4" title={expense.description ?? ''}>{expense.description ?? '—'}</td>
+                                                <td className="max-w-[200px] truncate py-2 pr-4" title={expense.description ?? ''}>
+                                                    {expense.description ?? '—'}
+                                                </td>
                                                 <td className="py-2 pr-4 text-right font-semibold">{cop(expense.amount)}</td>
                                                 <td className="py-2 pr-4">
                                                     {expense.template ? (
-                                                        <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Recurrente</Badge>
+                                                        <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                                            Recurrente
+                                                        </Badge>
                                                     ) : (
                                                         <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                                             Puntual
@@ -680,7 +692,9 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                     <span className="text-sm text-muted-foreground">Sin categoría</span>
                                                 )}
                                                 {expense.template ? (
-                                                    <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Recurrente</Badge>
+                                                    <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                                                        Recurrente
+                                                    </Badge>
                                                 ) : (
                                                     <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Puntual</Badge>
                                                 )}

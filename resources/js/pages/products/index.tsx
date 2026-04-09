@@ -93,13 +93,7 @@ export default function Products({
         applyFilters(search, status, category, branch, newType);
     };
 
-    const applyFilters = (
-        searchParam = search,
-        statusParam = status,
-        categoryParam = category,
-        branchParam = branch,
-        typeParam = typeFilter,
-    ) => {
+    const applyFilters = (searchParam = search, statusParam = status, categoryParam = category, branchParam = branch, typeParam = typeFilter) => {
         setIsSearching(true);
         const params = new URLSearchParams();
 

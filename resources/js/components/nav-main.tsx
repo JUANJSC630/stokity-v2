@@ -190,7 +190,9 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     } rounded-lg px-3 py-2`}
                                 >
                                     {item.icon && (
-                                        <span className={`${isItemActive(item) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}>
+                                        <span
+                                            className={`${isItemActive(item) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}
+                                        >
                                             <item.icon className="size-5" />
                                         </span>
                                     )}

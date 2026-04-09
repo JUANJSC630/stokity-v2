@@ -1341,77 +1341,77 @@ class PrintController extends Controller
         try {
             $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
             $this->printBusinessHeader($p, $business, $cols, $cfg);
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
 
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
             $p->setTextSize(2, 1);
             $p->text("CREDITO\n");
             $p->setTextSize(1, 1);
-            $p->text(($typeLabels[$credit->type] ?? $credit->type) . "\n");
+            $p->text(($typeLabels[$credit->type] ?? $credit->type)."\n");
             $p->setEmphasis(false);
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
             $p->setJustification(Printer::JUSTIFY_LEFT);
 
             $p->setEmphasis(true);
             $p->text('Código:  ');
             $p->setEmphasis(false);
-            $p->text($credit->code . "\n");
+            $p->text($credit->code."\n");
 
             $date = $credit->created_at->setTimezone('America/Bogota')->format('d/m/Y H:i');
             $p->setEmphasis(true);
             $p->text('Fecha:   ');
             $p->setEmphasis(false);
-            $p->text($date . "\n");
+            $p->text($date."\n");
 
             if ($credit->client) {
                 $p->setEmphasis(true);
                 $p->text('Cliente: ');
                 $p->setEmphasis(false);
-                $p->text($this->truncate($credit->client->name, $cols - 9) . "\n");
+                $p->text($this->truncate($credit->client->name, $cols - 9)."\n");
             }
 
             if ($credit->seller) {
                 $p->setEmphasis(true);
                 $p->text('Vendedor:');
                 $p->setEmphasis(false);
-                $p->text(' ' . $this->truncate($credit->seller->name, $cols - 10) . "\n");
+                $p->text(' '.$this->truncate($credit->seller->name, $cols - 10)."\n");
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // Products
             foreach ($credit->items as $item) {
                 $name = $this->truncate($item->product_name, $cols - 12);
                 $qty = $item->quantity;
                 $sub = $this->formatMoney($item->subtotal);
-                $p->text($name . "\n");
-                $p->text(str_pad("  {$qty} x " . $this->formatMoney($item->unit_price), $cols - strlen($sub)) . $sub . "\n");
+                $p->text($name."\n");
+                $p->text(str_pad("  {$qty} x ".$this->formatMoney($item->unit_price), $cols - strlen($sub)).$sub."\n");
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // Totals
             $p->setEmphasis(true);
             $totalStr = $this->formatMoney($credit->total_amount);
-            $p->text(str_pad('TOTAL:', $cols - strlen($totalStr)) . $totalStr . "\n");
+            $p->text(str_pad('TOTAL:', $cols - strlen($totalStr)).$totalStr."\n");
             $p->setEmphasis(false);
 
             $paidStr = $this->formatMoney($credit->amount_paid);
-            $p->text(str_pad('Abonado:', $cols - strlen($paidStr)) . $paidStr . "\n");
+            $p->text(str_pad('Abonado:', $cols - strlen($paidStr)).$paidStr."\n");
 
             $balStr = $this->formatMoney($credit->balance);
-            $p->text(str_pad('Saldo:', $cols - strlen($balStr)) . $balStr . "\n");
+            $p->text(str_pad('Saldo:', $cols - strlen($balStr)).$balStr."\n");
 
             if ($credit->due_date) {
                 $p->text("\n");
                 $p->setJustification(Printer::JUSTIFY_CENTER);
-                $p->text('Fecha limite: ' . $credit->due_date->format('d/m/Y') . "\n");
+                $p->text('Fecha limite: '.$credit->due_date->format('d/m/Y')."\n");
             }
 
             if ($credit->installments_count) {
-                $p->text($credit->installments_count . ' cuotas de ' . $this->formatMoney($credit->installment_amount ?? 0) . "\n");
+                $p->text($credit->installments_count.' cuotas de '.$this->formatMoney($credit->installment_amount ?? 0)."\n");
             }
 
             $p->text("\n");
@@ -1454,7 +1454,7 @@ class PrintController extends Controller
         try {
             $cfg = array_merge(BusinessSetting::TICKET_DEFAULTS, $config);
             $this->printBusinessHeader($p, $business, $cols, $cfg);
-            $p->text($sep2 . "\n");
+            $p->text($sep2."\n");
 
             $p->setJustification(Printer::JUSTIFY_CENTER);
             $p->setEmphasis(true);
@@ -1464,50 +1464,50 @@ class PrintController extends Controller
             $p->text("ABONO DE CREDITO\n");
             $p->setEmphasis(false);
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
             $p->setJustification(Printer::JUSTIFY_LEFT);
 
             $p->setEmphasis(true);
             $p->text('Crédito: ');
             $p->setEmphasis(false);
-            $p->text($credit->code . "\n");
+            $p->text($credit->code."\n");
 
             $date = $payment->payment_date->setTimezone('America/Bogota')->format('d/m/Y H:i');
             $p->setEmphasis(true);
             $p->text('Fecha:   ');
             $p->setEmphasis(false);
-            $p->text($date . "\n");
+            $p->text($date."\n");
 
             if ($credit->client) {
                 $p->setEmphasis(true);
                 $p->text('Cliente: ');
                 $p->setEmphasis(false);
-                $p->text($this->truncate($credit->client->name, $cols - 9) . "\n");
+                $p->text($this->truncate($credit->client->name, $cols - 9)."\n");
             }
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // Payment detail
             $p->setEmphasis(true);
             $amtStr = $this->formatMoney($payment->amount);
-            $p->text(str_pad('ABONO:', $cols - strlen($amtStr)) . $amtStr . "\n");
+            $p->text(str_pad('ABONO:', $cols - strlen($amtStr)).$amtStr."\n");
             $p->setEmphasis(false);
 
-            $p->text(str_pad('Método:', $cols - strlen($payment->payment_method)) . $payment->payment_method . "\n");
+            $p->text(str_pad('Método:', $cols - strlen($payment->payment_method)).$payment->payment_method."\n");
 
-            $p->text($sep . "\n");
+            $p->text($sep."\n");
 
             // Credit balance
             $credit->refresh();
             $totalStr = $this->formatMoney($credit->total_amount);
-            $p->text(str_pad('Total crédito:', $cols - strlen($totalStr)) . $totalStr . "\n");
+            $p->text(str_pad('Total crédito:', $cols - strlen($totalStr)).$totalStr."\n");
 
             $paidStr = $this->formatMoney($credit->amount_paid);
-            $p->text(str_pad('Total abonado:', $cols - strlen($paidStr)) . $paidStr . "\n");
+            $p->text(str_pad('Total abonado:', $cols - strlen($paidStr)).$paidStr."\n");
 
             $balStr = $this->formatMoney($credit->balance);
             $p->setEmphasis(true);
-            $p->text(str_pad('Saldo pendiente:', $cols - strlen($balStr)) . $balStr . "\n");
+            $p->text(str_pad('Saldo pendiente:', $cols - strlen($balStr)).$balStr."\n");
             $p->setEmphasis(false);
 
             $p->text("\n");

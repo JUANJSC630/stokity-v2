@@ -128,14 +128,19 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
     const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.subtotal, 0), [cart]);
 
     const filteredClients = useMemo(
-        () => (clientSearch ? clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.document?.includes(clientSearch)) : clients.slice(0, 20)),
+        () =>
+            clientSearch
+                ? clients.filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.document?.includes(clientSearch))
+                : clients.slice(0, 20),
         [clients, clientSearch],
     );
 
     const filteredProducts = useMemo(
         () =>
             productSearch
-                ? products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase()))
+                ? products.filter(
+                      (p) => p.name.toLowerCase().includes(productSearch.toLowerCase()) || p.code.toLowerCase().includes(productSearch.toLowerCase()),
+                  )
                 : products.slice(0, 30),
         [products, productSearch],
     );
@@ -145,9 +150,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
             const existing = prev.find((item) => item.product.id === product.id);
             if (existing) {
                 return prev.map((item) =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.unit_price }
-                        : item,
+                    item.product.id === product.id ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.unit_price } : item,
                 );
             }
             return [...prev, { product, quantity: 1, unit_price: product.sale_price, subtotal: product.sale_price }];
@@ -254,7 +257,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                     setClientId(String(c.id));
                                                     setClientSearch('');
                                                 }}
-                                                className="hover:bg-muted flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm"
+                                                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
                                             >
                                                 <span className="font-medium">{c.name}</span>
                                                 {c.document && <span className="text-muted-foreground">{c.document}</span>}
@@ -262,12 +265,10 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="bg-muted flex items-center justify-between rounded-md px-4 py-3">
+                                    <div className="flex items-center justify-between rounded-md bg-muted px-4 py-3">
                                         <div>
                                             <p className="font-medium">{selectedClient?.name}</p>
-                                            {selectedClient?.document && (
-                                                <p className="text-muted-foreground text-sm">{selectedClient.document}</p>
-                                            )}
+                                            {selectedClient?.document && <p className="text-sm text-muted-foreground">{selectedClient.document}</p>}
                                         </div>
                                         <Button variant="ghost" size="sm" onClick={() => setClientId('')}>
                                             <X className="h-4 w-4" />
@@ -282,7 +283,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                             <CardContent className="space-y-3 pt-6">
                                 <Label className="text-base font-semibold">Productos</Label>
                                 <div className="relative">
-                                    <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         placeholder="Buscar producto por nombre o código..."
                                         value={productSearch}
@@ -293,7 +294,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                 {productSearch && (
                                     <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
                                         {filteredProducts.length === 0 ? (
-                                            <p className="text-muted-foreground py-4 text-center text-sm">No se encontraron productos</p>
+                                            <p className="py-4 text-center text-sm text-muted-foreground">No se encontraron productos</p>
                                         ) : (
                                             filteredProducts.map((p) => {
                                                 const inCart = cart.find((item) => item.product.id === p.id);
@@ -304,9 +305,9 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                             addToCart(p);
                                                             setProductSearch('');
                                                         }}
-                                                        className="hover:bg-muted flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm"
+                                                        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
                                                     >
-                                                        <Package className="text-muted-foreground h-4 w-4 shrink-0" />
+                                                        <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                                                         <span className="min-w-0 flex-1 truncate">{p.name}</span>
                                                         <span className="text-muted-foreground">{cop(p.sale_price)}</span>
                                                         {p.type !== 'servicio' && (
@@ -326,7 +327,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                 {cart.length > 0 && (
                                     <div className="space-y-2 pt-2">
                                         <div className="rounded-md border">
-                                            <div className="bg-muted/50 grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 px-3 py-2 text-xs font-medium">
+                                            <div className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 bg-muted/50 px-3 py-2 text-xs font-medium">
                                                 <span>Producto</span>
                                                 <span className="text-center">Cant.</span>
                                                 <span className="text-right">Precio</span>
@@ -334,7 +335,10 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                 <span />
                                             </div>
                                             {cart.map((item) => (
-                                                <div key={item.product.id} className="grid grid-cols-[1fr_80px_100px_100px_40px] items-center gap-2 border-t px-3 py-2">
+                                                <div
+                                                    key={item.product.id}
+                                                    className="grid grid-cols-[1fr_80px_100px_100px_40px] items-center gap-2 border-t px-3 py-2"
+                                                >
                                                     <span className="truncate text-sm">{item.product.name}</span>
                                                     <Input
                                                         type="number"
@@ -344,12 +348,21 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                         className="h-8 text-center text-sm"
                                                     />
                                                     {item.product.variable_price ? (
-                                                        <CurrencyInput value={item.unit_price} onChange={(v) => updateCartPrice(item.product.id, v)} className="h-8 text-right text-sm" />
+                                                        <CurrencyInput
+                                                            value={item.unit_price}
+                                                            onChange={(v) => updateCartPrice(item.product.id, v)}
+                                                            className="h-8 text-right text-sm"
+                                                        />
                                                     ) : (
                                                         <span className="text-right text-sm">{cop(item.unit_price)}</span>
                                                     )}
                                                     <span className="text-right text-sm font-medium">{cop(item.subtotal)}</span>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => removeFromCart(item.product.id)}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => removeFromCart(item.product.id)}
+                                                    >
                                                         <X className="h-3 w-3" />
                                                     </Button>
                                                 </div>
@@ -394,7 +407,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                 <Icon className="h-5 w-5" />
                                                 <span className="font-semibold">{cfg.label}</span>
                                             </div>
-                                            <p className="text-muted-foreground text-sm">{cfg.description}</p>
+                                            <p className="text-sm text-muted-foreground">{cfg.description}</p>
                                         </button>
                                     );
                                 })}
@@ -410,13 +423,16 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                     {creditType === 'installments' && (
                                         <div className="space-y-2">
                                             <Label>Número de cuotas</Label>
-                                            <Select value={String(installmentsCount)} onValueChange={(v) => {
-                                                const n = parseInt(v);
-                                                setInstallmentsCount(n);
-                                                const d = new Date();
-                                                d.setMonth(d.getMonth() + n);
-                                                setDueDate(format(d, 'yyyy-MM-dd'));
-                                            }}>
+                                            <Select
+                                                value={String(installmentsCount)}
+                                                onValueChange={(v) => {
+                                                    const n = parseInt(v);
+                                                    setInstallmentsCount(n);
+                                                    const d = new Date();
+                                                    d.setMonth(d.getMonth() + n);
+                                                    setDueDate(format(d, 'yyyy-MM-dd'));
+                                                }}
+                                            >
                                                 <SelectTrigger>
                                                     <SelectValue />
                                                 </SelectTrigger>
@@ -461,7 +477,12 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
 
                                     <div className="space-y-2">
                                         <Label>Notas (opcional)</Label>
-                                        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observaciones sobre el crédito..." rows={2} />
+                                        <Textarea
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            placeholder="Observaciones sobre el crédito..."
+                                            rows={2}
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -478,38 +499,40 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div>
-                                        <p className="text-muted-foreground text-sm">Cliente</p>
+                                        <p className="text-sm text-muted-foreground">Cliente</p>
                                         <p className="font-medium">{selectedClient?.name}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground text-sm">Modalidad</p>
+                                        <p className="text-sm text-muted-foreground">Modalidad</p>
                                         <p className="font-medium">{TYPE_CONFIG[creditType].label}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground text-sm">Total</p>
+                                        <p className="text-sm text-muted-foreground">Total</p>
                                         <p className="text-xl font-bold">{cop(cartTotal)}</p>
                                     </div>
                                     {initialPayment > 0 && (
                                         <div>
-                                            <p className="text-muted-foreground text-sm">Abono inicial</p>
+                                            <p className="text-sm text-muted-foreground">Abono inicial</p>
                                             <p className="font-medium text-green-600">{cop(initialPayment)}</p>
                                         </div>
                                     )}
                                     {initialPayment > 0 && (
                                         <div>
-                                            <p className="text-muted-foreground text-sm">Saldo restante</p>
+                                            <p className="text-sm text-muted-foreground">Saldo restante</p>
                                             <p className="font-medium text-orange-500">{cop(cartTotal - initialPayment)}</p>
                                         </div>
                                     )}
                                     {creditType === 'installments' && (
                                         <div>
-                                            <p className="text-muted-foreground text-sm">Cuotas</p>
-                                            <p className="font-medium">{installmentsCount} x {cop(Math.round((cartTotal - initialPayment) / installmentsCount))}</p>
+                                            <p className="text-sm text-muted-foreground">Cuotas</p>
+                                            <p className="font-medium">
+                                                {installmentsCount} x {cop(Math.round((cartTotal - initialPayment) / installmentsCount))}
+                                            </p>
                                         </div>
                                     )}
                                     {dueDate && (
                                         <div>
-                                            <p className="text-muted-foreground text-sm">Fecha límite</p>
+                                            <p className="text-sm text-muted-foreground">Fecha límite</p>
                                             <p className="font-medium">{format(new Date(dueDate + 'T12:00:00'), 'dd/MM/yyyy')}</p>
                                         </div>
                                     )}
@@ -532,13 +555,15 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
 
                                 {/* Warning for deferred types */}
                                 {(creditType === 'layaway' || creditType === 'hold') && (
-                                    <div className="bg-muted rounded-md p-3 text-sm">
+                                    <div className="rounded-md bg-muted p-3 text-sm">
                                         <p className="font-medium">Los productos quedarán reservados</p>
-                                        <p className="text-muted-foreground">No se descontarán del inventario hasta que el cliente complete el pago.</p>
+                                        <p className="text-muted-foreground">
+                                            No se descontarán del inventario hasta que el cliente complete el pago.
+                                        </p>
                                     </div>
                                 )}
                                 {(creditType === 'installments' || creditType === 'due_date') && (
-                                    <div className="bg-muted rounded-md p-3 text-sm">
+                                    <div className="rounded-md bg-muted p-3 text-sm">
                                         <p className="font-medium">Los productos se entregarán de inmediato</p>
                                         <p className="text-muted-foreground">Se creará una venta y el inventario se descontará ahora mismo.</p>
                                     </div>
@@ -546,7 +571,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
 
                                 {notes && (
                                     <div>
-                                        <p className="text-muted-foreground text-sm">Notas</p>
+                                        <p className="text-sm text-muted-foreground">Notas</p>
                                         <p className="text-sm">{notes}</p>
                                     </div>
                                 )}

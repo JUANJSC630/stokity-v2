@@ -34,7 +34,7 @@ class DeferredSaleStrategy implements CreditStrategyInterface
     {
         foreach ($credit->items as $item) {
             $product = Product::lockForUpdate()->find($item->product_id);
-            if ($product && !$product->isService()) {
+            if ($product && ! $product->isService()) {
                 $product->reserved_stock += $item->quantity;
                 $product->save();
             }
@@ -45,7 +45,7 @@ class DeferredSaleStrategy implements CreditStrategyInterface
     {
         // Generate sale code
         do {
-            $code = now()->format('YmdHis') . rand(1000, 9999);
+            $code = now()->format('YmdHis').rand(1000, 9999);
         } while (Sale::withTrashed()->where('code', $code)->exists());
 
         // Find open cash session
@@ -90,7 +90,7 @@ class DeferredSaleStrategy implements CreditStrategyInterface
             ]);
 
             // Deduct real stock and release reservation
-            if ($product && !$product->isService()) {
+            if ($product && ! $product->isService()) {
                 $previousStock = $product->stock;
                 $product->stock -= $item->quantity;
                 $product->reserved_stock = max(0, $product->reserved_stock - $item->quantity);
@@ -129,7 +129,7 @@ class DeferredSaleStrategy implements CreditStrategyInterface
         // Release reserved stock
         foreach ($credit->items as $item) {
             $product = Product::lockForUpdate()->find($item->product_id);
-            if ($product && !$product->isService()) {
+            if ($product && ! $product->isService()) {
                 $product->reserved_stock = max(0, $product->reserved_stock - $item->quantity);
                 $product->save();
             }

@@ -166,9 +166,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                     <div className="rounded-xl border border-blue-200 bg-white dark:border-blue-800 dark:bg-neutral-900">
                         <div className="flex items-center justify-between border-b border-blue-200 px-4 py-3 dark:border-blue-800">
                             <h2 className="font-semibold">Abonos de crédito</h2>
-                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                                {formatCOP(creditPaymentsTotal)}
-                            </Badge>
+                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{formatCOP(creditPaymentsTotal)}</Badge>
                         </div>
                         <div className="px-4 py-3 text-sm text-muted-foreground">
                             Los abonos de crédito ya están incluidos en los ingresos manuales de arriba.

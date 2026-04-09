@@ -55,13 +55,13 @@ function ProgressBar({ paid, total }: { paid: number; total: number }) {
     const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
     return (
         <div className="flex items-center gap-2">
-            <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
                     className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-green-500' : pct > 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
                     style={{ width: `${pct}%` }}
                 />
             </div>
-            <span className="text-muted-foreground text-xs whitespace-nowrap">{Math.round(pct)}%</span>
+            <span className="text-xs whitespace-nowrap text-muted-foreground">{Math.round(pct)}%</span>
         </div>
     );
 }
@@ -88,11 +88,7 @@ function DueDateBadge({ dueDate, status }: { dueDate: string | null; status: str
             </span>
         );
     }
-    return (
-        <span className="text-muted-foreground text-xs">
-            Vence {format(due, "d 'de' MMM yyyy", { locale: es })}
-        </span>
-    );
+    return <span className="text-xs text-muted-foreground">Vence {format(due, "d 'de' MMM yyyy", { locale: es })}</span>;
 }
 
 export default function CreditsIndex({ credits, filters, overdueCount }: Props) {
@@ -112,7 +108,7 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Créditos</h1>
-                        <p className="text-muted-foreground text-sm">Gestiona separados, cuotas y pagos diferidos</p>
+                        <p className="text-sm text-muted-foreground">Gestiona separados, cuotas y pagos diferidos</p>
                     </div>
                     <Button asChild>
                         <Link href="/credits/create">
@@ -129,9 +125,7 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                             key={tab.key}
                             onClick={() => navigate({ tab: tab.key, search: undefined })}
                             className={`relative flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                                activeTab === tab.key
-                                    ? 'bg-primary text-primary-foreground shadow-sm'
-                                    : 'text-muted-foreground hover:bg-muted'
+                                activeTab === tab.key ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
                             }`}
                         >
                             {tab.label}
@@ -147,7 +141,7 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                 {/* Filters */}
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1">
-                        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             placeholder="Buscar por código o cliente..."
                             value={search}
@@ -173,8 +167,10 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                 {/* Credits list */}
                 {credits.data.length === 0 ? (
                     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16">
-                        <HandCoins className="text-muted-foreground mb-4 h-12 w-12" />
-                        <p className="text-muted-foreground text-lg">No hay créditos {activeTab !== 'all' ? `${TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}` : ''}</p>
+                        <HandCoins className="mb-4 h-12 w-12 text-muted-foreground" />
+                        <p className="text-lg text-muted-foreground">
+                            No hay créditos {activeTab !== 'all' ? `${TABS.find((t) => t.key === activeTab)?.label.toLowerCase()}` : ''}
+                        </p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -184,7 +180,7 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                                 <Link
                                     key={credit.id}
                                     href={`/credits/${credit.id}`}
-                                    className="bg-card hover:bg-muted/50 block rounded-lg border p-4 transition-colors"
+                                    className="block rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50"
                                 >
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         {/* Left side */}
@@ -197,9 +193,9 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                                                 <Badge variant="outline">{TYPE_LABELS[credit.type] ?? credit.type}</Badge>
                                             </div>
                                             <p className="truncate font-medium">{credit.client?.name ?? 'Sin cliente'}</p>
-                                            <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                                 <span>Vendedor: {credit.seller?.name}</span>
-                                                <span>{format(new Date(credit.created_at), "d MMM yyyy", { locale: es })}</span>
+                                                <span>{format(new Date(credit.created_at), 'd MMM yyyy', { locale: es })}</span>
                                                 <DueDateBadge dueDate={credit.due_date} status={credit.status} />
                                             </div>
                                         </div>
@@ -207,14 +203,15 @@ export default function CreditsIndex({ credits, filters, overdueCount }: Props) 
                                         {/* Right side — amounts + progress */}
                                         <div className="w-full space-y-2 sm:w-64">
                                             <div className="flex items-baseline justify-between">
-                                                <span className="text-muted-foreground text-sm">Pagado</span>
+                                                <span className="text-sm text-muted-foreground">Pagado</span>
                                                 <span className="font-semibold">
-                                                    {cop(credit.amount_paid)} <span className="text-muted-foreground text-xs font-normal">/ {cop(credit.total_amount)}</span>
+                                                    {cop(credit.amount_paid)}{' '}
+                                                    <span className="text-xs font-normal text-muted-foreground">/ {cop(credit.total_amount)}</span>
                                                 </span>
                                             </div>
                                             <ProgressBar paid={credit.amount_paid} total={credit.total_amount} />
                                             {credit.balance > 0 && (
-                                                <p className="text-muted-foreground text-right text-xs">
+                                                <p className="text-right text-xs text-muted-foreground">
                                                     Falta: <span className="font-medium text-orange-500">{cop(credit.balance)}</span>
                                                 </p>
                                             )}

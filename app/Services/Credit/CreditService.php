@@ -31,8 +31,7 @@ class CreditService
      *
      * @param  array  $data  Credit data (type, client_id, branch_id, notes, due_date, installments_count, initial_payment)
      * @param  array  $items  Array of ['product_id', 'quantity', 'unit_price', 'subtotal']
-     * @param  User   $user  The user creating the credit
-     * @return CreditSale
+     * @param  User  $user  The user creating the credit
      *
      * @throws \RuntimeException
      */
@@ -52,7 +51,7 @@ class CreditService
 
             // Calculate installment amount if applicable
             $installmentAmount = null;
-            if ($data['type'] === CreditSale::TYPE_INSTALLMENTS && !empty($data['installments_count'])) {
+            if ($data['type'] === CreditSale::TYPE_INSTALLMENTS && ! empty($data['installments_count'])) {
                 $installmentAmount = round($totalAmount / $data['installments_count'], 2);
             }
 
@@ -128,7 +127,7 @@ class CreditService
     {
         foreach ($items as $item) {
             $product = Product::find($item['product_id']);
-            if (!$product || $product->isService()) {
+            if (! $product || $product->isService()) {
                 continue;
             }
 

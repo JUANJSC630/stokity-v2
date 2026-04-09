@@ -117,7 +117,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
             const response = await axios.post('/products/generate-code', { name: form.data.name });
             form.setData('code', response.data.code);
         } catch (error) {
-            setDialogMsg(axios.isAxiosError(error) ? (error.response?.data?.error || 'No se pudo generar el código') : 'No se pudo generar el código');
+            setDialogMsg(axios.isAxiosError(error) ? error.response?.data?.error || 'No se pudo generar el código' : 'No se pudo generar el código');
             setDialogOpen(true);
         }
     };
@@ -137,8 +137,14 @@ export default function EditProduct({ product, categories = [], branches = [], s
         form.post(`/products/${product.id}`, { forceFormData: true });
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); };
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
@@ -166,7 +172,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         <DialogDescription>{dialogMsg}</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button onClick={() => setDialogOpen(false)} autoFocus>Aceptar</Button>
+                        <Button onClick={() => setDialogOpen(false)} autoFocus>
+                            Aceptar
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -244,7 +252,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                                 {/* Código */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="code" className="text-sm font-medium">Código *</label>
+                                    <label htmlFor="code" className="text-sm font-medium">
+                                        Código *
+                                    </label>
                                     <div className="flex gap-2">
                                         <Input
                                             id="code"
@@ -289,7 +299,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         {isService ? 'Costo del servicio' : 'Precio de compra *'}
                                     </label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                            $
+                                        </span>
                                         <CurrencyInput
                                             id="purchase_price"
                                             className="w-full pl-6"
@@ -306,7 +318,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                         {isService ? 'Precio base *' : 'Precio de venta *'}
                                     </label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">$</span>
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                            $
+                                        </span>
                                         <CurrencyInput
                                             id="sale_price"
                                             className="w-full pl-6"
@@ -317,7 +331,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
                                     {isService && (
                                         <p className="text-xs text-muted-foreground">
-                                            {form.data.variable_price ? 'Referencia — el vendedor puede modificarlo en cada venta.' : 'Precio fijo aplicado en el POS.'}
+                                            {form.data.variable_price
+                                                ? 'Referencia — el vendedor puede modificarlo en cada venta.'
+                                                : 'Precio fijo aplicado en el POS.'}
                                         </p>
                                     )}
                                 </div>
@@ -333,7 +349,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 onCheckedChange={(checked) => form.setData('variable_price', checked)}
                                             />
                                             <Label htmlFor="variable_price" className="font-normal">
-                                                {form.data.variable_price ? 'Activado — el vendedor ingresa el precio en cada venta' : 'Desactivado — precio fijo'}
+                                                {form.data.variable_price
+                                                    ? 'Activado — el vendedor ingresa el precio en cada venta'
+                                                    : 'Desactivado — precio fijo'}
                                             </Label>
                                         </div>
                                     </div>
@@ -356,7 +374,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 value={form.data.tax}
                                                 onChange={(e) => form.setData('tax', Number(e.target.value))}
                                             />
-                                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">%</span>
+                                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
+                                                %
+                                            </span>
                                         </div>
                                         <button
                                             type="button"
@@ -385,12 +405,17 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 El stock se actualiza mediante{' '}
-                                                <a href="/stock-movements/create" className="underline">movimientos de stock</a>.
+                                                <a href="/stock-movements/create" className="underline">
+                                                    movimientos de stock
+                                                </a>
+                                                .
                                             </p>
                                         </div>
 
                                         <div className="w-full space-y-2">
-                                            <label htmlFor="min_stock" className="text-sm font-medium">Stock mínimo *</label>
+                                            <label htmlFor="min_stock" className="text-sm font-medium">
+                                                Stock mínimo *
+                                            </label>
                                             <Input
                                                 id="min_stock"
                                                 type="number"
@@ -401,14 +426,18 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 onChange={(e) => form.setData('min_stock', parseInt(e.target.value))}
                                             />
                                             {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
-                                            <p className="text-xs text-muted-foreground">Se mostrará alerta cuando el stock sea menor o igual a este valor.</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Se mostrará alerta cuando el stock sea menor o igual a este valor.
+                                            </p>
                                         </div>
                                     </>
                                 )}
 
                                 {/* Categoría */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="category_id" className="text-sm font-medium">Categoría *</label>
+                                    <label htmlFor="category_id" className="text-sm font-medium">
+                                        Categoría *
+                                    </label>
                                     <Select
                                         value={form.data.category_id.toString()}
                                         onValueChange={(value) => form.setData('category_id', parseInt(value))}
@@ -429,7 +458,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                                 {/* Sucursal */}
                                 <div className="w-full space-y-2">
-                                    <label htmlFor="branch_id" className="text-sm font-medium">Sucursal *</label>
+                                    <label htmlFor="branch_id" className="text-sm font-medium">
+                                        Sucursal *
+                                    </label>
                                     <Select
                                         value={form.data.branch_id.toString()}
                                         onValueChange={(value) => form.setData('branch_id', parseInt(value))}
@@ -451,7 +482,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                                 {/* Descripción */}
                                 <div className="w-full space-y-2 md:col-span-2">
-                                    <label htmlFor="description" className="text-sm font-medium">Descripción</label>
+                                    <label htmlFor="description" className="text-sm font-medium">
+                                        Descripción
+                                    </label>
                                     <Textarea
                                         id="description"
                                         placeholder={isService ? 'Descripción detallada del servicio' : 'Descripción detallada del producto'}
@@ -485,7 +518,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
 
                             <div className="flex flex-col gap-2 pt-4 md:flex-row md:justify-end">
                                 <Link href="/products">
-                                    <Button type="button" variant="outline" className="w-full md:w-auto">Cancelar</Button>
+                                    <Button type="button" variant="outline" className="w-full md:w-auto">
+                                        Cancelar
+                                    </Button>
                                 </Link>
                                 <Button type="button" variant="destructive" onClick={() => setShowDeleteModal(true)} className="w-full md:w-auto">
                                     Eliminar
@@ -578,12 +613,20 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                 .filter((s) => !supplierLinks.some((l) => l.supplier_id === s.id))
                                                 .map((s) => (
                                                     <SelectItem key={s.id} value={String(s.id)}>
-                                                        {s.name}{s.nit ? ` — ${s.nit}` : ''}
+                                                        {s.name}
+                                                        {s.nit ? ` — ${s.nit}` : ''}
                                                     </SelectItem>
                                                 ))}
                                         </SelectContent>
                                     </Select>
-                                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1" onClick={addSupplierLink} disabled={!supplierToAdd}>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1"
+                                        onClick={addSupplierLink}
+                                        disabled={!supplierToAdd}
+                                    >
                                         <Plus className="h-3.5 w-3.5" />
                                         Agregar
                                     </Button>
@@ -604,11 +647,17 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar {isService ? 'servicio' : 'producto'}?</DialogTitle>
-                            <DialogDescription>Esta acción enviará el {isService ? 'servicio' : 'producto'} a la papelera. ¿Deseas continuar?</DialogDescription>
+                            <DialogDescription>
+                                Esta acción enviará el {isService ? 'servicio' : 'producto'} a la papelera. ¿Deseas continuar?
+                            </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>Eliminar</Button>
+                            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                                Cancelar
+                            </Button>
+                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>
+                                Eliminar
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

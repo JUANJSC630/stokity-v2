@@ -89,9 +89,7 @@ export default function Appearance() {
                             <CardTitle>Colores del sistema</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="mb-4 text-sm text-muted-foreground">
-                                Personaliza los colores del sidebar, login y botones principales.
-                            </p>
+                            <p className="mb-4 text-sm text-muted-foreground">Personaliza los colores del sidebar, login y botones principales.</p>
                             <form onSubmit={handleColorSubmit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex flex-col gap-2">
@@ -103,9 +101,7 @@ export default function Appearance() {
                                                 onChange={(e) => colorsForm.setData('brand_color', e.target.value)}
                                                 className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
                                             />
-                                            <span className="font-mono text-sm text-muted-foreground">
-                                                {colorsForm.data.brand_color}
-                                            </span>
+                                            <span className="font-mono text-sm text-muted-foreground">{colorsForm.data.brand_color}</span>
                                         </div>
                                         <InputError message={colorsForm.errors.brand_color} />
                                     </div>
@@ -118,9 +114,7 @@ export default function Appearance() {
                                                 onChange={(e) => colorsForm.setData('brand_color_secondary', e.target.value)}
                                                 className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
                                             />
-                                            <span className="font-mono text-sm text-muted-foreground">
-                                                {colorsForm.data.brand_color_secondary}
-                                            </span>
+                                            <span className="font-mono text-sm text-muted-foreground">{colorsForm.data.brand_color_secondary}</span>
                                         </div>
                                         <InputError message={colorsForm.errors.brand_color_secondary} />
                                     </div>
