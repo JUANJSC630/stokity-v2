@@ -108,7 +108,7 @@ class CreditService
      */
     public function cancel(CreditSale $credit, User $user): void
     {
-        if ($credit->status !== CreditSale::STATUS_ACTIVE) {
+        if (! in_array($credit->status, [CreditSale::STATUS_ACTIVE, CreditSale::STATUS_OVERDUE])) {
             throw new \RuntimeException('Solo se pueden cancelar créditos activos.');
         }
 

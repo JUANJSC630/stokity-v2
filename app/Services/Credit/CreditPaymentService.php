@@ -25,7 +25,7 @@ class CreditPaymentService
         User $user,
         ?string $notes = null,
     ): CreditPayment {
-        if ($credit->status !== CreditSale::STATUS_ACTIVE) {
+        if (! in_array($credit->status, [CreditSale::STATUS_ACTIVE, CreditSale::STATUS_OVERDUE])) {
             throw new \RuntimeException('Este crédito no está activo.');
         }
 
