@@ -33,7 +33,15 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     ({ value, onChange, className, onFocus, onBlur, placeholder = '0', ...props }, ref) => {
         const toNumeric = (v: number | string | null | undefined): number => {
             if (v === '' || v === null || v === undefined) return 0;
-            return typeof v === 'string' ? parse(v) : Math.round(v);
+            if (typeof v === 'number') return Math.round(v);
+            const str = String(v).trim();
+            // Detect Laravel decimal:2 cast strings like "10000.00" or "8500.50"
+            // (digits, dot, 1-2 decimals) vs Colombian thousands format "10.000" (dot + 3 digits)
+            const decimalMatch = str.match(/^(\d+)\.(\d{1,2})$/);
+            if (decimalMatch && decimalMatch[2].length !== 3) {
+                return Math.round(parseFloat(str));
+            }
+            return parse(str);
         };
 
         const numeric = toNumeric(value);
