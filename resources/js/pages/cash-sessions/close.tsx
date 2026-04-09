@@ -244,7 +244,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                             value={Number(coins) || 0}
                                             onChange={(v) => setCoins(v > 0 ? String(v) : '')}
                                             placeholder="0"
-                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                         />
                                     </div>
                                 </div>
@@ -273,7 +273,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                     onChange={(v) => form.setData('closing_amount_declared', String(v))}
                                     required
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                         )}
@@ -290,7 +290,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="w-full rounded-xl bg-gradient-to-r from-[#C850C0] to-[#FFCC70] py-3 text-sm font-bold text-white disabled:opacity-50"
+                            className="w-full rounded-xl bg-[var(--brand-primary)] py-3 text-sm font-bold text-white disabled:opacity-50"
                         >
                             {form.processing ? 'Procesando...' : 'Confirmar cierre de caja'}
                         </button>

@@ -71,15 +71,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <SidebarMenuButton
-                                            isActive={isGroupActive(item)}
                                             tooltip={{ children: item.title }}
-                                            className={`mb-2 w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033] ${
-                                                isGroupActive(item) ? 'bg-gradient-to-r from-[#C850C0] to-[#FFCC70] shadow-md' : ''
+                                            className={`mb-2 w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)] ${
+                                                isGroupActive(item) ? 'bg-[var(--brand-primary)] shadow-md' : ''
                                             }`}
                                         >
                                             {item.icon && (
                                                 <span
-                                                    className={`${isGroupActive(item) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}
+                                                    className={`${isGroupActive(item) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}
                                                 >
                                                     <item.icon className="size-5" />
                                                 </span>
@@ -96,10 +95,10 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                                     <Link
                                                         href={child.href}
                                                         className={`flex w-full items-center gap-2 ${
-                                                            isChildActive(child) ? 'font-semibold text-[#C850C0]' : ''
+                                                            isChildActive(child) ? 'font-semibold text-[var(--brand-primary)]' : ''
                                                         }`}
                                                     >
-                                                        {child.icon && <child.icon className="size-4 shrink-0 text-[#C850C0]" />}
+                                                        {child.icon && <child.icon className="size-4 shrink-0 text-[var(--brand-primary)]" />}
                                                         <span>{child.title}</span>
                                                     </Link>
                                                 </DropdownMenuItem>
@@ -110,15 +109,14 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 // Modo expandido: acordeón normal
                                 <>
                                     <SidebarMenuButton
-                                        isActive={isItemActive(item)}
-                                        className={`mb-2 w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033] ${
-                                            isItemActive(item) ? 'bg-gradient-to-r from-[#C850C0] to-[#FFCC70] shadow-md' : ''
+                                        className={`mb-2 w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)] ${
+                                            isItemActive(item) ? 'bg-[var(--brand-primary)] shadow-md' : ''
                                         }`}
                                         onClick={() => toggleExpanded(item.title)}
                                     >
                                         {item.icon && (
                                             <span
-                                                className={`${isItemActive(item) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}
+                                                className={`${isItemActive(item) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}
                                             >
                                                 <item.icon className="size-5" />
                                             </span>
@@ -143,20 +141,20 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                                         key={child.title}
                                                         asChild
                                                         isActive={isChildActive(child)}
-                                                        className="ml-2 w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033]"
+                                                        className="ml-2 w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)]"
                                                     >
                                                         <Link
                                                             href={child.href}
                                                             prefetch
                                                             className={`flex w-full items-center gap-2 ${
                                                                 isChildActive(child)
-                                                                    ? 'bg-gradient-to-r from-[#C850C0] to-[#FFCC70] font-semibold text-white shadow-md'
+                                                                    ? 'bg-[var(--brand-primary)] font-semibold text-white shadow-md'
                                                                     : 'text-gray-700 dark:text-gray-300'
                                                             } rounded-lg px-3 py-2`}
                                                         >
                                                             {child.icon && (
                                                                 <span
-                                                                    className={`${isChildActive(child) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}
+                                                                    className={`${isChildActive(child) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}
                                                                 >
                                                                     <child.icon className="size-4" />
                                                                 </span>
@@ -177,23 +175,22 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                             // Item sin sub-items
                             <SidebarMenuButton
                                 asChild
-                                isActive={isItemActive(item)}
                                 tooltip={isCollapsed ? { children: item.title } : undefined}
-                                className={`w-full rounded-lg transition-colors duration-200 hover:bg-[#f7e1ff44] dark:hover:bg-[#C850C033] ${item.highlight && !isItemActive(item) ? 'ring-1 ring-[#C850C0]/30' : ''}`}
+                                className={`w-full rounded-lg transition-colors duration-200 hover:bg-[var(--brand-primary-hover)] dark:hover:bg-[var(--brand-primary-hover)] ${item.highlight && !isItemActive(item) ? 'ring-1 ring-[var(--brand-primary-ring)]' : ''}`}
                             >
                                 <Link
                                     href={item.href}
                                     prefetch
                                     className={`flex w-full items-center gap-2 ${
                                         isItemActive(item)
-                                            ? 'bg-gradient-to-r from-[#C850C0] to-[#FFCC70] font-semibold text-white shadow-md'
+                                            ? 'bg-[var(--brand-primary)] font-semibold text-white shadow-md'
                                             : item.highlight
-                                              ? 'bg-[#C850C0]/5 font-semibold text-[#C850C0] dark:bg-[#C850C0]/10 dark:text-[#FFCC70]'
+                                              ? 'bg-[var(--brand-primary-soft)] font-semibold text-[var(--brand-primary)] dark:bg-[var(--brand-primary-soft)] dark:text-[var(--brand-primary)]'
                                               : 'text-gray-700 dark:text-gray-300'
                                     } rounded-lg px-3 py-2`}
                                 >
                                     {item.icon && (
-                                        <span className={`${isItemActive(item) ? 'text-white' : 'text-[#C850C0] dark:text-[#C850C0]'} flex-shrink-0`}>
+                                        <span className={`${isItemActive(item) ? 'text-white' : 'text-[var(--brand-primary)] dark:text-[var(--brand-primary)]'} flex-shrink-0`}>
                                             <item.icon className="size-5" />
                                         </span>
                                     )}

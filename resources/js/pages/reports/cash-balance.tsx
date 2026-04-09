@@ -83,7 +83,7 @@ export default function CashBalance({ data, filters, availableBranches, isAdmin 
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="flex items-center gap-2 text-2xl font-bold">
-                            <Vault className="h-6 w-6 text-[#C850C0]" />
+                            <Vault className="h-6 w-6 text-[var(--brand-primary)]" />
                             Balance de Caja
                         </h1>
                         <p className="mt-1 text-sm text-muted-foreground">Resumen de ingresos por sucursal y método de pago</p>
@@ -184,7 +184,7 @@ export default function CashBalance({ data, filters, availableBranches, isAdmin 
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center justify-between text-base">
                                         <span className="flex items-center gap-2">
-                                            <Building2 className="h-4 w-4 text-[#C850C0]" />
+                                            <Building2 className="h-4 w-4 text-[var(--brand-primary)]" />
                                             {branch.branch_name}
                                         </span>
                                         <span className="text-sm font-bold text-green-700 dark:text-green-300">

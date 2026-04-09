@@ -70,7 +70,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         {canResetPassword && (
                             <Link
                                 href={route('password.request')}
-                                className="text-xs transition-colors duration-200 hover:text-[#C75B7A]"
+                                className="text-xs transition-colors duration-200 hover:text-[var(--brand-primary)]"
                                 style={{ color: 'oklch(0.52 0.02 30)' }}
                                 tabIndex={5}
                             >

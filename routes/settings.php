@@ -24,6 +24,7 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     })->name('appearance');
 
     Route::post('settings/appearance/default-product-image', [AppearanceController::class, 'updateDefaultProductImage'])->name('appearance.default-product-image');
+    Route::post('settings/appearance/brand-colors', [AppearanceController::class, 'updateBrandColors'])->name('appearance.brand-colors');
 
     Route::get('settings/business', [BusinessSettingController::class, 'edit'])->name('settings.business');
     Route::post('settings/business', [BusinessSettingController::class, 'update'])->name('settings.business.update');

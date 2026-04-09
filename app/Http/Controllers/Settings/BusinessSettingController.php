@@ -32,6 +32,8 @@ class BusinessSettingController extends Controller
             'currency_symbol' => 'nullable|string|max:5',
             'logo' => 'nullable|image|max:4096',
             'logo_url' => 'nullable|url|max:500',
+            'brand_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'brand_color_secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'require_cash_session' => 'nullable|boolean',
         ]);
 

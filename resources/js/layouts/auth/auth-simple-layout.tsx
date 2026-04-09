@@ -1,4 +1,5 @@
 import AllRightsReserved from '@/components/common/AllRightsReserved';
+import BrandColors from '@/components/brand-colors';
 import { type BusinessSetting } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
@@ -17,13 +18,15 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
     const businessName = business?.name || 'Stokity';
 
     return (
+        <>
+        <BrandColors />
         <div
             className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12"
             style={{
                 background: `
-                    radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(199,91,122,0.10) 0%, transparent 60%),
-                    radial-gradient(ellipse 700px 900px at 12% 98%, rgba(232,153,141,0.10) 0%, transparent 60%),
-                    radial-gradient(ellipse 500px 500px at 50% 45%, rgba(199,91,122,0.04) 0%, transparent 70%),
+                    radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(var(--brand-primary-rgb), 0.10) 0%, transparent 60%),
+                    radial-gradient(ellipse 700px 900px at 12% 98%, rgba(var(--brand-secondary-rgb), 0.10) 0%, transparent 60%),
+                    radial-gradient(ellipse 500px 500px at 50% 45%, rgba(var(--brand-primary-rgb), 0.04) 0%, transparent 70%),
                     oklch(0.975 0.005 30)
                 `,
             }}
@@ -32,15 +35,15 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div
                     className="absolute -top-16 -right-16 h-[460px] w-[460px] rounded-full blur-[90px]"
-                    style={{ background: 'rgba(199,91,122,0.13)', animation: 'orb-drift-1 14s ease-in-out infinite' }}
+                    style={{ background: 'rgba(var(--brand-primary-rgb), 0.13)', animation: 'orb-drift-1 14s ease-in-out infinite' }}
                 />
                 <div
                     className="absolute -bottom-20 -left-20 h-[520px] w-[520px] rounded-full blur-[110px]"
-                    style={{ background: 'rgba(232,153,141,0.13)', animation: 'orb-drift-2 18s ease-in-out infinite' }}
+                    style={{ background: 'rgba(var(--brand-secondary-rgb), 0.13)', animation: 'orb-drift-2 18s ease-in-out infinite' }}
                 />
                 <div
                     className="absolute top-1/3 right-1/4 h-64 w-64 rounded-full blur-[70px]"
-                    style={{ background: 'rgba(199,91,122,0.06)', animation: 'orb-drift-1 10s ease-in-out infinite reverse' }}
+                    style={{ background: 'rgba(var(--brand-primary-rgb), 0.06)', animation: 'orb-drift-1 10s ease-in-out infinite reverse' }}
                 />
             </div>
 
@@ -50,7 +53,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                 {backHref && (
                     <Link
                         href={backHref}
-                        className="welcome-animate welcome-d1 mb-8 flex items-center gap-1.5 text-sm transition-colors duration-200 hover:text-[#C75B7A]"
+                        className="welcome-animate welcome-d1 mb-8 flex items-center gap-1.5 text-sm transition-colors duration-200 hover:text-[var(--brand-primary)]"
                         style={{ color: 'oklch(0.52 0.02 30)' }}
                     >
                         <ArrowLeft className="h-4 w-4" />
@@ -67,7 +70,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                             src={logoSrc}
                             alt={businessName}
                             className="relative z-10 rounded-xl object-contain"
-                            style={{ width: 96, height: 96, boxShadow: '0 8px 28px rgba(199,91,122,0.15)' }}
+                            style={{ width: 96, height: 96, boxShadow: '0 8px 28px rgba(var(--brand-primary-rgb), 0.15)' }}
                             onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/stokity-icon.png';
                             }}
@@ -94,7 +97,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                 {/* Divider accent */}
                 <div
                     className="welcome-animate welcome-d4 mx-auto mb-7 h-0.5 w-10 rounded-full"
-                    style={{ background: 'linear-gradient(to right, #C75B7A, #E8998D)' }}
+                    style={{ background: 'var(--brand-primary)' }}
                 />
 
                 {/* Form content */}
@@ -106,5 +109,6 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                 </p>
             </div>
         </div>
+        </>
     );
 }

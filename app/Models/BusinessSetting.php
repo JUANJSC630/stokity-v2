@@ -28,6 +28,8 @@ class BusinessSetting extends Model
         'email',
         'address',
         'currency_symbol',
+        'brand_color',
+        'brand_color_secondary',
         'require_cash_session',
         'ticket_config',
     ];

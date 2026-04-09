@@ -11,6 +11,18 @@ class AppearanceController extends Controller
 {
     public function __construct(private BlobStorageService $blob) {}
 
+    public function updateBrandColors(Request $request)
+    {
+        $request->validate([
+            'brand_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'brand_color_secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        ]);
+
+        BusinessSetting::getSettings()->update($request->only('brand_color', 'brand_color_secondary'));
+
+        return redirect()->back()->with('success', 'Colores actualizados.');
+    }
+
     public function updateDefaultProductImage(Request $request)
     {
         $request->validate([

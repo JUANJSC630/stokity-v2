@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
+import InputError from '@/components/input-error';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
@@ -28,6 +29,19 @@ export default function Appearance() {
     const form = useForm({
         image: null as File | null,
     });
+
+    const colorsForm = useForm({
+        brand_color: business.brand_color ?? '#C850C0',
+        brand_color_secondary: business.brand_color_secondary ?? '#FFCC70',
+    });
+
+    const handleColorSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        colorsForm.post(route('appearance.brand-colors'), {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Colores actualizados.'),
+        });
+    };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -68,6 +82,68 @@ export default function Appearance() {
                 <div className="space-y-6">
                     <HeadingSmall title="Configuración de apariencia" description="Actualiza la apariencia de tu cuenta" />
                     <AppearanceTabs />
+
+                    {/* ── Brand colors ── */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Colores del sistema</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="mb-4 text-sm text-muted-foreground">
+                                Personaliza los colores del sidebar, login y botones principales.
+                            </p>
+                            <form onSubmit={handleColorSubmit} className="space-y-4">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium">Color principal</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={colorsForm.data.brand_color}
+                                                onChange={(e) => colorsForm.setData('brand_color', e.target.value)}
+                                                className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
+                                            />
+                                            <span className="font-mono text-sm text-muted-foreground">
+                                                {colorsForm.data.brand_color}
+                                            </span>
+                                        </div>
+                                        <InputError message={colorsForm.errors.brand_color} />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-sm font-medium">Color de acento</label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="color"
+                                                value={colorsForm.data.brand_color_secondary}
+                                                onChange={(e) => colorsForm.setData('brand_color_secondary', e.target.value)}
+                                                className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
+                                            />
+                                            <span className="font-mono text-sm text-muted-foreground">
+                                                {colorsForm.data.brand_color_secondary}
+                                            </span>
+                                        </div>
+                                        <InputError message={colorsForm.errors.brand_color_secondary} />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-muted-foreground">Vista previa:</span>
+                                    <div
+                                        className="h-5 w-28 rounded-full"
+                                        style={{
+                                            background: colorsForm.data.brand_color,
+                                        }}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={colorsForm.processing}
+                                    className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-60 dark:text-black"
+                                >
+                                    {colorsForm.processing ? 'Guardando...' : 'Guardar colores'}
+                                </button>
+                            </form>
+                        </CardContent>
+                    </Card>
 
                     <div>
                         <Card>

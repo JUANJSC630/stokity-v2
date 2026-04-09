@@ -989,7 +989,7 @@ export default function PosIndex({
                                     value={openingAmount}
                                     onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -1004,7 +1004,7 @@ export default function PosIndex({
                             <button
                                 type="submit"
                                 disabled={submittingSession}
-                                className="w-full rounded-xl bg-gradient-to-r from-[#C850C0] to-[#FFCC70] py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                className="w-full rounded-xl bg-[var(--brand-primary)] py-2.5 text-sm font-bold text-white disabled:opacity-50"
                             >
                                 {submittingSession ? 'Abriendo...' : 'Abrir caja'}
                             </button>
@@ -1097,7 +1097,7 @@ export default function PosIndex({
                                     onChange={(v) => setMovementAmount(v > 0 ? String(v) : '')}
                                     required
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -1153,7 +1153,7 @@ export default function PosIndex({
                                     value={openingAmount}
                                     onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
                                     placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#C850C0] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
                                 />
                             </div>
                             <div>
@@ -1168,7 +1168,7 @@ export default function PosIndex({
                             <button
                                 type="submit"
                                 disabled={submittingSession}
-                                className="w-full rounded-xl bg-gradient-to-r from-[#C850C0] to-[#FFCC70] py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                                className="w-full rounded-xl bg-[var(--brand-primary)] py-2.5 text-sm font-bold text-white disabled:opacity-50"
                             >
                                 {submittingSession ? 'Abriendo...' : 'Abrir caja'}
                             </button>
@@ -1192,7 +1192,7 @@ export default function PosIndex({
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="h-11 pl-9 text-base"
                             />
-                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[#C850C0]">Buscando...</span>}
+                            {searching && <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>}
                         </div>
                         {/* Category filter */}
                         {categories.length > 0 && (
@@ -1202,7 +1202,7 @@ export default function PosIndex({
                                     onClick={() => { setSelectedCategory(''); setSelectedType(''); }}
                                     className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedCategory === '' && selectedType === ''
-                                            ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                            ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                     }`}
                                 >
@@ -1228,7 +1228,7 @@ export default function PosIndex({
                                         onClick={() => { setSelectedCategory(String(cat.id)); setSelectedType(''); }}
                                         className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                             selectedCategory === String(cat.id)
-                                                ? 'border-[#C850C0] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                                 : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
                                         }`}
                                     >
@@ -1633,7 +1633,7 @@ export default function PosIndex({
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={submitting || cart.length === 0}
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C850C0] to-[#FFCC70] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
                             >
                                 {submitting ? (
                                     'Procesando...'

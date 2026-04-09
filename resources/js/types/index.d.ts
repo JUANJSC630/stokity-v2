@@ -37,6 +37,8 @@ export interface BusinessSetting {
     email: string | null;
     address: string | null;
     currency_symbol: string;
+    brand_color: string | null;
+    brand_color_secondary: string | null;
     require_cash_session: boolean;
 }
 

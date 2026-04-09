@@ -1,4 +1,5 @@
 import AllRightsReserved from '@/components/common/AllRightsReserved';
+import BrandColors from '@/components/brand-colors';
 import { type BusinessSetting, type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, BarChart2, Package, ShoppingCart, Wallet } from 'lucide-react';
@@ -18,6 +19,7 @@ export default function Welcome() {
 
     return (
         <>
+            <BrandColors />
             <Head title={`Bienvenido — ${businessName}`} />
 
             {/* Full-bleed canvas */}
@@ -25,9 +27,9 @@ export default function Welcome() {
                 className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16"
                 style={{
                     background: `
-                        radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(199,91,122,0.10) 0%, transparent 60%),
-                        radial-gradient(ellipse 700px 900px at 12% 98%, rgba(232,153,141,0.10) 0%, transparent 60%),
-                        radial-gradient(ellipse 500px 500px at 50% 45%, rgba(199,91,122,0.04) 0%, transparent 70%),
+                        radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(var(--brand-primary-rgb), 0.10) 0%, transparent 60%),
+                        radial-gradient(ellipse 700px 900px at 12% 98%, rgba(var(--brand-secondary-rgb), 0.10) 0%, transparent 60%),
+                        radial-gradient(ellipse 500px 500px at 50% 45%, rgba(var(--brand-primary-rgb), 0.04) 0%, transparent 70%),
                         oklch(0.975 0.005 30)
                     `,
                 }}
@@ -36,15 +38,15 @@ export default function Welcome() {
                 <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     <div
                         className="absolute -top-16 -right-16 h-[460px] w-[460px] rounded-full blur-[90px]"
-                        style={{ background: 'rgba(199,91,122,0.13)', animation: 'orb-drift-1 14s ease-in-out infinite' }}
+                        style={{ background: 'rgba(var(--brand-primary-rgb), 0.13)', animation: 'orb-drift-1 14s ease-in-out infinite' }}
                     />
                     <div
                         className="absolute -bottom-20 -left-20 h-[520px] w-[520px] rounded-full blur-[110px]"
-                        style={{ background: 'rgba(232,153,141,0.13)', animation: 'orb-drift-2 18s ease-in-out infinite' }}
+                        style={{ background: 'rgba(var(--brand-secondary-rgb), 0.13)', animation: 'orb-drift-2 18s ease-in-out infinite' }}
                     />
                     <div
                         className="absolute top-1/3 right-1/4 h-64 w-64 rounded-full blur-[70px]"
-                        style={{ background: 'rgba(199,91,122,0.06)', animation: 'orb-drift-1 10s ease-in-out infinite reverse' }}
+                        style={{ background: 'rgba(var(--brand-primary-rgb), 0.06)', animation: 'orb-drift-1 10s ease-in-out infinite reverse' }}
                     />
                 </div>
 
@@ -53,9 +55,9 @@ export default function Welcome() {
                     {/* Badge */}
                     <div
                         className="welcome-animate welcome-d1 mb-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
-                        style={{ background: 'rgba(199,91,122,0.09)', color: '#C75B7A', border: '1px solid rgba(199,91,122,0.2)' }}
+                        style={{ background: 'rgba(var(--brand-primary-rgb), 0.09)', color: 'var(--brand-primary)', border: '1px solid rgba(var(--brand-primary-rgb), 0.2)' }}
                     >
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#C75B7A' }} />
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--brand-primary)' }} />
                         Sistema de Gestión POS
                     </div>
 
@@ -68,7 +70,7 @@ export default function Welcome() {
                             src={logoSrc}
                             alt={businessName}
                             className="relative z-10 rounded-2xl object-contain"
-                            style={{ width: 128, height: 128, boxShadow: '0 12px 40px rgba(199,91,122,0.18)' }}
+                            style={{ width: 128, height: 128, boxShadow: '0 12px 40px rgba(var(--brand-primary-rgb), 0.18)' }}
                             onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/stokity-icon.png';
                             }}
@@ -86,7 +88,7 @@ export default function Welcome() {
                     {/* Accent line */}
                     <div
                         className="welcome-animate welcome-d4 my-5 h-0.5 w-12 rounded-full"
-                        style={{ background: 'linear-gradient(to right, #C75B7A, #E8998D)' }}
+                        style={{ background: 'var(--brand-primary)' }}
                     />
 
                     {/* Tagline */}
