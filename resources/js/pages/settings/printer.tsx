@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { CheckCircle, Download, ExternalLink, Monitor, Printer, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, Download, ExternalLink, Monitor, PowerOff, Printer, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -151,7 +151,63 @@ export default function PrinterSettings() {
                                         Solo indica si el programa está corriendo en este equipo, no el estado de la impresora.
                                     </p>
                                 </div>
-                                {statusBadge()}
+                                <div className="flex items-center gap-2">
+                                    {statusBadge()}
+                                    {printer.status === 'connected' && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 gap-1 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                            onClick={async () => {
+                                                await printer.disconnect();
+                                                toast.success('Desconectado de QZ Tray.');
+                                            }}
+                                        >
+                                            <PowerOff className="size-3" />
+                                            Desconectar
+                                        </Button>
+                                    )}
+                                    {(printer.status === 'idle' || printer.status === 'unavailable') && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 gap-1 text-xs"
+                                            onClick={async () => {
+                                                await printer.connect();
+                                            }}
+                                        >
+                                            <Wifi className="size-3" />
+                                            Conectar
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Separator />
+
+                            {/* Toggle auto-print */}
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium">Impresión automática</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Al desactivar, las ventas no se envían a la impresora. Úsalo cuando la impresora esté desconectada para evitar
+                                        que los trabajos se encolen.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={printer.autoPrint}
+                                    onClick={() => {
+                                        printer.setAutoPrint(!printer.autoPrint);
+                                        toast.success(printer.autoPrint ? 'Impresión automática desactivada.' : 'Impresión automática activada.');
+                                    }}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${printer.autoPrint ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${printer.autoPrint ? 'translate-x-5' : 'translate-x-0'}`}
+                                    />
+                                </button>
                             </div>
 
                             {printer.status === 'connected' && (

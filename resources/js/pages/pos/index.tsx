@@ -377,14 +377,14 @@ export default function PosIndex({
     useEffect(() => {
         const saleId = flash?.last_sale_id;
         if (!saleId || saleId === lastPrintedSaleId.current) return;
-        if (printer.status !== 'connected' || !printer.selectedPrinter) return;
+        if (!printer.autoPrint || printer.status !== 'connected' || !printer.selectedPrinter) return;
 
         lastPrintedSaleId.current = saleId;
         printerRef.current.printReceipt(saleId).catch((err: Error) => {
             toast.error('Error al imprimir: ' + err.message);
         });
         // Run whenever printer connects OR a new sale flash arrives
-    }, [flash?.last_sale_id, printer.status, printer.selectedPrinter]);
+    }, [flash?.last_sale_id, printer.autoPrint, printer.status, printer.selectedPrinter]);
 
     // --- Product search ---
     useEffect(() => {
@@ -594,9 +594,9 @@ export default function PosIndex({
             setPendingCount((c) => Math.max(0, activePendingId ? c - 1 : c));
             setTimeout(() => searchRef.current?.focus(), 0);
 
-            // Auto-print si hay impresora conectada
+            // Auto-print si hay impresora conectada y la opción está habilitada
             const p = printerRef.current;
-            if (saleId && p.status === 'connected' && p.selectedPrinter) {
+            if (saleId && p.autoPrint && p.status === 'connected' && p.selectedPrinter) {
                 lastPrintedSaleId.current = saleId;
                 p.printReceipt(saleId).catch((err: Error) => {
                     toast.error('Error al imprimir: ' + err.message);

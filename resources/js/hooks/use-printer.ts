@@ -1,5 +1,6 @@
 import {
     connectQZ,
+    disconnectQZ,
     isConnected,
     listPrinters,
     printCashSession as qzPrintCashSession,
@@ -11,6 +12,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_PRINTER_KEY = 'stokity_printer_name';
 const STORAGE_WIDTH_KEY = 'stokity_printer_width';
+const STORAGE_AUTO_PRINT_KEY = 'stokity_auto_print';
+const STORAGE_QZ_DISABLED_KEY = 'stokity_qz_disabled';
 
 type PrinterStatus = 'idle' | 'connecting' | 'connected' | 'error' | 'unavailable';
 
@@ -19,9 +22,12 @@ export interface PrinterState {
     printers: string[];
     selectedPrinter: string;
     paperWidth: 58 | 80;
+    autoPrint: boolean;
     setSelectedPrinter: (name: string) => void;
     setPaperWidth: (w: 58 | 80) => void;
+    setAutoPrint: (v: boolean) => void;
     connect: () => Promise<void>;
+    disconnect: () => Promise<void>;
     printReceipt: (saleId: number) => Promise<void>;
     printReturn: (saleReturnId: number) => Promise<void>;
     printCashSession: (sessionId: number) => Promise<void>;
@@ -34,6 +40,7 @@ export function usePrinter(): PrinterState {
     const [printers, setPrinters] = useState<string[]>([]);
     const [selectedPrinter, setSelectedPrinterState] = useState<string>(() => localStorage.getItem(STORAGE_PRINTER_KEY) ?? '');
     const [paperWidth, setPaperWidthState] = useState<58 | 80>(() => (Number(localStorage.getItem(STORAGE_WIDTH_KEY)) as 58 | 80) || 80);
+    const [autoPrint, setAutoPrintState] = useState<boolean>(() => localStorage.getItem(STORAGE_AUTO_PRINT_KEY) !== 'false');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const didAutoConnect = useRef(false);
 
@@ -47,7 +54,13 @@ export function usePrinter(): PrinterState {
         localStorage.setItem(STORAGE_WIDTH_KEY, String(w));
     }, []);
 
+    const setAutoPrint = useCallback((v: boolean) => {
+        setAutoPrintState(v);
+        localStorage.setItem(STORAGE_AUTO_PRINT_KEY, String(v));
+    }, []);
+
     const connect = useCallback(async () => {
+        localStorage.removeItem(STORAGE_QZ_DISABLED_KEY);
         setStatus('connecting');
         setErrorMessage(null);
         try {
@@ -70,10 +83,15 @@ export function usePrinter(): PrinterState {
         }
     }, [setSelectedPrinter]);
 
-    // Auto-connect once on mount
+    // Auto-connect once on mount — skipped if user explicitly disconnected
     useEffect(() => {
         if (didAutoConnect.current) return;
         didAutoConnect.current = true;
+
+        if (localStorage.getItem(STORAGE_QZ_DISABLED_KEY) === 'true') {
+            setStatus('idle');
+            return;
+        }
 
         isConnected()
             .then((active) => {
@@ -88,6 +106,13 @@ export function usePrinter(): PrinterState {
                 connect();
             });
     }, [connect]);
+
+    const disconnect = useCallback(async () => {
+        localStorage.setItem(STORAGE_QZ_DISABLED_KEY, 'true');
+        await disconnectQZ();
+        setStatus('idle');
+        setPrinters([]);
+    }, []);
 
     // No disconnect on unmount — QZ Tray WebSocket is a singleton that should
     // stay alive across page navigations. Disconnecting here breaks pages that
@@ -136,9 +161,12 @@ export function usePrinter(): PrinterState {
         printers,
         selectedPrinter,
         paperWidth,
+        autoPrint,
         setSelectedPrinter,
         setPaperWidth,
+        setAutoPrint,
         connect,
+        disconnect,
         printReceipt,
         printReturn,
         printCashSession,
