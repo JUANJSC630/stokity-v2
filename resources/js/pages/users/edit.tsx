@@ -117,7 +117,7 @@ export default function EditUser({ user, branches, roles }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.transform((data) => ({ ...data, _method: 'put' })).post(`/users/${user.id}`, {
+        form.post(`/users/${user.id}`, {
             forceFormData: true,
             onSuccess: () => toast.success('Usuario actualizado correctamente.'),
             onError: (errors) => {
