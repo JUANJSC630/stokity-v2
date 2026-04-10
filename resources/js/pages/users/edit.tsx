@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -118,9 +119,7 @@ export default function EditUser({ user, branches, roles }: Props) {
         e.preventDefault();
         form.transform((data) => ({ ...data, _method: 'put' })).post(`/users/${user.id}`, {
             forceFormData: true,
-            onSuccess: () => {
-                console.log('Usuario actualizado exitosamente');
-            },
+            onSuccess: () => toast.success('Usuario actualizado correctamente.'),
             onError: (errors) => {
                 console.error('Errores al actualizar usuario:', errors);
             },
