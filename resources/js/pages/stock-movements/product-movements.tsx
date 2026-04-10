@@ -3,12 +3,14 @@ import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Eye, Plus } from 'lucide-react';
+import { ArrowLeft, FileText, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 interface StockMovement {
     id: number;
@@ -57,6 +59,38 @@ interface Props {
         total: number;
         last_page: number;
     };
+}
+
+function NoteCell({ note }: { note: string }) {
+    const [open, setOpen] = useState(false);
+    const isLong = note.length > 60;
+    return (
+        <>
+            <div className="flex items-center gap-1">
+                <span className="max-w-[180px] truncate" title={isLong ? undefined : note}>
+                    {note}
+                </span>
+                {isLong && (
+                    <button
+                        type="button"
+                        onClick={() => setOpen(true)}
+                        className="flex-shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground"
+                        title="Ver nota completa"
+                    >
+                        <FileText className="h-3.5 w-3.5" />
+                    </button>
+                )}
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Nota del movimiento</DialogTitle>
+                    </DialogHeader>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{note}</p>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
 }
 
 export default function ProductMovements({ product, movements }: Props) {
@@ -207,14 +241,7 @@ export default function ProductMovements({ product, movements }: Props) {
         {
             key: 'notes',
             title: 'Notas',
-            render: (value) =>
-                (value ? (
-                    <div className="max-w-xs truncate" title={value as string}>
-                        {value as string}
-                    </div>
-                ) : (
-                    '-'
-                )) as React.ReactNode,
+            render: (value) => (value ? <NoteCell note={value as string} /> : '-') as React.ReactNode,
         },
     ];
 
@@ -279,7 +306,7 @@ export default function ProductMovements({ product, movements }: Props) {
                     </CardHeader>
                     <CardContent>
                         {/* Vista tabla en md+ */}
-                        <div className="hidden md:block">
+                        <div className="hidden overflow-x-auto md:block">
                             <Table
                                 aria-label="Movimientos de stock del producto"
                                 columns={columns}
@@ -364,17 +391,10 @@ export default function ProductMovements({ product, movements }: Props) {
                                         {movement.notes && (
                                             <div className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
                                                 <div className="mb-1 font-medium">Notas:</div>
-                                                <div className="line-clamp-3 rounded bg-neutral-50 p-2 dark:bg-neutral-800">{movement.notes}</div>
+                                                <NoteCell note={movement.notes} />
                                             </div>
                                         )}
 
-                                        <div className="mt-2 flex justify-end gap-2">
-                                            <Link href={`/products/${product.id}`}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
-                                                    <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
-                                                </Button>
-                                            </Link>
-                                        </div>
                                     </div>
                                 ))
                             )}
