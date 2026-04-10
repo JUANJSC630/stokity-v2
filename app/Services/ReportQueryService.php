@@ -380,7 +380,8 @@ class ReportQueryService
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = Product::where('stock', '<=', DB::raw('min_stock'))
-                ->where('status', true);
+                ->where('status', true)
+                ->where('type', '!=', 'servicio');
 
             if (! empty($filters['branch_id'])) {
                 $query->whereHas('stockMovements', function ($q) use ($filters) {

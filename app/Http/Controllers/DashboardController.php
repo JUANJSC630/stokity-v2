@@ -153,6 +153,7 @@ class DashboardController extends Controller
     private function getLowStockProducts($branchId = null)
     {
         $query = Product::where('status', true)
+            ->where('type', '!=', 'servicio')
             ->whereRaw('stock <= min_stock');
 
         if ($branchId) {
@@ -277,6 +278,7 @@ class DashboardController extends Controller
     {
         $query = Product::with(['category', 'branch'])
             ->where('status', true)
+            ->where('type', '!=', 'servicio')
             ->whereRaw('stock <= min_stock')
             ->orderByRaw('stock = 0 DESC')   // sin stock primero
             ->orderBy('stock', 'asc');
