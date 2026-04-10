@@ -67,8 +67,16 @@ class ArchivedUser extends Model
      */
     public function getPhotoUrlAttribute(): string
     {
-        return $this->photo
-            ? asset('uploads/users/'.$this->photo)
-            : asset('stokity-icon.png');
+        if (! $this->photo) {
+            return asset('stokity-icon.png');
+        }
+
+        // Blob URL (completa) — devolver tal cual
+        if (str_starts_with($this->photo, 'http')) {
+            return $this->photo;
+        }
+
+        // Ruta local legacy
+        return asset('uploads/users/'.$this->photo);
     }
 }
