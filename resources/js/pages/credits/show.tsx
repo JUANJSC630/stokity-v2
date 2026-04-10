@@ -348,21 +348,34 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border">
-                            <div className="grid grid-cols-[1fr_80px_100px_100px] gap-2 bg-muted/50 px-4 py-2 text-xs font-medium">
+                            {/* Header — desktop only */}
+                            <div className="hidden grid-cols-[1fr_80px_100px_100px] gap-2 bg-muted/50 px-4 py-2 text-xs font-medium md:grid">
                                 <span>Producto</span>
                                 <span className="text-center">Cant.</span>
                                 <span className="text-right">Precio</span>
                                 <span className="text-right">Subtotal</span>
                             </div>
                             {credit.items?.map((item) => (
-                                <div key={item.id} className="grid grid-cols-[1fr_80px_100px_100px] items-center gap-2 border-t px-4 py-3 text-sm">
-                                    <div>
-                                        <p className="font-medium">{item.product_name}</p>
-                                        {item.product?.code && <p className="text-xs text-muted-foreground">{item.product.code}</p>}
+                                <div key={item.id} className="border-t px-4 py-3 text-sm">
+                                    {/* Mobile: name + subtotal side by side */}
+                                    <div className="flex items-start justify-between gap-2 md:hidden">
+                                        <div className="min-w-0">
+                                            <p className="font-medium">{item.product_name}</p>
+                                            {item.product?.code && <p className="text-xs text-muted-foreground">{item.product.code}</p>}
+                                            <p className="text-xs text-muted-foreground">Cant: {item.quantity} · {cop(item.unit_price)} c/u</p>
+                                        </div>
+                                        <span className="flex-shrink-0 font-semibold">{cop(item.subtotal)}</span>
                                     </div>
-                                    <span className="text-center">{item.quantity}</span>
-                                    <span className="text-right">{cop(item.unit_price)}</span>
-                                    <span className="text-right font-medium">{cop(item.subtotal)}</span>
+                                    {/* Desktop: grid row */}
+                                    <div className="hidden grid-cols-[1fr_80px_100px_100px] items-center gap-2 md:grid">
+                                        <div>
+                                            <p className="font-medium">{item.product_name}</p>
+                                            {item.product?.code && <p className="text-xs text-muted-foreground">{item.product.code}</p>}
+                                        </div>
+                                        <span className="text-center">{item.quantity}</span>
+                                        <span className="text-right">{cop(item.unit_price)}</span>
+                                        <span className="text-right font-medium">{cop(item.subtotal)}</span>
+                                    </div>
                                 </div>
                             ))}
                             <div className="border-t px-4 py-3 text-right">

@@ -54,7 +54,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
                                 <Link
                                     key={sale.id}
                                     href={route('sales.show', sale.id)}
-                                    className={`group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
+                                    className={`group flex items-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 md:py-3 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
                                 >
                                     {/* Client initial dot */}
                                     <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-[10px] font-bold text-primary">

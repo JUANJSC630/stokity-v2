@@ -327,7 +327,8 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                 {cart.length > 0 && (
                                     <div className="space-y-2 pt-2">
                                         <div className="rounded-md border">
-                                            <div className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 bg-muted/50 px-3 py-2 text-xs font-medium">
+                                            {/* Header — desktop only */}
+                                            <div className="hidden grid-cols-[1fr_80px_100px_100px_40px] gap-2 bg-muted/50 px-3 py-2 text-xs font-medium md:grid">
                                                 <span>Producto</span>
                                                 <span className="text-center">Cant.</span>
                                                 <span className="text-right">Precio</span>
@@ -335,36 +336,62 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                 <span />
                                             </div>
                                             {cart.map((item) => (
-                                                <div
-                                                    key={item.product.id}
-                                                    className="grid grid-cols-[1fr_80px_100px_100px_40px] items-center gap-2 border-t px-3 py-2"
-                                                >
-                                                    <span className="truncate text-sm">{item.product.name}</span>
-                                                    <Input
-                                                        type="number"
-                                                        min={1}
-                                                        value={item.quantity}
-                                                        onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
-                                                        className="h-8 text-center text-sm"
-                                                    />
-                                                    {item.product.variable_price ? (
-                                                        <CurrencyInput
-                                                            value={item.unit_price}
-                                                            onChange={(v) => updateCartPrice(item.product.id, v)}
-                                                            className="h-8 text-right text-sm"
+                                                <div key={item.product.id} className="border-t px-3 py-2">
+                                                    {/* Mobile layout */}
+                                                    <div className="flex items-center justify-between gap-2 md:hidden">
+                                                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.product.name}</span>
+                                                        <span className="flex-shrink-0 text-sm font-semibold">{cop(item.subtotal)}</span>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 flex-shrink-0 p-0" onClick={() => removeFromCart(item.product.id)}>
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="mt-1 flex items-center gap-2 md:hidden">
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
+                                                            className="h-8 w-20 text-center text-sm"
                                                         />
-                                                    ) : (
-                                                        <span className="text-right text-sm">{cop(item.unit_price)}</span>
-                                                    )}
-                                                    <span className="text-right text-sm font-medium">{cop(item.subtotal)}</span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => removeFromCart(item.product.id)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
+                                                        {item.product.variable_price ? (
+                                                            <CurrencyInput
+                                                                value={item.unit_price}
+                                                                onChange={(v) => updateCartPrice(item.product.id, v)}
+                                                                className="h-8 flex-1 text-right text-sm"
+                                                            />
+                                                        ) : (
+                                                            <span className="flex-1 text-right text-sm text-muted-foreground">{cop(item.unit_price)} c/u</span>
+                                                        )}
+                                                    </div>
+                                                    {/* Desktop layout */}
+                                                    <div className="hidden grid-cols-[1fr_80px_100px_100px_40px] items-center gap-2 md:grid">
+                                                        <span className="truncate text-sm">{item.product.name}</span>
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            value={item.quantity}
+                                                            onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
+                                                            className="h-8 text-center text-sm"
+                                                        />
+                                                        {item.product.variable_price ? (
+                                                            <CurrencyInput
+                                                                value={item.unit_price}
+                                                                onChange={(v) => updateCartPrice(item.product.id, v)}
+                                                                className="h-8 text-right text-sm"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-right text-sm">{cop(item.unit_price)}</span>
+                                                        )}
+                                                        <span className="text-right text-sm font-medium">{cop(item.subtotal)}</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0"
+                                                            onClick={() => removeFromCart(item.product.id)}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

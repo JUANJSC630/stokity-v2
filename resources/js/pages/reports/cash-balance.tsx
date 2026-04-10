@@ -100,7 +100,7 @@ export default function CashBalance({ data, filters, availableBranches, isAdmin 
                                     setDate(e.target.value);
                                     applyFilters(e.target.value, branchId);
                                 }}
-                                className="h-9 w-44 text-sm"
+                                className="h-9 w-full text-sm sm:w-44"
                             />
                         </div>
 
@@ -115,7 +115,7 @@ export default function CashBalance({ data, filters, availableBranches, isAdmin 
                                         applyFilters(date, val);
                                     }}
                                 >
-                                    <SelectTrigger className="h-9 w-44 text-sm">
+                                    <SelectTrigger className="h-9 w-full text-sm sm:w-44">
                                         <SelectValue placeholder="Todas" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -178,7 +178,7 @@ export default function CashBalance({ data, filters, availableBranches, isAdmin 
                         <p className="text-sm">No hay ventas registradas para esta fecha</p>
                     </div>
                 ) : (
-                    <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2">
                         {data.map((branch) => (
                             <Card key={branch.branch_id}>
                                 <CardHeader className="pb-3">

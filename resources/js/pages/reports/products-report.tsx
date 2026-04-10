@@ -202,7 +202,7 @@ export default function ProductsReport({
                             <CardDescription>Configura los filtros para el análisis de productos</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                                         Fecha Desde
@@ -325,8 +325,24 @@ export default function ProductsReport({
                             <CardTitle>Productos Más Vendidos</CardTitle>
                             <CardDescription>Top 20 productos con mayor volumen de ventas</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {productsData.top_products.map((product) => (
+                                    <div key={product.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium">{product.name}</p>
+                                            <p className="text-xs text-muted-foreground">{product.code}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 text-right">
+                                            <p className="font-semibold">{formatCurrency(product.total_amount)}</p>
+                                            <p className="text-xs text-muted-foreground">{formatNumber(product.total_quantity)} uds · {formatNumber(product.sales_count)} ventas</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -339,13 +355,8 @@ export default function ProductsReport({
                                     </thead>
                                     <tbody>
                                         {productsData.top_products.map((product) => (
-                                            <tr
-                                                key={product.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{product.code}</Badge>
-                                                </td>
+                                            <tr key={product.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                                <td className="p-2"><Badge variant="outline">{product.code}</Badge></td>
                                                 <td className="p-2 font-medium">{product.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(product.total_amount)}</td>
@@ -364,8 +375,21 @@ export default function ProductsReport({
                             <CardTitle>Ventas por Categoría</CardTitle>
                             <CardDescription>Desglose de ventas por categoría de productos</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {productsData.products_by_category.map((category) => (
+                                    <div key={category.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                        <p className="font-medium">{category.name}</p>
+                                        <div className="flex-shrink-0 text-right">
+                                            <p className="font-semibold">{formatCurrency(category.total_amount)}</p>
+                                            <p className="text-xs text-muted-foreground">{formatNumber(category.total_quantity)} uds · {formatNumber(category.unique_products)} productos</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -377,10 +401,7 @@ export default function ProductsReport({
                                     </thead>
                                     <tbody>
                                         {productsData.products_by_category.map((category) => (
-                                            <tr
-                                                key={category.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
+                                            <tr key={category.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                 <td className="p-2 font-medium">{category.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(category.total_quantity)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(category.total_amount)}</td>
@@ -403,8 +424,26 @@ export default function ProductsReport({
                                 </CardTitle>
                                 <CardDescription>Productos que requieren reabastecimiento</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
+                            <CardContent className="p-0">
+                                {/* Mobile */}
+                                <div className="divide-y md:hidden">
+                                    {productsData.low_stock_products.map((product) => (
+                                        <div key={product.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate font-medium">{product.name}</p>
+                                                <p className="text-xs text-muted-foreground">{product.code}</p>
+                                            </div>
+                                            <div className="flex-shrink-0 text-right">
+                                                <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>
+                                                    {formatNumber(product.stock)}
+                                                </Badge>
+                                                <p className="mt-0.5 text-xs text-muted-foreground">mín {formatNumber(product.min_stock)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Desktop */}
+                                <div className="hidden overflow-x-auto md:block">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -416,18 +455,11 @@ export default function ProductsReport({
                                         </thead>
                                         <tbody>
                                             {productsData.low_stock_products.map((product) => (
-                                                <tr
-                                                    key={product.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{product.code}</Badge>
-                                                    </td>
+                                                <tr key={product.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                                    <td className="p-2"><Badge variant="outline">{product.code}</Badge></td>
                                                     <td className="p-2 font-medium">{product.name}</td>
                                                     <td className="p-2 text-right">
-                                                        <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>
-                                                            {formatNumber(product.stock)}
-                                                        </Badge>
+                                                        <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>{formatNumber(product.stock)}</Badge>
                                                     </td>
                                                     <td className="p-2 text-right">{formatNumber(product.min_stock)}</td>
                                                 </tr>

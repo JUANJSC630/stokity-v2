@@ -350,6 +350,9 @@ export default function PosIndex({
     const [varPriceProduct, setVarPriceProduct] = useState<Product | null>(null);
     const [varPriceValue, setVarPriceValue] = useState(0);
 
+    // Mobile tab navigation (search | cart) — desktop shows both panels simultaneously
+    const [mobileTab, setMobileTab] = useState<'search' | 'cart'>('search');
+
     // Printer
     const printer = usePrinter();
     const { play: playSound } = useSound();
@@ -592,6 +595,7 @@ export default function PosIndex({
             setFormKey((k) => k + 1);
             setActivePendingId(null);
             setPendingCount((c) => Math.max(0, activePendingId ? c - 1 : c));
+            setMobileTab('search');
             setTimeout(() => searchRef.current?.focus(), 0);
 
             // Auto-print si hay impresora conectada y la opción está habilitada
@@ -836,6 +840,7 @@ export default function PosIndex({
             setClientId(defaultClientId);
             setFormKey((k) => k + 1);
             setActivePendingId(null);
+            setMobileTab('search');
             setTimeout(() => searchRef.current?.focus(), 0);
         };
 
@@ -1172,9 +1177,11 @@ export default function PosIndex({
                 </div>
             )}
 
-            <div className="flex h-[calc(100dvh-64px)] flex-col gap-0 overflow-hidden md:flex-row">
+            <div className="flex h-[calc(100dvh-64px)] flex-col">
+                {/* ── Panels (LEFT + RIGHT) — stacked on mobile, side-by-side on desktop ── */}
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
                 {/* ── LEFT: Search + Results ── */}
-                <div className="flex min-h-0 flex-1 flex-col border-r border-neutral-200 dark:border-neutral-700">
+                <div className={`min-h-0 w-full flex-1 flex-col border-r border-neutral-200 dark:border-neutral-700 md:w-auto ${mobileTab === 'cart' ? 'hidden md:flex' : 'flex'}`}>
                     {/* Search bar */}
                     <div className="border-b border-neutral-200 p-3 dark:border-neutral-700">
                         <div className="relative">
@@ -1193,14 +1200,14 @@ export default function PosIndex({
                         </div>
                         {/* Category filter */}
                         {categories.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
+                            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setSelectedCategory('');
                                         setSelectedType('');
                                     }}
-                                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                    className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedCategory === '' && selectedType === ''
                                             ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
@@ -1214,7 +1221,7 @@ export default function PosIndex({
                                         setSelectedType('servicio');
                                         setSelectedCategory('');
                                     }}
-                                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                    className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                         selectedType === 'servicio'
                                             ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                             : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
@@ -1232,7 +1239,7 @@ export default function PosIndex({
                                                 setSelectedCategory(String(cat.id));
                                                 setSelectedType('');
                                             }}
-                                            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                            className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                                                 selectedCategory === String(cat.id)
                                                     ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
                                                     : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
@@ -1243,8 +1250,8 @@ export default function PosIndex({
                                     ))}
                             </div>
                         )}
-                        {/* Keyboard hints */}
-                        <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground">
+                        {/* Keyboard hints — desktop only */}
+                        <div className="mt-2 hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
                             <span className="flex items-center gap-1">
                                 <Keyboard className="h-3 w-3" />
                                 <kbd className="rounded border px-1">/</kbd> buscar
@@ -1326,7 +1333,7 @@ export default function PosIndex({
                                     onClick={() => addToCart(p)}
                                     disabled={p.type !== 'servicio' && p.stock <= 0}
                                     aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}`}
-                                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
+                                    className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 md:py-3 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
                                 >
                                     {p.image_url ? (
                                         <img
@@ -1365,7 +1372,7 @@ export default function PosIndex({
                 </div>
 
                 {/* ── RIGHT: Cart + Payment ── */}
-                <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none">
+                <div className={`min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none ${mobileTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
                     {/* Client + clear cart + printer status */}
                     <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
                         <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
@@ -1428,10 +1435,12 @@ export default function PosIndex({
                         </div>
                     )}
 
+                    {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed). */}
+                    <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-hidden">
                     {/* Cart list */}
-                    <div className="min-h-0 flex-1 overflow-y-auto">
+                    <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
                         {cart.length === 0 ? (
-                            <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                            <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 py-8 text-muted-foreground md:h-full md:py-0">
                                 <ShoppingCart className="h-10 w-10 opacity-20" />
                                 <p className="text-sm">Carrito vacío</p>
                             </div>
@@ -1449,7 +1458,7 @@ export default function PosIndex({
                                                 type="button"
                                                 onClick={() => updateQty(item.product.id, item.quantity - 1)}
                                                 aria-label={`Disminuir cantidad de ${item.product.name}`}
-                                                className="flex h-7 w-7 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800 md:h-7 md:w-7"
                                             >
                                                 <Minus className="h-3 w-3" />
                                             </button>
@@ -1466,14 +1475,14 @@ export default function PosIndex({
                                                 }}
                                                 onFocus={(e) => e.target.select()}
                                                 aria-label={`Cantidad de ${item.product.name}`}
-                                                className="h-7 w-10 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                className="h-9 w-12 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 md:h-7 md:w-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => updateQty(item.product.id, Math.min(item.quantity + 1, item.product.stock))}
                                                 disabled={item.quantity >= item.product.stock}
                                                 aria-label={`Aumentar cantidad de ${item.product.name}`}
-                                                className="flex h-7 w-7 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800 md:h-7 md:w-7"
                                             >
                                                 <Plus className="h-3 w-3" />
                                             </button>
@@ -1485,7 +1494,7 @@ export default function PosIndex({
                                             type="button"
                                             onClick={() => removeFromCart(item.product.id)}
                                             aria-label={`Eliminar ${item.product.name} del carrito`}
-                                            className="flex h-7 w-7 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                            className="flex h-9 w-9 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 md:h-7 md:w-7"
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </button>
@@ -1496,7 +1505,7 @@ export default function PosIndex({
                     </div>
 
                     {/* Bottom panel: discount + totals + payment + submit */}
-                    <div className="flex-shrink-0 border-t border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900">
+                    <div className="border-t border-neutral-200 bg-neutral-50 md:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900">
                         {/* Discount */}
                         <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
                             <Label className="text-xs text-muted-foreground">Descuento:</Label>
@@ -1679,6 +1688,39 @@ export default function PosIndex({
                                 Registrar como crédito
                             </button>
                         </div>
+                    </div>
+                    </div>{/* ── end mobile scroll wrapper ── */}
+                </div>
+                </div>{/* ── end panels wrapper ── */}
+
+                {/* ── Mobile tab bar (hidden on desktop) ── */}
+                <div className="flex-shrink-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-neutral-700 dark:bg-neutral-950">
+                    <div className="flex">
+                        <button
+                            type="button"
+                            onClick={() => setMobileTab('search')}
+                            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${mobileTab === 'search' ? 'text-[var(--brand-primary)]' : 'text-neutral-400 dark:text-neutral-500'}`}
+                        >
+                            <Search className="h-5 w-5" />
+                            <span className="text-[10px] font-medium">Buscar</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMobileTab('cart')}
+                            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${mobileTab === 'cart' ? 'text-[var(--brand-primary)]' : 'text-neutral-400 dark:text-neutral-500'}`}
+                        >
+                            <div className="relative">
+                                <ShoppingCart className="h-5 w-5" />
+                                {cart.length > 0 && (
+                                    <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1 text-[9px] font-bold text-white">
+                                        {cart.length}
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-[10px] font-medium">
+                                {cart.length > 0 ? formatCOP(total) : 'Carrito'}
+                            </span>
+                        </button>
                     </div>
                 </div>
             </div>

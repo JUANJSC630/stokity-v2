@@ -257,17 +257,45 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <Table
-                                columns={productColumns}
-                                data={(supplier.products ?? []).map((p) => ({ ...p, actions: null }))}
-                                emptyMessage={
-                                    <p className="text-muted-foreground">
-                                        Sin productos. Asocia productos desde la página de edición de cada producto.
-                                    </p>
-                                }
-                            />
-                        </div>
+                        {(supplier.products ?? []).length === 0 ? (
+                            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+                                Sin productos. Asocia productos desde la página de edición de cada producto.
+                            </p>
+                        ) : (
+                            <>
+                                {/* Mobile: card list */}
+                                <div className="divide-y md:hidden">
+                                    {(supplier.products ?? []).map((p) => (
+                                        <div key={p.id} className="flex items-start justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <Link href={route('products.show', p.id)} className="font-medium hover:underline">
+                                                    {p.name}
+                                                </Link>
+                                                <p className="text-xs text-muted-foreground">{p.code}</p>
+                                                {p.pivot.purchase_price != null && (
+                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                        Compra: ${Number(p.pivot.purchase_price).toLocaleString('es-CO')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                                                <span className="text-xs font-medium">Stock: {p.stock}</span>
+                                                {p.pivot.is_default ? (
+                                                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Predeterminado</Badge>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Desktop: full table */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <Table
+                                        columns={productColumns}
+                                        data={(supplier.products ?? []).map((p) => ({ ...p, actions: null }))}
+                                    />
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -308,13 +336,44 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <Table
-                                columns={movementColumns}
-                                data={movements.data.map((m) => ({ ...m, actions: null }))}
-                                emptyMessage={<p className="text-muted-foreground">Sin movimientos registrados con este proveedor.</p>}
-                            />
-                        </div>
+                        {movements.data.length === 0 ? (
+                            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Sin movimientos registrados con este proveedor.</p>
+                        ) : (
+                            <>
+                                {/* Mobile: card list */}
+                                <div className="divide-y md:hidden">
+                                    {movements.data.map((m) => (
+                                        <div key={m.id} className="px-4 py-3">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-xs text-muted-foreground">{formatDate(m.movement_date)}</span>
+                                                <span className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[m.type] ?? 'bg-gray-100 text-gray-800'}`}>
+                                                    {TYPE_LABELS[m.type] ?? m.type}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1 font-medium">
+                                                {m.product ? (
+                                                    <Link href={route('products.show', m.product_id)} className="hover:underline">
+                                                        {m.product.name}
+                                                    </Link>
+                                                ) : `#${m.product_id}`}
+                                            </p>
+                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                                Cant: {m.quantity}
+                                                {m.unit_cost != null && <> · Costo: ${Number(m.unit_cost).toLocaleString('es-CO')}</>}
+                                                {m.reference && <> · {m.reference}</>}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Desktop: full table */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <Table
+                                        columns={movementColumns}
+                                        data={movements.data.map((m) => ({ ...m, actions: null }))}
+                                    />
+                                </div>
+                            </>
+                        )}
                         <PaginationFooter data={{ ...movements, resourceLabel: 'movimientos' }} />
                     </CardContent>
                 </Card>

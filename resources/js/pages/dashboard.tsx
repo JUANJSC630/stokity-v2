@@ -122,7 +122,7 @@ export default function Dashboard({
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inicio" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-hidden rounded-xl p-4 md:p-6">
                 {/* Header */}
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">
@@ -135,7 +135,7 @@ export default function Dashboard({
                 <LowStockProducts products={lowStockProducts} />
 
                 {/* Metric cards */}
-                <div className={`grid gap-4 md:grid-cols-2 ${userRole === 'administrador' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+                <div className={`grid grid-cols-2 gap-3 md:gap-4 ${userRole === 'administrador' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
                     <MetricCard
                         title="Ventas Hoy"
                         value={metrics.total_sales_today}

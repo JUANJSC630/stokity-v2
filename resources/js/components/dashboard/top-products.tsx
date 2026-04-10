@@ -39,7 +39,7 @@ export function TopProducts({ products }: TopProductsProps) {
                 ) : (
                     <div>
                         {products.map((product, index) => (
-                            <div key={product.id} className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}>
+                            <div key={product.id} className={`flex items-center gap-2 px-3 py-2.5 md:gap-3 md:px-5 md:py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}>
                                 {/* Rank */}
                                 <div
                                     className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}

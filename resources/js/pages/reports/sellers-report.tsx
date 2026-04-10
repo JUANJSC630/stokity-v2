@@ -316,8 +316,25 @@ export default function SellersReport({
                             <CardTitle>Rendimiento de Vendedores</CardTitle>
                             <CardDescription>Top vendedores por volumen de ventas</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {Array.isArray(sellersData?.sellers_performance) &&
+                                    sellersData.sellers_performance.map((seller) => (
+                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate font-medium">{seller.name}</p>
+                                                <p className="truncate text-xs text-muted-foreground">{seller.email}</p>
+                                            </div>
+                                            <div className="flex-shrink-0 text-right">
+                                                <p className="font-semibold">{formatCurrency(seller.total_amount)}</p>
+                                                <p className="text-xs text-muted-foreground">{formatNumber(seller.total_sales)} ventas · prom {formatCurrency(seller.average_sale)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -331,10 +348,7 @@ export default function SellersReport({
                                     <tbody>
                                         {Array.isArray(sellersData?.sellers_performance) &&
                                             sellersData.sellers_performance.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
+                                                <tr key={seller.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                     <td className="p-2 font-medium">{seller.name}</td>
                                                     <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
                                                     <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
@@ -354,8 +368,29 @@ export default function SellersReport({
                             <CardTitle>Comparación de Períodos</CardTitle>
                             <CardDescription>Crecimiento de ventas vs período anterior</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {Array.isArray(sellersData?.sellers_comparison) &&
+                                    sellersData.sellers_comparison.map((seller) => (
+                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                            <p className="font-medium">{seller.name}</p>
+                                            <div className="flex-shrink-0 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {getGrowthIcon(seller.growth_percentage)}
+                                                    <span className={`font-semibold ${getGrowthColor(seller.growth_percentage)}`}>
+                                                        {seller.growth_percentage > 0 ? '+' : ''}{seller.growth_percentage}%
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {formatNumber(seller.current_period_sales)} → {formatNumber(seller.previous_period_sales)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -368,10 +403,7 @@ export default function SellersReport({
                                     <tbody>
                                         {Array.isArray(sellersData?.sellers_comparison) &&
                                             sellersData.sellers_comparison.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
+                                                <tr key={seller.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                     <td className="p-2 font-medium">{seller.name}</td>
                                                     <td className="p-2 text-right">{formatNumber(seller.current_period_sales)}</td>
                                                     <td className="p-2 text-right">{formatNumber(seller.previous_period_sales)}</td>
@@ -379,8 +411,7 @@ export default function SellersReport({
                                                         <div className="flex items-center justify-end gap-1">
                                                             {getGrowthIcon(seller.growth_percentage)}
                                                             <span className={getGrowthColor(seller.growth_percentage)}>
-                                                                {seller.growth_percentage > 0 ? '+' : ''}
-                                                                {seller.growth_percentage}%
+                                                                {seller.growth_percentage > 0 ? '+' : ''}{seller.growth_percentage}%
                                                             </span>
                                                         </div>
                                                     </td>
@@ -398,8 +429,26 @@ export default function SellersReport({
                             <CardTitle>Vendedores por Sucursal</CardTitle>
                             <CardDescription>Desglose de vendedores por sucursal</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {Array.isArray(sellersData?.sellers_by_branch) &&
+                                    sellersData.sellers_by_branch.map((seller) => (
+                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate font-medium">{seller.name}</p>
+                                                <p className="truncate text-xs text-muted-foreground">{seller.email}</p>
+                                                <Badge variant="outline" className="mt-1 text-xs">{seller.branch_name}</Badge>
+                                            </div>
+                                            <div className="flex-shrink-0 text-right">
+                                                <p className="font-semibold">{formatCurrency(seller.total_amount)}</p>
+                                                <p className="text-xs text-muted-foreground">{formatNumber(seller.total_sales)} ventas</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -413,15 +462,10 @@ export default function SellersReport({
                                     <tbody>
                                         {Array.isArray(sellersData?.sellers_by_branch) &&
                                             sellersData.sellers_by_branch.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
+                                                <tr key={seller.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                     <td className="p-2 font-medium">{seller.name}</td>
                                                     <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{seller.branch_name}</Badge>
-                                                    </td>
+                                                    <td className="p-2"><Badge variant="outline">{seller.branch_name}</Badge></td>
                                                     <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(seller.total_amount)}</td>
                                                 </tr>

@@ -23,8 +23,9 @@ import { useState } from 'react';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const page = usePage<SharedData>();
-    const { state } = useSidebar();
-    const isCollapsed = state === 'collapsed';
+    const { state, isMobile } = useSidebar();
+    // On mobile the sidebar renders as a Sheet (drawer) — always show expanded view inside it
+    const isCollapsed = !isMobile && state === 'collapsed';
     const userRole = page.props.auth.user.role;
 
     const [expandedItems, setExpandedItems] = useState<string[]>(() => {

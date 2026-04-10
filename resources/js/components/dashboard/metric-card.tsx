@@ -15,7 +15,7 @@ interface MetricCardProps {
 
 export function MetricCard({ title, value, description, icon, trend, className }: MetricCardProps) {
     return (
-        <div className={cn('relative rounded-xl border border-border/60 bg-card px-5 py-4', className)}>
+        <div className={cn('relative rounded-xl border border-border/60 bg-card px-3 py-3 md:px-5 md:py-4', className)}>
             {/* Trend bubble — floats in top-right corner */}
             {trend && (
                 <span
@@ -42,12 +42,12 @@ export function MetricCard({ title, value, description, icon, trend, className }
 
             {/* Title + icon (icon hidden when trend badge occupies the corner) */}
             <div className="flex items-center justify-between">
-                <p className={cn('text-xs font-medium tracking-wide text-muted-foreground uppercase', trend && 'pr-14')}>{title}</p>
+                <p className={cn('truncate text-xs font-medium tracking-wide text-muted-foreground uppercase', trend && 'pr-10')}>{title}</p>
                 {icon && !trend && <span className="text-muted-foreground/50">{icon}</span>}
             </div>
 
             {/* Value */}
-            <p className="mt-3 text-2xl leading-none font-bold tracking-tight">{value}</p>
+            <p className="mt-3 truncate text-xl leading-none font-bold tracking-tight md:text-2xl">{value}</p>
 
             {/* Description */}
             {description && <p className="mt-2 text-[11px] text-muted-foreground">{description}</p>}

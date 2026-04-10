@@ -288,8 +288,26 @@ export default function BranchesReport({
                             <CardTitle>Rendimiento de Sucursales</CardTitle>
                             <CardDescription>Análisis detallado por sucursal</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {branchesData?.branches_performance?.map((branch) => (
+                                    <div key={branch.id} className="flex items-start justify-between gap-2 px-4 py-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium">{branch.name}</p>
+                                            {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
+                                            {branch.address && <p className="text-xs text-muted-foreground">{branch.address}</p>}
+                                            <p className="mt-0.5 text-xs text-muted-foreground">{formatNumber(branch.active_sellers)} vendedores</p>
+                                        </div>
+                                        <div className="flex-shrink-0 text-right">
+                                            <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
+                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.total_sales)} ventas · prom {formatCurrency(branch.average_sale)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -304,10 +322,7 @@ export default function BranchesReport({
                                     </thead>
                                     <tbody>
                                         {branchesData?.branches_performance?.map((branch) => (
-                                            <tr
-                                                key={branch.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
+                                            <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                 <td className="p-2 font-medium">{branch.name}</td>
                                                 <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
                                                 <td className="p-2 text-sm text-muted-foreground">{branch.address}</td>
@@ -329,8 +344,24 @@ export default function BranchesReport({
                             <CardTitle>Comparación de Sucursales</CardTitle>
                             <CardDescription>Métricas comparativas entre sucursales</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
+                        <CardContent className="p-0">
+                            {/* Mobile */}
+                            <div className="divide-y md:hidden">
+                                {branchesData?.branches_comparison?.map((branch) => (
+                                    <div key={branch.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium">{branch.name}</p>
+                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.active_days)} días activos</p>
+                                        </div>
+                                        <div className="flex-shrink-0 text-right">
+                                            <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
+                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.sales_count)} ventas · prom {formatCurrency(branch.average_sale)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -343,10 +374,7 @@ export default function BranchesReport({
                                     </thead>
                                     <tbody>
                                         {branchesData?.branches_comparison?.map((branch) => (
-                                            <tr
-                                                key={branch.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
+                                            <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                 <td className="p-2 font-medium">{branch.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(branch.sales_count)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
@@ -367,8 +395,25 @@ export default function BranchesReport({
                                 <CardTitle>Sucursales por Región</CardTitle>
                                 <CardDescription>Desglose de sucursales por región geográfica</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
+                            <CardContent className="p-0">
+                                {/* Mobile */}
+                                <div className="divide-y md:hidden">
+                                    {branchesData?.branches_by_region?.map((branch) => (
+                                        <div key={branch.id} className="flex items-center justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium">{branch.name}</p>
+                                                {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
+                                                <Badge variant="outline" className="mt-1 text-xs">{branch.region}</Badge>
+                                            </div>
+                                            <div className="flex-shrink-0 text-right">
+                                                <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
+                                                <p className="text-xs text-muted-foreground">{formatNumber(branch.total_sales)} ventas</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Desktop */}
+                                <div className="hidden overflow-x-auto md:block">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b border-neutral-200 dark:border-neutral-700">
@@ -381,15 +426,10 @@ export default function BranchesReport({
                                         </thead>
                                         <tbody>
                                             {branchesData?.branches_by_region?.map((branch) => (
-                                                <tr
-                                                    key={branch.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
+                                                <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
                                                     <td className="p-2 font-medium">{branch.name}</td>
                                                     <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{branch.region}</Badge>
-                                                    </td>
+                                                    <td className="p-2"><Badge variant="outline">{branch.region}</Badge></td>
                                                     <td className="p-2 text-right">{formatNumber(branch.total_sales)}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
                                                 </tr>

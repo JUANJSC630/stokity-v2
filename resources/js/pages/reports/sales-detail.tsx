@@ -299,70 +299,57 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto">
+                            {/* Mobile: simplified card list (completed only) */}
+                            <div className="divide-y md:hidden">
+                                {salesData.map((item, index) => (
+                                    <div key={index} className="py-3">
+                                        <div className="flex items-center justify-between">
+                                            <Badge variant="outline">{item.period}</Badge>
+                                            <span className="font-semibold">{formatCurrency(Number(item.completed?.total_amount) || 0)}</span>
+                                        </div>
+                                        <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                                            <span>{formatNumber(Number(item.completed?.total_sales) || 0)} ventas</span>
+                                            <span>Prom: {formatCurrency(Number(item.completed?.average_sale) || 0)}</span>
+                                            {(Number(item.cancelled?.total_sales) || 0) > 0 && (
+                                                <span className="text-red-500">{formatNumber(Number(item.cancelled?.total_sales) || 0)} cancel.</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Desktop: full 15-column table */}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
                                             <th className="p-2 text-left">Período</th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Completadas
-                                            </th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Canceladas
-                                            </th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Pendientes
-                                            </th>
+                                            <th className="p-2 text-center" colSpan={5}>Completadas</th>
+                                            <th className="p-2 text-center" colSpan={5}>Canceladas</th>
+                                            <th className="p-2 text-center" colSpan={5}>Pendientes</th>
                                         </tr>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
                                             <th className="p-2 text-left">Fecha</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
+                                            <th className="p-2 text-right">Ventas</th><th className="p-2 text-right">Monto</th><th className="p-2 text-right">Neto</th><th className="p-2 text-right">Imp.</th><th className="p-2 text-right">Prom.</th>
+                                            <th className="p-2 text-right">Ventas</th><th className="p-2 text-right">Monto</th><th className="p-2 text-right">Neto</th><th className="p-2 text-right">Imp.</th><th className="p-2 text-right">Prom.</th>
+                                            <th className="p-2 text-right">Ventas</th><th className="p-2 text-right">Monto</th><th className="p-2 text-right">Neto</th><th className="p-2 text-right">Imp.</th><th className="p-2 text-right">Prom.</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {salesData.map((item, index) => (
-                                            <tr
-                                                key={index}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{item.period}</Badge>
-                                                </td>
-                                                {/* Completadas */}
+                                            <tr key={index} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                                <td className="p-2"><Badge variant="outline">{item.period}</Badge></td>
                                                 <td className="p-2 text-right">{formatNumber(Number(item.completed?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.completed?.total_amount) || 0)}
-                                                </td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(Number(item.completed?.total_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.completed?.net_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.completed?.tax_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.completed?.average_sale) || 0)}</td>
-                                                {/* Canceladas */}
                                                 <td className="p-2 text-right">{formatNumber(Number(item.cancelled?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.cancelled?.total_amount) || 0)}
-                                                </td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(Number(item.cancelled?.total_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.net_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.tax_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.average_sale) || 0)}</td>
-                                                {/* Pendientes */}
                                                 <td className="p-2 text-right">{formatNumber(Number(item.pending?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.pending?.total_amount) || 0)}
-                                                </td>
+                                                <td className="p-2 text-right font-medium">{formatCurrency(Number(item.pending?.total_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.net_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.tax_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.average_sale) || 0)}</td>
