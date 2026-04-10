@@ -178,16 +178,29 @@ class StockMovementController extends Controller
 
             // Auto-vincular producto al proveedor en el pivot cuando es una compra o entrada con proveedor
             if ($supplierId && $request->type === 'ingreso') {
+                $pivotPrice = $request->unit_cost !== null ? (float) $request->unit_cost : null;
+
                 if (! $locked->suppliers()->where('supplier_id', $supplierId)->exists()) {
                     $locked->suppliers()->attach($supplierId, [
-                        'purchase_price' => $request->unit_cost !== null ? (float) $request->unit_cost : null,
+                        'purchase_price' => $pivotPrice,
                         'supplier_code' => null,
                         'is_default' => false,
+                    ]);
+                } elseif ($pivotPrice !== null) {
+                    // Actualizar precio en pivot si el proveedor ya estaba vinculado
+                    $locked->suppliers()->updateExistingPivot($supplierId, [
+                        'purchase_price' => $pivotPrice,
                     ]);
                 }
             }
 
-            $locked->update(['stock' => $newStock]);
+            // Actualizar precio de compra del producto si se registra un ingreso con costo explícito
+            $productUpdates = ['stock' => $newStock];
+            if ($request->type === 'ingreso' && $request->unit_cost !== null) {
+                $productUpdates['purchase_price'] = (float) $request->unit_cost;
+            }
+
+            $locked->update($productUpdates);
         });
 
         // Redirect back to product if the movement came from a product page
