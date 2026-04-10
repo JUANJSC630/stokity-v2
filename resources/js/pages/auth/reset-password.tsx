@@ -1,12 +1,8 @@
-import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
-
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
+import { Head, useForm } from '@inertiajs/react';
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock, Mail } from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 interface ResetPasswordProps {
     token: string;
@@ -28,6 +24,9 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
         password_confirmation: '',
     });
 
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('password.store'), {
@@ -36,61 +35,101 @@ export default function ResetPassword({ token, email }: ResetPasswordProps) {
     };
 
     return (
-        <AuthLayout title="Reset password" description="Please enter your new password below">
-            <Head title="Reset password" />
+        <AuthLayout description="Ingresa tu nueva contraseña para recuperar el acceso">
+            <Head title="Restablecer contraseña" />
 
-            <form onSubmit={submit}>
-                <div className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
+            <form className="flex flex-col gap-4" onSubmit={submit}>
+                {/* ── Email (readonly) ───────────────────────────────────── */}
+                <div className="welcome-animate welcome-d5 flex flex-col gap-2">
+                    <label htmlFor="email" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                        Correo electrónico
+                    </label>
+                    <div className="auth-input-wrapper">
+                        <Mail className="auth-input-icon" />
+                        <input
                             id="email"
                             type="email"
                             name="email"
+                            className="auth-input"
                             autoComplete="email"
                             value={data.email}
-                            className="mt-1 block w-full"
                             readOnly
                             onChange={(e) => setData('email', e.target.value)}
                         />
-                        <InputError message={errors.email} className="mt-2" />
                     </div>
+                    <InputError message={errors.email} />
+                </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
+                {/* ── Nueva contraseña ───────────────────────────────────── */}
+                <div className="welcome-animate welcome-d6 flex flex-col gap-2">
+                    <label htmlFor="password" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                        Nueva contraseña
+                    </label>
+                    <div className="auth-input-wrapper">
+                        <Lock className="auth-input-icon" />
+                        <input
                             id="password"
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             name="password"
+                            className="auth-input has-toggle"
+                            placeholder="••••••••"
+                            required
+                            autoFocus
                             autoComplete="new-password"
                             value={data.password}
-                            className="mt-1 block w-full"
-                            autoFocus
                             onChange={(e) => setData('password', e.target.value)}
-                            placeholder="Password"
                         />
-                        <InputError message={errors.password} />
+                        <button
+                            type="button"
+                            className="auth-toggle-btn"
+                            tabIndex={-1}
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                     </div>
+                    <InputError message={errors.password} />
+                </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="password_confirmation">Confirm password</Label>
-                        <Input
+                {/* ── Confirmar contraseña ───────────────────────────────── */}
+                <div className="welcome-animate welcome-d7 flex flex-col gap-2">
+                    <label htmlFor="password_confirmation" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                        Confirmar contraseña
+                    </label>
+                    <div className="auth-input-wrapper">
+                        <Lock className="auth-input-icon" />
+                        <input
                             id="password_confirmation"
-                            type="password"
+                            type={showConfirm ? 'text' : 'password'}
                             name="password_confirmation"
+                            className="auth-input has-toggle"
+                            placeholder="••••••••"
+                            required
                             autoComplete="new-password"
                             value={data.password_confirmation}
-                            className="mt-1 block w-full"
                             onChange={(e) => setData('password_confirmation', e.target.value)}
-                            placeholder="Confirm password"
                         />
-                        <InputError message={errors.password_confirmation} className="mt-2" />
+                        <button
+                            type="button"
+                            className="auth-toggle-btn"
+                            tabIndex={-1}
+                            onClick={() => setShowConfirm(!showConfirm)}
+                            aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                     </div>
+                    <InputError message={errors.password_confirmation} />
+                </div>
 
-                    <Button type="submit" className="mt-4 w-full" disabled={processing}>
+                {/* ── Submit ─────────────────────────────────────────────── */}
+                <div className="welcome-animate welcome-d8 mt-1">
+                    <button type="submit" className="btn-auth group" disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                        Reset password
-                    </Button>
+                        Restablecer contraseña
+                        {!processing && <ArrowRight className="btn-arrow h-4 w-4" />}
+                    </button>
                 </div>
             </form>
         </AuthLayout>
