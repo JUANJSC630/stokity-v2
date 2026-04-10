@@ -116,8 +116,8 @@ export default function EditUser({ user, branches, roles }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.put(`/users/${user.id}`, {
-            forceFormData: true, // Inertia hará method-spoofing (POST + _method=PUT) para soportar archivos
+        form.transform((data) => ({ ...data, _method: 'put' })).post(`/users/${user.id}`, {
+            forceFormData: true,
             onSuccess: () => {
                 console.log('Usuario actualizado exitosamente');
             },
