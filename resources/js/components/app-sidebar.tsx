@@ -119,6 +119,23 @@ const allNavItems: NavItem[] = [
         href: '/expenses',
         icon: Receipt,
         roles: ['administrador', 'encargado'],
+        children: [
+            {
+                title: 'Historial de gastos',
+                href: '/expenses',
+                icon: Receipt,
+            },
+            {
+                title: 'Gastos fijos',
+                href: '/expense-templates',
+                icon: RotateCcw,
+            },
+            {
+                title: 'Categorías',
+                href: '/expense-categories',
+                icon: Tags,
+            },
+        ],
     },
     {
         title: 'Reportes',

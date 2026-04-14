@@ -23,6 +23,9 @@ Route::middleware(['auth', 'verified', AdminOrManagerMiddleware::class])->group(
     Route::put('/expense-templates/{expenseTemplate}', [ExpenseTemplateController::class, 'update'])->name('expense-templates.update');
     Route::delete('/expense-templates/{expenseTemplate}', [ExpenseTemplateController::class, 'destroy'])->name('expense-templates.destroy');
 
-    // Categorías (JSON para selects del frontend)
+    // Categorías de gasto (gestión CRUD)
     Route::get('/expense-categories', [ExpenseCategoryController::class, 'index'])->name('expense-categories.index');
+    Route::post('/expense-categories', [ExpenseCategoryController::class, 'store'])->name('expense-categories.store');
+    Route::put('/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'update'])->name('expense-categories.update');
+    Route::delete('/expense-categories/{expenseCategory}', [ExpenseCategoryController::class, 'destroy'])->name('expense-categories.destroy');
 });
