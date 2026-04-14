@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified', AdminOrManagerMiddleware::class])->group(
     Route::post('/expense-templates', [ExpenseTemplateController::class, 'store'])->name('expense-templates.store');
     Route::put('/expense-templates/{expenseTemplate}', [ExpenseTemplateController::class, 'update'])->name('expense-templates.update');
     Route::delete('/expense-templates/{expenseTemplate}', [ExpenseTemplateController::class, 'destroy'])->name('expense-templates.destroy');
+    Route::delete('/expense-templates/{expenseTemplate}/unregister-month', [ExpenseTemplateController::class, 'unregisterMonth'])->name('expense-templates.unregister-month');
 
     // Categorías de gasto (gestión CRUD)
     Route::get('/expense-categories', [ExpenseCategoryController::class, 'index'])->name('expense-categories.index');

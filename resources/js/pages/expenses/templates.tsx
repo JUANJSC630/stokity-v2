@@ -2,14 +2,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type ExpenseCategory, type ExpenseTemplate } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -29,6 +36,39 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function cop(value: number): string {
     return `$ ${Number(value).toLocaleString('es-CO')}`;
+}
+
+// ─── ConfirmDialog ─────────────────────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    confirmVariant?: 'default' | 'destructive';
+    onConfirm: () => void;
+    onCancel: () => void;
+}
+
+function ConfirmDialog({ open, title, description, confirmLabel = 'Confirmar', confirmVariant = 'default', onConfirm, onCancel }: ConfirmDialogProps) {
+    return (
+        <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>{description}</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onCancel}>
+                        Cancelar
+                    </Button>
+                    <Button variant={confirmVariant} onClick={onConfirm}>
+                        {confirmLabel}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 // ─── TemplateModal ─────────────────────────────────────────────────────────────
@@ -307,10 +347,28 @@ export default function ExpenseTemplates({ templates, categories, branches, user
     const [showCreate, setShowCreate] = useState(false);
     const [editTemplate, setEditTemplate] = useState<ExpenseTemplate | null>(null);
     const [registerTemplate, setRegisterTemplate] = useState<ExpenseTemplate | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<ExpenseTemplate | null>(null);
+    const [unregisterTarget, setUnregisterTarget] = useState<ExpenseTemplate | null>(null);
 
-    const handleDelete = (id: number) => {
-        if (!window.confirm('¿Eliminar este gasto fijo? Esta acción no se puede deshacer.')) return;
-        router.delete(`/expense-templates/${id}`, { preserveScroll: true });
+    const confirmDelete = () => {
+        if (!deleteTarget) return;
+        router.delete(`/expense-templates/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDeleteTarget(null),
+            onError: () => setDeleteTarget(null),
+        });
+    };
+
+    const confirmUnregister = () => {
+        if (!unregisterTarget) return;
+        router.delete(`/expense-templates/${unregisterTarget.id}/unregister-month`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Pago des-registrado.');
+                setUnregisterTarget(null);
+            },
+            onError: () => setUnregisterTarget(null),
+        });
     };
 
     return (
@@ -342,6 +400,26 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                 branches={branches}
                 userBranchId={userBranchId}
                 onClose={() => setRegisterTemplate(null)}
+            />
+
+            <ConfirmDialog
+                open={Boolean(unregisterTarget)}
+                title="Des-registrar pago"
+                description={`¿Deseas des-registrar el pago de "${unregisterTarget?.name}" de este mes? El gasto será eliminado.`}
+                confirmLabel="Des-registrar"
+                confirmVariant="destructive"
+                onConfirm={confirmUnregister}
+                onCancel={() => setUnregisterTarget(null)}
+            />
+
+            <ConfirmDialog
+                open={Boolean(deleteTarget)}
+                title="Eliminar gasto fijo"
+                description={`¿Eliminar "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
+                confirmLabel="Eliminar"
+                confirmVariant="destructive"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
             />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
@@ -421,7 +499,17 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                     </td>
                                                     <td className="py-2">
                                                         <div className="flex items-center gap-1">
-                                                            {t.due_status !== 'registered' && t.due_status !== 'inactive' && (
+                                                            {t.due_status === 'registered' ? (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                                                                    onClick={() => setUnregisterTarget(t)}
+                                                                    title="Des-registrar pago de este mes"
+                                                                >
+                                                                    <Undo2 className="h-4 w-4" />
+                                                                </Button>
+                                                            ) : t.due_status !== 'inactive' && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -445,7 +533,7 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                                onClick={() => handleDelete(t.id)}
+                                                                onClick={() => setDeleteTarget(t)}
                                                                 title="Eliminar"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
@@ -488,7 +576,17 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                     )}
                                                 </div>
                                                 <div className="flex gap-1">
-                                                    {t.due_status !== 'registered' && t.due_status !== 'inactive' && (
+                                                    {t.due_status === 'registered' ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                                                            onClick={() => setUnregisterTarget(t)}
+                                                            title="Des-registrar pago de este mes"
+                                                        >
+                                                            <Undo2 className="h-4 w-4" />
+                                                        </Button>
+                                                    ) : t.due_status !== 'inactive' && (
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
@@ -506,7 +604,7 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                        onClick={() => handleDelete(t.id)}
+                                                        onClick={() => setDeleteTarget(t)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>

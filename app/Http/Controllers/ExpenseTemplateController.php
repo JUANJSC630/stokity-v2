@@ -93,6 +93,27 @@ class ExpenseTemplateController extends Controller
         return back()->with('success', 'Plantilla actualizada.');
     }
 
+    public function unregisterMonth(ExpenseTemplate $expenseTemplate): RedirectResponse
+    {
+        $user = Auth::user();
+        if (! $user->isAdmin() && $expenseTemplate->branch_id !== $user->branch_id) {
+            abort(403);
+        }
+
+        $now = Carbon::now('America/Bogota');
+
+        $deleted = $expenseTemplate->expenses()
+            ->whereYear('expense_date', $now->year)
+            ->whereMonth('expense_date', $now->month)
+            ->delete();
+
+        if (! $deleted) {
+            return back()->withErrors(['template' => 'No hay pago registrado este mes para esta plantilla.']);
+        }
+
+        return back()->with('success', 'Pago des-registrado correctamente.');
+    }
+
     public function destroy(ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
