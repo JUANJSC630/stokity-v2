@@ -9,20 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type ExpenseCategory, type ExpenseTemplate } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface Props {
     templates: ExpenseTemplate[];
     categories: ExpenseCategory[];
     branches: Array<{ id: number; name: string }>;
     userBranchId: number | null;
+    currentDay: number;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Inicio', href: '/dashboard' },
     { title: 'Gastos', href: '/expenses' },
-    { title: 'Gastos fijos recurrentes', href: '/expenses/templates' },
+    { title: 'Gastos fijos recurrentes', href: '/expense-templates' },
 ];
 
 function cop(value: number): string {
@@ -48,6 +50,7 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
         name: template?.name ?? '',
         expense_category_id: template?.expense_category_id ? String(template.expense_category_id) : '',
         reference_amount: template?.reference_amount ?? 0,
+        due_day: template?.due_day ? String(template.due_day) : '',
         branch_id: template?.branch_id ? String(template.branch_id) : userBranchId ? String(userBranchId) : '',
         is_active: template?.is_active ?? true,
     });
@@ -60,12 +63,12 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isEdit && template) {
-            put(`/expenses/templates/${template.id}`, {
+            put(`/expense-templates/${template.id}`, {
                 onSuccess: handleClose,
                 preserveScroll: true,
             });
         } else {
-            post('/expenses/templates', {
+            post('/expense-templates', {
                 onSuccess: handleClose,
                 preserveScroll: true,
             });
@@ -114,6 +117,28 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
                         <Label>Monto de referencia</Label>
                         <CurrencyInput value={data.reference_amount} onChange={(v) => setData('reference_amount', v)} placeholder="0" />
                         {errors.reference_amount && <p className="text-xs text-red-600">{errors.reference_amount}</p>}
+                    </div>
+
+                    {/* Due day */}
+                    <div className="space-y-1.5">
+                        <Label>Día de vencimiento (opcional)</Label>
+                        <Select value={data.due_day} onValueChange={(v) => setData('due_day', v === 'none' ? '' : v)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Sin día específico" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Sin día específico</SelectItem>
+                                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                                    <SelectItem key={d} value={String(d)}>
+                                        Día {d} de cada mes
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                            Indica cuándo vence este gasto para saber si está al día o atrasado.
+                        </p>
+                        {errors.due_day && <p className="text-xs text-red-600">{errors.due_day}</p>}
                     </div>
 
                     {/* Branch — admin only */}
@@ -166,13 +191,126 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
+// ─── QuickRegisterModal ────────────────────────────────────────────────────────
+
+interface QuickRegisterModalProps {
+    template: ExpenseTemplate | null;
+    branches: Array<{ id: number; name: string }>;
+    userBranchId: number | null;
+    onClose: () => void;
+}
+
+function todayStr(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function QuickRegisterModal({ template, branches, userBranchId, onClose }: QuickRegisterModalProps) {
+    const isAdmin = branches.length > 0;
+
+    const { data, setData, post, processing, reset, errors } = useForm({
+        expense_category_id: template?.expense_category_id ? String(template.expense_category_id) : '',
+        description: template?.name ?? '',
+        amount: template?.reference_amount ?? 0,
+        expense_date: todayStr(),
+        branch_id: template?.branch_id ? String(template.branch_id) : userBranchId ? String(userBranchId) : '',
+        notes: '',
+        expense_template_id: template?.id ? String(template.id) : '',
+    });
+
+    const handleClose = () => {
+        reset();
+        onClose();
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/expenses', {
+            onSuccess: () => {
+                toast.success('Gasto registrado correctamente.');
+                handleClose();
+            },
+            preserveScroll: true,
+        });
+    };
+
+    return (
+        <Dialog open={Boolean(template)} onOpenChange={(v) => !v && handleClose()}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Registrar pago</DialogTitle>
+                    <p className="text-sm text-muted-foreground">{template?.name}</p>
+                </DialogHeader>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Label>Monto</Label>
+                        <CurrencyInput value={data.amount} onChange={(v) => setData('amount', v)} />
+                        {errors.amount && <p className="text-xs text-red-600">{errors.amount}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label>Fecha de pago</Label>
+                        <Input type="date" value={data.expense_date} onChange={(e) => setData('expense_date', e.target.value)} />
+                        {errors.expense_date && <p className="text-xs text-red-600">{errors.expense_date}</p>}
+                    </div>
+
+                    {isAdmin && (
+                        <div className="space-y-1.5">
+                            <Label>Sucursal</Label>
+                            <Select value={data.branch_id} onValueChange={(v) => setData('branch_id', v)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona una sucursal" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((b) => (
+                                        <SelectItem key={b.id} value={String(b.id)}>
+                                            {b.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={handleClose} disabled={processing}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Registrando...' : 'Registrar pago'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ─── DueStatusBadge ────────────────────────────────────────────────────────────
+
+function DueStatusBadge({ status }: { status: ExpenseTemplate['due_status'] }) {
+    switch (status) {
+        case 'registered':
+            return <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Registrado</Badge>;
+        case 'overdue':
+            return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Vencido</Badge>;
+        case 'due_soon':
+            return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Vence pronto</Badge>;
+        case 'inactive':
+            return <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Pausada</Badge>;
+        default:
+            return <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Pendiente</Badge>;
+    }
+}
+
 export default function ExpenseTemplates({ templates, categories, branches, userBranchId }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editTemplate, setEditTemplate] = useState<ExpenseTemplate | null>(null);
+    const [registerTemplate, setRegisterTemplate] = useState<ExpenseTemplate | null>(null);
 
     const handleDelete = (id: number) => {
         if (!window.confirm('¿Eliminar este gasto fijo? Esta acción no se puede deshacer.')) return;
-        router.delete(`/expenses/templates/${id}`, { preserveScroll: true });
+        router.delete(`/expense-templates/${id}`, { preserveScroll: true });
     };
 
     return (
@@ -197,6 +335,14 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                     template={editTemplate}
                 />
             )}
+
+            <QuickRegisterModal
+                key={registerTemplate?.id ?? 'none'}
+                template={registerTemplate}
+                branches={branches}
+                userBranchId={userBranchId}
+                onClose={() => setRegisterTemplate(null)}
+            />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header */}
@@ -240,6 +386,7 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                 <th className="pr-4 pb-2">Nombre</th>
                                                 <th className="pr-4 pb-2">Categoría</th>
                                                 <th className="pr-4 pb-2 text-right">Monto referencia</th>
+                                                <th className="pr-4 pb-2">Vencimiento</th>
                                                 <th className="pr-4 pb-2">Estado</th>
                                                 <th className="pb-2">Acciones</th>
                                             </tr>
@@ -262,19 +409,29 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                         )}
                                                     </td>
                                                     <td className="py-2 pr-4 text-right">{cop(t.reference_amount)}</td>
-                                                    <td className="py-2 pr-4">
-                                                        {t.is_active ? (
-                                                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                                Se registra mensualmente
-                                                            </Badge>
+                                                    <td className="py-2 pr-4 text-sm">
+                                                        {t.due_day ? (
+                                                            <span>Día {t.due_day}</span>
                                                         ) : (
-                                                            <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                                                Pausada
-                                                            </Badge>
+                                                            <span className="text-muted-foreground">—</span>
                                                         )}
+                                                    </td>
+                                                    <td className="py-2 pr-4">
+                                                        <DueStatusBadge status={t.due_status} />
                                                     </td>
                                                     <td className="py-2">
                                                         <div className="flex items-center gap-1">
+                                                            {t.due_status !== 'registered' && t.due_status !== 'inactive' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-green-600 hover:text-green-700"
+                                                                    onClick={() => setRegisterTemplate(t)}
+                                                                    title="Registrar pago"
+                                                                >
+                                                                    <CheckCircle2 className="h-4 w-4" />
+                                                                </Button>
+                                                            )}
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
@@ -324,14 +481,24 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                 <p className="font-bold">{cop(t.reference_amount)}</p>
                                             </div>
                                             <div className="flex items-center justify-between">
-                                                {t.is_active ? (
-                                                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                        Se registra mensualmente
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Pausada</Badge>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    <DueStatusBadge status={t.due_status} />
+                                                    {t.due_day && (
+                                                        <span className="text-xs text-muted-foreground">Día {t.due_day}</span>
+                                                    )}
+                                                </div>
                                                 <div className="flex gap-1">
+                                                    {t.due_status !== 'registered' && t.due_status !== 'inactive' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-green-600 hover:text-green-700"
+                                                            onClick={() => setRegisterTemplate(t)}
+                                                            title="Registrar pago"
+                                                        >
+                                                            <CheckCircle2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTemplate(t)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>

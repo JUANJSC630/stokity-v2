@@ -16,12 +16,14 @@ class ExpenseTemplate extends Model
         'expense_category_id',
         'name',
         'reference_amount',
+        'due_day',
         'is_active',
     ];
 
     protected $casts = [
         'reference_amount' => 'decimal:2',
-        'is_active' => 'boolean',
+        'due_day'          => 'integer',
+        'is_active'        => 'boolean',
     ];
 
     public function branch(): BelongsTo

@@ -384,7 +384,9 @@ export interface ExpenseTemplate {
     expense_category_id: number | null;
     name: string;
     reference_amount: number;
+    due_day: number | null;
     is_active: boolean;
+    due_status?: 'registered' | 'overdue' | 'due_soon' | 'pending' | 'inactive';
     category: ExpenseCategory | null;
     branch?: { id: number; name: string };
 }
