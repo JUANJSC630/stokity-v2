@@ -128,7 +128,7 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">Sin día específico</SelectItem>
-                                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
                                     <SelectItem key={d} value={String(d)}>
                                         Día {d} de cada mes
                                     </SelectItem>

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expense_templates', function (Blueprint $table) {
-            // Día del mes en que vence/se repite el gasto (1-28). Null = sin día específico.
+            // Día del mes en que vence/se repite el gasto (1-31). Null = sin día específico.
             $table->unsignedTinyInteger('due_day')->nullable()->after('reference_amount');
         });
     }

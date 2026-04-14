@@ -60,7 +60,7 @@ class ExpenseTemplateController extends Controller
             'expense_category_id' => 'nullable|exists:expense_categories,id',
             'name'                => 'required|string|max:255',
             'reference_amount'    => 'required|numeric|min:1',
-            'due_day'             => 'nullable|integer|min:1|max:28',
+            'due_day'             => 'nullable|integer|min:1|max:31',
         ]);
 
         // Encargado solo puede crear plantillas para su sucursal
@@ -84,7 +84,7 @@ class ExpenseTemplateController extends Controller
             'expense_category_id' => 'nullable|exists:expense_categories,id',
             'name'                => 'required|string|max:255',
             'reference_amount'    => 'required|numeric|min:1',
-            'due_day'             => 'nullable|integer|min:1|max:28',
+            'due_day'             => 'nullable|integer|min:1|max:31',
             'is_active'           => 'boolean',
         ]);
 
