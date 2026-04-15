@@ -2,7 +2,8 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 import {
     Activity,
     Banknote,
@@ -183,9 +184,32 @@ const allNavItems: NavItem[] = [
     },
 ];
 
+const SIDEBAR_SCROLL_KEY = 'stokity_sidebar_scroll';
+
+function getSidebarContentEl(): HTMLElement | null {
+    return document.querySelector('[data-sidebar="content"]');
+}
+
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
+
+    // Restore sidebar scroll position on every mount (i.e. after each navigation)
+    useEffect(() => {
+        const el = getSidebarContentEl();
+        const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+        if (el && saved) {
+            el.scrollTop = Number(saved);
+        }
+
+        // Save scroll position right before Inertia navigates away
+        const removeHandler = router.on('before', () => {
+            const el = getSidebarContentEl();
+            if (el) sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(el.scrollTop));
+        });
+
+        return removeHandler;
+    }, []);
 
     // Filter navigation items based on user's role
     const filteredNavItems = allNavItems.filter((item) => !item.roles || item.roles.includes(userRole));
