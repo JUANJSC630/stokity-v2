@@ -1435,8 +1435,8 @@ export default function PosIndex({
                         </div>
                     )}
 
-                    {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed). */}
-                    <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-hidden">
+                    {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed when it fits; parent scrolls if bottom is too tall for the viewport). */}
+                    <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-y-auto">
                     {/* Cart list */}
                     <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
                         {cart.length === 0 ? (
@@ -1506,40 +1506,42 @@ export default function PosIndex({
 
                     {/* Bottom panel: discount + totals + payment + submit */}
                     <div className="border-t border-neutral-200 bg-neutral-50 md:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900">
-                        {/* Discount */}
-                        <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
-                            <Label className="text-xs text-muted-foreground">Descuento:</Label>
-                            <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
-                                <SelectTrigger className="h-7 w-32 text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Ninguno</SelectItem>
-                                    <SelectItem value="percentage">% Porcentaje</SelectItem>
-                                    <SelectItem value="fixed">$ Fijo</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            {discountType !== 'none' &&
-                                (discountType === 'fixed' ? (
-                                    <CurrencyInput
-                                        value={Number(discountValue) || 0}
-                                        onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
-                                        className="h-7 w-24 text-xs"
-                                        placeholder="0"
-                                    />
-                                ) : (
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        value={discountValue === '0' ? '' : discountValue}
-                                        onChange={(e) => setDiscountValue(e.target.value || '0')}
-                                        className="h-7 w-20 text-xs"
-                                        placeholder="0"
-                                    />
-                                ))}
-                            {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
-                        </div>
+                        {/* Discount — only when cart has items */}
+                        {cart.length > 0 && (
+                            <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
+                                <Label className="text-xs text-muted-foreground">Descuento:</Label>
+                                <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
+                                    <SelectTrigger className="h-7 w-32 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Ninguno</SelectItem>
+                                        <SelectItem value="percentage">% Porcentaje</SelectItem>
+                                        <SelectItem value="fixed">$ Fijo</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {discountType !== 'none' &&
+                                    (discountType === 'fixed' ? (
+                                        <CurrencyInput
+                                            value={Number(discountValue) || 0}
+                                            onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
+                                            className="h-7 w-24 text-xs"
+                                            placeholder="0"
+                                        />
+                                    ) : (
+                                        <Input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={discountValue === '0' ? '' : discountValue}
+                                            onChange={(e) => setDiscountValue(e.target.value || '0')}
+                                            className="h-7 w-20 text-xs"
+                                            placeholder="0"
+                                        />
+                                    ))}
+                                {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
+                            </div>
+                        )}
 
                         {/* Totals */}
                         <div className="space-y-1 px-3 py-2 text-sm">
@@ -1559,20 +1561,22 @@ export default function PosIndex({
                             </div>
                         </div>
 
-                        {/* Payment method */}
-                        <div className="px-3 pb-2">
-                            <PaymentMethodSelect
-                                key={formKey}
-                                value={paymentMethod || undefined}
-                                onValueChange={setPaymentMethod}
-                                label=""
-                                placeholder="Método de pago *"
-                                required
-                            />
-                        </div>
+                        {/* Payment method — only when cart has items */}
+                        {cart.length > 0 && (
+                            <div className="px-3 pb-2">
+                                <PaymentMethodSelect
+                                    key={formKey}
+                                    value={paymentMethod || undefined}
+                                    onValueChange={setPaymentMethod}
+                                    label=""
+                                    placeholder="Método de pago *"
+                                    required
+                                />
+                            </div>
+                        )}
 
-                        {/* Amount paid (cash only) */}
-                        {paymentMethod === 'cash' && (
+                        {/* Amount paid (cash only, only when cart has items) */}
+                        {paymentMethod === 'cash' && cart.length > 0 && (
                             <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
                                 <div className="flex items-center gap-2">
                                     <Label className="shrink-0 text-xs">Recibido:</Label>
@@ -1659,34 +1663,36 @@ export default function PosIndex({
                                     </>
                                 )}
                             </button>
-                            <button
-                                type="button"
-                                onClick={handleSaveQuote}
-                                disabled={submitting || cart.length === 0}
-                                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-                            >
-                                <ClipboardList className="h-4 w-4" />
-                                {activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (cart.length === 0) {
-                                        toast.error('Agrega al menos un producto');
-                                        return;
-                                    }
-                                    if (!clientId || clientId === defaultClientId) {
-                                        toast.error('Selecciona un cliente para registrar un crédito');
-                                        return;
-                                    }
-                                    setShowCreditModal(true);
-                                }}
-                                disabled={submitting || cart.length === 0}
-                                className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                            >
-                                <HandCoins className="h-4 w-4" />
-                                Registrar como crédito
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleSaveQuote}
+                                    disabled={submitting || cart.length === 0}
+                                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                >
+                                    <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (cart.length === 0) {
+                                            toast.error('Agrega al menos un producto');
+                                            return;
+                                        }
+                                        if (!clientId || clientId === defaultClientId) {
+                                            toast.error('Selecciona un cliente para registrar un crédito');
+                                            return;
+                                        }
+                                        setShowCreditModal(true);
+                                    }}
+                                    disabled={submitting || cart.length === 0}
+                                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                >
+                                    <HandCoins className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">Vender a crédito</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     </div>{/* ── end mobile scroll wrapper ── */}

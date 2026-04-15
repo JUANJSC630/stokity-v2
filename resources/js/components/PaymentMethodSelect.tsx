@@ -62,9 +62,11 @@ export default function PaymentMethodSelect({
     if (loading) {
         return (
             <div className="space-y-2">
-                <Label htmlFor="payment_method">
-                    {label} {required && <span className="text-red-500">*</span>}
-                </Label>
+                {label && (
+                    <Label htmlFor="payment_method">
+                        {label} {required && <span className="text-red-500">*</span>}
+                    </Label>
+                )}
                 <Select disabled>
                     <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                         <SelectValue placeholder="Cargando métodos de pago..." />
@@ -82,9 +84,11 @@ export default function PaymentMethodSelect({
 
     return (
         <div className="space-y-2">
-            <Label htmlFor="payment_method">
-                {label} {required && <span className="text-red-500">*</span>}
-            </Label>
+            {label && (
+                <Label htmlFor="payment_method">
+                    {label} {required && <span className="text-red-500">*</span>}
+                </Label>
+            )}
             <Select value={safeValue} onValueChange={onValueChange}>
                 <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
                     <SelectValue placeholder={placeholder} />

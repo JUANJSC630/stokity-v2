@@ -430,6 +430,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 className="border-neutral-200 bg-white pr-8 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                                 value={form.data.tax}
                                                 onChange={(e) => form.setData('tax', Number(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
                                             />
                                             <span className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
                                                 %
@@ -466,6 +467,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 min="0"
                                                 value={form.data.stock}
                                                 onChange={(e) => form.setData('stock', Number(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
                                                 className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             />
                                             <p className="text-xs text-muted-foreground">Cantidad inicial en inventario.</p>
@@ -483,6 +485,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 min="0"
                                                 value={form.data.min_stock}
                                                 onChange={(e) => form.setData('min_stock', Number(e.target.value))}
+                                                onFocus={(e) => e.target.select()}
                                                 className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             />
                                             {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}

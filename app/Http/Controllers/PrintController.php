@@ -395,7 +395,7 @@ class PrintController extends Controller
             // ── Footer (return-specific lines) ────────────────────────────────
             $cfg['footer_line1'] = $cfg['return_footer_line1'] ?? 'Devolución procesada.';
             $cfg['footer_line2'] = $cfg['return_footer_line2'] ?? 'Gracias por su preferencia.';
-            $this->printFooter($p, $charsPerLine, $cfg);
+            $this->printFooter($p, $charsPerLine, $cfg, $business->social_media ?? '');
         } finally {
             $bytes = $connector->getData();
             $printer->close();
@@ -663,7 +663,7 @@ class PrintController extends Controller
         // ── Footer ───────────────────────────────────────────────────────────
         $cfg['footer_line1'] = $cfg['return_footer_line1'] ?? 'Devolución procesada.';
         $cfg['footer_line2'] = $cfg['return_footer_line2'] ?? 'Gracias por su preferencia.';
-        $this->printFooter($p, $cols, $cfg);
+        $this->printFooter($p, $cols, $cfg, $biz->social_media ?? '');
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -814,7 +814,7 @@ class PrintController extends Controller
      * Print the standardized footer: separator, footer lines, feed and cut.
      * Used by all receipt types to ensure a consistent ending.
      */
-    private function printFooter(Printer $p, int $cols, array $cfg): void
+    private function printFooter(Printer $p, int $cols, array $cfg, string $socialMedia = ''): void
     {
         $sep = str_repeat('-', $cols);
 
@@ -826,6 +826,10 @@ class PrintController extends Controller
 
         if ($footer1) {
             $p->text($footer1."\n");
+        }
+        if ($socialMedia) {
+            $p->text("Síguenos en:\n");
+            $p->text($socialMedia."\n");
         }
         if ($footer2) {
             $p->text($footer2."\n");
@@ -1008,7 +1012,7 @@ class PrintController extends Controller
 
         // ── Footer ───────────────────────────────────────────────────────────
         $p->text($sep2."\n");
-        $this->printFooter($p, $cols, $cfg);
+        $this->printFooter($p, $cols, $cfg, $biz->social_media ?? '');
     }
 
     /**

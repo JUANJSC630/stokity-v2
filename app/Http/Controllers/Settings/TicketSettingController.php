@@ -22,6 +22,7 @@ class TicketSettingController extends Controller
                 'nit' => $settings->nit,
                 'address' => $settings->address,
                 'phone' => $settings->phone,
+                'social_media' => $settings->social_media,
                 'currency_symbol' => $settings->currency_symbol ?? '$',
                 'logo_url' => $settings->logo_url,
             ],

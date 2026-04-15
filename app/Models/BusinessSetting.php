@@ -27,6 +27,7 @@ class BusinessSetting extends Model
         'phone',
         'email',
         'address',
+        'social_media',
         'currency_symbol',
         'brand_color',
         'brand_color_secondary',

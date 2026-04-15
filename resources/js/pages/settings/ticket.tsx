@@ -45,6 +45,7 @@ interface Business {
     nit: string | null;
     address: string | null;
     phone: string | null;
+    social_media: string | null;
     currency_symbol: string;
     logo_url: string | null;
 }
@@ -331,6 +332,12 @@ function SaleTicketPreview({ config, business }: { config: TicketConfig; busines
             {/* Footer */}
             <div style={{ textAlign: 'center', marginTop: '4px', ...mono }}>
                 {config.footer_line1 && <div>{config.footer_line1}</div>}
+                {business.social_media && (
+                    <>
+                        <div>Síguenos en:</div>
+                        <div>{business.social_media}</div>
+                    </>
+                )}
                 {config.footer_line2 && <div>{config.footer_line2}</div>}
             </div>
         </div>

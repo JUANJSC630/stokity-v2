@@ -29,6 +29,7 @@ class BusinessSettingController extends Controller
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:100',
             'address' => 'nullable|string|max:255',
+            'social_media' => 'nullable|string|max:100',
             'currency_symbol' => 'nullable|string|max:5',
             'logo' => 'nullable|image|max:4096',
             'logo_url' => 'nullable|url|max:500',

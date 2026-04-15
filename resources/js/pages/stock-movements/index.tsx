@@ -197,7 +197,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'unit_cost',
             title: 'Costo Unit.',
-            render: (value) => (value ? `$${(value as number).toLocaleString()}` : '-') as React.ReactNode,
+            render: (value) => (value ? `$${Number(value).toLocaleString('es-CO')}` : '-') as React.ReactNode,
         },
         {
             key: 'reference',
@@ -406,7 +406,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                     Costo unitario:{' '}
                                                     <span className="font-medium text-neutral-700 dark:text-neutral-200">
-                                                        ${movement.unit_cost.toLocaleString()}
+                                                        ${Number(movement.unit_cost).toLocaleString('es-CO')}
                                                     </span>
                                                 </div>
                                             )}

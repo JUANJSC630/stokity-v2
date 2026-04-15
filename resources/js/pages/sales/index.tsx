@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Sale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
@@ -246,13 +246,6 @@ export default function Index({ sales, filters }: PageProps) {
             only: ['sales'],
             onFinish: () => setIsSearching(false),
         });
-    };
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-        }).format(value);
     };
 
     const getStatusBadge = (status: string) => {

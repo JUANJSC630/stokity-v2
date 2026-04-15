@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem, type BusinessSetting } from '@/types';
-import { Transition } from '@headlessui/react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Camera, Link } from 'lucide-react';
-import { FormEventHandler, useState } from 'react';
+import { FormEventHandler, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocio', href: '/settings/business' }];
 
@@ -23,12 +23,21 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
         phone: business.phone ?? '',
         email: business.email ?? '',
         address: business.address ?? '',
+        social_media: business.social_media ?? '',
         currency_symbol: business.currency_symbol ?? '$',
         require_cash_session: business.require_cash_session ?? false,
         logo: null as File | null,
         logo_url: currentLogoUrl,
         _method: 'POST',
     });
+
+    const { props } = usePage<{ flash: { success?: string } }>();
+
+    useEffect(() => {
+        if (props.flash?.success) {
+            toast.success(props.flash.success);
+        }
+    }, [props.flash?.success]);
 
     const [logoPreview, setLogoPreview] = useState<string>(business.logo_url);
     const [showUrlInput, setShowUrlInput] = useState(false);
@@ -160,6 +169,17 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                         </div>
 
                         <div className="grid gap-2">
+                            <Label htmlFor="social_media">Red social</Label>
+                            <Input
+                                id="social_media"
+                                value={form.data.social_media}
+                                onChange={(e) => form.setData('social_media', e.target.value)}
+                                placeholder="@mitienda"
+                            />
+                            <InputError message={form.errors.social_media} />
+                        </div>
+
+                        <div className="grid gap-2">
                             <Label htmlFor="currency_symbol">Símbolo de moneda</Label>
                             <Input
                                 id="currency_symbol"
@@ -193,16 +213,9 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={form.processing}>Guardar</Button>
-                            <Transition
-                                show={form.recentlySuccessful}
-                                enter="transition ease-in-out"
-                                enterFrom="opacity-0"
-                                leave="transition ease-in-out"
-                                leaveTo="opacity-0"
-                            >
-                                <p className="text-sm text-neutral-600">Guardado</p>
-                            </Transition>
+                            <Button disabled={form.processing}>
+                                {form.processing ? 'Guardando...' : 'Guardar'}
+                            </Button>
                         </div>
                     </form>
                 </div>
