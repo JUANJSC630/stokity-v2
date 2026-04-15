@@ -336,7 +336,9 @@ export default function ProductsReport({
                                         </div>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(product.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(product.total_quantity)} uds · {formatNumber(product.sales_count)} ventas</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(product.total_quantity)} uds · {formatNumber(product.sales_count)} ventas
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -355,8 +357,13 @@ export default function ProductsReport({
                                     </thead>
                                     <tbody>
                                         {productsData.top_products.map((product) => (
-                                            <tr key={product.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-                                                <td className="p-2"><Badge variant="outline">{product.code}</Badge></td>
+                                            <tr
+                                                key={product.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
+                                                <td className="p-2">
+                                                    <Badge variant="outline">{product.code}</Badge>
+                                                </td>
                                                 <td className="p-2 font-medium">{product.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(product.total_amount)}</td>
@@ -383,7 +390,9 @@ export default function ProductsReport({
                                         <p className="font-medium">{category.name}</p>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(category.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(category.total_quantity)} uds · {formatNumber(category.unique_products)} productos</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(category.total_quantity)} uds · {formatNumber(category.unique_products)} productos
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -401,7 +410,10 @@ export default function ProductsReport({
                                     </thead>
                                     <tbody>
                                         {productsData.products_by_category.map((category) => (
-                                            <tr key={category.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={category.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2 font-medium">{category.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(category.total_quantity)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(category.total_amount)}</td>
@@ -455,11 +467,18 @@ export default function ProductsReport({
                                         </thead>
                                         <tbody>
                                             {productsData.low_stock_products.map((product) => (
-                                                <tr key={product.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-                                                    <td className="p-2"><Badge variant="outline">{product.code}</Badge></td>
+                                                <tr
+                                                    key={product.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2">
+                                                        <Badge variant="outline">{product.code}</Badge>
+                                                    </td>
                                                     <td className="p-2 font-medium">{product.name}</td>
                                                     <td className="p-2 text-right">
-                                                        <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>{formatNumber(product.stock)}</Badge>
+                                                        <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>
+                                                            {formatNumber(product.stock)}
+                                                        </Badge>
                                                     </td>
                                                     <td className="p-2 text-right">{formatNumber(product.min_stock)}</td>
                                                 </tr>

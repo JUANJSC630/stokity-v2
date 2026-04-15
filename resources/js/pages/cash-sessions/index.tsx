@@ -115,16 +115,16 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
 
                 {/* Table */}
                 <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                    {sessions.data.length === 0 && (
-                        <p className="px-4 py-8 text-center text-sm text-muted-foreground">No hay sesiones registradas</p>
-                    )}
+                    {sessions.data.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No hay sesiones registradas</p>}
 
                     {/* Mobile: card list */}
                     <div className="divide-y divide-neutral-100 md:hidden dark:divide-neutral-800">
                         {sessions.data.map((s) => {
                             const totalSales =
-                                Number(s.total_sales_cash) + Number(s.total_sales_card) +
-                                Number(s.total_sales_transfer) + Number(s.total_sales_other);
+                                Number(s.total_sales_cash) +
+                                Number(s.total_sales_card) +
+                                Number(s.total_sales_transfer) +
+                                Number(s.total_sales_other);
                             const disc = Number(s.discrepancy ?? 0);
                             const discColor = disc === 0 ? 'text-green-600' : disc < 0 ? 'text-red-600' : 'text-amber-600';
                             return (
@@ -140,24 +140,20 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                             <span className="font-medium">{s.branch?.name ?? '—'}</span>
                                         </div>
                                         <p className="mt-0.5 text-xs text-muted-foreground">{s.opened_by?.name ?? '—'}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            Apertura: {formatDateTime(s.opened_at)}
-                                        </p>
-                                        {s.closed_at && (
-                                            <p className="text-xs text-muted-foreground">Cierre: {formatDateTime(s.closed_at)}</p>
-                                        )}
+                                        <p className="mt-1 text-xs text-muted-foreground">Apertura: {formatDateTime(s.opened_at)}</p>
+                                        {s.closed_at && <p className="text-xs text-muted-foreground">Cierre: {formatDateTime(s.closed_at)}</p>}
                                     </div>
                                     <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
                                         {s.status === 'open' ? (
                                             <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Abierta</Badge>
                                         ) : (
-                                            <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">Cerrada</Badge>
+                                            <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                                                Cerrada
+                                            </Badge>
                                         )}
                                         <span className="text-xs font-semibold text-green-700 dark:text-green-300">{formatCOP(totalSales)}</span>
                                         {s.status !== 'open' && (
-                                            <span className={`text-xs font-medium ${discColor}`}>
-                                                {(disc > 0 ? '+' : '') + formatCOP(disc)}
-                                            </span>
+                                            <span className={`text-xs font-medium ${discColor}`}>{(disc > 0 ? '+' : '') + formatCOP(disc)}</span>
                                         )}
                                     </div>
                                 </button>
@@ -184,8 +180,10 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                                 {sessions.data.map((s) => {
                                     const totalSales =
-                                        Number(s.total_sales_cash) + Number(s.total_sales_card) +
-                                        Number(s.total_sales_transfer) + Number(s.total_sales_other);
+                                        Number(s.total_sales_cash) +
+                                        Number(s.total_sales_card) +
+                                        Number(s.total_sales_transfer) +
+                                        Number(s.total_sales_other);
                                     const disc = Number(s.discrepancy ?? 0);
                                     const discColor = disc === 0 ? 'text-green-600' : disc < 0 ? 'text-red-600' : 'text-amber-600';
                                     return (
@@ -200,15 +198,23 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                                             <td className="px-4 py-3 text-muted-foreground">{formatDateTime(s.opened_at)}</td>
                                             <td className="px-4 py-3 text-muted-foreground">{s.closed_at ? formatDateTime(s.closed_at) : '—'}</td>
                                             <td className="px-4 py-3 text-right">{formatCOP(s.opening_amount)}</td>
-                                            <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">{formatCOP(totalSales)}</td>
-                                            <td className={`px-4 py-3 text-right font-semibold ${s.status === 'open' ? 'text-muted-foreground' : discColor}`}>
+                                            <td className="px-4 py-3 text-right font-semibold text-green-700 dark:text-green-300">
+                                                {formatCOP(totalSales)}
+                                            </td>
+                                            <td
+                                                className={`px-4 py-3 text-right font-semibold ${s.status === 'open' ? 'text-muted-foreground' : discColor}`}
+                                            >
                                                 {s.status === 'open' ? '—' : (disc > 0 ? '+' : '') + formatCOP(disc)}
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 {s.status === 'open' ? (
-                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Abierta</Badge>
+                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                                        Abierta
+                                                    </Badge>
                                                 ) : (
-                                                    <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">Cerrada</Badge>
+                                                    <Badge className="bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                                                        Cerrada
+                                                    </Badge>
                                                 )}
                                             </td>
                                         </tr>
@@ -219,46 +225,79 @@ export default function CashSessionIndex({ sessions, filters, availableBranches 
                     </div>
 
                     {/* Pagination */}
-                    {sessions.last_page > 1 && (() => {
-                        const allLinks = sessions.links;
-                        const pageLinks = allLinks.filter((l) => !isNaN(Number(l.label)));
-                        const prevUrl = allLinks[0]?.url ?? null;
-                        const nextUrl = allLinks[allLinks.length - 1]?.url ?? null;
-                        const cur = sessions.current_page;
-                        const last = sessions.last_page;
-                        const start = Math.max(0, Math.min(cur - 3, pageLinks.length - 5));
-                        const window5 = pageLinks.slice(start, start + 5);
-                        const btnClass = (active: boolean, hasUrl: boolean) =>
-                            `rounded px-2 py-1 text-xs transition-colors ${active ? 'bg-orange-500 font-bold text-white' : hasUrl ? 'border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700' : 'cursor-default text-muted-foreground opacity-40'}`;
-                        return (
-                            <div className="flex flex-col items-center gap-2 border-t border-neutral-200 px-4 py-3 sm:flex-row sm:justify-between dark:border-neutral-700">
-                                <p className="text-xs text-muted-foreground">
-                                    Mostrando {sessions.from}–{sessions.to} de {sessions.total}
-                                </p>
-                                <div className="flex items-center gap-1">
-                                    <button type="button" disabled={!prevUrl} onClick={() => prevUrl && router.visit(prevUrl)} className={btnClass(false, !!prevUrl)}>«</button>
-                                    {start > 0 && (
-                                        <>
-                                            <button type="button" onClick={() => router.visit(pageLinks[0].url!)} className={btnClass(cur === 1, true)}>1</button>
-                                            {start > 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
-                                        </>
-                                    )}
-                                    {window5.map((link, i) => (
-                                        <button key={i} type="button" disabled={!link.url} onClick={() => link.url && router.visit(link.url)} className={btnClass(!!link.active, !!link.url)}>
-                                            {link.label}
+                    {sessions.last_page > 1 &&
+                        (() => {
+                            const allLinks = sessions.links;
+                            const pageLinks = allLinks.filter((l) => !isNaN(Number(l.label)));
+                            const prevUrl = allLinks[0]?.url ?? null;
+                            const nextUrl = allLinks[allLinks.length - 1]?.url ?? null;
+                            const cur = sessions.current_page;
+                            const last = sessions.last_page;
+                            const start = Math.max(0, Math.min(cur - 3, pageLinks.length - 5));
+                            const window5 = pageLinks.slice(start, start + 5);
+                            const btnClass = (active: boolean, hasUrl: boolean) =>
+                                `rounded px-2 py-1 text-xs transition-colors ${active ? 'bg-orange-500 font-bold text-white' : hasUrl ? 'border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700' : 'cursor-default text-muted-foreground opacity-40'}`;
+                            return (
+                                <div className="flex flex-col items-center gap-2 border-t border-neutral-200 px-4 py-3 sm:flex-row sm:justify-between dark:border-neutral-700">
+                                    <p className="text-xs text-muted-foreground">
+                                        Mostrando {sessions.from}–{sessions.to} de {sessions.total}
+                                    </p>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            disabled={!prevUrl}
+                                            onClick={() => prevUrl && router.visit(prevUrl)}
+                                            className={btnClass(false, !!prevUrl)}
+                                        >
+                                            «
                                         </button>
-                                    ))}
-                                    {start + 5 < pageLinks.length && (
-                                        <>
-                                            {start + 5 < pageLinks.length - 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
-                                            <button type="button" onClick={() => router.visit(pageLinks[pageLinks.length - 1].url!)} className={btnClass(cur === last, true)}>{last}</button>
-                                        </>
-                                    )}
-                                    <button type="button" disabled={!nextUrl} onClick={() => nextUrl && router.visit(nextUrl)} className={btnClass(false, !!nextUrl)}>»</button>
+                                        {start > 0 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.visit(pageLinks[0].url!)}
+                                                    className={btnClass(cur === 1, true)}
+                                                >
+                                                    1
+                                                </button>
+                                                {start > 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
+                                            </>
+                                        )}
+                                        {window5.map((link, i) => (
+                                            <button
+                                                key={i}
+                                                type="button"
+                                                disabled={!link.url}
+                                                onClick={() => link.url && router.visit(link.url)}
+                                                className={btnClass(!!link.active, !!link.url)}
+                                            >
+                                                {link.label}
+                                            </button>
+                                        ))}
+                                        {start + 5 < pageLinks.length && (
+                                            <>
+                                                {start + 5 < pageLinks.length - 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => router.visit(pageLinks[pageLinks.length - 1].url!)}
+                                                    className={btnClass(cur === last, true)}
+                                                >
+                                                    {last}
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            type="button"
+                                            disabled={!nextUrl}
+                                            onClick={() => nextUrl && router.visit(nextUrl)}
+                                            className={btnClass(false, !!nextUrl)}
+                                        >
+                                            »
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })()}
+                            );
+                        })()}
                 </div>
             </div>
         </AppLayout>

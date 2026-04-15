@@ -1180,524 +1180,532 @@ export default function PosIndex({
             <div className="flex h-[calc(100dvh-64px)] flex-col">
                 {/* ── Panels (LEFT + RIGHT) — stacked on mobile, side-by-side on desktop ── */}
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-                {/* ── LEFT: Search + Results ── */}
-                <div className={`min-h-0 w-full flex-1 flex-col border-r border-neutral-200 dark:border-neutral-700 md:w-auto ${mobileTab === 'cart' ? 'hidden md:flex' : 'flex'}`}>
-                    {/* Search bar */}
-                    <div className="border-b border-neutral-200 p-3 dark:border-neutral-700">
-                        <div className="relative">
-                            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                ref={searchRef}
-                                type="search"
-                                placeholder="Buscar producto por nombre o código... ( / )"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                className="h-11 pl-9 text-base"
-                            />
-                            {searching && (
-                                <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>
-                            )}
-                        </div>
-                        {/* Category filter */}
-                        {categories.length > 0 && (
-                            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedCategory('');
-                                        setSelectedType('');
-                                    }}
-                                    className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                        selectedCategory === '' && selectedType === ''
-                                            ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                    }`}
-                                >
-                                    Todas
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedType('servicio');
-                                        setSelectedCategory('');
-                                    }}
-                                    className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                        selectedType === 'servicio'
-                                            ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                            : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                    }`}
-                                >
-                                    Servicios
-                                </button>
-                                {categories
-                                    .filter((cat) => !/^servicios?$/i.test(cat.name.trim()))
-                                    .map((cat) => (
-                                        <button
-                                            key={cat.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedCategory(String(cat.id));
-                                                setSelectedType('');
-                                            }}
-                                            className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                                selectedCategory === String(cat.id)
-                                                    ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                    : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                            }`}
-                                        >
-                                            {cat.name}
-                                        </button>
-                                    ))}
-                            </div>
-                        )}
-                        {/* Keyboard hints — desktop only */}
-                        <div className="mt-2 hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
-                            <span className="flex items-center gap-1">
-                                <Keyboard className="h-3 w-3" />
-                                <kbd className="rounded border px-1">/</kbd> buscar
-                            </span>
-                            <span>
-                                <kbd className="rounded border px-1">Enter</kbd> agregar
-                            </span>
-                            <span>
-                                <kbd className="rounded border px-1">Esc</kbd> limpiar
-                            </span>
-                            <span>
-                                <kbd className="rounded border px-1">F9</kbd> cobrar
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setShowShortcuts(true)}
-                                className="ml-auto flex h-5 w-5 items-center justify-center rounded border border-neutral-300 text-[10px] font-bold text-muted-foreground hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
-                                title="Ver todos los atajos (?)"
-                            >
-                                ?
-                            </button>
-                        </div>
-
-                        {/* Shortcuts panel */}
-                        {showShortcuts && (
-                            <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
-                                <div className="mb-2 flex items-center justify-between">
-                                    <h3 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Atajos de teclado</h3>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowShortcuts(false)}
-                                        className="text-muted-foreground hover:text-foreground"
-                                    >
-                                        <X className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Buscar producto</span>
-                                        <kbd className="rounded border px-1.5 font-mono">/</kbd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Agregar primer resultado</span>
-                                        <kbd className="rounded border px-1.5 font-mono">Enter</kbd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Limpiar búsqueda</span>
-                                        <kbd className="rounded border px-1.5 font-mono">Esc</kbd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Cobrar venta</span>
-                                        <kbd className="rounded border px-1.5 font-mono">F9</kbd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Ver/ocultar atajos</span>
-                                        <kbd className="rounded border px-1.5 font-mono">?</kbd>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Results */}
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                        {results.length === 0 && !searching && (selectedType !== '' || query.trim().length >= 2) && (
-                            <p className="px-4 py-8 text-center text-sm text-muted-foreground">No se encontraron productos</p>
-                        )}
-                        {query.trim().length < 2 && selectedType === '' && selectedCategory === '' && cart.length === 0 && (
-                            <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                                <ShoppingCart className="h-12 w-12 opacity-20" />
-                                <p className="text-sm">Escribe para buscar productos</p>
-                            </div>
-                        )}
-                        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                            {results.map((p, i) => (
-                                <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => addToCart(p)}
-                                    disabled={p.type !== 'servicio' && p.stock <= 0}
-                                    aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}`}
-                                    className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:hover:bg-neutral-800 md:py-3 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
-                                >
-                                    {p.image_url ? (
-                                        <img
-                                            src={p.image_url}
-                                            alt={p.name}
-                                            className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-neutral-100 object-cover shadow-sm dark:border-neutral-700"
-                                        />
-                                    ) : (
-                                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-400 dark:bg-neutral-800">
-                                            {p.name.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{p.name}</p>
-                                        <p className="font-mono text-xs text-muted-foreground">{p.code}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className="font-semibold text-green-700 dark:text-green-300">
-                                            {p.type === 'servicio' && p.variable_price ? 'A cotizar' : formatCOP(p.sale_price)}
-                                        </span>
-                                        {p.type === 'servicio' ? (
-                                            <Badge className="bg-purple-100 text-[10px] text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                Servicio
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant={p.stock > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
-                                                Stock: {p.stock}
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <Plus className="h-5 w-5 flex-shrink-0 text-green-600" />
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── RIGHT: Cart + Payment ── */}
-                <div className={`min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none ${mobileTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
-                    {/* Client + clear cart + printer status */}
-                    <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
-                        <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
-                            <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
-                                <SelectValue placeholder="Cliente" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sortedClients.map((c) => (
-                                    <SelectItem key={c.id} value={String(c.id)}>
-                                        {c.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {/* Cotizaciones button */}
-                        <button
-                            type="button"
-                            onClick={openPendingPanel}
-                            className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-                            title="Cotizaciones pendientes"
-                        >
-                            <ClipboardList className="h-4 w-4" />
-                            {pendingCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
-                                    {pendingCount}
-                                </span>
-                            )}
-                        </button>
-
-                        {cart.length > 0 && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (confirm('¿Vaciar el carrito?')) {
-                                        setCart([]);
-                                        setAmountPaid(0);
-                                        setAmountPaidDisplay('');
-                                    }
-                                }}
-                                title="Vaciar carrito"
-                                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Active pending sale banner */}
-                    {activePendingId && (
-                        <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
-                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Completando cotización</span>
-                            <button
-                                type="button"
-                                onClick={cancelActivePending}
-                                className="flex items-center gap-1 text-xs text-amber-600 hover:text-red-500"
-                            >
-                                <X className="h-3 w-3" /> Cancelar
-                            </button>
-                        </div>
-                    )}
-
-                    {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed when it fits; parent scrolls if bottom is too tall for the viewport). */}
-                    <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-y-auto">
-                    {/* Cart list */}
-                    <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
-                        {cart.length === 0 ? (
-                            <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 py-8 text-muted-foreground md:h-full md:py-0">
-                                <ShoppingCart className="h-10 w-10 opacity-20" />
-                                <p className="text-sm">Carrito vacío</p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {cart.map((item) => (
-                                    <div key={item.product.id} className="flex items-center gap-2 px-3 py-2">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium">{item.product.name}</p>
-                                            <p className="text-xs text-muted-foreground">{formatCOP(item.product.sale_price)} c/u</p>
-                                        </div>
-                                        {/* Quantity controls */}
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => updateQty(item.product.id, item.quantity - 1)}
-                                                aria-label={`Disminuir cantidad de ${item.product.name}`}
-                                                className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800 md:h-7 md:w-7"
-                                            >
-                                                <Minus className="h-3 w-3" />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                max={item.product.stock}
-                                                value={item.quantity}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value, 10);
-                                                    if (!isNaN(val) && val >= 1) {
-                                                        updateQty(item.product.id, Math.min(val, item.product.stock));
-                                                    }
-                                                }}
-                                                onFocus={(e) => e.target.select()}
-                                                aria-label={`Cantidad de ${item.product.name}`}
-                                                className="h-9 w-12 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 md:h-7 md:w-10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => updateQty(item.product.id, Math.min(item.quantity + 1, item.product.stock))}
-                                                disabled={item.quantity >= item.product.stock}
-                                                aria-label={`Aumentar cantidad de ${item.product.name}`}
-                                                className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 dark:border-neutral-700 dark:hover:bg-neutral-800 md:h-7 md:w-7"
-                                            >
-                                                <Plus className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                        <span className="w-24 text-right text-sm font-semibold text-green-700 dark:text-green-300">
-                                            {formatCOP(item.subtotal)}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeFromCart(item.product.id)}
-                                            aria-label={`Eliminar ${item.product.name} del carrito`}
-                                            className="flex h-9 w-9 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 md:h-7 md:w-7"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Bottom panel: discount + totals + payment + submit */}
-                    <div className="border-t border-neutral-200 bg-neutral-50 md:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900">
-                        {/* Discount — only when cart has items */}
-                        {cart.length > 0 && (
-                            <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
-                                <Label className="text-xs text-muted-foreground">Descuento:</Label>
-                                <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
-                                    <SelectTrigger className="h-7 w-32 text-xs">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Ninguno</SelectItem>
-                                        <SelectItem value="percentage">% Porcentaje</SelectItem>
-                                        <SelectItem value="fixed">$ Fijo</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {discountType !== 'none' &&
-                                    (discountType === 'fixed' ? (
-                                        <CurrencyInput
-                                            value={Number(discountValue) || 0}
-                                            onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
-                                            className="h-7 w-24 text-xs"
-                                            placeholder="0"
-                                        />
-                                    ) : (
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            max={100}
-                                            value={discountValue === '0' ? '' : discountValue}
-                                            onChange={(e) => setDiscountValue(e.target.value || '0')}
-                                            className="h-7 w-20 text-xs"
-                                            placeholder="0"
-                                        />
-                                    ))}
-                                {discountAmount > 0 && <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>}
-                            </div>
-                        )}
-
-                        {/* Totals */}
-                        <div className="space-y-1 px-3 py-2 text-sm">
-                            <div className="flex justify-between text-muted-foreground">
-                                <span>Subtotal</span>
-                                <span>{formatCOP(net)}</span>
-                            </div>
-                            {tax > 0 && (
-                                <div className="flex justify-between text-muted-foreground">
-                                    <span>Impuesto</span>
-                                    <span>{formatCOP(tax)}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between border-t border-neutral-200 pt-1 text-lg font-bold dark:border-neutral-700">
-                                <span>Total</span>
-                                <span className="text-green-700 dark:text-green-300">{formatCOP(total)}</span>
-                            </div>
-                        </div>
-
-                        {/* Payment method — only when cart has items */}
-                        {cart.length > 0 && (
-                            <div className="px-3 pb-2">
-                                <PaymentMethodSelect
-                                    key={formKey}
-                                    value={paymentMethod || undefined}
-                                    onValueChange={setPaymentMethod}
-                                    label=""
-                                    placeholder="Método de pago *"
-                                    required
+                    {/* ── LEFT: Search + Results ── */}
+                    <div
+                        className={`min-h-0 w-full flex-1 flex-col border-r border-neutral-200 md:w-auto dark:border-neutral-700 ${mobileTab === 'cart' ? 'hidden md:flex' : 'flex'}`}
+                    >
+                        {/* Search bar */}
+                        <div className="border-b border-neutral-200 p-3 dark:border-neutral-700">
+                            <div className="relative">
+                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    ref={searchRef}
+                                    type="search"
+                                    placeholder="Buscar producto por nombre o código... ( / )"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    className="h-11 pl-9 text-base"
                                 />
+                                {searching && (
+                                    <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>
+                                )}
                             </div>
-                        )}
-
-                        {/* Amount paid (cash only, only when cart has items) */}
-                        {paymentMethod === 'cash' && cart.length > 0 && (
-                            <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
-                                <div className="flex items-center gap-2">
-                                    <Label className="shrink-0 text-xs">Recibido:</Label>
-                                    <Input
-                                        type="text"
-                                        placeholder="0"
-                                        value={amountPaidDisplay}
-                                        onChange={(e) => {
-                                            const formatted = e.target.value.replace(/[^\d]/g, '');
-                                            const num = parseInt(formatted, 10) || 0;
-                                            setAmountPaid(num);
-                                            setAmountPaidDisplay(num > 0 ? formatNumber(num) : '');
-                                        }}
-                                        className="h-8 flex-1 text-right text-sm"
-                                    />
+                            {/* Category filter */}
+                            {categories.length > 0 && (
+                                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setAmountPaid(total);
-                                            setAmountPaidDisplay(formatNumber(total));
+                                            setSelectedCategory('');
+                                            setSelectedType('');
                                         }}
-                                        aria-label={`Pago exacto de ${formatCOP(total)}`}
-                                        className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
+                                        className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                            selectedCategory === '' && selectedType === ''
+                                                ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                        }`}
                                     >
-                                        Exacto
+                                        Todas
                                     </button>
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                    {(() => {
-                                        const denominations = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
-                                        const suggestions: number[] = [];
-                                        if (total > 0) {
-                                            // Next round-up for each denomination >= total
-                                            for (const d of denominations) {
-                                                const rounded = Math.ceil(total / d) * d;
-                                                if (rounded >= total && !suggestions.includes(rounded)) {
-                                                    suggestions.push(rounded);
-                                                }
-                                            }
-                                            // Sort and take up to 6 unique values
-                                            suggestions.sort((a, b) => a - b);
-                                            suggestions.splice(6);
-                                        }
-                                        // Fallback: show standard denominations when cart is empty
-                                        const buttons = suggestions.length > 0 ? suggestions : [10000, 20000, 50000, 100000];
-                                        return buttons.map((bill) => (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedType('servicio');
+                                            setSelectedCategory('');
+                                        }}
+                                        className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                            selectedType === 'servicio'
+                                                ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                        }`}
+                                    >
+                                        Servicios
+                                    </button>
+                                    {categories
+                                        .filter((cat) => !/^servicios?$/i.test(cat.name.trim()))
+                                        .map((cat) => (
                                             <button
-                                                key={bill}
+                                                key={cat.id}
                                                 type="button"
                                                 onClick={() => {
-                                                    setAmountPaid(bill);
-                                                    setAmountPaidDisplay(formatNumber(bill));
+                                                    setSelectedCategory(String(cat.id));
+                                                    setSelectedType('');
                                                 }}
-                                                className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                                className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                                    selectedCategory === String(cat.id)
+                                                        ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                        : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
+                                                }`}
                                             >
-                                                {formatNumber(bill)}
+                                                {cat.name}
                                             </button>
-                                        ));
-                                    })()}
+                                        ))}
                                 </div>
-                                {amountPaid >= total && total > 0 && (
-                                    <div className="mt-1 flex justify-between text-sm font-semibold text-green-700 dark:text-green-300">
-                                        <span>Cambio:</span>
-                                        <span>{formatCOP(change)}</span>
-                                    </div>
-                                )}
+                            )}
+                            {/* Keyboard hints — desktop only */}
+                            <div className="mt-2 hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
+                                <span className="flex items-center gap-1">
+                                    <Keyboard className="h-3 w-3" />
+                                    <kbd className="rounded border px-1">/</kbd> buscar
+                                </span>
+                                <span>
+                                    <kbd className="rounded border px-1">Enter</kbd> agregar
+                                </span>
+                                <span>
+                                    <kbd className="rounded border px-1">Esc</kbd> limpiar
+                                </span>
+                                <span>
+                                    <kbd className="rounded border px-1">F9</kbd> cobrar
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowShortcuts(true)}
+                                    className="ml-auto flex h-5 w-5 items-center justify-center rounded border border-neutral-300 text-[10px] font-bold text-muted-foreground hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
+                                    title="Ver todos los atajos (?)"
+                                >
+                                    ?
+                                </button>
                             </div>
-                        )}
 
-                        {/* Cobrar button */}
-                        <div className="flex flex-col gap-2 px-3 pb-3">
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={submitting || cart.length === 0}
-                                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
-                            >
-                                {submitting ? (
-                                    'Procesando...'
-                                ) : (
-                                    <>
-                                        Cobrar {total > 0 && formatCOP(total)}
-                                        <kbd className="rounded border border-white/40 bg-white/20 px-1.5 py-0.5 text-xs font-normal">F9</kbd>
-                                    </>
-                                )}
-                            </button>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleSaveQuote}
-                                    disabled={submitting || cart.length === 0}
-                                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-                                >
-                                    <ClipboardList className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="truncate">{activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (cart.length === 0) {
-                                            toast.error('Agrega al menos un producto');
-                                            return;
-                                        }
-                                        if (!clientId || clientId === defaultClientId) {
-                                            toast.error('Selecciona un cliente para registrar un crédito');
-                                            return;
-                                        }
-                                        setShowCreditModal(true);
-                                    }}
-                                    disabled={submitting || cart.length === 0}
-                                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                                >
-                                    <HandCoins className="h-3.5 w-3.5 shrink-0" />
-                                    <span className="truncate">Vender a crédito</span>
-                                </button>
+                            {/* Shortcuts panel */}
+                            {showShortcuts && (
+                                <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        <h3 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Atajos de teclado</h3>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowShortcuts(false)}
+                                            className="text-muted-foreground hover:text-foreground"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Buscar producto</span>
+                                            <kbd className="rounded border px-1.5 font-mono">/</kbd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Agregar primer resultado</span>
+                                            <kbd className="rounded border px-1.5 font-mono">Enter</kbd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Limpiar búsqueda</span>
+                                            <kbd className="rounded border px-1.5 font-mono">Esc</kbd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Cobrar venta</span>
+                                            <kbd className="rounded border px-1.5 font-mono">F9</kbd>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Ver/ocultar atajos</span>
+                                            <kbd className="rounded border px-1.5 font-mono">?</kbd>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Results */}
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {results.length === 0 && !searching && (selectedType !== '' || query.trim().length >= 2) && (
+                                <p className="px-4 py-8 text-center text-sm text-muted-foreground">No se encontraron productos</p>
+                            )}
+                            {query.trim().length < 2 && selectedType === '' && selectedCategory === '' && cart.length === 0 && (
+                                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                                    <ShoppingCart className="h-12 w-12 opacity-20" />
+                                    <p className="text-sm">Escribe para buscar productos</p>
+                                </div>
+                            )}
+                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                {results.map((p, i) => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => addToCart(p)}
+                                        disabled={p.type !== 'servicio' && p.stock <= 0}
+                                        aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}`}
+                                        className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 md:py-3 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
+                                    >
+                                        {p.image_url ? (
+                                            <img
+                                                src={p.image_url}
+                                                alt={p.name}
+                                                className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-neutral-100 object-cover shadow-sm dark:border-neutral-700"
+                                            />
+                                        ) : (
+                                            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-400 dark:bg-neutral-800">
+                                                {p.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{p.name}</p>
+                                            <p className="font-mono text-xs text-muted-foreground">{p.code}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="font-semibold text-green-700 dark:text-green-300">
+                                                {p.type === 'servicio' && p.variable_price ? 'A cotizar' : formatCOP(p.sale_price)}
+                                            </span>
+                                            {p.type === 'servicio' ? (
+                                                <Badge className="bg-purple-100 text-[10px] text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                                    Servicio
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant={p.stock > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
+                                                    Stock: {p.stock}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <Plus className="h-5 w-5 flex-shrink-0 text-green-600" />
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>
-                    </div>{/* ── end mobile scroll wrapper ── */}
+
+                    {/* ── RIGHT: Cart + Payment ── */}
+                    <div
+                        className={`min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none ${mobileTab === 'search' ? 'hidden md:flex' : 'flex'}`}
+                    >
+                        {/* Client + clear cart + printer status */}
+                        <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
+                            <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
+                                <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
+                                    <SelectValue placeholder="Cliente" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sortedClients.map((c) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Cotizaciones button */}
+                            <button
+                                type="button"
+                                onClick={openPendingPanel}
+                                className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                title="Cotizaciones pendientes"
+                            >
+                                <ClipboardList className="h-4 w-4" />
+                                {pendingCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                                        {pendingCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {cart.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (confirm('¿Vaciar el carrito?')) {
+                                            setCart([]);
+                                            setAmountPaid(0);
+                                            setAmountPaidDisplay('');
+                                        }
+                                    }}
+                                    title="Vaciar carrito"
+                                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Active pending sale banner */}
+                        {activePendingId && (
+                            <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
+                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Completando cotización</span>
+                                <button
+                                    type="button"
+                                    onClick={cancelActivePending}
+                                    className="flex items-center gap-1 text-xs text-amber-600 hover:text-red-500"
+                                >
+                                    <X className="h-3 w-3" /> Cancelar
+                                </button>
+                            </div>
+                        )}
+
+                        {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed when it fits; parent scrolls if bottom is too tall for the viewport). */}
+                        <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-y-auto">
+                            {/* Cart list */}
+                            <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
+                                {cart.length === 0 ? (
+                                    <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 py-8 text-muted-foreground md:h-full md:py-0">
+                                        <ShoppingCart className="h-10 w-10 opacity-20" />
+                                        <p className="text-sm">Carrito vacío</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                        {cart.map((item) => (
+                                            <div key={item.product.id} className="flex items-center gap-2 px-3 py-2">
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-medium">{item.product.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{formatCOP(item.product.sale_price)} c/u</p>
+                                                </div>
+                                                {/* Quantity controls */}
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateQty(item.product.id, item.quantity - 1)}
+                                                        aria-label={`Disminuir cantidad de ${item.product.name}`}
+                                                        className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                    >
+                                                        <Minus className="h-3 w-3" />
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        max={item.product.stock}
+                                                        value={item.quantity}
+                                                        onChange={(e) => {
+                                                            const val = parseInt(e.target.value, 10);
+                                                            if (!isNaN(val) && val >= 1) {
+                                                                updateQty(item.product.id, Math.min(val, item.product.stock));
+                                                            }
+                                                        }}
+                                                        onFocus={(e) => e.target.select()}
+                                                        aria-label={`Cantidad de ${item.product.name}`}
+                                                        className="h-9 w-12 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none md:h-7 md:w-10 dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateQty(item.product.id, Math.min(item.quantity + 1, item.product.stock))}
+                                                        disabled={item.quantity >= item.product.stock}
+                                                        aria-label={`Aumentar cantidad de ${item.product.name}`}
+                                                        className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                                <span className="w-24 text-right text-sm font-semibold text-green-700 dark:text-green-300">
+                                                    {formatCOP(item.subtotal)}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFromCart(item.product.id)}
+                                                    aria-label={`Eliminar ${item.product.name} del carrito`}
+                                                    className="flex h-9 w-9 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 md:h-7 md:w-7 dark:hover:bg-red-900/20"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Bottom panel: discount + totals + payment + submit */}
+                            <div className="border-t border-neutral-200 bg-neutral-50 md:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900">
+                                {/* Discount — only when cart has items */}
+                                {cart.length > 0 && (
+                                    <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
+                                        <Label className="text-xs text-muted-foreground">Descuento:</Label>
+                                        <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
+                                            <SelectTrigger className="h-7 w-32 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Ninguno</SelectItem>
+                                                <SelectItem value="percentage">% Porcentaje</SelectItem>
+                                                <SelectItem value="fixed">$ Fijo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {discountType !== 'none' &&
+                                            (discountType === 'fixed' ? (
+                                                <CurrencyInput
+                                                    value={Number(discountValue) || 0}
+                                                    onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
+                                                    className="h-7 w-24 text-xs"
+                                                    placeholder="0"
+                                                />
+                                            ) : (
+                                                <Input
+                                                    type="number"
+                                                    min={0}
+                                                    max={100}
+                                                    value={discountValue === '0' ? '' : discountValue}
+                                                    onChange={(e) => setDiscountValue(e.target.value || '0')}
+                                                    className="h-7 w-20 text-xs"
+                                                    placeholder="0"
+                                                />
+                                            ))}
+                                        {discountAmount > 0 && (
+                                            <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Totals */}
+                                <div className="space-y-1 px-3 py-2 text-sm">
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Subtotal</span>
+                                        <span>{formatCOP(net)}</span>
+                                    </div>
+                                    {tax > 0 && (
+                                        <div className="flex justify-between text-muted-foreground">
+                                            <span>Impuesto</span>
+                                            <span>{formatCOP(tax)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-neutral-200 pt-1 text-lg font-bold dark:border-neutral-700">
+                                        <span>Total</span>
+                                        <span className="text-green-700 dark:text-green-300">{formatCOP(total)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Payment method — only when cart has items */}
+                                {cart.length > 0 && (
+                                    <div className="px-3 pb-2">
+                                        <PaymentMethodSelect
+                                            key={formKey}
+                                            value={paymentMethod || undefined}
+                                            onValueChange={setPaymentMethod}
+                                            label=""
+                                            placeholder="Método de pago *"
+                                            required
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Amount paid (cash only, only when cart has items) */}
+                                {paymentMethod === 'cash' && cart.length > 0 && (
+                                    <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
+                                        <div className="flex items-center gap-2">
+                                            <Label className="shrink-0 text-xs">Recibido:</Label>
+                                            <Input
+                                                type="text"
+                                                placeholder="0"
+                                                value={amountPaidDisplay}
+                                                onChange={(e) => {
+                                                    const formatted = e.target.value.replace(/[^\d]/g, '');
+                                                    const num = parseInt(formatted, 10) || 0;
+                                                    setAmountPaid(num);
+                                                    setAmountPaidDisplay(num > 0 ? formatNumber(num) : '');
+                                                }}
+                                                className="h-8 flex-1 text-right text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setAmountPaid(total);
+                                                    setAmountPaidDisplay(formatNumber(total));
+                                                }}
+                                                aria-label={`Pago exacto de ${formatCOP(total)}`}
+                                                className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
+                                            >
+                                                Exacto
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {(() => {
+                                                const denominations = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
+                                                const suggestions: number[] = [];
+                                                if (total > 0) {
+                                                    // Next round-up for each denomination >= total
+                                                    for (const d of denominations) {
+                                                        const rounded = Math.ceil(total / d) * d;
+                                                        if (rounded >= total && !suggestions.includes(rounded)) {
+                                                            suggestions.push(rounded);
+                                                        }
+                                                    }
+                                                    // Sort and take up to 6 unique values
+                                                    suggestions.sort((a, b) => a - b);
+                                                    suggestions.splice(6);
+                                                }
+                                                // Fallback: show standard denominations when cart is empty
+                                                const buttons = suggestions.length > 0 ? suggestions : [10000, 20000, 50000, 100000];
+                                                return buttons.map((bill) => (
+                                                    <button
+                                                        key={bill}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAmountPaid(bill);
+                                                            setAmountPaidDisplay(formatNumber(bill));
+                                                        }}
+                                                        className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+                                                    >
+                                                        {formatNumber(bill)}
+                                                    </button>
+                                                ));
+                                            })()}
+                                        </div>
+                                        {amountPaid >= total && total > 0 && (
+                                            <div className="mt-1 flex justify-between text-sm font-semibold text-green-700 dark:text-green-300">
+                                                <span>Cambio:</span>
+                                                <span>{formatCOP(change)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Cobrar button */}
+                                <div className="flex flex-col gap-2 px-3 pb-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleSubmit}
+                                        disabled={submitting || cart.length === 0}
+                                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
+                                    >
+                                        {submitting ? (
+                                            'Procesando...'
+                                        ) : (
+                                            <>
+                                                Cobrar {total > 0 && formatCOP(total)}
+                                                <kbd className="rounded border border-white/40 bg-white/20 px-1.5 py-0.5 text-xs font-normal">F9</kbd>
+                                            </>
+                                        )}
+                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveQuote}
+                                            disabled={submitting || cart.length === 0}
+                                            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                        >
+                                            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+                                            <span className="truncate">{activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (cart.length === 0) {
+                                                    toast.error('Agrega al menos un producto');
+                                                    return;
+                                                }
+                                                if (!clientId || clientId === defaultClientId) {
+                                                    toast.error('Selecciona un cliente para registrar un crédito');
+                                                    return;
+                                                }
+                                                setShowCreditModal(true);
+                                            }}
+                                            disabled={submitting || cart.length === 0}
+                                            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                        >
+                                            <HandCoins className="h-3.5 w-3.5 shrink-0" />
+                                            <span className="truncate">Vender a crédito</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* ── end mobile scroll wrapper ── */}
+                    </div>
                 </div>
-                </div>{/* ── end panels wrapper ── */}
+                {/* ── end panels wrapper ── */}
 
                 {/* ── Mobile tab bar (hidden on desktop) ── */}
                 <div className="flex-shrink-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-neutral-700 dark:bg-neutral-950">
@@ -1723,9 +1731,7 @@ export default function PosIndex({
                                     </span>
                                 )}
                             </div>
-                            <span className="text-[10px] font-medium">
-                                {cart.length > 0 ? formatCOP(total) : 'Carrito'}
-                            </span>
+                            <span className="text-[10px] font-medium">{cart.length > 0 ? formatCOP(total) : 'Carrito'}</span>
                         </button>
                     </div>
                 </div>

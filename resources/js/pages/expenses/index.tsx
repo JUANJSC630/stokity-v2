@@ -365,8 +365,8 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                 description={
                     deleteTarget && (
                         <span>
-                            ¿Eliminar <strong>{deleteTarget.description || 'este gasto'}</strong> por{' '}
-                            <strong>{cop(deleteTarget.amount)}</strong>? Esta acción no se puede deshacer.
+                            ¿Eliminar <strong>{deleteTarget.description || 'este gasto'}</strong> por <strong>{cop(deleteTarget.amount)}</strong>?
+                            Esta acción no se puede deshacer.
                         </span>
                     )
                 }

@@ -389,46 +389,89 @@ export default function TrashedProducts({
                 </div>
 
                 {/* Pagination */}
-                {productData.meta && typeof productData.meta.last_page === 'number' && productData.meta.last_page > 1 && productData.links && (() => {
-                    const allLinks = productData.links as { url: string | null; label: string; active: boolean }[];
-                    const pageLinks = allLinks.filter((l) => !isNaN(Number(l.label)));
-                    const prevUrl = allLinks[0]?.url ?? null;
-                    const nextUrl = allLinks[allLinks.length - 1]?.url ?? null;
-                    const cur = productData.meta!.current_page ?? 1;
-                    const last = productData.meta!.last_page;
-                    const start = Math.max(0, Math.min(cur - 3, pageLinks.length - 5));
-                    const window5 = pageLinks.slice(start, start + 5);
-                    return (
-                        <div className="flex flex-col items-center gap-2 border-t bg-white px-4 py-3 sm:flex-row sm:justify-between dark:border-neutral-800 dark:bg-neutral-900">
-                            <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                                Mostrando <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
-                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
-                                <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span> resultados
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button variant="outline" size="sm" className="text-xs" disabled={!prevUrl} onClick={() => prevUrl && handlePaginationClick(prevUrl)}>«</Button>
-                                {start > 0 && (
-                                    <>
-                                        <Button variant={cur === 1 ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => handlePaginationClick(pageLinks[0].url!)}>1</Button>
-                                        {start > 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
-                                    </>
-                                )}
-                                {window5.map((link, i) => (
-                                    <Button key={i} variant={link.active ? 'default' : 'outline'} size="sm" className="text-xs" disabled={!link.url} onClick={() => link.url && handlePaginationClick(link.url)}>
-                                        {link.label}
+                {productData.meta &&
+                    typeof productData.meta.last_page === 'number' &&
+                    productData.meta.last_page > 1 &&
+                    productData.links &&
+                    (() => {
+                        const allLinks = productData.links as { url: string | null; label: string; active: boolean }[];
+                        const pageLinks = allLinks.filter((l) => !isNaN(Number(l.label)));
+                        const prevUrl = allLinks[0]?.url ?? null;
+                        const nextUrl = allLinks[allLinks.length - 1]?.url ?? null;
+                        const cur = productData.meta!.current_page ?? 1;
+                        const last = productData.meta!.last_page;
+                        const start = Math.max(0, Math.min(cur - 3, pageLinks.length - 5));
+                        const window5 = pageLinks.slice(start, start + 5);
+                        return (
+                            <div className="flex flex-col items-center gap-2 border-t bg-white px-4 py-3 sm:flex-row sm:justify-between dark:border-neutral-800 dark:bg-neutral-900">
+                                <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                                    Mostrando{' '}
+                                    <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.from || 0}</span> a{' '}
+                                    <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.to || 0}</span> de{' '}
+                                    <span className="font-medium text-neutral-700 dark:text-neutral-200">{productData.meta?.total || 0}</span>{' '}
+                                    resultados
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs"
+                                        disabled={!prevUrl}
+                                        onClick={() => prevUrl && handlePaginationClick(prevUrl)}
+                                    >
+                                        «
                                     </Button>
-                                ))}
-                                {start + 5 < pageLinks.length && (
-                                    <>
-                                        {start + 5 < pageLinks.length - 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
-                                        <Button variant={cur === last ? 'default' : 'outline'} size="sm" className="text-xs" onClick={() => handlePaginationClick(pageLinks[pageLinks.length - 1].url!)}>{last}</Button>
-                                    </>
-                                )}
-                                <Button variant="outline" size="sm" className="text-xs" disabled={!nextUrl} onClick={() => nextUrl && handlePaginationClick(nextUrl)}>»</Button>
+                                    {start > 0 && (
+                                        <>
+                                            <Button
+                                                variant={cur === 1 ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="text-xs"
+                                                onClick={() => handlePaginationClick(pageLinks[0].url!)}
+                                            >
+                                                1
+                                            </Button>
+                                            {start > 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
+                                        </>
+                                    )}
+                                    {window5.map((link, i) => (
+                                        <Button
+                                            key={i}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="text-xs"
+                                            disabled={!link.url}
+                                            onClick={() => link.url && handlePaginationClick(link.url)}
+                                        >
+                                            {link.label}
+                                        </Button>
+                                    ))}
+                                    {start + 5 < pageLinks.length && (
+                                        <>
+                                            {start + 5 < pageLinks.length - 1 && <span className="px-0.5 text-xs text-muted-foreground">…</span>}
+                                            <Button
+                                                variant={cur === last ? 'default' : 'outline'}
+                                                size="sm"
+                                                className="text-xs"
+                                                onClick={() => handlePaginationClick(pageLinks[pageLinks.length - 1].url!)}
+                                            >
+                                                {last}
+                                            </Button>
+                                        </>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs"
+                                        disabled={!nextUrl}
+                                        onClick={() => nextUrl && handlePaginationClick(nextUrl)}
+                                    >
+                                        »
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    );
-                })()}
+                        );
+                    })()}
             </div>
 
             {/* Force Delete Confirmation Dialog */}

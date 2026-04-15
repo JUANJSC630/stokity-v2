@@ -301,7 +301,9 @@ export default function BranchesReport({
                                         </div>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.total_sales)} ventas · prom {formatCurrency(branch.average_sale)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(branch.total_sales)} ventas · prom {formatCurrency(branch.average_sale)}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -322,7 +324,10 @@ export default function BranchesReport({
                                     </thead>
                                     <tbody>
                                         {branchesData?.branches_performance?.map((branch) => (
-                                            <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={branch.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2 font-medium">{branch.name}</td>
                                                 <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
                                                 <td className="p-2 text-sm text-muted-foreground">{branch.address}</td>
@@ -355,7 +360,9 @@ export default function BranchesReport({
                                         </div>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.sales_count)} ventas · prom {formatCurrency(branch.average_sale)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(branch.sales_count)} ventas · prom {formatCurrency(branch.average_sale)}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -374,7 +381,10 @@ export default function BranchesReport({
                                     </thead>
                                     <tbody>
                                         {branchesData?.branches_comparison?.map((branch) => (
-                                            <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={branch.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2 font-medium">{branch.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(branch.sales_count)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
@@ -403,7 +413,9 @@ export default function BranchesReport({
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-medium">{branch.name}</p>
                                                 {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
-                                                <Badge variant="outline" className="mt-1 text-xs">{branch.region}</Badge>
+                                                <Badge variant="outline" className="mt-1 text-xs">
+                                                    {branch.region}
+                                                </Badge>
                                             </div>
                                             <div className="flex-shrink-0 text-right">
                                                 <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
@@ -426,10 +438,15 @@ export default function BranchesReport({
                                         </thead>
                                         <tbody>
                                             {branchesData?.branches_by_region?.map((branch) => (
-                                                <tr key={branch.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                                <tr
+                                                    key={branch.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
                                                     <td className="p-2 font-medium">{branch.name}</td>
                                                     <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
-                                                    <td className="p-2"><Badge variant="outline">{branch.region}</Badge></td>
+                                                    <td className="p-2">
+                                                        <Badge variant="outline">{branch.region}</Badge>
+                                                    </td>
                                                     <td className="p-2 text-right">{formatNumber(branch.total_sales)}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
                                                 </tr>

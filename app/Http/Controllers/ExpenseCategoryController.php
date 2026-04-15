@@ -20,14 +20,14 @@ class ExpenseCategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'  => 'required|string|max:100|unique:expense_categories,name',
+            'name' => 'required|string|max:100|unique:expense_categories,name',
             'color' => 'nullable|string|max:30',
         ]);
 
         ExpenseCategory::create([
-            'name'      => $data['name'],
-            'color'     => $data['color'] ?? null,
-            'icon'      => null,
+            'name' => $data['name'],
+            'color' => $data['color'] ?? null,
+            'icon' => null,
             'is_system' => false,
         ]);
 
@@ -41,12 +41,12 @@ class ExpenseCategoryController extends Controller
         }
 
         $data = $request->validate([
-            'name'  => 'required|string|max:100|unique:expense_categories,name,' . $expenseCategory->id,
+            'name' => 'required|string|max:100|unique:expense_categories,name,'.$expenseCategory->id,
             'color' => 'nullable|string|max:30',
         ]);
 
         $expenseCategory->update([
-            'name'  => $data['name'],
+            'name' => $data['name'],
             'color' => $data['color'] ?? null,
         ]);
 
@@ -67,7 +67,7 @@ class ExpenseCategoryController extends Controller
         $expenseCategory->expenses()->update(['expense_category_id' => null]);
         $expenseCategory->templates()->update(['expense_category_id' => null]);
         $expenseCategory->update([
-            'deleted_by'      => $request->user()->id,
+            'deleted_by' => $request->user()->id,
             'deletion_reason' => $request->deletion_reason,
         ]);
         $expenseCategory->delete();

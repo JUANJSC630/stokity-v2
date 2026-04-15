@@ -25,8 +25,8 @@ class ExpenseTemplate extends Model
 
     protected $casts = [
         'reference_amount' => 'decimal:2',
-        'due_day'          => 'integer',
-        'is_active'        => 'boolean',
+        'due_day' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function branch(): BelongsTo

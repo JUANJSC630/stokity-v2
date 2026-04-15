@@ -71,9 +71,7 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                             >
                                 1
                             </Button>
-                            {pageLinks.indexOf(mobileWindow[0]) > 1 && (
-                                <span className="px-1 text-xs text-muted-foreground">…</span>
-                            )}
+                            {pageLinks.indexOf(mobileWindow[0]) > 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
                         </>
                     )}
                     {mobileWindow.map((link, i) => {
@@ -98,9 +96,7 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                         if (lastInWindowIdx < pageLinks.length - 1) {
                             return (
                                 <>
-                                    {lastInWindowIdx < pageLinks.length - 2 && (
-                                        <span className="px-1 text-xs text-muted-foreground">…</span>
-                                    )}
+                                    {lastInWindowIdx < pageLinks.length - 2 && <span className="px-1 text-xs text-muted-foreground">…</span>}
                                     <Button
                                         variant={cur === last ? 'default' : 'ghost'}
                                         size="default"

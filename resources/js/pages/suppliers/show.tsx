@@ -281,7 +281,9 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                             <div className="flex flex-shrink-0 flex-col items-end gap-1">
                                                 <span className="text-xs font-medium">Stock: {p.stock}</span>
                                                 {p.pivot.is_default ? (
-                                                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Predeterminado</Badge>
+                                                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                        Predeterminado
+                                                    </Badge>
                                                 ) : null}
                                             </div>
                                         </div>
@@ -289,10 +291,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                 </div>
                                 {/* Desktop: full table */}
                                 <div className="hidden overflow-x-auto md:block">
-                                    <Table
-                                        columns={productColumns}
-                                        data={(supplier.products ?? []).map((p) => ({ ...p, actions: null }))}
-                                    />
+                                    <Table columns={productColumns} data={(supplier.products ?? []).map((p) => ({ ...p, actions: null }))} />
                                 </div>
                             </>
                         )}
@@ -346,7 +345,9 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                         <div key={m.id} className="px-4 py-3">
                                             <div className="flex items-center justify-between gap-2">
                                                 <span className="text-xs text-muted-foreground">{formatDate(m.movement_date)}</span>
-                                                <span className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[m.type] ?? 'bg-gray-100 text-gray-800'}`}>
+                                                <span
+                                                    className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[m.type] ?? 'bg-gray-100 text-gray-800'}`}
+                                                >
                                                     {TYPE_LABELS[m.type] ?? m.type}
                                                 </span>
                                             </div>
@@ -355,7 +356,9 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                                     <Link href={route('products.show', m.product_id)} className="hover:underline">
                                                         {m.product.name}
                                                     </Link>
-                                                ) : `#${m.product_id}`}
+                                                ) : (
+                                                    `#${m.product_id}`
+                                                )}
                                             </p>
                                             <p className="mt-0.5 text-xs text-muted-foreground">
                                                 Cant: {m.quantity}
@@ -367,10 +370,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                 </div>
                                 {/* Desktop: full table */}
                                 <div className="hidden overflow-x-auto md:block">
-                                    <Table
-                                        columns={movementColumns}
-                                        data={movements.data.map((m) => ({ ...m, actions: null }))}
-                                    />
+                                    <Table columns={movementColumns} data={movements.data.map((m) => ({ ...m, actions: null }))} />
                                 </div>
                             </>
                         )}

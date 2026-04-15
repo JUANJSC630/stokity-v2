@@ -86,7 +86,7 @@ function NoteCell({ note }: { note: string }) {
                     <DialogHeader>
                         <DialogTitle>Nota del movimiento</DialogTitle>
                     </DialogHeader>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{note}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{note}</p>
                 </DialogContent>
             </Dialog>
         </>
@@ -394,7 +394,6 @@ export default function ProductMovements({ product, movements }: Props) {
                                                 <NoteCell note={movement.notes} />
                                             </div>
                                         )}
-
                                     </div>
                                 ))
                             )}

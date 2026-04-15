@@ -213,9 +213,7 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={form.processing}>
-                                {form.processing ? 'Guardando...' : 'Guardar'}
-                            </Button>
+                            <Button disabled={form.processing}>{form.processing ? 'Guardando...' : 'Guardar'}</Button>
                         </div>
                     </form>
                 </div>

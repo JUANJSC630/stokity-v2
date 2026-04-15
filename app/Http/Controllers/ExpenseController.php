@@ -130,8 +130,8 @@ class ExpenseController extends Controller
         ]);
 
         $expense->update([
-            'deleted_by'       => $user->id,
-            'deletion_reason'  => $request->deletion_reason,
+            'deleted_by' => $user->id,
+            'deletion_reason' => $request->deletion_reason,
         ]);
         $expense->delete();
 

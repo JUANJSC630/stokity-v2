@@ -176,7 +176,9 @@ export default function Show({ client, sales, stats }: Props) {
                         </div>
                         <div className="rounded-xl border border-border/60 bg-card px-2 py-2.5 lg:px-4 lg:py-3">
                             <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase lg:text-[11px]">Facturado</p>
-                            <p className="mt-1 truncate text-sm leading-none font-bold tabular-nums lg:mt-1.5 lg:text-lg">{formatCOP(stats.total_spent)}</p>
+                            <p className="mt-1 truncate text-sm leading-none font-bold tabular-nums lg:mt-1.5 lg:text-lg">
+                                {formatCOP(stats.total_spent)}
+                            </p>
                         </div>
                         <div className="rounded-xl border border-border/60 bg-card px-2 py-2.5 lg:px-4 lg:py-3">
                             <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase lg:text-[11px]">Última compra</p>
@@ -303,68 +305,91 @@ export default function Show({ client, sales, stats }: Props) {
                             </div>
 
                             {/* Pagination */}
-                            {sales.last_page > 1 && (() => {
-                                const pageLinks = sales.links.filter((l) => {
-                                    const clean = l.label.replace(/&laquo;|&raquo;/g, '').trim();
-                                    return !isNaN(Number(clean));
-                                });
-                                const prevLink = sales.links.find((l) => l.label.includes('laquo') || l.label === '&laquo; Previous');
-                                const nextLink = sales.links.find((l) => l.label.includes('raquo') || l.label === 'Next &raquo;');
-                                const cur = sales.current_page;
-                                const last = sales.last_page;
-                                // Window of 5 centered on current page
-                                const idx = cur - 1;
-                                const start = Math.max(0, Math.min(idx - 2, pageLinks.length - 5));
-                                const window5 = pageLinks.slice(start, start + 5);
-                                return (
-                                    <div className="flex flex-col items-center gap-2 border-t border-border/40 px-5 py-3 sm:flex-row sm:justify-between">
-                                        <p className="text-[11px] text-muted-foreground">
-                                            {sales.from}–{sales.to} de {sales.total}
-                                        </p>
-                                        <div className="flex items-center gap-1">
-                                            {prevLink?.url && (
-                                                <Link href={prevLink.url} preserveScroll>
-                                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">«</Button>
-                                                </Link>
-                                            )}
-                                            {start > 0 && (
-                                                <>
-                                                    <Link href={pageLinks[0].url!} preserveScroll>
-                                                        <Button variant={cur === 1 ? 'default' : 'outline'} size="sm" className="h-7 min-w-7 px-2 text-xs">1</Button>
-                                                    </Link>
-                                                    {start > 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
-                                                </>
-                                            )}
-                                            {window5.map((link, i) => (
-                                                link.url ? (
-                                                    <Link key={i} href={link.url} preserveScroll>
-                                                        <Button variant={link.active ? 'default' : 'outline'} size="sm" className="h-7 min-w-7 px-2 text-xs">
-                                                            {link.label}
+                            {sales.last_page > 1 &&
+                                (() => {
+                                    const pageLinks = sales.links.filter((l) => {
+                                        const clean = l.label.replace(/&laquo;|&raquo;/g, '').trim();
+                                        return !isNaN(Number(clean));
+                                    });
+                                    const prevLink = sales.links.find((l) => l.label.includes('laquo') || l.label === '&laquo; Previous');
+                                    const nextLink = sales.links.find((l) => l.label.includes('raquo') || l.label === 'Next &raquo;');
+                                    const cur = sales.current_page;
+                                    const last = sales.last_page;
+                                    // Window of 5 centered on current page
+                                    const idx = cur - 1;
+                                    const start = Math.max(0, Math.min(idx - 2, pageLinks.length - 5));
+                                    const window5 = pageLinks.slice(start, start + 5);
+                                    return (
+                                        <div className="flex flex-col items-center gap-2 border-t border-border/40 px-5 py-3 sm:flex-row sm:justify-between">
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {sales.from}–{sales.to} de {sales.total}
+                                            </p>
+                                            <div className="flex items-center gap-1">
+                                                {prevLink?.url && (
+                                                    <Link href={prevLink.url} preserveScroll>
+                                                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                                            «
                                                         </Button>
                                                     </Link>
-                                                ) : (
-                                                    <Button key={i} variant="default" size="sm" className="h-7 min-w-7 px-2 text-xs" disabled>
-                                                        {link.label}
-                                                    </Button>
-                                                )
-                                            ))}
-                                            {start + 5 < pageLinks.length && (
-                                                <>
-                                                    {start + 5 < pageLinks.length - 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
-                                                    <Link href={pageLinks[pageLinks.length - 1].url!} preserveScroll>
-                                                        <Button variant={cur === last ? 'default' : 'outline'} size="sm" className="h-7 min-w-7 px-2 text-xs">{last}</Button>
+                                                )}
+                                                {start > 0 && (
+                                                    <>
+                                                        <Link href={pageLinks[0].url!} preserveScroll>
+                                                            <Button
+                                                                variant={cur === 1 ? 'default' : 'outline'}
+                                                                size="sm"
+                                                                className="h-7 min-w-7 px-2 text-xs"
+                                                            >
+                                                                1
+                                                            </Button>
+                                                        </Link>
+                                                        {start > 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
+                                                    </>
+                                                )}
+                                                {window5.map((link, i) =>
+                                                    link.url ? (
+                                                        <Link key={i} href={link.url} preserveScroll>
+                                                            <Button
+                                                                variant={link.active ? 'default' : 'outline'}
+                                                                size="sm"
+                                                                className="h-7 min-w-7 px-2 text-xs"
+                                                            >
+                                                                {link.label}
+                                                            </Button>
+                                                        </Link>
+                                                    ) : (
+                                                        <Button key={i} variant="default" size="sm" className="h-7 min-w-7 px-2 text-xs" disabled>
+                                                            {link.label}
+                                                        </Button>
+                                                    ),
+                                                )}
+                                                {start + 5 < pageLinks.length && (
+                                                    <>
+                                                        {start + 5 < pageLinks.length - 1 && (
+                                                            <span className="px-1 text-xs text-muted-foreground">…</span>
+                                                        )}
+                                                        <Link href={pageLinks[pageLinks.length - 1].url!} preserveScroll>
+                                                            <Button
+                                                                variant={cur === last ? 'default' : 'outline'}
+                                                                size="sm"
+                                                                className="h-7 min-w-7 px-2 text-xs"
+                                                            >
+                                                                {last}
+                                                            </Button>
+                                                        </Link>
+                                                    </>
+                                                )}
+                                                {nextLink?.url && (
+                                                    <Link href={nextLink.url} preserveScroll>
+                                                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                                            »
+                                                        </Button>
                                                     </Link>
-                                                </>
-                                            )}
-                                            {nextLink?.url && (
-                                                <Link href={nextLink.url} preserveScroll>
-                                                    <Button variant="outline" size="sm" className="h-7 px-2 text-xs">»</Button>
-                                                </Link>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })()}
+                                    );
+                                })()}
                         </>
                     )}
                 </div>

@@ -1,4 +1,3 @@
-import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 type Branch = {
     id: number;

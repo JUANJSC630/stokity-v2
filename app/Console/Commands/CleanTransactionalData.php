@@ -43,6 +43,7 @@ class CleanTransactionalData extends Command
 
         if (! $this->option('force') && ! $this->confirm('Are you sure? This cannot be undone.')) {
             $this->info('Aborted.');
+
             return self::SUCCESS;
         }
 
@@ -53,6 +54,7 @@ class CleanTransactionalData extends Command
         foreach ($this->tables as $table) {
             if (! DB::getSchemaBuilder()->hasTable($table)) {
                 $this->line("  - {$table} (skipped, table not found)");
+
                 continue;
             }
             DB::table($table)->truncate();

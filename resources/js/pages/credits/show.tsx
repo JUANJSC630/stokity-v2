@@ -362,7 +362,9 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                                         <div className="min-w-0">
                                             <p className="font-medium">{item.product_name}</p>
                                             {item.product?.code && <p className="text-xs text-muted-foreground">{item.product.code}</p>}
-                                            <p className="text-xs text-muted-foreground">Cant: {item.quantity} · {cop(item.unit_price)} c/u</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Cant: {item.quantity} · {cop(item.unit_price)} c/u
+                                            </p>
                                         </div>
                                         <span className="flex-shrink-0 font-semibold">{cop(item.subtotal)}</span>
                                     </div>

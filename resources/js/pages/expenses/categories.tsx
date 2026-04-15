@@ -24,18 +24,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 // ─── Color palette ─────────────────────────────────────────────────────────────
 
 const COLOR_OPTIONS: { label: string; value: string; hex: string }[] = [
-    { label: 'Azul',      value: 'blue',   hex: '#3b82f6' },
-    { label: 'Morado',    value: 'purple', hex: '#a855f7' },
-    { label: 'Amarillo',  value: 'yellow', hex: '#eab308' },
-    { label: 'Cyan',      value: 'cyan',   hex: '#06b6d4' },
-    { label: 'Rosa',      value: 'pink',   hex: '#ec4899' },
-    { label: 'Naranja',   value: 'orange', hex: '#f97316' },
-    { label: 'Gris',      value: 'gray',   hex: '#6b7280' },
-    { label: 'Rojo',      value: 'red',    hex: '#ef4444' },
-    { label: 'Verde',     value: 'green',  hex: '#22c55e' },
-    { label: 'Índigo',    value: 'indigo', hex: '#6366f1' },
-    { label: 'Pizarra',   value: 'slate',  hex: '#64748b' },
-    { label: 'Lima',      value: 'lime',   hex: '#84cc16' },
+    { label: 'Azul', value: 'blue', hex: '#3b82f6' },
+    { label: 'Morado', value: 'purple', hex: '#a855f7' },
+    { label: 'Amarillo', value: 'yellow', hex: '#eab308' },
+    { label: 'Cyan', value: 'cyan', hex: '#06b6d4' },
+    { label: 'Rosa', value: 'pink', hex: '#ec4899' },
+    { label: 'Naranja', value: 'orange', hex: '#f97316' },
+    { label: 'Gris', value: 'gray', hex: '#6b7280' },
+    { label: 'Rojo', value: 'red', hex: '#ef4444' },
+    { label: 'Verde', value: 'green', hex: '#22c55e' },
+    { label: 'Índigo', value: 'indigo', hex: '#6366f1' },
+    { label: 'Pizarra', value: 'slate', hex: '#64748b' },
+    { label: 'Lima', value: 'lime', hex: '#84cc16' },
 ];
 
 function colorHex(color: string | null): string {
@@ -55,7 +55,7 @@ function CategoryModal({ open, onClose, category }: CategoryModalProps) {
     const { errors } = usePage().props as { errors: Record<string, string> };
 
     const { data, setData, post, put, processing, reset } = useForm({
-        name:  category?.name  ?? '',
+        name: category?.name ?? '',
         color: category?.color ?? 'blue',
     });
 
@@ -95,12 +95,7 @@ function CategoryModal({ open, onClose, category }: CategoryModalProps) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-1.5">
                         <Label>Nombre</Label>
-                        <Input
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
-                            placeholder="Ej: Publicidad"
-                            autoFocus
-                        />
+                        <Input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="Ej: Publicidad" autoFocus />
                         {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
                     </div>
 
@@ -114,7 +109,7 @@ function CategoryModal({ open, onClose, category }: CategoryModalProps) {
                                     title={c.label}
                                     onClick={() => setData('color', c.value)}
                                     className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${
-                                        data.color === c.value ? 'border-neutral-900 dark:border-white scale-110' : 'border-transparent'
+                                        data.color === c.value ? 'scale-110 border-neutral-900 dark:border-white' : 'border-transparent'
                                     }`}
                                     style={{ backgroundColor: c.hex }}
                                 />
@@ -161,8 +156,8 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
         });
     };
 
-    const systemCategories  = categories.filter((c) => c.is_system);
-    const customCategories  = categories.filter((c) => !c.is_system);
+    const systemCategories = categories.filter((c) => c.is_system);
+    const customCategories = categories.filter((c) => !c.is_system);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -186,22 +181,14 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
 
             <CategoryModal open={showCreate} onClose={() => setShowCreate(false)} />
 
-            {editCategory && (
-                <CategoryModal
-                    open={Boolean(editCategory)}
-                    onClose={() => setEditCategory(null)}
-                    category={editCategory}
-                />
-            )}
+            {editCategory && <CategoryModal open={Boolean(editCategory)} onClose={() => setEditCategory(null)} category={editCategory} />}
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 {/* Header */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h1 className="text-2xl font-semibold">Categorías de gastos</h1>
-                        <p className="mt-0.5 text-sm text-muted-foreground">
-                            Organiza tus gastos con categorías personalizadas
-                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">Organiza tus gastos con categorías personalizadas</p>
                     </div>
                     <Button onClick={() => setShowCreate(true)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -229,10 +216,7 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                                 {customCategories.map((cat) => (
                                     <div key={cat.id} className="flex items-center justify-between py-3">
                                         <div className="flex items-center gap-3">
-                                            <span
-                                                className="h-3 w-3 flex-shrink-0 rounded-full"
-                                                style={{ backgroundColor: colorHex(cat.color) }}
-                                            />
+                                            <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: colorHex(cat.color) }} />
                                             <span className="text-sm font-medium">{cat.name}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
@@ -275,10 +259,7 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                         <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                             {systemCategories.map((cat) => (
                                 <div key={cat.id} className="flex items-center gap-3 py-3">
-                                    <span
-                                        className="h-3 w-3 flex-shrink-0 rounded-full"
-                                        style={{ backgroundColor: colorHex(cat.color) }}
-                                    />
+                                    <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: colorHex(cat.color) }} />
                                     <span className="text-sm text-muted-foreground">{cat.name}</span>
                                     <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
                                 </div>

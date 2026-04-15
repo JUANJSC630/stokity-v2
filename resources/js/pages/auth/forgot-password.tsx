@@ -18,9 +18,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
         <AuthLayout description="Ingresa tu correo para recibir el enlace de restablecimiento">
             <Head title="Recuperar contraseña" />
 
-            {status && (
-                <div className="mb-5 rounded-xl bg-green-50 p-3 text-center text-sm font-medium text-green-600">{status}</div>
-            )}
+            {status && <div className="mb-5 rounded-xl bg-green-50 p-3 text-center text-sm font-medium text-green-600">{status}</div>}
 
             <form className="flex flex-col gap-4" onSubmit={submit}>
                 {/* ── Email ──────────────────────────────────────────────── */}

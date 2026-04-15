@@ -3,7 +3,6 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
 import {
     Activity,
     Banknote,
@@ -27,6 +26,7 @@ import {
     Users2,
     Vault,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import AppLogo from './app-logo';
 
 // All available navigation items

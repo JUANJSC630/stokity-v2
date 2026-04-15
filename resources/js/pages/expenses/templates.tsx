@@ -3,14 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,7 +44,15 @@ interface ConfirmDialogProps {
     onCancel: () => void;
 }
 
-function ConfirmDialog({ open, title, description, confirmLabel = 'Confirmar', confirmVariant = 'default', onConfirm, onCancel }: ConfirmDialogProps) {
+function ConfirmDialog({
+    open,
+    title,
+    description,
+    confirmLabel = 'Confirmar',
+    confirmVariant = 'default',
+    onConfirm,
+    onCancel,
+}: ConfirmDialogProps) {
     return (
         <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
             <DialogContent className="max-w-sm">
@@ -176,9 +177,7 @@ function TemplateModal({ open, onClose, categories, branches, userBranchId, temp
                                 ))}
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">
-                            Indica cuándo vence este gasto para saber si está al día o atrasado.
-                        </p>
+                        <p className="text-xs text-muted-foreground">Indica cuándo vence este gasto para saber si está al día o atrasado.</p>
                         {errors.due_day && <p className="text-xs text-red-600">{errors.due_day}</p>}
                     </div>
 
@@ -500,11 +499,7 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                     </td>
                                                     <td className="py-2 pr-4 text-right">{cop(t.reference_amount)}</td>
                                                     <td className="py-2 pr-4 text-sm">
-                                                        {t.due_day ? (
-                                                            <span>Día {t.due_day}</span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">—</span>
-                                                        )}
+                                                        {t.due_day ? <span>Día {t.due_day}</span> : <span className="text-muted-foreground">—</span>}
                                                     </td>
                                                     <td className="py-2 pr-4">
                                                         <DueStatusBadge status={t.due_status} />
@@ -521,16 +516,18 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                                 >
                                                                     <Undo2 className="h-4 w-4" />
                                                                 </Button>
-                                                            ) : t.due_status !== 'inactive' && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-green-600 hover:text-green-700"
-                                                                    onClick={() => setRegisterTemplate(t)}
-                                                                    title="Registrar pago"
-                                                                >
-                                                                    <CheckCircle2 className="h-4 w-4" />
-                                                                </Button>
+                                                            ) : (
+                                                                t.due_status !== 'inactive' && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-8 w-8 text-green-600 hover:text-green-700"
+                                                                        onClick={() => setRegisterTemplate(t)}
+                                                                        title="Registrar pago"
+                                                                    >
+                                                                        <CheckCircle2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                )
                                                             )}
                                                             <Button
                                                                 variant="ghost"
@@ -583,9 +580,7 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <DueStatusBadge status={t.due_status} />
-                                                    {t.due_day && (
-                                                        <span className="text-xs text-muted-foreground">Día {t.due_day}</span>
-                                                    )}
+                                                    {t.due_day && <span className="text-xs text-muted-foreground">Día {t.due_day}</span>}
                                                 </div>
                                                 <div className="flex gap-1">
                                                     {t.due_status === 'registered' ? (
@@ -598,16 +593,18 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                         >
                                                             <Undo2 className="h-4 w-4" />
                                                         </Button>
-                                                    ) : t.due_status !== 'inactive' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-green-600 hover:text-green-700"
-                                                            onClick={() => setRegisterTemplate(t)}
-                                                            title="Registrar pago"
-                                                        >
-                                                            <CheckCircle2 className="h-4 w-4" />
-                                                        </Button>
+                                                    ) : (
+                                                        t.due_status !== 'inactive' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-green-600 hover:text-green-700"
+                                                                onClick={() => setRegisterTemplate(t)}
+                                                                title="Registrar pago"
+                                                            >
+                                                                <CheckCircle2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )
                                                     )}
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTemplate(t)}>
                                                         <Pencil className="h-4 w-4" />

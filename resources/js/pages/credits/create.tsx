@@ -341,7 +341,12 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                     <div className="flex items-center justify-between gap-2 md:hidden">
                                                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.product.name}</span>
                                                         <span className="flex-shrink-0 text-sm font-semibold">{cop(item.subtotal)}</span>
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 flex-shrink-0 p-0" onClick={() => removeFromCart(item.product.id)}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 flex-shrink-0 p-0"
+                                                            onClick={() => removeFromCart(item.product.id)}
+                                                        >
                                                             <X className="h-3 w-3" />
                                                         </Button>
                                                     </div>
@@ -360,7 +365,9 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                                 className="h-8 flex-1 text-right text-sm"
                                                             />
                                                         ) : (
-                                                            <span className="flex-1 text-right text-sm text-muted-foreground">{cop(item.unit_price)} c/u</span>
+                                                            <span className="flex-1 text-right text-sm text-muted-foreground">
+                                                                {cop(item.unit_price)} c/u
+                                                            </span>
                                                         )}
                                                     </div>
                                                     {/* Desktop layout */}

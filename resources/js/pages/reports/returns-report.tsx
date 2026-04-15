@@ -347,13 +347,17 @@ export default function ReturnsReport({
                                         <div className="min-w-0 flex-1">
                                             <p className="truncate font-medium">{product.name}</p>
                                             <p className="text-xs text-muted-foreground">{product.code}</p>
-                                            <p className="mt-0.5 text-xs text-muted-foreground">{formatNumber(product.total_returns)} dev. · {formatNumber(product.total_quantity)} uds</p>
+                                            <p className="mt-0.5 text-xs text-muted-foreground">
+                                                {formatNumber(product.total_returns)} dev. · {formatNumber(product.total_quantity)} uds
+                                            </p>
                                         </div>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(product.total_amount)}</p>
                                             <div className="mt-0.5 flex items-center justify-end gap-1">
                                                 {getReturnRateBadge(product.return_rate)}
-                                                <span className={`text-xs ${getReturnRateColor(product.return_rate)}`}>{formatPercentage(product.return_rate)}</span>
+                                                <span className={`text-xs ${getReturnRateColor(product.return_rate)}`}>
+                                                    {formatPercentage(product.return_rate)}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -374,8 +378,13 @@ export default function ReturnsReport({
                                     </thead>
                                     <tbody>
                                         {returnsData?.returns_by_product?.map((product) => (
-                                            <tr key={product.id} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-                                                <td className="p-2"><Badge variant="outline">{product.code}</Badge></td>
+                                            <tr
+                                                key={product.id}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
+                                                <td className="p-2">
+                                                    <Badge variant="outline">{product.code}</Badge>
+                                                </td>
                                                 <td className="p-2 font-medium">{product.name}</td>
                                                 <td className="p-2 text-right">{formatNumber(product.total_returns)}</td>
                                                 <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
@@ -383,7 +392,9 @@ export default function ReturnsReport({
                                                 <td className="p-2 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         {getReturnRateBadge(product.return_rate)}
-                                                        <span className={getReturnRateColor(product.return_rate)}>{formatPercentage(product.return_rate)}</span>
+                                                        <span className={getReturnRateColor(product.return_rate)}>
+                                                            {formatPercentage(product.return_rate)}
+                                                        </span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -408,7 +419,9 @@ export default function ReturnsReport({
                                         <p className="font-medium">{reason.reason || 'Sin especificar'}</p>
                                         <div className="flex-shrink-0 text-right">
                                             <p className="font-semibold">{formatCurrency(reason.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(reason.count)} dev. · {formatPercentage(reason.percentage)}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(reason.count)} dev. · {formatPercentage(reason.percentage)}
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
@@ -426,7 +439,10 @@ export default function ReturnsReport({
                                     </thead>
                                     <tbody>
                                         {returnsData?.returns_by_reason?.map((reason, index) => (
-                                            <tr key={index} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
+                                            <tr
+                                                key={index}
+                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                            >
                                                 <td className="p-2 font-medium">{reason.reason || 'Sin especificar'}</td>
                                                 <td className="p-2 text-right">{formatNumber(reason.count)}</td>
                                                 <td className="p-2 text-right font-medium">{formatCurrency(reason.total_amount)}</td>
@@ -471,8 +487,13 @@ export default function ReturnsReport({
                                         </thead>
                                         <tbody>
                                             {returnsData?.returns_trend?.map((trend, index) => (
-                                                <tr key={index} className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800">
-                                                    <td className="p-2"><Badge variant="outline">{trend.date}</Badge></td>
+                                                <tr
+                                                    key={index}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2">
+                                                        <Badge variant="outline">{trend.date}</Badge>
+                                                    </td>
                                                     <td className="p-2 text-right">{formatNumber(trend.returns_count)}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(trend.returns_amount)}</td>
                                                 </tr>

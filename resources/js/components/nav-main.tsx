@@ -141,18 +141,18 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                                     const active = isChildActive(child);
                                                     return (
                                                         <SidebarMenuItem key={child.title}>
-                                                            <SidebarMenuSubButton
-                                                                asChild
-                                                                isActive={active}
-                                                                className="ml-2 w-full rounded-lg"
-                                                            >
+                                                            <SidebarMenuSubButton asChild isActive={active} className="ml-2 w-full rounded-lg">
                                                                 <Link href={child.href} prefetch>
                                                                     {child.icon && (
-                                                                        <span className={`${active ? 'text-white' : 'text-[var(--brand-primary)]'} flex-shrink-0`}>
+                                                                        <span
+                                                                            className={`${active ? 'text-white' : 'text-[var(--brand-primary)]'} flex-shrink-0`}
+                                                                        >
                                                                             <child.icon className="size-4" />
                                                                         </span>
                                                                     )}
-                                                                    <span className={`${active ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}>
+                                                                    <span
+                                                                        className={`${active ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}
+                                                                    >
                                                                         {child.title}
                                                                     </span>
                                                                 </Link>

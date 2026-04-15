@@ -17,7 +17,7 @@ class ExpenseTemplateController extends Controller
     public function index(): Response
     {
         $user = Auth::user();
-        $now  = Carbon::now('America/Bogota');
+        $now = Carbon::now('America/Bogota');
 
         $templates = ExpenseTemplate::with('category')
             ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
@@ -28,12 +28,12 @@ class ExpenseTemplateController extends Controller
                 $registered = $t->isRegisteredForMonth($now->year, $now->month);
 
                 $dueStatus = match (true) {
-                    $registered                          => 'registered',
-                    ! $t->is_active                      => 'inactive',
-                    $t->due_day === null                 => 'pending',
-                    $now->day > $t->due_day              => 'overdue',
-                    $now->day >= $t->due_day - 3         => 'due_soon',
-                    default                              => 'pending',
+                    $registered => 'registered',
+                    ! $t->is_active => 'inactive',
+                    $t->due_day === null => 'pending',
+                    $now->day > $t->due_day => 'overdue',
+                    $now->day >= $t->due_day - 3 => 'due_soon',
+                    default => 'pending',
                 };
 
                 return array_merge($t->toArray(), ['due_status' => $dueStatus]);
@@ -43,11 +43,11 @@ class ExpenseTemplateController extends Controller
         $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('expenses/templates', [
-            'templates'    => $templates,
-            'categories'   => $categories,
-            'branches'     => $branches,
+            'templates' => $templates,
+            'categories' => $categories,
+            'branches' => $branches,
             'userBranchId' => $user->branch_id,
-            'currentDay'   => $now->day,
+            'currentDay' => $now->day,
         ]);
     }
 
@@ -56,11 +56,11 @@ class ExpenseTemplateController extends Controller
         $user = Auth::user();
 
         $data = $request->validate([
-            'branch_id'           => 'required|exists:branches,id',
+            'branch_id' => 'required|exists:branches,id',
             'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'name'                => 'required|string|max:255',
-            'reference_amount'    => 'required|numeric|min:1',
-            'due_day'             => 'nullable|integer|min:1|max:31',
+            'name' => 'required|string|max:255',
+            'reference_amount' => 'required|numeric|min:1',
+            'due_day' => 'nullable|integer|min:1|max:31',
         ]);
 
         // Encargado solo puede crear plantillas para su sucursal
@@ -82,10 +82,10 @@ class ExpenseTemplateController extends Controller
 
         $data = $request->validate([
             'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'name'                => 'required|string|max:255',
-            'reference_amount'    => 'required|numeric|min:1',
-            'due_day'             => 'nullable|integer|min:1|max:31',
-            'is_active'           => 'boolean',
+            'name' => 'required|string|max:255',
+            'reference_amount' => 'required|numeric|min:1',
+            'due_day' => 'nullable|integer|min:1|max:31',
+            'is_active' => 'boolean',
         ]);
 
         $expenseTemplate->update($data);
@@ -126,7 +126,7 @@ class ExpenseTemplateController extends Controller
         ]);
 
         $expenseTemplate->update([
-            'deleted_by'      => $user->id,
+            'deleted_by' => $user->id,
             'deletion_reason' => $request->deletion_reason,
         ]);
         $expenseTemplate->delete();
