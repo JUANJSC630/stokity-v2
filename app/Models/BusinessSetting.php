@@ -48,6 +48,7 @@ class BusinessSetting extends Model
         'show_nit' => true,
         'show_address' => true,
         'show_phone' => true,
+        'show_social_media' => true,
         // ── Sale ticket ───────────────────────────────────────────────────────
         'show_seller' => true,
         'show_branch' => true,

@@ -827,7 +827,7 @@ class PrintController extends Controller
         if ($footer1) {
             $p->text($footer1."\n");
         }
-        if ($socialMedia) {
+        if ($socialMedia && $cfg['show_social_media']) {
             $p->text("Síguenos en:\n");
             $p->text($socialMedia."\n");
         }

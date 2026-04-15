@@ -39,6 +39,7 @@ class TicketSettingController extends Controller
             'show_nit' => 'boolean',
             'show_address' => 'boolean',
             'show_phone' => 'boolean',
+            'show_social_media' => 'boolean',
             // Sale
             'show_seller' => 'boolean',
             'show_branch' => 'boolean',

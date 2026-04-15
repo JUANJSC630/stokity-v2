@@ -24,6 +24,7 @@ interface TicketConfig {
     show_nit: boolean;
     show_address: boolean;
     show_phone: boolean;
+    show_social_media: boolean;
     // Sale
     show_seller: boolean;
     show_branch: boolean;
@@ -332,7 +333,7 @@ function SaleTicketPreview({ config, business }: { config: TicketConfig; busines
             {/* Footer */}
             <div style={{ textAlign: 'center', marginTop: '4px', ...mono }}>
                 {config.footer_line1 && <div>{config.footer_line1}</div>}
-                {business.social_media && (
+                {business.social_media && config.show_social_media && (
                     <>
                         <div>Síguenos en:</div>
                         <div>{business.social_media}</div>
@@ -657,6 +658,20 @@ export default function TicketSettings({ config, business }: Props) {
                                         <CardTitle className="text-sm">Mensaje de pie</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="show_social_media" className="text-sm">
+                                                Mostrar red social
+                                                {!business.social_media && (
+                                                    <span className="ml-1 text-xs text-muted-foreground">(no configurada)</span>
+                                                )}
+                                            </Label>
+                                            <Switch
+                                                id="show_social_media"
+                                                checked={data.show_social_media}
+                                                onCheckedChange={toggle('show_social_media')}
+                                                disabled={!business.social_media}
+                                            />
+                                        </div>
                                         <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground">Línea 1</Label>
                                             <Input
