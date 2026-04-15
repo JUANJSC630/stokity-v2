@@ -49,7 +49,7 @@ export default function Products({
     branches = [],
     filters = { search: '', status: 'all', category: 'all', branch: 'all' },
 }: ProductsPageProps) {
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    const { auth, flash } = usePage<{ auth: { user: { role: string } }; flash: { error?: string } }>().props;
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
@@ -58,6 +58,14 @@ export default function Products({
     const [isSearching, setIsSearching] = useState(false);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    // Capture flash error from backend (e.g. blocked delete)
+    useEffect(() => {
+        if (flash?.error) {
+            setDeleteError(flash.error);
+        }
+    }, [flash?.error]);
     const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -113,14 +121,29 @@ export default function Products({
     };
 
     const handleDelete = () => {
-        if (productToDelete) {
-            router.delete(`/products/${productToDelete.id}`, {
-                onSuccess: () => {
-                    setDeleteModalOpen(false);
-                    setProductToDelete(null);
-                },
-            });
+        if (!productToDelete) return;
+
+        if (productToDelete.stock > 0) {
+            setDeleteError(
+                `Este producto tiene ${productToDelete.stock} unidades en inventario. Debes dar de baja el stock desde Movimientos de Stock antes de eliminarlo.`,
+            );
+            return;
         }
+
+        router.delete(`/products/${productToDelete.id}`, {
+            preserveState: true,
+            onSuccess: () => {
+                setDeleteModalOpen(false);
+                setProductToDelete(null);
+                setDeleteError(null);
+            },
+        });
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setProductToDelete(null);
+        setDeleteError(null);
     };
 
     const columns: Column<Product & { actions: null }>[] = [
@@ -451,7 +474,7 @@ export default function Products({
                 </div>
 
                 {/* Delete confirmation modal */}
-                <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+                <Dialog open={deleteModalOpen} onOpenChange={(open) => { if (!open) handleCloseDeleteModal(); }}>
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar producto?</DialogTitle>
@@ -459,19 +482,30 @@ export default function Products({
                                 El producto será enviado a la papelera. Puedes restaurarlo más tarde si lo necesitas.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
-                            <AlertTriangle className="h-5 w-5" />
-                            <div className="text-sm">
-                                <strong>¿Estás seguro?</strong> Esta acción no se puede deshacer inmediatamente.
+
+                        {deleteError ? (
+                            <div className="flex items-start gap-3 rounded-md bg-red-50 p-3 text-red-800 dark:bg-red-950 dark:text-red-300">
+                                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                                <p className="text-sm">{deleteError}</p>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
+                                <AlertTriangle className="h-5 w-5" />
+                                <div className="text-sm">
+                                    <strong>¿Estás seguro?</strong> Esta acción no se puede deshacer inmediatamente.
+                                </div>
+                            </div>
+                        )}
+
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
-                                Cancelar
+                            <Button variant="outline" onClick={handleCloseDeleteModal}>
+                                {deleteError ? 'Cerrar' : 'Cancelar'}
                             </Button>
-                            <Button variant="destructive" onClick={handleDelete}>
-                                Eliminar
-                            </Button>
+                            {!deleteError && (
+                                <Button variant="destructive" onClick={handleDelete}>
+                                    Eliminar
+                                </Button>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

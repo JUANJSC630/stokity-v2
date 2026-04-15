@@ -39,6 +39,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
+    // Rastrear si el usuario ingresó explícitamente el precio de venta
+    const [salePriceTouched, setSalePriceTouched] = useState(false);
+
     // Estado para el diálogo de error
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMsg, setDialogMsg] = useState('');
@@ -155,12 +158,13 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     // Manejar envío del formulario
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!salePriceTouched) {
+            form.setError('sale_price', 'El precio de venta es obligatorio.');
+            return;
+        }
         form.post('/products', {
             forceFormData: true,
-            onSuccess: () => {
-                // Redirigir automáticamente a la página de productos (esto lo maneja Inertia)
-                // Se agregará un mensaje de éxito en el controlador
-            },
+            onSuccess: () => {},
         });
     };
 
@@ -435,6 +439,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             onChange={(v) => {
                                                 form.setData('sale_price', v);
                                                 form.clearErrors('sale_price');
+                                                setSalePriceTouched(true);
                                             }}
                                         />
                                     </div>

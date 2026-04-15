@@ -25,7 +25,7 @@ class StockMovementController extends Controller
     {
         $user = Auth::user();
 
-        $query = StockMovement::with(['product', 'user', 'branch']);
+        $query = StockMovement::with(['product' => fn ($q) => $q->withTrashed(), 'user', 'branch']);
 
         // Filtrar por sucursal si el usuario no es administrador
         if (! $user->isAdmin() && $user->branch_id) {

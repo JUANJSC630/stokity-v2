@@ -163,11 +163,18 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'product',
             title: 'Producto',
-            render: (value, row) => (
-                <Link href={`/products/${row.product.id}`} className="text-blue-600 hover:text-blue-800">
-                    {row.product.code} - {row.product.name}
-                </Link>
-            ),
+            render: (value, row) =>
+                row.product ? (
+                    row.product.deleted_at ? (
+                        <span className="text-neutral-400 italic">{row.product.code} - {row.product.name} (eliminado)</span>
+                    ) : (
+                        <Link href={`/products/${row.product.id}`} className="text-blue-600 hover:text-blue-800">
+                            {row.product.code} - {row.product.name}
+                        </Link>
+                    )
+                ) : (
+                    <span className="text-neutral-400 italic">Producto eliminado</span>
+                ),
         },
         {
             key: 'type',
@@ -373,8 +380,13 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-neutral-900 dark:text-neutral-100">{movement.product.name}</div>
-                                                    <div className="text-xs text-neutral-500 dark:text-neutral-400">{movement.product.code}</div>
+                                                    <div className={`font-medium ${movement.product?.deleted_at ? 'text-neutral-400 italic' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                                                        {movement.product?.name ?? 'Producto eliminado'}
+                                                        {movement.product?.deleted_at && ' (eliminado)'}
+                                                    </div>
+                                                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        {movement.product?.code ?? '—'}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <Badge className={getTypeColor(movement.type)}>
@@ -442,11 +454,13 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                         )}
 
                                         <div className="mt-2 flex justify-end gap-2">
-                                            <Link href={`/products/${movement.product.id}`}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
-                                                    <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
-                                                </Button>
-                                            </Link>
+                                            {movement.product && !movement.product.deleted_at && (
+                                                <Link href={`/products/${movement.product.id}`}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
+                                                        <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
+                                                    </Button>
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 ))

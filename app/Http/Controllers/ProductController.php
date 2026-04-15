@@ -240,6 +240,10 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        if ($product->stock > 0) {
+            return back()->with('error', "No puedes eliminar \"{$product->name}\" porque tiene {$product->stock} unidades en inventario. Da de baja el stock primero desde Movimientos de Stock.");
+        }
+
         $product->delete();
 
         return redirect()->route('products.index')

@@ -10,11 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product, type Supplier, type SupplierProduct } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import axios from 'axios';
-import { ArrowLeft, Plus, Save, Sparkles, Trash2, Upload, UserCircle } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, ArrowLeft, Plus, Save, Sparkles, Trash2, Upload, UserCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SupplierLink {
     supplier_id: number;
@@ -40,11 +40,18 @@ export default function EditProduct({ product, categories = [], branches = [], s
         { title: isService ? 'Editar Servicio' : 'Editar Producto', href: `/products/${product.id}/edit` },
     ];
 
+    const { flash } = usePage<{ flash: { error?: string } }>().props;
+
     const [imagePreview, setImagePreview] = useState<string | null>(product.image_url || null);
     const [isDragging, setIsDragging] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMsg, setDialogMsg] = useState('');
+
+    useEffect(() => {
+        if (flash?.error) setDeleteError(flash.error);
+    }, [flash?.error]);
 
     const [supplierLinks, setSupplierLinks] = useState<SupplierLink[]>(
         (product.suppliers ?? []).map((s) => ({
@@ -158,7 +165,24 @@ export default function EditProduct({ product, categories = [], branches = [], s
     };
 
     const handleDelete = () => {
-        form.delete(`/products/${product.id}`, { onSuccess: () => setShowDeleteModal(false) });
+        if (product.stock > 0) {
+            setDeleteError(
+                `Este producto tiene ${product.stock} unidades en inventario. Debes dar de baja el stock desde Movimientos de Stock antes de eliminarlo.`,
+            );
+            return;
+        }
+        router.delete(`/products/${product.id}`, {
+            preserveState: true,
+            onSuccess: () => {
+                setShowDeleteModal(false);
+                setDeleteError(null);
+            },
+        });
+    };
+
+    const handleCloseDeleteModal = () => {
+        setShowDeleteModal(false);
+        setDeleteError(null);
     };
 
     return (
@@ -643,7 +667,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     </Card>
                 )}
 
-                <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                <Dialog open={showDeleteModal} onOpenChange={(open) => { if (!open) handleCloseDeleteModal(); }}>
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar {isService ? 'servicio' : 'producto'}?</DialogTitle>
@@ -651,13 +675,28 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                 Esta acción enviará el {isService ? 'servicio' : 'producto'} a la papelera. ¿Deseas continuar?
                             </DialogDescription>
                         </DialogHeader>
+
+                        {deleteError ? (
+                            <div className="flex items-start gap-3 rounded-md bg-red-50 p-3 text-red-800 dark:bg-red-950 dark:text-red-300">
+                                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                                <p className="text-sm">{deleteError}</p>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
+                                <AlertTriangle className="h-5 w-5" />
+                                <p className="text-sm">El {isService ? 'servicio' : 'producto'} será enviado a la papelera. Puedes restaurarlo más tarde.</p>
+                            </div>
+                        )}
+
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
-                                Cancelar
+                            <Button variant="outline" onClick={handleCloseDeleteModal}>
+                                {deleteError ? 'Cerrar' : 'Cancelar'}
                             </Button>
-                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>
-                                Eliminar
-                            </Button>
+                            {!deleteError && (
+                                <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>
+                                    Eliminar
+                                </Button>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
