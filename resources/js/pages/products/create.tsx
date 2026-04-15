@@ -59,8 +59,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         purchase_price: number;
         sale_price: number;
         tax: number;
-        stock: number;
-        min_stock: number;
+        stock: number | '';
+        min_stock: number | '';
         category_id: string;
         branch_id: string;
         status: boolean;
@@ -74,9 +74,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         purchase_price: 0,
         sale_price: 0,
         tax: defaultTax,
-        stock: 0,
-        min_stock: 5,
-        category_id: userBranchId ? '' : '',
+        stock: '',
+        min_stock: '',
+        category_id: '',
         branch_id: userBranchId ? userBranchId.toString() : '',
         status: true,
         image: null as File | null,
@@ -278,9 +278,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </label>
                                     <Input
                                         id="name"
-                                        placeholder="Nombre del producto"
+                                        placeholder="Ej: Bolso de cuero café"
                                         value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
+                                        onChange={(e) => { form.setData('name', e.target.value); form.clearErrors('name'); }}
                                         required
                                         className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
@@ -295,9 +295,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <div className="flex gap-2">
                                         <Input
                                             id="code"
-                                            placeholder="Código único del producto"
+                                            placeholder="Ej: SKU-001 o usa 'Generar'"
                                             value={form.data.code}
-                                            onChange={(e) => form.setData('code', e.target.value)}
+                                            onChange={(e) => { form.setData('code', e.target.value); form.clearErrors('code'); }}
                                             required
                                             className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                         />
@@ -339,7 +339,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <label htmlFor="category_id" className="text-sm font-medium">
                                         Categoría *
                                     </label>
-                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => form.setData('category_id', value)}>
+                                    <Select value={form.data.category_id.toString()} onValueChange={(value) => { form.setData('category_id', value); form.clearErrors('category_id'); }}>
                                         <SelectTrigger
                                             id="category_id"
                                             className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
@@ -362,7 +362,7 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     <label htmlFor="branch_id" className="text-sm font-medium">
                                         Sucursal *
                                     </label>
-                                    <Select value={form.data.branch_id.toString()} onValueChange={(value) => form.setData('branch_id', value)}>
+                                    <Select value={form.data.branch_id.toString()} onValueChange={(value) => { form.setData('branch_id', value); form.clearErrors('branch_id'); }}>
                                         <SelectTrigger
                                             id="branch_id"
                                             className="min-h-[42px] border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 focus:border-primary focus:ring-2 focus:ring-primary dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
@@ -391,9 +391,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             id="purchase_price"
                                             className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={form.data.purchase_price}
-                                            onChange={(v) => form.setData('purchase_price', v)}
+                                            onChange={(v) => { form.setData('purchase_price', v); form.clearErrors('purchase_price'); }}
                                         />
                                     </div>
+                                    <p className="text-xs text-muted-foreground">Precio al que compras o produces el artículo. Usado para calcular el margen de ganancia.</p>
                                     {form.errors.purchase_price && <p className="text-xs text-destructive">{form.errors.purchase_price}</p>}
                                 </div>
 
@@ -408,9 +409,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                             id="sale_price"
                                             className="border-neutral-200 bg-white pl-6 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             value={form.data.sale_price}
-                                            onChange={(v) => form.setData('sale_price', v)}
+                                            onChange={(v) => { form.setData('sale_price', v); form.clearErrors('sale_price'); }}
                                         />
                                     </div>
+                                    <p className="text-xs text-muted-foreground">Precio al que se vende al cliente. Es el valor que aparece en el POS y las facturas.</p>
                                     {form.errors.sale_price && <p className="text-xs text-destructive">{form.errors.sale_price}</p>}
                                 </div>
 
@@ -427,9 +429,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 step="0.01"
                                                 min="0"
                                                 max="100"
+                                                placeholder="0"
                                                 className="border-neutral-200 bg-white pr-8 text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                                 value={form.data.tax}
-                                                onChange={(e) => form.setData('tax', Number(e.target.value))}
+                                                onChange={(e) => { form.setData('tax', Number(e.target.value)); form.clearErrors('tax'); }}
                                                 onFocus={(e) => e.target.select()}
                                             />
                                             <span className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-500 dark:text-neutral-400">
@@ -465,12 +468,18 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 type="number"
                                                 step="1"
                                                 min="0"
+                                                placeholder="Ej: 50"
                                                 value={form.data.stock}
-                                                onChange={(e) => form.setData('stock', Number(e.target.value))}
+                                                onChange={(e) => {
+                                                    form.setData('stock', e.target.value === '' ? '' : Number(e.target.value));
+                                                    form.clearErrors('stock');
+                                                }}
                                                 onFocus={(e) => e.target.select()}
                                                 className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             />
-                                            <p className="text-xs text-muted-foreground">Cantidad inicial en inventario.</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Cantidad de unidades disponibles al crear el producto. Puede ser 0 si aún no hay inventario.
+                                            </p>
                                             {form.errors.stock && <p className="text-xs text-destructive">{form.errors.stock}</p>}
                                         </div>
 
@@ -483,14 +492,18 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                                 type="number"
                                                 step="1"
                                                 min="0"
+                                                placeholder="Ej: 5"
                                                 value={form.data.min_stock}
-                                                onChange={(e) => form.setData('min_stock', Number(e.target.value))}
+                                                onChange={(e) => {
+                                                    form.setData('min_stock', e.target.value === '' ? '' : Number(e.target.value));
+                                                    form.clearErrors('min_stock');
+                                                }}
                                                 onFocus={(e) => e.target.select()}
                                                 className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                             />
                                             {form.errors.min_stock && <p className="text-xs text-destructive">{form.errors.min_stock}</p>}
                                             <p className="text-xs text-muted-foreground">
-                                                Se mostrará alerta cuando el stock sea menor o igual a este valor.
+                                                Se mostrará una alerta de bajo stock cuando las unidades sean iguales o menores a este valor.
                                             </p>
                                         </div>
                                     </>
@@ -525,10 +538,10 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                                     </label>
                                     <Textarea
                                         id="description"
-                                        placeholder="Descripción detallada del producto"
+                                        placeholder="Ej: Bolso artesanal en cuero legítimo, cierre metálico, correa ajustable..."
                                         rows={5}
                                         value={form.data.description}
-                                        onChange={(e) => form.setData('description', e.target.value)}
+                                        onChange={(e) => { form.setData('description', e.target.value); form.clearErrors('description'); }}
                                         className="border-neutral-200 bg-white text-neutral-900 placeholder-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:placeholder-neutral-500"
                                     />
                                     {form.errors.description && <p className="text-xs text-destructive">{form.errors.description}</p>}
