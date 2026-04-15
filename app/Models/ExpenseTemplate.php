@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ExpenseTemplate extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'branch_id',
@@ -18,6 +19,8 @@ class ExpenseTemplate extends Model
         'reference_amount',
         'due_day',
         'is_active',
+        'deleted_by',
+        'deletion_reason',
     ];
 
     protected $casts = [

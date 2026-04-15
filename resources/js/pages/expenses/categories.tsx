@@ -1,3 +1,4 @@
+import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -143,12 +144,20 @@ function CategoryModal({ open, onClose, category }: CategoryModalProps) {
 export default function ExpenseCategoriesIndex({ categories }: Props) {
     const [showCreate, setShowCreate] = useState(false);
     const [editCategory, setEditCategory] = useState<ExpenseCategory | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
-    const handleDelete = (cat: ExpenseCategory) => {
-        if (!window.confirm(`¿Eliminar la categoría "${cat.name}"? Los gastos asociados quedarán sin categoría.`)) return;
-        router.delete(`/expense-categories/${cat.id}`, {
+    const handleDelete = (reason: string) => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        router.delete(`/expense-categories/${deleteTarget.id}`, {
+            data: { deletion_reason: reason },
             preserveScroll: true,
             onSuccess: () => toast.success('Categoría eliminada.'),
+            onFinish: () => {
+                setDeleting(false);
+                setDeleteTarget(null);
+            },
         });
     };
 
@@ -158,6 +167,22 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías de gastos" />
+
+            <DeleteWithReasonDialog
+                open={Boolean(deleteTarget)}
+                title="Eliminar categoría"
+                description={
+                    deleteTarget && (
+                        <span>
+                            ¿Eliminar la categoría <strong>{deleteTarget.name}</strong>? Los gastos asociados quedarán sin categoría.
+                        </span>
+                    )
+                }
+                confirmLabel="Eliminar"
+                processing={deleting}
+                onConfirm={handleDelete}
+                onClose={() => setDeleteTarget(null)}
+            />
 
             <CategoryModal open={showCreate} onClose={() => setShowCreate(false)} />
 
@@ -224,7 +249,7 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                onClick={() => handleDelete(cat)}
+                                                onClick={() => setDeleteTarget(cat)}
                                                 title="Eliminar"
                                             >
                                                 <Trash2 className="h-4 w-4" />

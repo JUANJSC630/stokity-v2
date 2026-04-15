@@ -118,13 +118,21 @@ class ExpenseController extends Controller
         return back()->with('success', 'Gasto actualizado.');
     }
 
-    public function destroy(Expense $expense): RedirectResponse
+    public function destroy(Request $request, Expense $expense): RedirectResponse
     {
         $user = Auth::user();
         if (! $user->isAdmin() && $expense->branch_id !== $user->branch_id) {
             abort(403);
         }
 
+        $request->validate([
+            'deletion_reason' => 'nullable|string|max:500',
+        ]);
+
+        $expense->update([
+            'deleted_by'       => $user->id,
+            'deletion_reason'  => $request->deletion_reason,
+        ]);
         $expense->delete();
 
         return back()->with('success', 'Gasto eliminado.');

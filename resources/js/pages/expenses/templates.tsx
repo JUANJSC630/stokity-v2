@@ -1,3 +1,4 @@
+import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -348,14 +349,19 @@ export default function ExpenseTemplates({ templates, categories, branches, user
     const [editTemplate, setEditTemplate] = useState<ExpenseTemplate | null>(null);
     const [registerTemplate, setRegisterTemplate] = useState<ExpenseTemplate | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<ExpenseTemplate | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const [unregisterTarget, setUnregisterTarget] = useState<ExpenseTemplate | null>(null);
 
-    const confirmDelete = () => {
+    const confirmDelete = (reason: string) => {
         if (!deleteTarget) return;
+        setDeleting(true);
         router.delete(`/expense-templates/${deleteTarget.id}`, {
+            data: { deletion_reason: reason },
             preserveScroll: true,
-            onSuccess: () => setDeleteTarget(null),
-            onError: () => setDeleteTarget(null),
+            onFinish: () => {
+                setDeleting(false);
+                setDeleteTarget(null);
+            },
         });
     };
 
@@ -412,14 +418,20 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                 onCancel={() => setUnregisterTarget(null)}
             />
 
-            <ConfirmDialog
+            <DeleteWithReasonDialog
                 open={Boolean(deleteTarget)}
                 title="Eliminar gasto fijo"
-                description={`¿Eliminar "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
+                description={
+                    deleteTarget && (
+                        <span>
+                            ¿Eliminar <strong>{deleteTarget.name}</strong>? Esta acción no se puede deshacer.
+                        </span>
+                    )
+                }
                 confirmLabel="Eliminar"
-                confirmVariant="destructive"
+                processing={deleting}
                 onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
+                onClose={() => setDeleteTarget(null)}
             />
 
             <div className="flex h-full flex-1 flex-col gap-4 p-4">

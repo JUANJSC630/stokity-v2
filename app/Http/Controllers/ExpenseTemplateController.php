@@ -114,13 +114,21 @@ class ExpenseTemplateController extends Controller
         return back()->with('success', 'Pago des-registrado correctamente.');
     }
 
-    public function destroy(ExpenseTemplate $expenseTemplate): RedirectResponse
+    public function destroy(Request $request, ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
         if (! $user->isAdmin() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
 
+        $request->validate([
+            'deletion_reason' => 'nullable|string|max:500',
+        ]);
+
+        $expenseTemplate->update([
+            'deleted_by'      => $user->id,
+            'deletion_reason' => $request->deletion_reason,
+        ]);
         $expenseTemplate->delete();
 
         return back()->with('success', 'Plantilla eliminada.');

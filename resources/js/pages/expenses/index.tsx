@@ -1,3 +1,4 @@
+import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -314,6 +315,8 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editExpense, setEditExpense] = useState<Expense | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const hasActiveFilters = filterCategory !== 'all' || filterBranch !== 'all' || startDate !== '' || endDate !== '';
     const activeFilterCount = [filterCategory !== 'all', filterBranch !== 'all', startDate !== '', endDate !== ''].filter(Boolean).length;
@@ -339,14 +342,38 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
         router.get('/expenses');
     };
 
-    const handleDelete = (id: number) => {
-        if (!window.confirm('¿Eliminar este gasto? Esta acción no se puede deshacer.')) return;
-        router.delete(`/expenses/${id}`, { preserveScroll: true });
+    const handleDelete = (reason: string) => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        router.delete(`/expenses/${deleteTarget.id}`, {
+            data: { deletion_reason: reason },
+            preserveScroll: true,
+            onFinish: () => {
+                setDeleting(false);
+                setDeleteTarget(null);
+            },
+        });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gastos" />
+
+            <DeleteWithReasonDialog
+                open={Boolean(deleteTarget)}
+                title="Eliminar gasto"
+                description={
+                    deleteTarget && (
+                        <span>
+                            ¿Eliminar <strong>{deleteTarget.description || 'este gasto'}</strong> por{' '}
+                            <strong>{cop(deleteTarget.amount)}</strong>? Esta acción no se puede deshacer.
+                        </span>
+                    )
+                }
+                processing={deleting}
+                onConfirm={handleDelete}
+                onClose={() => setDeleteTarget(null)}
+            />
 
             {/* Modals */}
             {showRegisterModal && (
@@ -627,7 +654,7 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                            onClick={() => handleDelete(expense.id)}
+                                                            onClick={() => setDeleteTarget(expense)}
                                                             title="Eliminar"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
@@ -707,7 +734,7 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                    onClick={() => handleDelete(expense.id)}
+                                                    onClick={() => setDeleteTarget(expense)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>

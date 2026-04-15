@@ -53,15 +53,23 @@ class ExpenseCategoryController extends Controller
         return back()->with('success', 'Categoría actualizada correctamente.');
     }
 
-    public function destroy(ExpenseCategory $expenseCategory): RedirectResponse
+    public function destroy(Request $request, ExpenseCategory $expenseCategory): RedirectResponse
     {
         if ($expenseCategory->is_system) {
             return back()->withErrors(['name' => 'Las categorías del sistema no se pueden eliminar.']);
         }
 
+        $request->validate([
+            'deletion_reason' => 'nullable|string|max:500',
+        ]);
+
         // Desasociar gastos y plantillas antes de eliminar
         $expenseCategory->expenses()->update(['expense_category_id' => null]);
         $expenseCategory->templates()->update(['expense_category_id' => null]);
+        $expenseCategory->update([
+            'deleted_by'      => $request->user()->id,
+            'deletion_reason' => $request->deletion_reason,
+        ]);
         $expenseCategory->delete();
 
         return back()->with('success', 'Categoría eliminada correctamente.');
