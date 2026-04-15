@@ -158,6 +158,7 @@ export interface Category {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    products_count?: number;
 }
 
 export interface PaginatedData<T> {

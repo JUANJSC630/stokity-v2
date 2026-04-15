@@ -41,7 +41,7 @@ interface Product {
     category: {
         id: number;
         name: string;
-    };
+    } | null;
     branch: {
         id: number;
         name: string;
@@ -105,30 +105,6 @@ export default function ProductMovements({ product, movements }: Props) {
                             <h1 className="mb-4 text-2xl font-semibold text-red-600">Producto no encontrado</h1>
                             <p className="mb-4 text-gray-600">El producto que buscas no existe o no tienes permisos para verlo.</p>
                             {/* Debug information removed for security. */}
-                            <Link href="/products">
-                                <Button className="mt-4">
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Volver a Productos
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
-
-    // Validar que product tiene las propiedades necesarias
-    if (!product.category || !product.branch) {
-        console.error('Product missing required properties:', product);
-        return (
-            <AppLayout breadcrumbs={[]}>
-                <Head title="Error en datos del producto" />
-                <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                    <div className="flex h-full items-center justify-center">
-                        <div className="text-center">
-                            <h1 className="mb-4 text-2xl font-semibold text-red-600">Error en datos del producto</h1>
-                            <p className="mb-4 text-gray-600">Los datos del producto están incompletos.</p>
                             <Link href="/products">
                                 <Button className="mt-4">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -285,7 +261,7 @@ export default function ProductMovements({ product, movements }: Props) {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-600">Categoría</label>
-                                <p className="text-base sm:text-lg">{product.category.name}</p>
+                                <p className="text-base sm:text-lg">{product.category?.name ?? 'Sin categoría'}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-600">Stock Actual</label>

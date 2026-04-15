@@ -242,16 +242,26 @@ export default function TrashedCategories({ categories, filters = { search: '' }
                         <DialogHeader className="pb-2">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-neutral-100">
                                 <AlertTriangle className="size-5 text-red-500" />
-                                Confirmar eliminación permanente
+                                {categoryToForceDelete && (categoryToForceDelete.products_count ?? 0) > 0
+                                    ? 'No se puede eliminar'
+                                    : 'Confirmar eliminación permanente'}
                             </DialogTitle>
                         </DialogHeader>
                         <DialogDescription className="py-4 text-neutral-600 dark:text-neutral-300">
                             {categoryToForceDelete && (
-                                <p>
-                                    ¿Está seguro de eliminar permanentemente la categoría{' '}
-                                    <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción no
-                                    se puede deshacer.
-                                </p>
+                                (categoryToForceDelete.products_count ?? 0) > 0 ? (
+                                    <p>
+                                        La categoría <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong> tiene{' '}
+                                        <strong className="text-red-600">{categoryToForceDelete.products_count} producto(s) asociado(s)</strong> (incluyendo eliminados).
+                                        Debes cambiar la categoría de esos productos o eliminarlos permanentemente primero.
+                                    </p>
+                                ) : (
+                                    <p>
+                                        ¿Está seguro de eliminar permanentemente la categoría{' '}
+                                        <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción no
+                                        se puede deshacer.
+                                    </p>
+                                )
                             )}
                         </DialogDescription>
                         <DialogFooter className="flex gap-3 pt-2">
@@ -260,15 +270,17 @@ export default function TrashedCategories({ categories, filters = { search: '' }
                                 className="rounded-lg border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
                                 onClick={() => setForceDeleteModalOpen(false)}
                             >
-                                Cancelar
+                                Cerrar
                             </Button>
-                            <Button
-                                variant="destructive"
-                                className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
-                                onClick={handleForceDelete}
-                            >
-                                Eliminar Permanentemente
-                            </Button>
+                            {categoryToForceDelete && (categoryToForceDelete.products_count ?? 0) === 0 && (
+                                <Button
+                                    variant="destructive"
+                                    className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
+                                    onClick={handleForceDelete}
+                                >
+                                    Eliminar Permanentemente
+                                </Button>
+                            )}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

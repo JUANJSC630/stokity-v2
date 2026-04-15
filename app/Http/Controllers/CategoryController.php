@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -50,7 +51,8 @@ class CategoryController extends Controller
             });
         }
 
-        $categories = $query->orderBy('deleted_at', 'desc')
+        $categories = $query->withCount(['products' => fn ($q) => $q->withTrashed()])
+            ->orderBy('deleted_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
@@ -142,11 +144,11 @@ class CategoryController extends Controller
     {
         $category = Category::onlyTrashed()->findOrFail($id);
 
-        // Check if category has associated products
-        $productsCount = $category->products()->count();
+        // Check if category has associated products (including soft-deleted ones)
+        $productsCount = Product::withTrashed()->where('category_id', $category->id)->count();
         if ($productsCount > 0) {
             return redirect()->route('categories.trashed')
-                ->with('error', "No se puede eliminar permanentemente la categoría porque tiene {$productsCount} productos asociados.");
+                ->with('error', "No se puede eliminar permanentemente la categoría porque tiene {$productsCount} producto(s) asociado(s), incluyendo eliminados.");
         }
 
         $category->forceDelete();
