@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,8 @@ function DueDateBadge({ dueDate, status }: { dueDate: string | null; status: str
 }
 
 export default function CreditsIndex({ credits, filters, overdueCount }: Props) {
+    usePolling(['credits', 'overdueCount'], 60_000);
+
     const [search, setSearch] = useState(filters.search ?? '');
     const activeTab = filters.tab ?? 'active';
 

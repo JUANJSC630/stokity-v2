@@ -16,18 +16,28 @@ El hook `usePolling` en `resources/js/hooks/use-polling.ts` centraliza la lógic
 | Movimientos de Stock | `/stock-movements` | `movements` | 60s | 2026-04-15 |
 | POS | `/pos` | `clients`, `currentSession`, `pendingSalesCount` | 60s | 2026-04-15 |
 | Ventas | `/sales` | `sales` | 60s | 2026-04-15 |
+| Créditos | `/credits` | `credits`, `overdueCount` | 60s | 2026-04-15 |
+| Historial de Caja | `/cash-sessions` | `sessions` | 60s | 2026-04-15 |
+| Clientes | `/clients` | `clients` | 60s | 2026-04-15 |
+| Gastos | `/expenses` | `expenses`, `pendingTemplates` | 60s | 2026-04-15 |
+| Finanzas | `/finances` | `revenue`, `netProfit`, `totalExpenses`, `expensesByCategory`, `receivables` | 120s | 2026-04-15 |
+| Reportes | `/reports` | `dashboardData` | 120s | 2026-04-15 |
+| Sucursales | `/branches` | `branches` | 120s | 2026-04-15 |
+| Categorías | `/categories` | `categories` | 120s | 2026-04-15 |
+| Proveedores | `/suppliers` | `suppliers` | 120s | 2026-04-15 |
+| Métodos de Pago | `/payment-methods` | `paymentMethods` | 120s | 2026-04-15 |
+| Usuarios | `/users` | `users` | 120s | 2026-04-15 |
 
 ---
 
-## Páginas candidatas (sin polling aún)
+## Páginas sin polling (no aplica)
 
-| Página | Ruta | Justificación |
-|--------|------|---------------|
-| Créditos | `/credits` | Saldos pueden cambiar si otro usuario registra pagos |
-| Historial de Caja | `/cash-sessions` | Sesiones abiertas/cerradas por otros usuarios |
-| Clientes | `/clients` | Nuevos clientes creados por vendedores |
-| Finanzas | `/finances` | Totales cambian con cada venta |
-| Proveedores | `/suppliers` | Cambios poco frecuentes — baja prioridad |
+| Página | Ruta | Motivo |
+|--------|------|--------|
+| Crear/Editar producto | `/products/create`, `/products/{id}/edit` | Formularios individuales |
+| Ver venta | `/sales/{id}` | Dato puntual, no cambia |
+| Ver crédito | `/credits/{id}` | Dato puntual |
+| Configuración | `/settings/*` | El usuario mismo edita |
 
 ---
 

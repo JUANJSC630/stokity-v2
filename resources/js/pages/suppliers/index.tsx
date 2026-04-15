@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +35,8 @@ interface PageProps {
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Proveedores', href: '/suppliers' }];
 
 export default function Index({ suppliers, branches, filters }: PageProps) {
+    usePolling(['suppliers'], 120_000);
+
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [branch, setBranch] = useState(filters.branch || 'all');

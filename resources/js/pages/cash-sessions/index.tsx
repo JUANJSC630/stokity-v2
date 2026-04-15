@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import { Badge } from '@/components/ui/badge';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
@@ -30,6 +31,8 @@ function formatCOP(value: number | string | null | undefined) {
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Historial de Caja', href: '/cash-sessions' }];
 
 export default function CashSessionIndex({ sessions, filters, availableBranches }: Props) {
+    usePolling(['sessions'], 60_000);
+
     const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
     const [branchId, setBranchId] = useState(filters.branch_id ?? '');

@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -353,6 +354,8 @@ export default function FinancesIndex({
     receivables,
     activeCreditsCount,
 }: Props) {
+    usePolling(['revenue', 'netRevenue', 'grossProfit', 'netProfit', 'totalExpenses', 'expensesByCategory', 'receivables'], 120_000);
+
     const [localPeriod, setLocalPeriod] = useState<PeriodOption>(period);
     const [localBranch, setLocalBranch] = useState<string>(selectedBranch ? String(selectedBranch) : 'all');
     const [dateFromLocal, setDateFromLocal] = useState(dateFrom);

@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Branches({ branches, filters = { search: '', status: 'all' } }: BranchesPageProps) {
     const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    usePolling(['branches'], 120_000);
+
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
 

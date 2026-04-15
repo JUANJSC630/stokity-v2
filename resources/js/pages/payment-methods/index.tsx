@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function PaymentMethodsIndex({ paymentMethods }: Props) {
+    usePolling(['paymentMethods'], 120_000);
+
     const [items, setItems] = useState<PaymentMethod[]>(paymentMethods);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [paymentMethodToDelete, setPaymentMethodToDelete] = useState<PaymentMethod | null>(null);

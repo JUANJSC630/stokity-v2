@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -96,6 +97,8 @@ interface Props {
 }
 
 export default function ReportsIndex({ dashboardData, filters, branches, categories, user }: Props) {
+    usePolling(['dashboardData'], 120_000);
+
     const [localFilters, setLocalFilters] = useState<Filters>(filters);
     const [dateRange, setDateRange] = useState({
         from: filters.date_from || '',

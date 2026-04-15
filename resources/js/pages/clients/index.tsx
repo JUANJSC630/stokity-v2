@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ clients, filters }: PageProps) {
+    usePolling(['clients'], 60_000);
+
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
     const searchRef = useRef<HTMLInputElement>(null);

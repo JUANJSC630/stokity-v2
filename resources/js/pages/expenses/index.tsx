@@ -1,4 +1,5 @@
 import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -305,6 +306,8 @@ function CreateExpenseModal({ open, onClose, categories, branches, userBranchId,
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ExpensesIndex({ expenses, pendingTemplates, categories, branches, currentMonth, filters, userBranchId }: Props) {
+    usePolling(['expenses', 'pendingTemplates'], 60_000);
+
     const isAdmin = branches.length > 0;
 
     const [filterCategory, setFilterCategory] = useState(filters.category || 'all');
