@@ -44,10 +44,9 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
 
-    // Inertia form for editing and creating
-    const form = useForm({
-        name: '',
-    });
+    // Separate form instances to avoid shared-state issues between create and edit
+    const createForm = useForm({ name: '' });
+    const editForm = useForm({ name: '' });
 
     const hasResetRef = useRef(false);
     useEffect(() => {
@@ -101,7 +100,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
     // Open edit modal and populate form
     const openEditModal = (category: Category) => {
         setCategoryToEdit(category);
-        form.setData('name', category.name);
+        editForm.setData('name', category.name);
         setEditModalOpen(true);
     };
 
@@ -109,11 +108,11 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
     const handleEditSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (categoryToEdit) {
-            form.put(`/categories/${categoryToEdit.id}`, {
+            editForm.put(`/categories/${categoryToEdit.id}`, {
                 onSuccess: () => {
                     setEditModalOpen(false);
                     setCategoryToEdit(null);
-                    form.reset();
+                    editForm.reset();
                 },
             });
         }
@@ -122,17 +121,17 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
     // Handle form submission for creating
     const handleCreateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.post('/categories', {
+        createForm.post('/categories', {
+            preserveState: false,
             onSuccess: () => {
                 setCreateModalOpen(false);
-                form.reset();
             },
         });
     };
 
     // Open create modal and reset form
     const openCreateModal = () => {
-        form.reset();
+        createForm.reset();
         setCreateModalOpen(true);
     };
 
@@ -333,11 +332,12 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                 <Input
                                     id="name"
                                     placeholder="Nombre de la categoría"
-                                    value={form.data.name}
-                                    onChange={(e) => form.setData('name', e.target.value)}
+                                    value={editForm.data.name}
+                                    onChange={(e) => editForm.setData('name', e.target.value)}
                                     className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
+                                    required
                                 />
-                                {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
+                                {editForm.errors.name && <p className="text-xs text-red-500">{editForm.errors.name}</p>}
                             </div>
                             <DialogFooter className="flex gap-3 pt-2">
                                 <Button
@@ -350,7 +350,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={form.processing}
+                                    disabled={editForm.processing}
                                     className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
                                 >
                                     Guardar cambios
@@ -377,12 +377,13 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                 <Input
                                     id="create-name"
                                     placeholder="Nombre de la categoría"
-                                    value={form.data.name}
-                                    onChange={(e) => form.setData('name', e.target.value)}
+                                    value={createForm.data.name}
+                                    onChange={(e) => createForm.setData('name', e.target.value)}
                                     className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
                                     autoFocus
+                                    required
                                 />
-                                {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
+                                {createForm.errors.name && <p className="text-xs text-red-500">{createForm.errors.name}</p>}
                             </div>
                             <DialogFooter className="flex gap-3 pt-2">
                                 <Button
@@ -395,7 +396,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={form.processing}
+                                    disabled={createForm.processing}
                                     className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
                                 >
                                     Crear Categoría
