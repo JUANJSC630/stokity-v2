@@ -9,6 +9,7 @@ import { useSound } from '@/hooks/use-sound';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
+import { usePolling } from '@/hooks/use-polling';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     ArrowDownCircle,
@@ -289,6 +290,9 @@ export default function PosIndex({
     requireCashSession,
 }: Props) {
     const { auth } = usePage<SharedData>().props;
+
+    // Polling: refresh clients, session state and pending sales count every 60 seconds
+    usePolling(['clients', 'currentSession', 'pendingSalesCount'], 60_000);
 
     const sortedClients = [...clients].sort((a, b) => b.id - a.id);
     const anonymous = sortedClients.find((c) => c.name.toLowerCase() === 'consumidor final');

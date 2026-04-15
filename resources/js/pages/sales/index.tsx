@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +120,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ sales, filters }: PageProps) {
+    // Polling: refresh sales list every 60 seconds
+    usePolling(['sales'], 60_000);
+
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [showDatePicker, setShowDatePicker] = useState(false);

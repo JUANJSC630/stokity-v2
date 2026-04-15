@@ -1,4 +1,5 @@
 import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
@@ -96,6 +97,9 @@ export default function Dashboard({
     userRole,
     userName,
 }: DashboardProps) {
+    // Polling: refresh dashboard data every 2 minutes
+    usePolling(['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'salesByBranch'], 120_000);
+
     const [currentGreeting, setCurrentGreeting] = useState('');
 
     const formatCurrency = (amount: number) => {

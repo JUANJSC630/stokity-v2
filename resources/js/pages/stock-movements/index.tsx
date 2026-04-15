@@ -1,3 +1,4 @@
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +29,8 @@ interface StockMovement {
         id: number;
         name: string;
         code: string;
-    };
+        deleted_at: string | null;
+    } | null;
     user: {
         id: number;
         name: string;
@@ -69,6 +71,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function StockMovementsIndex({ movements, branches, products, filters }: Props) {
+    // Polling: refresh movements list every 60 seconds
+    usePolling(['movements'], 60_000);
+
     const [search, setSearch] = useState(filters.search || '');
     const [type, setType] = useState(filters.type || 'all');
     const [branch, setBranch] = useState(filters.branch || 'all');

@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,9 @@ export default function Products({
     }, [flash?.error]);
     const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Polling: refresh product list (stock levels) every 60 seconds
+    usePolling(['products'], 60_000);
 
     const isAdmin = auth.user.role === 'administrador';
     const isManager = auth.user.role === 'encargado';
