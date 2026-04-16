@@ -24,7 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function CreateBranch({ managers }: CreateBranchProps) {
+export default function CreateBranch({ managers = [] }: CreateBranchProps) {
     const { data, setData, post, processing, errors } = useForm<{
         name: string;
         address: string;
@@ -144,17 +144,11 @@ export default function CreateBranch({ managers }: CreateBranchProps) {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Ninguno</SelectItem>
-                                            {managers.length > 0 ? (
-                                                managers.map((manager) => (
-                                                    <SelectItem key={manager.id} value={manager.id.toString()}>
-                                                        {manager.name}
-                                                    </SelectItem>
-                                                ))
-                                            ) : (
-                                                <SelectItem value="none" disabled>
-                                                    No hay usuarios con rol de encargado disponibles
+                                            {managers.map((manager) => (
+                                                <SelectItem key={manager.id} value={manager.id.toString()}>
+                                                    {manager.name}
                                                 </SelectItem>
-                                            )}
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                     <p className="text-xs text-muted-foreground">
