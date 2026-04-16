@@ -153,7 +153,8 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                     item.product.id === product.id ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.unit_price } : item,
                 );
             }
-            return [...prev, { product, quantity: 1, unit_price: product.sale_price, subtotal: product.sale_price }];
+            const price = Number(product.sale_price);
+        return [...prev, { product, quantity: 1, unit_price: price, subtotal: price }];
         });
     }
 
