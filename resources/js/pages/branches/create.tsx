@@ -43,20 +43,7 @@ export default function CreateBranch({ managers = [] }: CreateBranchProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Create form data to send
-        const formData = { ...data };
-
-        // Process manager_id before submission
-        if (formData.manager_id === 'none') {
-            formData.manager_id = '';
-        }
-
-        // Submit form with processed data
-        post(route('branches.store'), {
-            ...formData,
-            preserveScroll: true,
-        });
+        post(route('branches.store'), { preserveScroll: true });
     };
 
     return (
@@ -151,9 +138,15 @@ export default function CreateBranch({ managers = [] }: CreateBranchProps) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-muted-foreground">
-                                        Solo usuarios con rol de "Encargado" pueden ser asignados como responsables de una sucursal
-                                    </p>
+                                    {managers.length === 0 ? (
+                                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                                            No hay encargados o administradores registrados aún.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                            Solo usuarios con rol de "Encargado" pueden ser asignados como responsables de una sucursal
+                                        </p>
+                                    )}
                                     {errors.manager_id && <p className="text-sm text-destructive">{errors.manager_id}</p>}
                                 </div>
 

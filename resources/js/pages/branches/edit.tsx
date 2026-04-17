@@ -41,20 +41,7 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-
-        // Create form data to send
-        const formData = { ...data };
-
-        // Process manager_id before submission
-        if (formData.manager_id === 'none') {
-            formData.manager_id = '';
-        }
-
-        // Submit form with processed data
-        put(route('branches.update', branch.id), {
-            ...formData,
-            preserveScroll: true,
-        });
+        put(route('branches.update', branch.id), { preserveScroll: true });
     };
 
     return (
@@ -162,9 +149,15 @@ export default function EditBranch({ branch, managers = [] }: EditBranchProps) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <p className="text-xs text-muted-foreground">
-                                        Usuarios con rol de "Encargado" o "Administrador" pueden ser responsables de una sucursal
-                                    </p>
+                                    {managers.length === 0 ? (
+                                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                                            No hay encargados o administradores registrados aún.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                            Usuarios con rol de "Encargado" o "Administrador" pueden ser responsables de una sucursal
+                                        </p>
+                                    )}
                                     {errors.manager_id && <p className="text-sm text-destructive">{errors.manager_id}</p>}
                                 </div>
 

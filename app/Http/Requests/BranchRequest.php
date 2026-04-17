@@ -28,7 +28,7 @@ class BranchRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['boolean'],
-            // El manager_id ahora se maneja exclusivamente desde UserController
+            'manager_id' => ['nullable', 'exists:users,id'],
         ];
     }
 
@@ -39,7 +39,9 @@ class BranchRequest extends FormRequest
      */
     protected function prepareForValidation()
     {
-        // Ya no necesitamos procesar el manager_id aquí
+        if (in_array($this->manager_id, ['none', ''], true)) {
+            $this->merge(['manager_id' => null]);
+        }
     }
 
     /**

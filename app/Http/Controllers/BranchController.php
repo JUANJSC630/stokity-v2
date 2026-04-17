@@ -32,7 +32,8 @@ class BranchController extends Controller
             $query->where('branches.status', $request->status);
         }
 
-        $branches = $query->orderBy('created_at', 'desc')
+        $branches = $query->with(['manager:id,name', 'employees:id,name,role,branch_id'])
+            ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
@@ -72,7 +73,13 @@ class BranchController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('branches/create');
+        $managers = User::whereIn('role', ['encargado', 'administrador'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
+        return Inertia::render('branches/create', [
+            'managers' => $managers,
+        ]);
     }
 
     /**
@@ -80,7 +87,10 @@ class BranchController extends Controller
      */
     public function store(BranchRequest $request): RedirectResponse
     {
-        Branch::create($request->validated());
+        $data = $request->validated();
+        $data['manager_id'] = !empty($data['manager_id']) ? $data['manager_id'] : null;
+
+        Branch::create($data);
 
         return redirect()->route('branches.index')
             ->with('success', 'Sucursal creada correctamente.');
@@ -108,7 +118,10 @@ class BranchController extends Controller
      */
     public function update(BranchRequest $request, Branch $branch): RedirectResponse
     {
-        $branch->update($request->validated());
+        $data = $request->validated();
+        $data['manager_id'] = !empty($data['manager_id']) ? $data['manager_id'] : null;
+
+        $branch->update($data);
 
         return redirect()->route('branches.show', $branch)
             ->with('success', 'Sucursal actualizada correctamente.');
