@@ -118,6 +118,11 @@ class ProductController extends Controller
         // Validar y obtener datos
         $validated = $request->validated();
 
+        if ($validated['type'] === 'servicio') {
+            $validated['stock'] = 0;
+            $validated['min_stock'] = 0;
+        }
+
         if ($request->hasFile('image')) {
             $validated['image'] = $this->blob->upload($request->file('image'), 'products');
         }
