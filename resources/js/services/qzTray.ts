@@ -101,7 +101,21 @@ export async function printBase64(printerName: string, base64Data: string): Prom
     const config = qz.configs.create(printerName, { altPrinting: true, forceRaw: true });
     const data = [{ type: 'raw', format: 'base64', data: base64Data }];
 
-    await qz.print(config, data);
+    try {
+        await qz.print(config, data);
+    } catch (err) {
+        // qz-tray can throw "Cannot read properties of undefined (reading '0')" when
+        // the WebSocket is active but the version handshake (semver) never completed.
+        // Force a fresh reconnect and retry once.
+        if (err instanceof TypeError && String(err.message).includes("reading '0'")) {
+            await disconnectQZ();
+            await connectQZ();
+            const retryConfig = qz.configs.create(printerName, { altPrinting: true, forceRaw: true });
+            await qz.print(retryConfig, data);
+        } else {
+            throw err;
+        }
+    }
 }
 
 // ── ESC/POS helpers ───────────────────────────────────────────────────────────

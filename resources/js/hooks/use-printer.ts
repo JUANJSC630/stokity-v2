@@ -60,7 +60,7 @@ export function usePrinter(): PrinterState {
     }, []);
 
     const connect = useCallback(async () => {
-        localStorage.removeItem(STORAGE_QZ_DISABLED_KEY);
+        sessionStorage.removeItem(STORAGE_QZ_DISABLED_KEY);
         setStatus('connecting');
         setErrorMessage(null);
         try {
@@ -88,7 +88,7 @@ export function usePrinter(): PrinterState {
         if (didAutoConnect.current) return;
         didAutoConnect.current = true;
 
-        if (localStorage.getItem(STORAGE_QZ_DISABLED_KEY) === 'true') {
+        if (sessionStorage.getItem(STORAGE_QZ_DISABLED_KEY) === 'true') {
             setStatus('idle');
             return;
         }
@@ -108,7 +108,7 @@ export function usePrinter(): PrinterState {
     }, [connect]);
 
     const disconnect = useCallback(async () => {
-        localStorage.setItem(STORAGE_QZ_DISABLED_KEY, 'true');
+        sessionStorage.setItem(STORAGE_QZ_DISABLED_KEY, 'true');
         await disconnectQZ();
         setStatus('idle');
         setPrinters([]);
