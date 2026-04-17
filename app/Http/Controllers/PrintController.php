@@ -832,7 +832,7 @@ class PrintController extends Controller
             $p->text($socialMedia."\n");
         }
         if ($footer2) {
-            $p->text($footer2."\n");
+            $p->text("\n".$footer2."\n");
         }
 
         $this->feedPastDeadZone($p);

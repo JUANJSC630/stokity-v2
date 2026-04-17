@@ -45,7 +45,7 @@ class BusinessSetting extends Model
         'paper_width' => 58,
         'header_size' => 'large',
         'show_logo' => false,
-        'show_nit' => true,
+        'show_nit' => false,
         'show_address' => true,
         'show_phone' => true,
         'show_social_media' => true,
