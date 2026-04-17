@@ -75,7 +75,8 @@ export async function listPrinters(): Promise<string[]> {
     try {
         await connectQZ();
         const qz = await getQZ();
-        const result = await qz.printers.find();
+        const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
+        const result = await Promise.race([qz.printers.find(), timeout]);
         return Array.isArray(result) ? result : [result];
     } catch {
         return [];

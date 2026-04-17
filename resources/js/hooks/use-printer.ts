@@ -65,6 +65,7 @@ export function usePrinter(): PrinterState {
         setErrorMessage(null);
         try {
             await connectQZ();
+            setStatus('connected');
             const found = await listPrinters();
             setPrinters(found);
 
@@ -75,8 +76,6 @@ export function usePrinter(): PrinterState {
             } else if (found.length > 0 && !saved) {
                 setSelectedPrinter(found[0]);
             }
-
-            setStatus('connected');
         } catch {
             setStatus('unavailable');
             setErrorMessage('QZ Tray no está instalado o no está ejecutándose.');
