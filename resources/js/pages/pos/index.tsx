@@ -1473,12 +1473,13 @@ export default function PosIndex({
                                                     <input
                                                         type="number"
                                                         min={1}
-                                                        max={item.product.stock}
+                                                        max={item.product.type === 'servicio' ? undefined : item.product.stock}
                                                         value={item.quantity}
                                                         onChange={(e) => {
                                                             const val = parseInt(e.target.value, 10);
                                                             if (!isNaN(val) && val >= 1) {
-                                                                updateQty(item.product.id, Math.min(val, item.product.stock));
+                                                                const newVal = item.product.type === 'servicio' ? val : Math.min(val, item.product.stock);
+                                                                updateQty(item.product.id, newVal);
                                                             }
                                                         }}
                                                         onFocus={(e) => e.target.select()}
@@ -1487,8 +1488,8 @@ export default function PosIndex({
                                                     />
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateQty(item.product.id, Math.min(item.quantity + 1, item.product.stock))}
-                                                        disabled={item.quantity >= item.product.stock}
+                                                        onClick={() => updateQty(item.product.id, item.product.type === 'servicio' ? item.quantity + 1 : Math.min(item.quantity + 1, item.product.stock))}
+                                                        disabled={item.product.type !== 'servicio' && item.quantity >= item.product.stock}
                                                         aria-label={`Aumentar cantidad de ${item.product.name}`}
                                                         className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
                                                     >
