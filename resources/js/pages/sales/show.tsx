@@ -39,6 +39,7 @@ interface TicketConfig {
 
 interface Props {
     sale: Sale;
+    deleted?: boolean;
     businessName?: string | null;
     businessNit?: string | null;
     businessAddress?: string | null;
@@ -47,7 +48,7 @@ interface Props {
     ticketConfig?: TicketConfig;
 }
 
-export default function Show({ sale, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }: Props) {
+export default function Show({ sale, deleted = false, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
     const printer = usePrinter();
 
@@ -132,16 +133,16 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [showTicketPreview, setShowTicketPreview] = useState(false);
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Ventas',
-            href: '/sales',
-        },
-        {
-            title: sale.code,
-            href: `/sales/${sale.id}`,
-        },
-    ];
+    const breadcrumbs: BreadcrumbItem[] = deleted
+        ? [
+              { title: 'Ventas', href: '/sales' },
+              { title: 'Eliminadas', href: route('sales.deleted.index') },
+              { title: sale.code, href: route('sales.deleted.show', sale.id) },
+          ]
+        : [
+              { title: 'Ventas', href: '/sales' },
+              { title: sale.code, href: `/sales/${sale.id}` },
+          ];
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('es-CO', {
@@ -216,7 +217,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                         <Link
-                            href={route('sales.index')}
+                            href={deleted ? route('sales.deleted.index') : route('sales.index')}
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
                         >
                             <ChevronLeft className="h-4 w-4" />
@@ -225,12 +226,16 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                             <div className="flex items-center gap-2">
                                 <h1 className="max-w-[260px] truncate text-lg leading-tight font-bold sm:max-w-none">{sale.code}</h1>
                                 {getStatusBadge(sale.status)}
+                                {deleted && (
+                                    <Badge variant="destructive" className="text-xs">Eliminada</Badge>
+                                )}
                             </div>
                             <p className="text-xs text-muted-foreground">{formatDateTime(sale.date)}</p>
                         </div>
                     </div>
 
-                    {/* Action buttons */}
+                    {/* Action buttons — hidden for deleted sales */}
+                    {!deleted && (
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={handleThermalPrint}
@@ -274,6 +279,7 @@ export default function Show({ sale, businessName, businessNit, businessAddress,
                                 </button>
                             ))}
                     </div>
+                    )}
                 </div>
 
                 {/* Dialogs */}

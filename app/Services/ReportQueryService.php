@@ -714,6 +714,43 @@ class ReportQueryService
     }
 
     /**
+     * Individual return records with their originating sale and products.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    public function getReturnsDetail(array $filters): \Illuminate\Support\Collection
+    {
+        $cacheKey = 'returns_detail_'.md5(serialize($filters));
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
+            return SaleReturn::with([
+                'sale' => fn ($q) => $q->withTrashed()->select('id', 'code', 'deleted_at'),
+                'user:id,name',
+                'products:id,name,sale_price',
+            ])
+            ->when($filters['date_from'], fn ($q) => $q->whereDate('sale_returns.created_at', '>=', $filters['date_from']))
+            ->when($filters['date_to'], fn ($q) => $q->whereDate('sale_returns.created_at', '<=', $filters['date_to']))
+            ->when($filters['branch_id'], fn ($q) => $q->whereHas('sale', fn ($sq) => $sq->withTrashed()->where('branch_id', $filters['branch_id'])))
+            ->orderBy('sale_returns.created_at', 'desc')
+            ->get()
+            ->map(fn ($ret) => [
+                'id'           => $ret->id,
+                'sale_id'      => $ret->sale_id,
+                'sale_code'    => $ret->sale?->code,
+                'sale_deleted' => $ret->sale?->deleted_at !== null,
+                'reason'       => $ret->reason,
+                'created_at'   => $ret->created_at->format('d/m/Y H:i'),
+                'user'         => $ret->user?->name,
+                'total'        => $ret->products->sum(fn ($p) => $p->pivot->quantity * $p->sale_price),
+                'products'     => $ret->products->map(fn ($p) => [
+                    'name'     => $p->name,
+                    'quantity' => $p->pivot->quantity,
+                ]),
+            ]);
+        });
+    }
+
+    /**
      * Payment methods summary.
      */
     public function getPaymentMethodsSummary(array $filters): \Illuminate\Support\Collection

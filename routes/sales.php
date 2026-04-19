@@ -3,6 +3,7 @@
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
+use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +14,13 @@ Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(fu
     Route::get('sales/create', [SaleController::class, 'create'])->name('sales.create');
     Route::post('sales', [SaleController::class, 'store'])->name('sales.store');
     Route::get('sales/pending', [SaleController::class, 'pendingForBranch'])->name('sales.pending');
+
+    // Ventas eliminadas — solo administradores
+    Route::middleware(AdminMiddleware::class)->group(function () {
+        Route::get('sales/deleted', [SaleController::class, 'deletedIndex'])->name('sales.deleted.index');
+        Route::get('sales/deleted/{id}', [SaleController::class, 'deletedShow'])->name('sales.deleted.show');
+    });
+
     Route::get('sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
     Route::get('sales/{sale}/edit', [SaleController::class, 'edit'])->name('sales.edit');
     Route::put('sales/{sale}', [SaleController::class, 'update'])->name('sales.update');

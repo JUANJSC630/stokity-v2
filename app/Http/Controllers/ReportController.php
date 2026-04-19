@@ -168,6 +168,7 @@ class ReportController extends Controller
         $returnsByProduct = $this->queries->getReturnsByProduct($filters);
         $returnsByReason = $this->queries->getReturnsByReason($filters);
         $returnsTrend = $this->queries->getReturnsTrend($filters);
+        $returnsDetail = $this->queries->getReturnsDetail($filters);
 
         // Return rate
         $totalSales = Sale::whereIn('status', ['completed', 'cancelled'])
@@ -226,6 +227,7 @@ class ReportController extends Controller
                 'returns_count' => $trend->return_count,
                 'returns_amount' => $trend->return_amount ?? 0,
             ]),
+            'returns_detail' => $returnsDetail,
         ];
 
         $user = Auth::user();

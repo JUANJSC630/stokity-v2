@@ -508,7 +508,93 @@ class SaleController extends Controller
             'saleReturns.products',
         ]);
 
-        $saleData = [
+        $business = \App\Models\BusinessSetting::getSettings();
+
+        return Inertia::render('sales/show', [
+            'sale' => $this->buildSaleData($sale),
+            'businessName' => $business->name,
+            'businessNit' => $business->nit,
+            'businessAddress' => $business->address,
+            'businessPhone' => $business->phone,
+            'businessLogoUrl' => $business->logo_url,
+            'ticketConfig' => $business->getTicketConfig(),
+        ]);
+    }
+
+    /**
+     * List soft-deleted sales (admin only).
+     */
+    public function deletedIndex(Request $request)
+    {
+        $with = ['branch'];
+        if (! $request->search) {
+            $with[] = 'client';
+            $with[] = 'seller';
+        }
+        $query = Sale::onlyTrashed()->with($with);
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->leftJoin('clients', 'sales.client_id', '=', 'clients.id')
+                ->leftJoin('users as sellers', 'sales.seller_id', '=', 'sellers.id')
+                ->where(function ($q) use ($search) {
+                    $q->where('sales.code', 'like', "%{$search}%")
+                        ->orWhere('clients.name', 'like', "%{$search}%")
+                        ->orWhere('sellers.name', 'like', "%{$search}%");
+                })
+                ->select('sales.*')
+                ->with(['client']);
+        }
+
+        if ($request->date_from) {
+            $query->whereDate('sales.deleted_at', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->whereDate('sales.deleted_at', '<=', $request->date_to);
+        }
+
+        $sales = $query->orderBy('sales.deleted_at', 'desc')->paginate(15)->withQueryString();
+
+        return Inertia::render('sales/deleted', [
+            'sales' => $sales,
+            'filters' => $request->only(['search', 'date_from', 'date_to']),
+        ]);
+    }
+
+    /**
+     * Show a single soft-deleted sale (admin only).
+     */
+    public function deletedShow($id)
+    {
+        $sale = Sale::onlyTrashed()->with([
+            'branch.manager',
+            'client',
+            'seller',
+            'saleProducts.product',
+            'saleReturns.products',
+        ])->findOrFail($id);
+
+        $business = \App\Models\BusinessSetting::getSettings();
+
+        return Inertia::render('sales/show', [
+            'sale' => $this->buildSaleData($sale),
+            'deleted' => true,
+            'businessName' => $business->name,
+            'businessNit' => $business->nit,
+            'businessAddress' => $business->address,
+            'businessPhone' => $business->phone,
+            'businessLogoUrl' => $business->logo_url,
+            'ticketConfig' => $business->getTicketConfig(),
+        ]);
+    }
+
+    /**
+     * Build the serializable sale data array shared by show() and deletedShow().
+     * Always includes deleted_at (null for active sales).
+     */
+    private function buildSaleData(Sale $sale): array
+    {
+        return [
             'id' => $sale->id,
             'branch_id' => $sale->branch_id,
             'code' => $sale->code,
@@ -528,10 +614,11 @@ class SaleController extends Controller
             'notes' => $sale->notes,
             'created_at' => $sale->created_at,
             'updated_at' => $sale->updated_at,
+            'deleted_at' => $sale->deleted_at,
             'branch' => $sale->branch ? [
                 'id' => $sale->branch->id,
                 'name' => $sale->branch->name,
-                'manager' => $sale->branch->manager ? $sale->branch->manager->name : null,
+                'manager' => $sale->branch->manager?->name,
                 'address' => $sale->branch->address,
                 'phone' => $sale->branch->phone,
                 'email' => $sale->branch->email,
@@ -540,52 +627,31 @@ class SaleController extends Controller
             ] : null,
             'client' => $sale->client,
             'seller' => $sale->seller,
-            'saleProducts' => $sale->saleProducts->map(function ($saleProduct) {
-                return [
-                    'id' => $saleProduct->id,
-                    'sale_id' => $saleProduct->sale_id,
-                    'product_id' => $saleProduct->product_id,
-                    'quantity' => $saleProduct->quantity,
-                    'price' => $saleProduct->price,
-                    'subtotal' => $saleProduct->subtotal,
-                    'product' => $saleProduct->product ? [
-                        'id' => $saleProduct->product->id,
-                        'name' => $saleProduct->product->name,
-                        'code' => $saleProduct->product->code,
-                        'tax' => $saleProduct->product->tax,
-                    ] : null,
-                ];
-            })->toArray(),
-            // Agregar historial de devoluciones
-            'saleReturns' => $sale->saleReturns->map(function ($saleReturn) {
-                return [
-                    'id' => $saleReturn->id,
-                    'reason' => $saleReturn->reason,
-                    'created_at' => $saleReturn->created_at,
-                    'products' => $saleReturn->products->map(function ($product) {
-                        return [
-                            'id' => $product->id,
-                            'name' => $product->name,
-                            'pivot' => [
-                                'quantity' => $product->pivot->quantity,
-                            ],
-                        ];
-                    })->toArray(),
-                ];
-            })->toArray(),
+            'saleProducts' => $sale->saleProducts->map(fn ($sp) => [
+                'id' => $sp->id,
+                'sale_id' => $sp->sale_id,
+                'product_id' => $sp->product_id,
+                'quantity' => $sp->quantity,
+                'price' => $sp->price,
+                'subtotal' => $sp->subtotal,
+                'product' => $sp->product ? [
+                    'id' => $sp->product->id,
+                    'name' => $sp->product->name,
+                    'code' => $sp->product->code,
+                    'tax' => $sp->product->tax,
+                ] : null,
+            ])->toArray(),
+            'saleReturns' => $sale->saleReturns->map(fn ($ret) => [
+                'id' => $ret->id,
+                'reason' => $ret->reason,
+                'created_at' => $ret->created_at,
+                'products' => $ret->products->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'pivot' => ['quantity' => $p->pivot->quantity],
+                ])->toArray(),
+            ])->toArray(),
         ];
-
-        $business = \App\Models\BusinessSetting::getSettings();
-
-        return Inertia::render('sales/show', [
-            'sale' => $saleData,
-            'businessName' => $business->name,
-            'businessNit' => $business->nit,
-            'businessAddress' => $business->address,
-            'businessPhone' => $business->phone,
-            'businessLogoUrl' => $business->logo_url,
-            'ticketConfig' => $business->getTicketConfig(),
-        ]);
     }
 
     /**

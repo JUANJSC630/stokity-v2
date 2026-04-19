@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { AlertTriangle, Calendar, Download, RotateCcw, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -53,6 +53,44 @@ interface ReturnTrend {
     returns_amount: number;
 }
 
+interface ReturnDetail {
+    id: number;
+    sale_id: number;
+    sale_code: string | null;
+    sale_deleted: boolean;
+    reason: string | null;
+    created_at: string;
+    user: string | null;
+    total: number;
+    products: Array<{ name: string; quantity: number }>;
+}
+
+function SaleLinkCell({ ret }: { ret: ReturnDetail }) {
+    if (!ret.sale_code) return <span className="text-muted-foreground">—</span>;
+    return (
+        <div className="flex items-center gap-1.5">
+            {ret.sale_deleted ? (
+                <Link
+                    href={route('sales.deleted.show', ret.sale_id)}
+                    className="font-medium text-muted-foreground [text-decoration-line:underline_line-through] underline-offset-2 hover:opacity-80"
+                >
+                    #{ret.sale_code}
+                </Link>
+            ) : (
+                <Link
+                    href={route('sales.show', ret.sale_id)}
+                    className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
+                >
+                    #{ret.sale_code}
+                </Link>
+            )}
+            {ret.sale_deleted && (
+                <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">Eliminada</Badge>
+            )}
+        </div>
+    );
+}
+
 interface Filters {
     date_from?: string;
     date_to?: string;
@@ -68,6 +106,7 @@ interface Props {
         returns_by_product: ReturnByProduct[];
         returns_by_reason: ReturnByReason[];
         returns_trend: ReturnTrend[];
+        returns_detail: ReturnDetail[];
     };
     filters: Filters;
     branches?: Array<{ id: number; name: string; business_name?: string }>;
@@ -85,6 +124,7 @@ export default function ReturnsReport({
         returns_by_product: [],
         returns_by_reason: [],
         returns_trend: [],
+        returns_detail: [],
     },
     filters,
     branches = [],
@@ -454,6 +494,72 @@ export default function ReturnsReport({
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Historial detallado de devoluciones */}
+                    {returnsData?.returns_detail?.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Historial de Devoluciones</CardTitle>
+                                <CardDescription>Cada devolución con enlace a la venta original</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {/* Mobile */}
+                                <div className="divide-y md:hidden">
+                                    {returnsData.returns_detail.map((ret) => (
+                                        <div key={ret.id} className="flex items-start justify-between gap-2 px-4 py-3">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <SaleLinkCell ret={ret} />
+                                                </div>
+                                                <p className="mt-0.5 text-xs text-muted-foreground">{ret.created_at}</p>
+                                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    {ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}
+                                                </p>
+                                                {ret.reason && <p className="mt-0.5 text-xs italic text-muted-foreground">"{ret.reason}"</p>}
+                                            </div>
+                                            <p className="flex-shrink-0 font-semibold">{formatCurrency(ret.total)}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Desktop */}
+                                <div className="hidden overflow-x-auto md:block">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-neutral-200 dark:border-neutral-700">
+                                                <th className="p-2 text-left">Fecha</th>
+                                                <th className="p-2 text-left">Venta origen</th>
+                                                <th className="p-2 text-left">Productos devueltos</th>
+                                                <th className="p-2 text-left">Razón</th>
+                                                <th className="p-2 text-left">Procesado por</th>
+                                                <th className="p-2 text-right">Monto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {returnsData.returns_detail.map((ret) => (
+                                                <tr
+                                                    key={ret.id}
+                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                                                >
+                                                    <td className="p-2 text-sm text-muted-foreground">{ret.created_at}</td>
+                                                    <td className="p-2">
+                                                        <SaleLinkCell ret={ret} />
+                                                    </td>
+                                                    <td className="p-2 text-sm">
+                                                        {ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}
+                                                    </td>
+                                                    <td className="p-2 text-sm italic text-muted-foreground">
+                                                        {ret.reason || '—'}
+                                                    </td>
+                                                    <td className="p-2 text-sm text-muted-foreground">{ret.user || '—'}</td>
+                                                    <td className="p-2 text-right font-medium">{formatCurrency(ret.total)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Tendencia de devoluciones */}
                     {returnsData?.returns_trend?.length > 0 && (

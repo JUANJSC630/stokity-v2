@@ -11,11 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Sale } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle2, Clock, Eye, Plus, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, Plus, Search, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RangeKeyDict } from 'react-date-range';
 import { DateRangePicker, createStaticRanges } from 'react-date-range';
@@ -120,6 +120,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ sales, filters }: PageProps) {
+    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    const isAdmin = auth.user.role === 'administrador';
+
     // Polling: refresh sales list every 60 seconds
     usePolling(['sales'], 60_000);
 
@@ -324,12 +327,22 @@ export default function Index({ sales, filters }: PageProps) {
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Administración de Ventas</h1>
-                    <Link href={route('sales.create')}>
-                        <Button>
-                            <Plus className="mr-1 size-4" />
-                            Nueva Venta
-                        </Button>
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        {isAdmin && (
+                            <Link href={route('sales.deleted.index')}>
+                                <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Eliminadas
+                                </Button>
+                            </Link>
+                        )}
+                        <Link href={route('sales.create')}>
+                            <Button>
+                                <Plus className="mr-1 size-4" />
+                                Nueva Venta
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-4">
