@@ -1,4 +1,4 @@
-import { LowStockProducts, MetricCard, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
+import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -71,13 +71,20 @@ interface DashboardProps {
         code: string;
         stock: number;
         min_stock: number;
-        category?: {
-            name: string;
-        };
-        branch?: {
-            name: string;
-        };
+        category?: { name: string };
+        branch?: { name: string };
     }>;
+    pendingSales?: {
+        total: number;
+        items: Array<{
+            id: number;
+            code: string;
+            total: number;
+            seller?: { name: string };
+            branch?: { name: string };
+            products: Array<{ product_id: number; name: string; quantity: number }>;
+        }>;
+    };
     dailySales: Array<{
         date: string;
         total_sales: number;
@@ -94,11 +101,12 @@ export default function Dashboard({
     salesByBranch,
     recentSales,
     lowStockProducts,
+    pendingSales = { total: 0, items: [] },
     userRole,
     userName,
 }: DashboardProps) {
     // Polling: refresh dashboard data every 2 minutes
-    usePolling(['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'salesByBranch'], 120_000);
+    usePolling(['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'pendingSales', 'salesByBranch'], 120_000);
 
     const [currentGreeting, setCurrentGreeting] = useState('');
 
@@ -137,6 +145,9 @@ export default function Dashboard({
 
                 {/* Low-stock alert banner — shown only when there are affected products */}
                 <LowStockProducts products={lowStockProducts} />
+
+                {/* Pending sales alert — stock not yet deducted */}
+                <PendingSalesAlert sales={pendingSales.items} total={pendingSales.total} />
 
                 {/* Metric cards */}
                 <div className={`grid grid-cols-2 gap-3 md:gap-4 ${userRole === 'administrador' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>

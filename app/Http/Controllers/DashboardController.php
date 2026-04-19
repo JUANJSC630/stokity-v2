@@ -95,6 +95,9 @@ class DashboardController extends Controller
         // Ventas por día (últimos 7 días)
         $dailySales = $this->getDailySales(7, $branchFilter);
 
+        // Ventas pendientes (stock aún no descontado)
+        $pendingSales = $this->getPendingSalesList($branchFilter);
+
         return Inertia::render('dashboard', [
             'metrics' => $metrics,
             'growth' => $growth,
@@ -102,6 +105,7 @@ class DashboardController extends Controller
             'salesByBranch' => $salesByBranch,
             'recentSales' => $recentSales,
             'lowStockProducts' => $lowStockProducts,
+            'pendingSales' => $pendingSales,
             'dailySales' => $dailySales,
             'userRole' => $user->role,
             'userName' => $user->name,
@@ -288,6 +292,40 @@ class DashboardController extends Controller
         }
 
         return $query->get();
+    }
+
+    /**
+     * Get pending sales list with their products (capped at 20, with total count).
+     * Ordered DESC to match the POS pending-sales panel ordering.
+     *
+     * @return array{total: int, items: array<mixed>}
+     */
+    private function getPendingSalesList($branchId = null): array
+    {
+        $base = Sale::where('status', 'pending')
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
+
+        $total = $base->count();
+
+        $items = $base->clone()
+            ->with(['seller:id,name', 'branch:id,name', 'saleProducts.product:id,name'])
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(fn ($sale) => [
+                'id'     => $sale->id,
+                'code'   => $sale->code,
+                'total'  => $sale->total,
+                'seller' => $sale->seller ? ['name' => $sale->seller->name] : null,
+                'branch'     => $sale->branch ? ['name' => $sale->branch->name] : null,
+                'products'   => $sale->saleProducts->map(fn ($sp) => [
+                    'product_id' => $sp->product_id,
+                    'name'       => $sp->product->name ?? 'Producto eliminado',
+                    'quantity'   => $sp->quantity,
+                ]),
+            ]);
+
+        return ['total' => $total, 'items' => $items];
     }
 
     /**

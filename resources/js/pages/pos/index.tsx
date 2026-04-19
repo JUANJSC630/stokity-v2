@@ -758,15 +758,18 @@ export default function PosIndex({
     }, [initialSession]);
 
     // --- Pending sales (cotizaciones) ---
+    async function fetchRawPendingSales(): Promise<PendingSale[]> {
+        const res = await fetch(route('sales.pending'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!res.ok) throw new Error('fetch_failed');
+        return res.json();
+    }
+
     async function fetchPendingSales() {
         setLoadingPending(true);
         try {
-            const res = await fetch(route('sales.pending'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (res.ok) {
-                const data: PendingSale[] = await res.json();
-                setPendingSales(data);
-                setPendingCount(data.length);
-            }
+            const data = await fetchRawPendingSales();
+            setPendingSales(data);
+            setPendingCount(data.length);
         } catch {
             toast.error('Error al cargar cotizaciones');
         } finally {
@@ -803,6 +806,35 @@ export default function PosIndex({
         setShowPendingPanel(false);
         toast.success(`Cotización #${sale.code.slice(-6)} cargada`);
     }
+
+    // Auto-load pending sale when arriving from dashboard (?pending=ID).
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const pendingId = params.get('pending');
+        if (!pendingId) return;
+
+        (async () => {
+            setLoadingPending(true);
+            try {
+                const data = await fetchRawPendingSales();
+                setPendingSales(data);
+                setPendingCount(data.length);
+                const target = data.find((s) => s.id === Number(pendingId));
+                // Clean URL only after resolving — preserves ?pending param for retry on network error.
+                window.history.replaceState({}, '', route('pos.index'));
+                if (target) {
+                    loadPendingSale(target);
+                } else {
+                    toast.error('La cotización no fue encontrada');
+                }
+            } catch {
+                toast.error('No se pudo cargar la cotización');
+            } finally {
+                setLoadingPending(false);
+            }
+        })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     function cancelActivePending() {
         setActivePendingId(null);
