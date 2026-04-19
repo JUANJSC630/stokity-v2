@@ -168,7 +168,19 @@ export default function Dashboard({
                     <MetricCard
                         title="Ingresos del Mes"
                         value={formatCurrency(metrics.total_revenue_month)}
-                        description={`${metrics.total_sales_month} transacciones`}
+                        description={
+                            <span>
+                                {metrics.total_sales_month} transacciones · bruto antes de devoluciones
+                                {userRole !== 'vendedor' && (
+                                    <>
+                                        {' · '}
+                                        <a href={route('finances.summary')} className="underline underline-offset-2 hover:text-foreground">
+                                            Ver en Finanzas
+                                        </a>
+                                    </>
+                                )}
+                            </span>
+                        }
                         icon={<DollarSign className="h-4 w-4" />}
                     />
                     <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
