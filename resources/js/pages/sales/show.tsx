@@ -113,8 +113,9 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                         const saleProd = (sale.saleProducts ?? []).find((sp) => sp.product_id === p.id);
                         if (!saleProd) return sum;
 
-                        // Calcular precio base devuelto
-                        const basePriceReturned = saleProd.price * (p.pivot?.quantity ?? 0);
+                        // effective_price = precio pagado con descuento ya aplicado; fallback a precio de venta
+                        const unitPrice = p.pivot?.effective_price ?? saleProd.price;
+                        const basePriceReturned = unitPrice * (p.pivot?.quantity ?? 0);
                         // Calcular impuesto proporcional devuelto
                         const taxReturned = ((saleProd.product?.tax || 0) * basePriceReturned) / 100;
                         // Total devuelto incluyendo impuesto
@@ -671,6 +672,7 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                                 quantity: sp.quantity,
                                 alreadyReturned: returned,
                                 remaining: sp.quantity - returned,
+                                isService: sp.product?.type === 'servicio',
                             };
                         })
                         .filter((sp) => sp.remaining > 0)}

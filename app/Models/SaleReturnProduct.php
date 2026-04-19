@@ -13,6 +13,7 @@ class SaleReturnProduct extends Model
         'sale_return_id',
         'product_id',
         'quantity',
+        'effective_price',
     ];
 
     public function saleReturn()

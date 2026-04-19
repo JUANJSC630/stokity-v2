@@ -39,7 +39,7 @@ class SaleReturn extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'sale_return_products')
-            ->withPivot('quantity')
+            ->withPivot('quantity', 'effective_price')
             ->withTimestamps();
     }
 }

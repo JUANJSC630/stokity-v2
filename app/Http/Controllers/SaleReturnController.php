@@ -74,6 +74,11 @@ class SaleReturnController extends Controller
                     'reason' => $request->reason,
                 ]);
 
+                $saleSubtotal = $sale->saleProducts->sum('subtotal');
+                $discountFactor = ($saleSubtotal > 0 && $sale->discount_amount > 0)
+                    ? min($sale->discount_amount / $saleSubtotal, 1.0)
+                    : 0;
+
                 foreach ($request->products as $item) {
                     $saleProduct = $sale->saleProducts->where('product_id', $item['product_id'])->first();
                     if (! $saleProduct) {
@@ -93,6 +98,7 @@ class SaleReturnController extends Controller
                         'sale_return_id' => $saleReturn->id,
                         'product_id' => $item['product_id'],
                         'quantity' => $item['quantity'],
+                        'effective_price' => round($saleProduct->price * (1 - $discountFactor), 2),
                     ]);
 
                     // Lock row to prevent concurrent stock corruption (same pattern as SaleController)
@@ -100,21 +106,24 @@ class SaleReturnController extends Controller
                     if (! $product) {
                         throw new \RuntimeException('Producto no encontrado.');
                     }
-                    $previousStock = $product->stock;
-                    $product->stock += $item['quantity'];
-                    $product->save();
 
-                    $this->stockMovements->record(
-                        product: $product,
-                        type: 'ingreso',
-                        quantity: $item['quantity'],
-                        previousStock: $previousStock,
-                        newStock: $product->stock,
-                        branchId: $sale->branch_id,
-                        userId: Auth::id(),
-                        reference: $sale->code,
-                        notes: "Devolución venta #{$sale->code}",
-                    );
+                    if (! $product->isService()) {
+                        $previousStock = $product->stock;
+                        $product->stock += $item['quantity'];
+                        $product->save();
+
+                        $this->stockMovements->record(
+                            product: $product,
+                            type: 'ingreso',
+                            quantity: $item['quantity'],
+                            previousStock: $previousStock,
+                            newStock: $product->stock,
+                            branchId: $sale->branch_id,
+                            userId: Auth::id(),
+                            reference: $sale->code,
+                            notes: "Devolución venta #{$sale->code}",
+                        );
+                    }
                 }
 
                 // Mark sale as cancelled when all products have been returned

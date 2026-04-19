@@ -23,3 +23,12 @@ parameters:
         - '#Using nullsafe property access "\?->name" on left side of \?\? is unnecessary#'
         - '#Using nullsafe property access "\?->tax" on left side of \?\? is unnecessary#'
         - '#Using nullsafe property access "\?->image_url" on left side of \?\? is unnecessary#'
+        # withTrashed() is available on SoftDeletes builders but PHPStan resolves them as generic Builder<Model>
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.*::withTrashed\(\)#'
+        # Cache::remember closure returning Collection<int,array{specific}> — PHPStan covariance limitation, not a real bug
+        -
+            identifier: argument.type
+            path: app/Services/ReportQueryService.php
+        -
+            identifier: return.type
+            path: app/Services/ReportQueryService.php

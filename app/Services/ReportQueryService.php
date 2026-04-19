@@ -37,9 +37,9 @@ class ReportQueryService
             $filters['branch_id'] = $user->branch_id;
         }
 
-        // Default to current month when no dates specified
+        // Default to current month when no dates specified (Bogota timezone — matches FinanceController)
         if (! $filters['date_from'] && ! $filters['date_to']) {
-            $now = now();
+            $now = now('America/Bogota');
             $filters['date_from'] = $now->copy()->startOfMonth()->format('Y-m-d');
             $filters['date_to'] = $now->copy()->endOfMonth()->format('Y-m-d');
         }
@@ -199,18 +199,19 @@ class ReportQueryService
         $cacheKey = 'returns_summary_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
-            $query = SaleReturn::query();
+            $query = SaleReturn::query()
+                ->whereHas('sale', function ($q) use ($filters) {
+                    $q->whereNull('deleted_at');
+                    if ($filters['branch_id']) {
+                        $q->where('branch_id', $filters['branch_id']);
+                    }
+                });
 
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
             if ($filters['date_to']) {
                 $query->whereDate('sale_returns.created_at', '<=', $filters['date_to']);
-            }
-            if ($filters['branch_id']) {
-                $query->whereHas('sale', function ($q) use ($filters) {
-                    $q->where('branch_id', $filters['branch_id']);
-                });
             }
 
             $summary = $query->select([
@@ -219,25 +220,30 @@ class ReportQueryService
             ])->first();
 
             // Amounts query
-            $amountsQuery = SaleReturn::query();
+            $amountsQuery = SaleReturn::query()
+                ->whereHas('sale', function ($q) use ($filters) {
+                    $q->whereNull('deleted_at');
+                    if ($filters['branch_id']) {
+                        $q->where('branch_id', $filters['branch_id']);
+                    }
+                });
+
             if ($filters['date_from']) {
                 $amountsQuery->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
             }
             if ($filters['date_to']) {
                 $amountsQuery->whereDate('sale_returns.created_at', '<=', $filters['date_to']);
             }
-            if ($filters['branch_id']) {
-                $amountsQuery->whereHas('sale', function ($q) use ($filters) {
-                    $q->where('branch_id', $filters['branch_id']);
-                });
-            }
 
             $amounts = $amountsQuery
                 ->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
-                ->join('products', 'sale_return_products.product_id', '=', 'products.id')
+                ->join('sale_products as sp', function ($join) {
+                    $join->on('sp.sale_id', '=', 'sale_returns.sale_id')
+                        ->on('sp.product_id', '=', 'sale_return_products.product_id');
+                })
                 ->select([
-                    DB::raw('SUM(sale_return_products.quantity * products.sale_price) as total_amount'),
-                    DB::raw('AVG(sale_return_products.quantity * products.sale_price) as average_return'),
+                    DB::raw('SUM(sale_return_products.quantity * COALESCE(sale_return_products.effective_price, sp.price)) as total_amount'),
+                    DB::raw('AVG(sale_return_products.quantity * COALESCE(sale_return_products.effective_price, sp.price)) as average_return'),
                 ])->first();
 
             return (object) [
@@ -612,7 +618,13 @@ class ReportQueryService
         $cacheKey = 'returns_by_product_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
-            $query = SaleReturn::query();
+            $query = SaleReturn::query()
+                ->whereHas('sale', function ($q) use ($filters) {
+                    $q->whereNull('deleted_at');
+                    if ($filters['branch_id']) {
+                        $q->where('branch_id', $filters['branch_id']);
+                    }
+                });
 
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
@@ -620,21 +632,20 @@ class ReportQueryService
             if ($filters['date_to']) {
                 $query->whereDate('sale_returns.created_at', '<=', $filters['date_to']);
             }
-            if ($filters['branch_id']) {
-                $query->whereHas('sale', function ($q) use ($filters) {
-                    $q->where('branch_id', $filters['branch_id']);
-                });
-            }
 
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
                 ->join('products', 'sale_return_products.product_id', '=', 'products.id')
+                ->join('sale_products as sp', function ($join) {
+                    $join->on('sp.sale_id', '=', 'sale_returns.sale_id')
+                        ->on('sp.product_id', '=', 'sale_return_products.product_id');
+                })
                 ->select([
                     'products.id',
                     'products.name',
                     'products.code',
                     DB::raw('SUM(sale_return_products.quantity) as returned_quantity'),
                     DB::raw('COUNT(DISTINCT sale_returns.id) as return_count'),
-                    DB::raw('SUM(sale_return_products.quantity * products.sale_price) as total_amount'),
+                    DB::raw('SUM(sale_return_products.quantity * COALESCE(sale_return_products.effective_price, sp.price)) as total_amount'),
                 ])
                 ->groupBy('products.id', 'products.name', 'products.code')
                 ->orderBy('returned_quantity', 'desc')
@@ -651,7 +662,13 @@ class ReportQueryService
         $cacheKey = 'returns_by_reason_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
-            $query = SaleReturn::query();
+            $query = SaleReturn::query()
+                ->whereHas('sale', function ($q) use ($filters) {
+                    $q->whereNull('deleted_at');
+                    if ($filters['branch_id']) {
+                        $q->where('branch_id', $filters['branch_id']);
+                    }
+                });
 
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
@@ -659,18 +676,16 @@ class ReportQueryService
             if ($filters['date_to']) {
                 $query->whereDate('sale_returns.created_at', '<=', $filters['date_to']);
             }
-            if ($filters['branch_id']) {
-                $query->whereHas('sale', function ($q) use ($filters) {
-                    $q->where('branch_id', $filters['branch_id']);
-                });
-            }
 
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
-                ->join('products', 'sale_return_products.product_id', '=', 'products.id')
+                ->join('sale_products as sp', function ($join) {
+                    $join->on('sp.sale_id', '=', 'sale_returns.sale_id')
+                        ->on('sp.product_id', '=', 'sale_return_products.product_id');
+                })
                 ->select([
                     DB::raw('COALESCE(sale_returns.reason, "Sin motivo") as reason'),
                     DB::raw('COUNT(DISTINCT sale_returns.id) as return_count'),
-                    DB::raw('SUM(sale_return_products.quantity * products.sale_price) as total_amount'),
+                    DB::raw('SUM(sale_return_products.quantity * COALESCE(sale_return_products.effective_price, sp.price)) as total_amount'),
                 ])
                 ->groupBy('reason')
                 ->orderBy('return_count', 'desc')
@@ -686,7 +701,13 @@ class ReportQueryService
         $cacheKey = 'returns_trend_'.md5(serialize($filters));
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
-            $query = SaleReturn::query();
+            $query = SaleReturn::query()
+                ->whereHas('sale', function ($q) use ($filters) {
+                    $q->whereNull('deleted_at');
+                    if ($filters['branch_id']) {
+                        $q->where('branch_id', $filters['branch_id']);
+                    }
+                });
 
             if ($filters['date_from']) {
                 $query->whereDate('sale_returns.created_at', '>=', $filters['date_from']);
@@ -694,18 +715,16 @@ class ReportQueryService
             if ($filters['date_to']) {
                 $query->whereDate('sale_returns.created_at', '<=', $filters['date_to']);
             }
-            if ($filters['branch_id']) {
-                $query->whereHas('sale', function ($q) use ($filters) {
-                    $q->where('branch_id', $filters['branch_id']);
-                });
-            }
 
             return $query->join('sale_return_products', 'sale_returns.id', '=', 'sale_return_products.sale_return_id')
-                ->join('products', 'sale_return_products.product_id', '=', 'products.id')
+                ->join('sale_products as sp', function ($join) {
+                    $join->on('sp.sale_id', '=', 'sale_returns.sale_id')
+                        ->on('sp.product_id', '=', 'sale_return_products.product_id');
+                })
                 ->select([
                     DB::raw('DATE(sale_returns.created_at) as date'),
                     DB::raw('COUNT(DISTINCT sale_returns.id) as return_count'),
-                    DB::raw('SUM(sale_return_products.quantity * products.sale_price) as return_amount'),
+                    DB::raw('SUM(sale_return_products.quantity * COALESCE(sale_return_products.effective_price, sp.price)) as return_amount'),
                 ])
                 ->groupBy('date')
                 ->orderBy('date')
@@ -722,7 +741,8 @@ class ReportQueryService
     {
         $cacheKey = 'returns_detail_'.md5(serialize($filters));
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
+        /** @var \Illuminate\Support\Collection<int, array<string, mixed>> $result */
+        $result = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             return SaleReturn::with([
                 'sale' => fn ($q) => $q->withTrashed()->select('id', 'code', 'deleted_at'),
                 'user:id,name',
@@ -736,18 +756,20 @@ class ReportQueryService
             ->map(fn ($ret) => [
                 'id'           => $ret->id,
                 'sale_id'      => $ret->sale_id,
-                'sale_code'    => $ret->sale?->code,
-                'sale_deleted' => $ret->sale?->deleted_at !== null,
+                'sale_code'    => $ret->sale === null ? null : $ret->sale->code,
+                'sale_deleted' => $ret->sale !== null && $ret->sale->deleted_at !== null,
                 'reason'       => $ret->reason,
                 'created_at'   => $ret->created_at->format('d/m/Y H:i'),
-                'user'         => $ret->user?->name,
-                'total'        => $ret->products->sum(fn ($p) => $p->pivot->quantity * $p->sale_price),
+                'user'         => $ret->user === null ? null : $ret->user->name,
+                'total'        => $ret->products->sum(fn ($p) => $p->pivot->quantity * ($p->pivot->effective_price ?? $p->sale_price)),
                 'products'     => $ret->products->map(fn ($p) => [
                     'name'     => $p->name,
                     'quantity' => $p->pivot->quantity,
                 ]),
             ]);
         });
+
+        return $result;
     }
 
     /**

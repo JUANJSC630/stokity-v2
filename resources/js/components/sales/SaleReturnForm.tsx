@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ interface Product {
     name: string;
     quantity: number; // Vendida en la venta
     alreadyReturned: number; // Ya devuelta
+    isService?: boolean; // Servicio — no afecta stock
 }
 
 interface SaleReturnFormProps {
@@ -128,7 +130,14 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
                                 const maxReturn = product.quantity - product.alreadyReturned;
                                 return (
                                     <div key={product.id} className="flex items-center gap-2">
-                                        <span className="flex-1">{product.name}</span>
+                                        <span className="flex-1">
+                                            {product.name}
+                                            {product.isService && (
+                                                <Badge variant="secondary" className="ml-2 text-xs">
+                                                    Servicio
+                                                </Badge>
+                                            )}
+                                        </span>
                                         <Input
                                             type="number"
                                             min={0}

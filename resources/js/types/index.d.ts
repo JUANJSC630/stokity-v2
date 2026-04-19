@@ -234,7 +234,7 @@ export interface SaleProduct {
     quantity: number;
     price: number;
     subtotal: number;
-    product?: Product | null; // Producto puede ser opcional o nulo
+    product?: (Pick<Product, 'id' | 'name' | 'code' | 'tax' | 'type'>) | null;
 }
 
 export interface SaleReturn {
@@ -249,6 +249,7 @@ export interface SaleReturnProduct {
     name: string;
     pivot: {
         quantity: number;
+        effective_price: number | null;
     };
     price: number;
 }

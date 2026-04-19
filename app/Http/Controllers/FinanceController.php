@@ -29,6 +29,9 @@ class FinanceController extends Controller
         };
 
         // ── Revenue: ventas completadas del período ──────────────────────────
+        // Note: revenue only includes status='completed'. Fully-returned sales become 'cancelled'
+        // and are excluded from revenue but their returns still appear in returnsTotal (no status filter).
+        // max(0,...) prevents negative netRevenue, but the individual line items may not visually balance.
         $salesQuery = DB::table('sales')
             ->where('status', 'completed')
             ->whereNull('deleted_at')
@@ -48,7 +51,7 @@ class FinanceController extends Controller
             ->whereNull('s.deleted_at')
             ->whereBetween('sr.created_at', [$dateFrom->startOfDay(), $dateTo->copy()->endOfDay()])
             ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
-            ->sum(DB::raw('srp.quantity * sp.price'));
+            ->sum(DB::raw('srp.quantity * COALESCE(srp.effective_price, sp.price)'));
 
         $netRevenue = max(0, $revenue - $returnsTotal);
 

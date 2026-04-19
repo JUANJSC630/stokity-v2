@@ -132,7 +132,7 @@ class SaleController extends Controller
             'discount_value' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|exists:products,id',
+            'products.*.id' => 'required|distinct|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -319,7 +319,7 @@ class SaleController extends Controller
             'discount_type' => 'nullable|string|in:none,percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|exists:products,id',
+            'products.*.id' => 'required|distinct|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -437,7 +437,7 @@ class SaleController extends Controller
             'discount_type' => 'nullable|string|in:none,percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|exists:products,id',
+            'products.*.id' => 'required|distinct|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -639,6 +639,7 @@ class SaleController extends Controller
                     'name' => $sp->product->name,
                     'code' => $sp->product->code,
                     'tax' => $sp->product->tax,
+                    'type' => $sp->product->type,
                 ] : null,
             ])->toArray(),
             'saleReturns' => $sale->saleReturns->map(fn ($ret) => [
@@ -648,7 +649,7 @@ class SaleController extends Controller
                 'products' => $ret->products->map(fn ($p) => [
                     'id' => $p->id,
                     'name' => $p->name,
-                    'pivot' => ['quantity' => $p->pivot->quantity],
+                    'pivot' => ['quantity' => $p->pivot->quantity, 'effective_price' => $p->pivot->effective_price],
                 ])->toArray(),
             ])->toArray(),
         ];

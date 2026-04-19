@@ -329,10 +329,10 @@ class CashSessionController extends Controller
     }
 
     /**
-     * Calculate actual cash refunded for a session based on returned product quantities × sale prices.
+     * Calculate actual cash refunded for a session based on returned quantities × effective price (discount-adjusted).
      *
-     * Example: Sale of $100,000 (3 products). Partial return of 1 product worth $20,000.
-     * Before fix: returned $100,000 (full sale.total). After fix: returns $20,000 (actual amount).
+     * Example: Sale of $100,000 with 50% discount (2 products). Return of 1 product.
+     * Uses effective_price (stored at return time) so discounts are correctly reflected; falls back to sale-time price.
      */
     private function calculateCashRefunds(int $sessionId): float
     {
@@ -351,7 +351,7 @@ class CashSessionController extends Controller
             foreach ($returnProducts as $rp) {
                 $saleProduct = $return->sale->saleProducts->firstWhere('product_id', $rp->product_id);
                 if ($saleProduct) {
-                    $total += $rp->quantity * $saleProduct->price;
+                    $total += $rp->quantity * ($rp->effective_price ?? $saleProduct->price);
                 }
             }
         }
