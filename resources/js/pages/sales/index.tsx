@@ -15,7 +15,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { CheckCircle2, Clock, Eye, Plus, Search, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, CreditCard, Eye, Plus, Search, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RangeKeyDict } from 'react-date-range';
 import { DateRangePicker, createStaticRanges } from 'react-date-range';
@@ -278,6 +278,13 @@ export default function Index({ sales, filters }: PageProps) {
                         Cancelada
                     </Badge>
                 );
+            case 'credit_pending':
+                return (
+                    <Badge className="flex items-center bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        <CreditCard className="mr-1 size-3.5" />
+                        Crédito Pendiente
+                    </Badge>
+                );
             default:
                 return <Badge>{status}</Badge>;
         }
@@ -395,6 +402,7 @@ export default function Index({ sales, filters }: PageProps) {
                                             <SelectItem value="all">Todos</SelectItem>
                                             <SelectItem value="completed">Completada</SelectItem>
                                             <SelectItem value="pending">Pendiente</SelectItem>
+                                            <SelectItem value="credit_pending">Crédito Pendiente</SelectItem>
                                             <SelectItem value="cancelled">Cancelada</SelectItem>
                                         </SelectContent>
                                     </Select>

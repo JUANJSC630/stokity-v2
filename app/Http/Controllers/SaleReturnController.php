@@ -33,7 +33,7 @@ class SaleReturnController extends Controller
         }
 
         // Validate sale status before processing return
-        if (! in_array($sale->status, ['completed', 'cancelled'])) {
+        if (! in_array($sale->status, ['completed', 'cancelled', 'credit_pending'])) {
             return back()->withErrors(['sale' => 'Solo se pueden devolver ventas completadas.']);
         }
 

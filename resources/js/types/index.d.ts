@@ -234,7 +234,7 @@ export interface SaleProduct {
     quantity: number;
     price: number;
     subtotal: number;
-    product?: (Pick<Product, 'id' | 'name' | 'code' | 'tax' | 'type'>) | null;
+    product?: Product | null;
 }
 
 export interface SaleReturn {

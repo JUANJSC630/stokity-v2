@@ -665,6 +665,12 @@ class SaleController extends Controller
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
+        // Block editing of credit-linked sales
+        if ($sale->credit_sale_id) {
+            return redirect()->route('sales.show', $sale)
+                ->withErrors(['credit' => 'Esta venta está vinculada a un crédito. Adminístrala desde el módulo de créditos.']);
+        }
+
         $branches = Branch::all();
         $clients = Client::orderBy('name')->get();
         $sellers = User::whereIn('role', ['administrador', 'encargado', 'vendedor'])->orderBy('name')->get();
@@ -685,6 +691,11 @@ class SaleController extends Controller
         // Verificar que el usuario sea administrador
         if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para editar ventas.');
+        }
+
+        // Block editing of credit-linked sales
+        if ($sale->credit_sale_id) {
+            abort(422, 'Esta venta está vinculada a un crédito. Adminístrala desde el módulo de créditos.');
         }
 
         // Obtener códigos de métodos de pago activos para validación
@@ -717,6 +728,11 @@ class SaleController extends Controller
         // Verificar que el usuario sea administrador
         if (! auth()->user()->isAdmin()) {
             abort(403, 'No tienes permisos para eliminar ventas.');
+        }
+
+        // Block deletion of credit-linked sales
+        if ($sale->credit_sale_id) {
+            abort(422, 'Esta venta está vinculada a un crédito. Cancélala desde el módulo de créditos.');
         }
 
         DB::transaction(function () use ($sale) {

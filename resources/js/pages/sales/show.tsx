@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { CheckCircle2, ChevronLeft, Clock, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, Clock, CreditCard, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
@@ -173,6 +173,13 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                     <Badge className="flex items-center bg-red-100 text-red-800 hover:bg-red-100">
                         <XCircle className="mr-1 size-3.5" />
                         Cancelada
+                    </Badge>
+                );
+            case 'credit_pending':
+                return (
+                    <Badge className="flex items-center bg-blue-100 text-blue-800 hover:bg-blue-100">
+                        <CreditCard className="mr-1 size-3.5" />
+                        Crédito Pendiente
                     </Badge>
                 );
             default:

@@ -520,8 +520,10 @@ class ReportExportService
                     <th colspan="5" style="text-align: center;">Completadas</th>
                     <th colspan="5" style="text-align: center;">Canceladas</th>
                     <th colspan="5" style="text-align: center;">Pendientes</th>
+                    <th colspan="5" style="text-align: center;">Crédito Pendiente</th>
                 </tr>
                 <tr>
+                    <th class="number">Ventas</th><th class="currency">Monto</th><th class="currency">Neto</th><th class="currency">Imp.</th><th class="currency">Prom.</th>
                     <th class="number">Ventas</th><th class="currency">Monto</th><th class="currency">Neto</th><th class="currency">Imp.</th><th class="currency">Prom.</th>
                     <th class="number">Ventas</th><th class="currency">Monto</th><th class="currency">Neto</th><th class="currency">Imp.</th><th class="currency">Prom.</th>
                     <th class="number">Ventas</th><th class="currency">Monto</th><th class="currency">Neto</th><th class="currency">Imp.</th><th class="currency">Prom.</th>
@@ -530,7 +532,7 @@ class ReportExportService
 
         foreach ($salesData as $sale) {
             $html .= '<tr><td>'.$sale['period'].'</td>';
-            foreach (['completed', 'cancelled', 'pending'] as $status) {
+            foreach (['completed', 'cancelled', 'pending', 'credit_pending'] as $status) {
                 $s = $sale[$status];
                 $html .= '<td class="number">'.$s['total_sales'].'</td>'
                     .'<td class="currency">$ '.number_format($s['total_amount'], 2, ',', '.').'</td>'

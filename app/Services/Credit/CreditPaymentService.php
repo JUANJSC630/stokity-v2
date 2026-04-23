@@ -78,6 +78,11 @@ class CreditPaymentService
             $credit->balance = (float) bcsub((string) $credit->total_amount, (string) $credit->amount_paid, 2);
             $credit->save();
 
+            // Sync amount_paid to the linked Sale (immediate sale types)
+            if ($credit->sale) {
+                $credit->sale->update(['amount_paid' => $credit->amount_paid]);
+            }
+
             // Check if credit is fully paid
             if (bccomp((string) $credit->balance, '0', 2) <= 0) {
                 $credit->load('items');

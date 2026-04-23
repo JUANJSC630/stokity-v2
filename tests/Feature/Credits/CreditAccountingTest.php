@@ -140,7 +140,7 @@ describe('Layaway (Separado) — deferred sale, reserved stock', function () {
 // ─── Installments (Cuotas) ──────────────────────────────────────────────────
 
 describe('Installments (Cuotas) — immediate sale, deducted stock', function () {
-    it('creates a Sale immediately when credit is created', function () {
+    it('creates a Sale immediately with credit_pending status when credit is created', function () {
         $this->actingAs($this->seller)
             ->post(route('credits.store'), creditPayload('installments', [
                 'installments_count' => 3,
@@ -154,6 +154,10 @@ describe('Installments (Cuotas) — immediate sale, deducted stock', function ()
         expect($credit->sale_id)->not->toBeNull();
         expect($credit->status)->toBe('active');
         expect((int) $credit->installments_count)->toBe(3);
+
+        $sale = Sale::first();
+        expect($sale->status)->toBe('credit_pending');
+        expect((float) $sale->amount_paid)->toBe(0.0);
     });
 
     it('deducts stock immediately instead of reserving', function () {
@@ -167,7 +171,7 @@ describe('Installments (Cuotas) — immediate sale, deducted stock', function ()
         expect($product->reserved_stock)->toBe(0); // Not reserved
     });
 
-    it('marks credit as completed when fully paid (no new Sale)', function () {
+    it('marks credit as completed and sale as completed when fully paid', function () {
         $this->actingAs($this->seller)
             ->post(route('credits.store'), creditPayload('installments', [
                 'installments_count' => 2,
@@ -176,12 +180,20 @@ describe('Installments (Cuotas) — immediate sale, deducted stock', function ()
         $credit = CreditSale::first();
         $saleId = $credit->sale_id;
 
+        // Sale starts as credit_pending
+        expect(Sale::find($saleId)->status)->toBe('credit_pending');
+
         // Pay in two installments
         $this->actingAs($this->seller)
             ->post(route('credits.payments.store', $credit), [
                 'amount' => 50000,
                 'payment_method' => 'efectivo',
             ]);
+
+        // After partial payment, sale amount_paid is synced but status still credit_pending
+        $sale = Sale::find($saleId);
+        expect($sale->status)->toBe('credit_pending');
+        expect((float) $sale->amount_paid)->toBe(50000.0);
 
         $this->actingAs($this->seller)
             ->post(route('credits.payments.store', $credit), [
@@ -193,19 +205,25 @@ describe('Installments (Cuotas) — immediate sale, deducted stock', function ()
         expect($credit->status)->toBe('completed');
         expect($credit->sale_id)->toBe($saleId); // Same sale, no new one
         expect(Sale::count())->toBe(1); // Still just one sale
+
+        // Sale is now completed
+        $sale = Sale::find($saleId);
+        expect($sale->status)->toBe('completed');
+        expect((float) $sale->amount_paid)->toBe(100000.0);
     });
 });
 
 // ─── Due Date (Fecha acordada) ──────────────────────────────────────────────
 
 describe('Due Date — same as installments but single payment date', function () {
-    it('creates Sale immediately, deducts stock', function () {
+    it('creates Sale immediately with credit_pending status, deducts stock', function () {
         $this->actingAs($this->seller)
             ->post(route('credits.store'), creditPayload('due_date', [
                 'due_date' => now()->addDays(30)->format('Y-m-d'),
             ]));
 
         expect(Sale::count())->toBe(1);
+        expect(Sale::first()->status)->toBe('credit_pending');
         expect($this->product->fresh()->stock)->toBe(8);
     });
 });

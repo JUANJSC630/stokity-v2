@@ -171,7 +171,7 @@ class ReportController extends Controller
         $returnsDetail = $this->queries->getReturnsDetail($filters);
 
         // Return rate
-        $totalSales = Sale::whereIn('status', ['completed', 'cancelled'])
+        $totalSales = Sale::whereIn('status', ['completed', 'cancelled', 'credit_pending'])
             ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('date', '>=', $d))
             ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('date', '<=', $d))
             ->when($filters['branch_id'], fn ($q, $b) => $q->where('branch_id', $b))

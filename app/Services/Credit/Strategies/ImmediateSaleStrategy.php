@@ -65,7 +65,7 @@ class ImmediateSaleStrategy implements CreditStrategyInterface
             'change_amount' => 0,
             'payment_method' => 'credito',
             'date' => now(),
-            'status' => 'completed',
+            'status' => 'credit_pending',
             'notes' => "Venta a crédito #{$credit->code}",
         ]);
 
@@ -122,9 +122,16 @@ class ImmediateSaleStrategy implements CreditStrategyInterface
 
     public function handleCompletion(CreditSale $credit, User $user): void
     {
-        // Sale already exists — just mark credit as completed
+        // Sale already exists — mark credit and sale as completed
         $credit->status = CreditSale::STATUS_COMPLETED;
         $credit->save();
+
+        if ($credit->sale) {
+            $credit->sale->update([
+                'status' => 'completed',
+                'amount_paid' => $credit->total_amount,
+            ]);
+        }
     }
 
     public function handleCancellation(CreditSale $credit, User $user): void
@@ -133,5 +140,9 @@ class ImmediateSaleStrategy implements CreditStrategyInterface
         // Business must handle physical return manually
         $credit->status = CreditSale::STATUS_CANCELLED;
         $credit->save();
+
+        if ($credit->sale) {
+            $credit->sale->update(['status' => 'cancelled']);
+        }
     }
 }

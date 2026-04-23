@@ -288,7 +288,7 @@ class ReportQueryService
                 });
             }
 
-            $query->whereIn('sales.status', ['completed', 'cancelled']);
+            $query->whereIn('sales.status', ['completed', 'cancelled', 'credit_pending']);
 
             $dateFormat = $this->getDateFormat($groupBy);
 
@@ -318,6 +318,10 @@ class ReportQueryService
                             'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
                         ],
                         'pending' => [
+                            'total_sales' => 0, 'total_amount' => 0,
+                            'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
+                        ],
+                        'credit_pending' => [
                             'total_sales' => 0, 'total_amount' => 0,
                             'net_amount' => 0, 'tax_amount' => 0, 'average_sale' => 0,
                         ],

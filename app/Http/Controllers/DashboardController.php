@@ -264,7 +264,7 @@ class DashboardController extends Controller
     private function getRecentSales($branchId = null, $limit = 5)
     {
         $query = Sale::with(['branch', 'client', 'seller'])
-            ->where('status', 'completed')
+            ->whereIn('status', ['completed', 'credit_pending'])
             ->orderBy('created_at', 'desc')
             ->limit($limit);
 
@@ -325,7 +325,7 @@ class DashboardController extends Controller
                 ]),
             ]);
 
-        return ['total' => $total, 'items' => $items];
+        return ['total' => $total, 'items' => $items->all()];
     }
 
     /**

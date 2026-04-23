@@ -46,6 +46,13 @@ interface SalesData {
         tax_amount: number;
         average_sale: number;
     };
+    credit_pending: {
+        total_sales: number;
+        total_amount: number;
+        net_amount: number;
+        tax_amount: number;
+        average_sale: number;
+    };
 }
 
 interface Filters {
@@ -126,7 +133,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
     };
 
     // Calcular totales por estado
-    const getTotalsByStatus = (status: 'completed' | 'cancelled' | 'pending') => {
+    const getTotalsByStatus = (status: 'completed' | 'cancelled' | 'pending' | 'credit_pending') => {
         return salesData.reduce(
             (acc, item) => {
                 acc.total_sales += Number(item[status]?.total_sales || 0);
@@ -144,6 +151,7 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
     const completedTotals = getTotalsByStatus('completed');
     const cancelledTotals = getTotalsByStatus('cancelled');
     const pendingTotals = getTotalsByStatus('pending');
+    const creditPendingTotals = getTotalsByStatus('credit_pending');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -287,6 +295,17 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                                 <div className="text-xs text-muted-foreground">Monto total</div>
                             </CardContent>
                         </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Crédito Pendiente</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{formatNumber(creditPendingTotals.total_sales)}</div>
+                                <div className="text-xs text-muted-foreground">Ventas</div>
+                                <div className="mt-2 text-lg font-semibold">{formatCurrency(creditPendingTotals.total_amount)}</div>
+                                <div className="text-xs text-muted-foreground">Monto total</div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     {/* Tabla de datos */}
@@ -332,9 +351,17 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                                             <th className="p-2 text-center" colSpan={5}>
                                                 Pendientes
                                             </th>
+                                            <th className="p-2 text-center" colSpan={5}>
+                                                Crédito Pendiente
+                                            </th>
                                         </tr>
                                         <tr className="border-b border-neutral-200 dark:border-neutral-700">
                                             <th className="p-2 text-left">Fecha</th>
+                                            <th className="p-2 text-right">Ventas</th>
+                                            <th className="p-2 text-right">Monto</th>
+                                            <th className="p-2 text-right">Neto</th>
+                                            <th className="p-2 text-right">Imp.</th>
+                                            <th className="p-2 text-right">Prom.</th>
                                             <th className="p-2 text-right">Ventas</th>
                                             <th className="p-2 text-right">Monto</th>
                                             <th className="p-2 text-right">Neto</th>
@@ -382,6 +409,13 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.net_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.tax_amount) || 0)}</td>
                                                 <td className="p-2 text-right">{formatCurrency(Number(item.pending?.average_sale) || 0)}</td>
+                                                <td className="p-2 text-right">{formatNumber(Number(item.credit_pending?.total_sales) || 0)}</td>
+                                                <td className="p-2 text-right font-medium">
+                                                    {formatCurrency(Number(item.credit_pending?.total_amount) || 0)}
+                                                </td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.net_amount) || 0)}</td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.tax_amount) || 0)}</td>
+                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.average_sale) || 0)}</td>
                                             </tr>
                                         ))}
                                     </tbody>

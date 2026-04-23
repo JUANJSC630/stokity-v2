@@ -402,6 +402,7 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
                                                 <SelectContent>
                                                     <SelectItem value="completed">Completadas</SelectItem>
                                                     <SelectItem value="pending">Pendientes</SelectItem>
+                                                    <SelectItem value="credit_pending">Crédito Pendiente</SelectItem>
                                                     <SelectItem value="cancelled">Canceladas</SelectItem>
                                                     <SelectItem value="all">Todas</SelectItem>
                                                 </SelectContent>
