@@ -118,7 +118,7 @@ class ProductController extends Controller
         // Validar y obtener datos
         $validated = $request->validated();
 
-        if ($validated['type'] === 'servicio') {
+        if (($validated['type'] ?? null) === 'servicio') {
             $validated['stock'] = 0;
             $validated['min_stock'] = 0;
         }
