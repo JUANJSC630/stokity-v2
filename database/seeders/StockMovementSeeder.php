@@ -23,7 +23,7 @@ class StockMovementSeeder extends Seeder
             return;
         }
 
-        $movementTypes = ['in', 'out', 'adjustment'];
+        $movementTypes = ['ingreso', 'out', 'adjustment'];
         $references = [
             'Compra proveedor ABC',
             'Compra proveedor XYZ',
@@ -41,7 +41,7 @@ class StockMovementSeeder extends Seeder
                 'product_id' => $product->id,
                 'user_id' => $users->random()->id,
                 'branch_id' => $product->branch_id,
-                'type' => 'in',
+                'type' => 'ingreso',
                 'quantity' => rand(50, 200),
                 'previous_stock' => 0,
                 'new_stock' => rand(50, 200),
@@ -61,7 +61,7 @@ class StockMovementSeeder extends Seeder
                 $quantity = rand(5, 30);
 
                 switch ($type) {
-                    case 'in':
+                    case 'ingreso':
                         $newStock = $currentStock + $quantity;
                         break;
                     case 'out':
@@ -81,7 +81,7 @@ class StockMovementSeeder extends Seeder
                     'quantity' => $quantity,
                     'previous_stock' => $currentStock,
                     'new_stock' => $newStock,
-                    'unit_cost' => $type === 'in' ? $product->purchase_price * (rand(80, 120) / 100) : null,
+                    'unit_cost' => $type === 'ingreso' ? $product->purchase_price * (rand(80, 120) / 100) : null,
                     'reference' => $references[array_rand($references)],
                     'notes' => 'Movimiento de stock generado automáticamente',
                     'movement_date' => now()->subDays(rand(1, 29)),
