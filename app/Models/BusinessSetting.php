@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 class BusinessSetting extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     private const CACHE_KEY = 'business_settings';
 
