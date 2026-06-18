@@ -10,14 +10,19 @@ class CleanTransactionalData extends Command
     protected $signature = 'db:clean-transactional
                             {--force : Skip confirmation prompt (required in non-interactive environments)}';
 
-    protected $description = 'Truncate all transactional data (sales, products, stock, etc.) keeping users and settings';
+    protected $description = 'Truncate all business data (sales, products, etc.) keeping users, business_settings and branches';
 
+    /**
+     * Tables to truncate. Ordered children-before-parents for readability;
+     * FK checks are disabled during truncation so order is not strictly required.
+     */
     private array $tables = [
         'credit_payments',
         'credit_sale_items',
         'credit_sales',
-        'sale_products',
+        'sale_return_products',
         'sale_returns',
+        'sale_products',
         'sales',
         'cash_movements',
         'cash_sessions',
@@ -31,14 +36,15 @@ class CleanTransactionalData extends Command
         'suppliers',
         'categories',
         'payment_methods',
+        'archived_users',
     ];
 
     public function handle(): int
     {
-        $this->warn('⚠️  This will permanently delete ALL transactional data:');
+        $this->warn('⚠️  This will permanently delete ALL business data:');
         $this->line(implode(', ', $this->tables));
         $this->newLine();
-        $this->info('✅ Preserved: users, branches, business_settings');
+        $this->info('✅ Preserved: users, business_settings, branches');
         $this->newLine();
 
         if (! $this->option('force') && ! $this->confirm('Are you sure? This cannot be undone.')) {
@@ -65,6 +71,7 @@ class CleanTransactionalData extends Command
 
         $this->newLine();
         $this->info('Done. Database cleaned successfully.');
+        $this->info('Users preserved: '.DB::table('users')->count());
 
         return self::SUCCESS;
     }
