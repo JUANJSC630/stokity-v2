@@ -8,6 +8,30 @@
 
 ---
 
+## 📍 ESTADO DE AVANCE (rama `feature/multitenancy-infra`, NO mergeada)
+
+> Decisiones confirmadas: tenant por usuario logueado · jerarquía SuperAdmin → Admin → empleados · roles/permisos van DESPUÉS (ver `ROLES_PERMISSIONS_PLAN.md`).
+
+| Fase | Estado | Resumen |
+|---|---|---|
+| **1** Infra | ✅ | `tenants`, `Tenant`, `TenantManager`, `TenantScope`, trait `BelongsToTenant`, middleware `IdentifyTenant`, `TenancyServiceProvider` |
+| **2** Esquema | ✅ | `tenant_id` nullable + índice en 23 tablas |
+| **3** Backfill + FK | ✅ | crea tenant inicial (del business_settings) + asigna TODO + FK nullable. No hardcodea id=1 |
+| **4** Trait en modelos | ✅ | `BelongsToTenant` en los 22 modelos. `tenant_id` fuera de `$fillable` (seguridad) |
+| **5a** business_settings | ✅ | `getSettings()` por‑tenant + cache key por tenant |
+| **5b** Queries crudas | ✅ | 23 `DB::table()` scopeadas (Dashboard, Finance, ReportQueryService) + cache keys por tenant |
+| **5c** Switch (middleware) | ✅ | `IdentifyTenant` activo, **corre antes de SubstituteBindings** → route binding cross‑tenant 404. Tests de aislamiento HTTP en verde |
+| **6** Finalize constraints | ⬜ | NOT NULL + uniques compuestos `(tenant_id, code/document/email)` — DESPUÉS de que todo escriba tenant_id |
+| **7** business_settings UI / login | ⬜ | redirect super‑admin vs tenant en login |
+| **8** Onboarding + SuperAdmin panel | ⬜ | `TenantProvisioner`, panel `/admin`, deshabilitar `/register` público |
+| **9** `db:clean-transactional` tenant‑aware | ⬜ | hoy borra global → filtrar por `--tenant=` |
+
+**Verificado:** 162 tests pasan (incl. 3 de aislamiento). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+
+> ⚠️ Aún NO mergeado a master. La migración de datos (Fase 3) se ejecuta en el deploy (`migrate --force`); **hacer backup de producción antes del merge/deploy**.
+
+---
+
 ## Bloque 0 — Decisiones de arquitectura (leer primero)
 
 | Decisión | Resolución | Razón |
