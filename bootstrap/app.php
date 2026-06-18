@@ -17,14 +17,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            \App\Http\Middleware\IdentifyTenant::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Tenancy infra (PR-1): available as the `tenant` alias but NOT yet
-        // appended to the web stack. It is activated once users.tenant_id exists
-        // (PR-2) and the BelongsToTenant trait is applied (PR-4).
+        // Run IdentifyTenant BEFORE route-model binding so the tenant scope
+        // applies when {product}, {sale}, etc. are resolved (cross-tenant
+        // access then 404s instead of leaking). It still runs after StartSession
+        // so $request->user() is available.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            prepend: \App\Http\Middleware\IdentifyTenant::class,
+        );
+
+        // Also available as a route-level alias.
         $middleware->alias([
             'tenant' => \App\Http\Middleware\IdentifyTenant::class,
         ]);
