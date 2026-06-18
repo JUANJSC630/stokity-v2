@@ -21,6 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Tenancy infra (PR-1): available as the `tenant` alias but NOT yet
+        // appended to the web stack. It is activated once users.tenant_id exists
+        // (PR-2) and the BelongsToTenant trait is applied (PR-4).
+        $middleware->alias([
+            'tenant' => \App\Http\Middleware\IdentifyTenant::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
