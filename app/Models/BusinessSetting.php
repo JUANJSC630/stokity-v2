@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Tenancy\TenantManager;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
@@ -17,7 +18,14 @@ class BusinessSetting extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::forget(self::CACHE_KEY));
+        // Invalidate the per-tenant cache entry for this settings row.
+        static::saved(fn (self $model) => Cache::forget(self::cacheKey($model->tenant_id)));
+    }
+
+    /** Per-tenant cache key (falls back to a global key when no tenant context). */
+    private static function cacheKey(?int $tenantId): string
+    {
+        return self::CACHE_KEY.':'.($tenantId ?? 'global');
     }
 
     protected $fillable = [
@@ -79,7 +87,11 @@ class BusinessSetting extends Model
      */
     public static function getSettings(): self
     {
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+        $tenantId = app(TenantManager::class)->id();
+
+        return Cache::remember(self::cacheKey($tenantId), self::CACHE_TTL, function () {
+            // static::first() is tenant-scoped via BelongsToTenant; create()
+            // auto-stamps tenant_id from the current tenant context.
             return static::first() ?? static::create([
                 'name' => config('app.name', 'Mi Negocio'),
                 'currency_symbol' => '$',

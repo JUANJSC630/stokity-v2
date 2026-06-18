@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\SaleReturn;
+use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,15 @@ use Illuminate\Support\Facades\DB;
 class ReportQueryService
 {
     private const CACHE_TTL = 900; // 15 minutes
+
+    /**
+     * Current tenant id, used to scope raw DB::table() queries (which bypass the
+     * BelongsToTenant global scope) and to namespace the report caches per tenant.
+     */
+    private function tenantId(): ?int
+    {
+        return app(TenantManager::class)->id();
+    }
 
     /**
      * Build the standard filters array from a request.
@@ -30,6 +40,8 @@ class ReportQueryService
             'seller_id' => $request->get('seller_id'),
             'category_id' => $request->get('category_id'),
             'status' => $request->get('status', 'completed'),
+            // Included so every md5(serialize($filters)) cache key is per-tenant.
+            'tenant_id' => $this->tenantId(),
         ];
 
         // Non-admin users are locked to their own branch
@@ -111,6 +123,7 @@ class ReportQueryService
                 ->join('sale_products', 'sales.id', '=', 'sale_products.sale_id')
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->where('sales.status', 'completed')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->when($filters['branch_id'], fn ($q, $b) => $q->where('sales.branch_id', $b))
@@ -266,6 +279,9 @@ class ReportQueryService
             $query = DB::table('sales')
                 ->whereNull('sales.deleted_at');
 
+            if ($tid = $this->tenantId()) {
+                $query->where('sales.tenant_id', $tid);
+            }
             if ($filters['date_from']) {
                 $query->whereDate('sales.date', '>=', $filters['date_from']);
             }
@@ -357,6 +373,7 @@ class ReportQueryService
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
                 ->where('sales.status', 'completed')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->when($filters['branch_id'], fn ($q, $b) => $q->where('sales.branch_id', $b))
@@ -418,6 +435,7 @@ class ReportQueryService
                 ->leftJoin('sale_products', 'products.id', '=', 'sale_products.product_id')
                 ->leftJoin('sales', 'sale_products.sale_id', '=', 'sales.id')
                 ->where('products.status', true)
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('products.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->select([
@@ -752,25 +770,25 @@ class ReportQueryService
                 'user:id,name',
                 'products:id,name,sale_price',
             ])
-            ->when($filters['date_from'], fn ($q) => $q->whereDate('sale_returns.created_at', '>=', $filters['date_from']))
-            ->when($filters['date_to'], fn ($q) => $q->whereDate('sale_returns.created_at', '<=', $filters['date_to']))
-            ->when($filters['branch_id'], fn ($q) => $q->whereHas('sale', fn ($sq) => $sq->withTrashed()->where('branch_id', $filters['branch_id'])))
-            ->orderBy('sale_returns.created_at', 'desc')
-            ->get()
-            ->map(fn ($ret) => [
-                'id'           => $ret->id,
-                'sale_id'      => $ret->sale_id,
-                'sale_code'    => $ret->sale === null ? null : $ret->sale->code,
-                'sale_deleted' => $ret->sale !== null && $ret->sale->deleted_at !== null,
-                'reason'       => $ret->reason,
-                'created_at'   => $ret->created_at->format('d/m/Y H:i'),
-                'user'         => $ret->user === null ? null : $ret->user->name,
-                'total'        => $ret->products->sum(fn ($p) => $p->pivot->quantity * ($p->pivot->effective_price ?? $p->sale_price)),
-                'products'     => $ret->products->map(fn ($p) => [
-                    'name'     => $p->name,
-                    'quantity' => $p->pivot->quantity,
-                ]),
-            ]);
+                ->when($filters['date_from'], fn ($q) => $q->whereDate('sale_returns.created_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'], fn ($q) => $q->whereDate('sale_returns.created_at', '<=', $filters['date_to']))
+                ->when($filters['branch_id'], fn ($q) => $q->whereHas('sale', fn ($sq) => $sq->withTrashed()->where('branch_id', $filters['branch_id'])))
+                ->orderBy('sale_returns.created_at', 'desc')
+                ->get()
+                ->map(fn ($ret) => [
+                    'id' => $ret->id,
+                    'sale_id' => $ret->sale_id,
+                    'sale_code' => $ret->sale === null ? null : $ret->sale->code,
+                    'sale_deleted' => $ret->sale !== null && $ret->sale->deleted_at !== null,
+                    'reason' => $ret->reason,
+                    'created_at' => $ret->created_at->format('d/m/Y H:i'),
+                    'user' => $ret->user === null ? null : $ret->user->name,
+                    'total' => $ret->products->sum(fn ($p) => $p->pivot->quantity * ($p->pivot->effective_price ?? $p->sale_price)),
+                    'products' => $ret->products->map(fn ($p) => [
+                        'name' => $p->name,
+                        'quantity' => $p->pivot->quantity,
+                    ]),
+                ]);
         });
 
         return $result;
@@ -828,6 +846,7 @@ class ReportQueryService
             'seller_id' => $filters['seller_id'],
             'category_id' => $filters['category_id'],
             'status' => $filters['status'],
+            'tenant_id' => $filters['tenant_id'] ?? $this->tenantId(),
         ];
     }
 
@@ -836,6 +855,10 @@ class ReportQueryService
      */
     public function applyDbFilters(\Illuminate\Database\Query\Builder $query, array $filters): void
     {
+        // Tenant isolation for raw DB::table('sales') queries.
+        if ($tid = $this->tenantId()) {
+            $query->where('sales.tenant_id', $tid);
+        }
         if ($filters['date_from']) {
             $query->whereDate('sales.date', '>=', $filters['date_from']);
         }
