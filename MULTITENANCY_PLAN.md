@@ -28,8 +28,12 @@
 
 **Verificado:** 171 tests pasan (incl. 4 de aislamiento + 6 de SuperAdmin + 2 del comando de limpieza). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
 
-### ✅ Migración multi‑tenant FUNCIONALMENTE COMPLETA (Fases 1–9)
-Pendiente solo limpieza/hardening opcional: borrar `RegisteredUserController`+`auth/register.tsx` huérfanos; layout propio del panel SuperAdmin; `tenant_id` NOT NULL (requiere factories tenant‑aware). **Antes del merge a master: backup de producción** (la Fase 3 corre en `migrate --force`).
+### ✅ Migración multi‑tenant COMPLETA (Fases 1–9 + limpieza)
+- Limpieza ✅: borrados `RegisteredUserController` + `auth/register.tsx` huérfanos; el `AppSidebar` muestra nav de plataforma (Negocios) para `super_admin`.
+- **`tenant_id` NOT NULL: evaluado y NO aplicado a propósito.** Servicios de dominio y muchos setups de test crean filas hijas vía `Model::create()` directo fuera de un request (sin contexto de tenant). El aislamiento ya lo garantizan el global scope + FK (un `tenant_id` null nunca coincide con un tenant). Forzar NOT NULL exigiría refactor amplio sin beneficio real → se queda nullable.
+- **171 tests pasan.**
+
+> **Antes del merge a master: backup de producción** (la Fase 3 corre en `migrate --force` del deploy). Tras el deploy: `php artisan tenancy:make-super-admin "Nombre" email`.
 
 > **Pendientes menores:** `RegisteredUserController` + `auth/register.tsx` quedan huérfanos (sin ruta) — borrar en limpieza. Panel `/admin` usa el `AppLayout` del tenant (sidebar muestra POS); convendría un layout propio de SuperAdmin. `db:clean-transactional` aún borra global (Fase 9). Forzar `tenant_id` NOT NULL requiere factories tenant‑aware.
 >
