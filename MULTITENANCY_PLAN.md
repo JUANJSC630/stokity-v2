@@ -21,12 +21,14 @@
 | **5a** business_settings | ✅ | `getSettings()` por‑tenant + cache key por tenant |
 | **5b** Queries crudas | ✅ | 23 `DB::table()` scopeadas (Dashboard, Finance, ReportQueryService) + cache keys por tenant |
 | **5c** Switch (middleware) | ✅ | `IdentifyTenant` activo, **corre antes de SubstituteBindings** → route binding cross‑tenant 404. Tests de aislamiento HTTP en verde |
-| **6** Finalize constraints | ⬜ | NOT NULL + uniques compuestos `(tenant_id, code/document/email)` — DESPUÉS de que todo escriba tenant_id |
+| **6** Uniques por tenant | ✅ | uniques compuestos `(tenant_id, code/document/email)` en products/sales/credit_sales/payment_methods/clients + validaciones `Rule::unique()->where()` scopeadas. `users.email` sigue global. **`tenant_id` queda NULLABLE** (NOT NULL diferido hasta que las factories lo estampen) |
 | **7** business_settings UI / login | ⬜ | redirect super‑admin vs tenant en login |
 | **8** Onboarding + SuperAdmin panel | ⬜ | `TenantProvisioner`, panel `/admin`, deshabilitar `/register` público |
 | **9** `db:clean-transactional` tenant‑aware | ⬜ | hoy borra global → filtrar por `--tenant=` |
 
-**Verificado:** 162 tests pasan (incl. 3 de aislamiento). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+**Verificado:** 163 tests pasan (incl. 4 de aislamiento). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+
+> **Nota sobre NOT NULL (diferido):** `tenant_id` se deja nullable porque las factories de test crean filas sin contexto de tenant. El aislamiento NO depende de NOT NULL (lo garantizan el global scope + FK). Enforzar NOT NULL requiere primero hacer las factories tenant‑aware; se hará junto con la suite de tests de la Fase 8.
 
 > ⚠️ Aún NO mergeado a master. La migración de datos (Fase 3) se ejecuta en el deploy (`migrate --force`); **hacer backup de producción antes del merge/deploy**.
 
