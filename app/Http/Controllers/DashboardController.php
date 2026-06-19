@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,15 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    /**
+     * Current tenant id, used to scope raw DB::table() queries that bypass the
+     * BelongsToTenant global scope. Null when no tenant is in context (no-op).
+     */
+    private function currentTenantId(): ?int
+    {
+        return app(TenantManager::class)->id();
+    }
+
     /**
      * Display the dashboard with key metrics and statistics
      */
@@ -123,6 +133,7 @@ class DashboardController extends Controller
             ->whereBetween('date', [$startDate, $endDate])
             ->where('status', 'completed')
             ->whereNull('deleted_at')
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
             ->first();
@@ -216,6 +227,10 @@ class DashboardController extends Controller
             ->join('products', 'sale_products.product_id', '=', 'products.id')
             ->whereBetween('sales.date', [$startDate, $endDate])
             ->where('sales.status', 'completed')
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q
+                ->where('sales.tenant_id', $tid)
+                ->where('sale_products.tenant_id', $tid)
+                ->where('products.tenant_id', $tid))
             ->select(
                 'products.id',
                 'products.name',
@@ -245,6 +260,9 @@ class DashboardController extends Controller
             ->join('branches', 'sales.branch_id', '=', 'branches.id')
             ->whereBetween('sales.date', [$startDate, $endDate])
             ->where('sales.status', 'completed')
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q
+                ->where('sales.tenant_id', $tid)
+                ->where('branches.tenant_id', $tid))
             ->select(
                 'branches.id',
                 'branches.name',
@@ -313,15 +331,15 @@ class DashboardController extends Controller
             ->limit(20)
             ->get()
             ->map(fn ($sale) => [
-                'id'     => $sale->id,
-                'code'   => $sale->code,
-                'total'  => $sale->total,
+                'id' => $sale->id,
+                'code' => $sale->code,
+                'total' => $sale->total,
                 'seller' => $sale->seller ? ['name' => $sale->seller->name] : null,
-                'branch'     => $sale->branch ? ['name' => $sale->branch->name] : null,
-                'products'   => $sale->saleProducts->map(fn ($sp) => [
+                'branch' => $sale->branch ? ['name' => $sale->branch->name] : null,
+                'products' => $sale->saleProducts->map(fn ($sp) => [
                     'product_id' => $sp->product_id,
-                    'name'       => $sp->product->name ?? 'Producto eliminado',
-                    'quantity'   => $sp->quantity,
+                    'name' => $sp->product->name ?? 'Producto eliminado',
+                    'quantity' => $sp->quantity,
                 ]),
             ]);
 
@@ -340,6 +358,7 @@ class DashboardController extends Controller
         $salesQuery = DB::table('sales')
             ->whereBetween('date', [$startDate, $endDate])
             ->where('status', 'completed')
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
             ->select(
                 DB::raw('DATE(date) as date'),
                 DB::raw('COUNT(*) as total_sales'),

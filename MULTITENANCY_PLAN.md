@@ -8,6 +8,41 @@
 
 ---
 
+## 📍 ESTADO DE AVANCE (rama `feature/multitenancy-infra`, NO mergeada)
+
+> Decisiones confirmadas: tenant por usuario logueado · jerarquía SuperAdmin → Admin → empleados · roles/permisos van DESPUÉS (ver `ROLES_PERMISSIONS_PLAN.md`).
+
+| Fase | Estado | Resumen |
+|---|---|---|
+| **1** Infra | ✅ | `tenants`, `Tenant`, `TenantManager`, `TenantScope`, trait `BelongsToTenant`, middleware `IdentifyTenant`, `TenancyServiceProvider` |
+| **2** Esquema | ✅ | `tenant_id` nullable + índice en 23 tablas |
+| **3** Backfill + FK | ✅ | crea tenant inicial (del business_settings) + asigna TODO + FK nullable. No hardcodea id=1 |
+| **4** Trait en modelos | ✅ | `BelongsToTenant` en los 22 modelos. `tenant_id` fuera de `$fillable` (seguridad) |
+| **5a** business_settings | ✅ | `getSettings()` por‑tenant + cache key por tenant |
+| **5b** Queries crudas | ✅ | 23 `DB::table()` scopeadas (Dashboard, Finance, ReportQueryService) + cache keys por tenant |
+| **5c** Switch (middleware) | ✅ | `IdentifyTenant` activo, **corre antes de SubstituteBindings** → route binding cross‑tenant 404. Tests de aislamiento HTTP en verde |
+| **6** Uniques por tenant | ✅ | uniques compuestos `(tenant_id, code/document/email)` en products/sales/credit_sales/payment_methods/clients + validaciones `Rule::unique()->where()` scopeadas. `users.email` sigue global. **`tenant_id` queda NULLABLE** (NOT NULL diferido hasta que las factories lo estampen) |
+| **7** Login redirect | ✅ | super‑admin → `/admin`, tenant → `/dashboard` (en `AuthenticatedSessionController`) |
+| **8** Onboarding + SuperAdmin panel | ✅ | `User::ROLE_SUPER_ADMIN` + `isSuperAdmin()`, middleware `EnsureSuperAdmin`, `TenantProvisioner` (negocio+admin+settings+sucursal+métodos de pago+Consumidor Final), `Admin\TenantController` + `routes/admin.php` (list/create/suspend/activate), páginas `admin/tenants/{index,create}`, comando `tenancy:make-super-admin`, **`/register` deshabilitado** |
+| **9** `db:clean-transactional` tenant‑aware | ✅ | exige `--tenant=ID`, borra solo ese negocio (delete where tenant_id), conserva sus users/settings/branches; cross‑DB (rompe el ciclo FK sales↔credit_sales sin desactivar FKs) |
+
+**Verificado:** 171 tests pasan (incl. 4 de aislamiento + 6 de SuperAdmin + 2 del comando de limpieza). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+
+### ✅ Migración multi‑tenant COMPLETA (Fases 1–9 + limpieza)
+- Limpieza ✅: borrados `RegisteredUserController` + `auth/register.tsx` huérfanos; el `AppSidebar` muestra nav de plataforma (Negocios) para `super_admin`.
+- **`tenant_id` NOT NULL: evaluado y NO aplicado a propósito.** Servicios de dominio y muchos setups de test crean filas hijas vía `Model::create()` directo fuera de un request (sin contexto de tenant). El aislamiento ya lo garantizan el global scope + FK (un `tenant_id` null nunca coincide con un tenant). Forzar NOT NULL exigiría refactor amplio sin beneficio real → se queda nullable.
+- **171 tests pasan.**
+
+> **Antes del merge a master: backup de producción** (la Fase 3 corre en `migrate --force` del deploy). Tras el deploy: `php artisan tenancy:make-super-admin "Nombre" email`.
+
+> **Cómo crear el primer SuperAdmin (tras el deploy):** `php artisan tenancy:make-super-admin "Tu Nombre" tu@email.com` (pide contraseña). Luego entra a `/admin/tenants`.
+
+> **Nota sobre NOT NULL (diferido):** `tenant_id` se deja nullable porque las factories de test crean filas sin contexto de tenant. El aislamiento NO depende de NOT NULL (lo garantizan el global scope + FK). Enforzar NOT NULL requiere primero hacer las factories tenant‑aware; se hará junto con la suite de tests de la Fase 8.
+
+> ⚠️ Aún NO mergeado a master. La migración de datos (Fase 3) se ejecuta en el deploy (`migrate --force`); **hacer backup de producción antes del merge/deploy**.
+
+---
+
 ## Bloque 0 — Decisiones de arquitectura (leer primero)
 
 | Decisión | Resolución | Razón |

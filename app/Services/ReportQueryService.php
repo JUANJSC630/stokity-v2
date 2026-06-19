@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\SaleReturn;
+use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,24 @@ use Illuminate\Support\Facades\DB;
 class ReportQueryService
 {
     private const CACHE_TTL = 900; // 15 minutes
+
+    /**
+     * Current tenant id, used to scope raw DB::table() queries (which bypass the
+     * BelongsToTenant global scope) and to namespace the report caches per tenant.
+     */
+    private function tenantId(): ?int
+    {
+        return app(TenantManager::class)->id();
+    }
+
+    /**
+     * Per-tenant cache key. Always injects the current tenant id so report caches
+     * can never be served across tenants, regardless of the filters passed in.
+     */
+    private function cacheKey(string $name, array $filters): string
+    {
+        return 'report_'.($this->tenantId() ?? 'none')."_{$name}_".md5(serialize($filters));
+    }
 
     /**
      * Build the standard filters array from a request.
@@ -30,6 +49,8 @@ class ReportQueryService
             'seller_id' => $request->get('seller_id'),
             'category_id' => $request->get('category_id'),
             'status' => $request->get('status', 'completed'),
+            // Included so every md5(serialize($filters)) cache key is per-tenant.
+            'tenant_id' => $this->tenantId(),
         ];
 
         // Non-admin users are locked to their own branch
@@ -52,7 +73,7 @@ class ReportQueryService
      */
     public function getSalesSummary(array $filters): array
     {
-        $cacheKey = 'sales_summary_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sales_summary', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -104,13 +125,17 @@ class ReportQueryService
      */
     public function getTopProducts(array $filters, int $limit = 10): \Illuminate\Support\Collection
     {
-        $cacheKey = 'top_products_'.md5(serialize($filters)).'_'.$limit;
+        $cacheKey = $this->cacheKey('top_products', $filters).'_'.$limit;
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters, $limit) {
             $results = DB::table('sales')
                 ->join('sale_products', 'sales.id', '=', 'sale_products.sale_id')
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->where('sales.status', 'completed')
+                ->when($this->tenantId(), fn ($q, $tid) => $q
+                    ->where('sales.tenant_id', $tid)
+                    ->where('sale_products.tenant_id', $tid)
+                    ->where('products.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->when($filters['branch_id'], fn ($q, $b) => $q->where('sales.branch_id', $b))
@@ -143,7 +168,7 @@ class ReportQueryService
      */
     public function getSalesByBranch(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_branch_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sales_by_branch', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -169,7 +194,7 @@ class ReportQueryService
      */
     public function getSalesBySeller(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_seller_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sales_by_seller', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -196,7 +221,7 @@ class ReportQueryService
      */
     public function getReturnsSummary(array $filters): object
     {
-        $cacheKey = 'returns_summary_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('returns_summary', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query()
@@ -260,12 +285,15 @@ class ReportQueryService
      */
     public function getSalesByPeriod(array $filters, string $groupBy = 'day'): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sales_by_period_'.md5(serialize($filters)).'_'.$groupBy;
+        $cacheKey = $this->cacheKey('sales_by_period', $filters).'_'.$groupBy;
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters, $groupBy): \Illuminate\Support\Collection {
             $query = DB::table('sales')
                 ->whereNull('sales.deleted_at');
 
+            if ($tid = $this->tenantId()) {
+                $query->where('sales.tenant_id', $tid);
+            }
             if ($filters['date_from']) {
                 $query->whereDate('sales.date', '>=', $filters['date_from']);
             }
@@ -349,7 +377,7 @@ class ReportQueryService
      */
     public function getProductsByCategory(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'products_by_category_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('products_by_category', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $results = DB::table('sales')
@@ -357,6 +385,11 @@ class ReportQueryService
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
                 ->where('sales.status', 'completed')
+                ->when($this->tenantId(), fn ($q, $tid) => $q
+                    ->where('sales.tenant_id', $tid)
+                    ->where('sale_products.tenant_id', $tid)
+                    ->where('products.tenant_id', $tid)
+                    ->where('categories.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->when($filters['branch_id'], fn ($q, $b) => $q->where('sales.branch_id', $b))
@@ -386,7 +419,7 @@ class ReportQueryService
      */
     public function getLowStockProducts(array $filters = []): \Illuminate\Support\Collection
     {
-        $cacheKey = 'low_stock_products_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('low_stock_products', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = Product::where('stock', '<=', DB::raw('min_stock'))
@@ -411,13 +444,14 @@ class ReportQueryService
      */
     public function getProductsPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'products_performance_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('products_performance', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $results = DB::table('products')
                 ->leftJoin('sale_products', 'products.id', '=', 'sale_products.product_id')
                 ->leftJoin('sales', 'sale_products.sale_id', '=', 'sales.id')
                 ->where('products.status', true)
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('products.tenant_id', $tid))
                 ->when($filters['date_from'], fn ($q, $d) => $q->whereDate('sales.date', '>=', $d))
                 ->when($filters['date_to'], fn ($q, $d) => $q->whereDate('sales.date', '<=', $d))
                 ->select([
@@ -453,7 +487,7 @@ class ReportQueryService
      */
     public function getSellersPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_performance_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sellers_performance', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters): \Illuminate\Support\Collection {
             $query = DB::table('sales')
@@ -492,7 +526,7 @@ class ReportQueryService
      */
     public function getSellersComparison(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_comparison_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sellers_comparison', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $currentPeriod = $this->getSellersPerformance($filters);
@@ -528,7 +562,7 @@ class ReportQueryService
      */
     public function getSellersByBranch(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'sellers_by_branch_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('sellers_by_branch', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -556,7 +590,7 @@ class ReportQueryService
      */
     public function getBranchesPerformance(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'branches_performance_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('branches_performance', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -584,7 +618,7 @@ class ReportQueryService
      */
     public function getBranchesComparison(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'branches_comparison_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('branches_comparison', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -619,7 +653,7 @@ class ReportQueryService
      */
     public function getReturnsByProduct(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_by_product_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('returns_by_product', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query()
@@ -663,7 +697,7 @@ class ReportQueryService
      */
     public function getReturnsByReason(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_by_reason_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('returns_by_reason', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query()
@@ -702,7 +736,7 @@ class ReportQueryService
      */
     public function getReturnsTrend(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_trend_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('returns_trend', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = SaleReturn::query()
@@ -743,7 +777,7 @@ class ReportQueryService
      */
     public function getReturnsDetail(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'returns_detail_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('returns_detail', $filters);
 
         /** @var \Illuminate\Support\Collection<int, array<string, mixed>> $result */
         $result = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
@@ -752,25 +786,25 @@ class ReportQueryService
                 'user:id,name',
                 'products:id,name,sale_price',
             ])
-            ->when($filters['date_from'], fn ($q) => $q->whereDate('sale_returns.created_at', '>=', $filters['date_from']))
-            ->when($filters['date_to'], fn ($q) => $q->whereDate('sale_returns.created_at', '<=', $filters['date_to']))
-            ->when($filters['branch_id'], fn ($q) => $q->whereHas('sale', fn ($sq) => $sq->withTrashed()->where('branch_id', $filters['branch_id'])))
-            ->orderBy('sale_returns.created_at', 'desc')
-            ->get()
-            ->map(fn ($ret) => [
-                'id'           => $ret->id,
-                'sale_id'      => $ret->sale_id,
-                'sale_code'    => $ret->sale === null ? null : $ret->sale->code,
-                'sale_deleted' => $ret->sale !== null && $ret->sale->deleted_at !== null,
-                'reason'       => $ret->reason,
-                'created_at'   => $ret->created_at->format('d/m/Y H:i'),
-                'user'         => $ret->user === null ? null : $ret->user->name,
-                'total'        => $ret->products->sum(fn ($p) => $p->pivot->quantity * ($p->pivot->effective_price ?? $p->sale_price)),
-                'products'     => $ret->products->map(fn ($p) => [
-                    'name'     => $p->name,
-                    'quantity' => $p->pivot->quantity,
-                ]),
-            ]);
+                ->when($filters['date_from'], fn ($q) => $q->whereDate('sale_returns.created_at', '>=', $filters['date_from']))
+                ->when($filters['date_to'], fn ($q) => $q->whereDate('sale_returns.created_at', '<=', $filters['date_to']))
+                ->when($filters['branch_id'], fn ($q) => $q->whereHas('sale', fn ($sq) => $sq->withTrashed()->where('branch_id', $filters['branch_id'])))
+                ->orderBy('sale_returns.created_at', 'desc')
+                ->get()
+                ->map(fn ($ret) => [
+                    'id' => $ret->id,
+                    'sale_id' => $ret->sale_id,
+                    'sale_code' => $ret->sale === null ? null : $ret->sale->code,
+                    'sale_deleted' => $ret->sale !== null && $ret->sale->deleted_at !== null,
+                    'reason' => $ret->reason,
+                    'created_at' => $ret->created_at->format('d/m/Y H:i'),
+                    'user' => $ret->user === null ? null : $ret->user->name,
+                    'total' => $ret->products->sum(fn ($p) => $p->pivot->quantity * ($p->pivot->effective_price ?? $p->sale_price)),
+                    'products' => $ret->products->map(fn ($p) => [
+                        'name' => $p->name,
+                        'quantity' => $p->pivot->quantity,
+                    ]),
+                ]);
         });
 
         return $result;
@@ -781,7 +815,7 @@ class ReportQueryService
      */
     public function getPaymentMethodsSummary(array $filters): \Illuminate\Support\Collection
     {
-        $cacheKey = 'payment_methods_summary_'.md5(serialize($filters));
+        $cacheKey = $this->cacheKey('payment_methods_summary', $filters);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($filters) {
             $query = DB::table('sales')->whereNull('sales.deleted_at');
@@ -828,6 +862,7 @@ class ReportQueryService
             'seller_id' => $filters['seller_id'],
             'category_id' => $filters['category_id'],
             'status' => $filters['status'],
+            'tenant_id' => $filters['tenant_id'] ?? $this->tenantId(),
         ];
     }
 
@@ -836,6 +871,10 @@ class ReportQueryService
      */
     public function applyDbFilters(\Illuminate\Database\Query\Builder $query, array $filters): void
     {
+        // Tenant isolation for raw DB::table('sales') queries.
+        if ($tid = $this->tenantId()) {
+            $query->where('sales.tenant_id', $tid);
+        }
         if ($filters['date_from']) {
             $query->whereDate('sales.date', '>=', $filters['date_from']);
         }

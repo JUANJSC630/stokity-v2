@@ -77,7 +77,17 @@ describe('POS Flow', function () {
     });
 
     it('POS shows require_cash_session info when enabled', function () {
-        BusinessSetting::first()->update(['require_cash_session' => true]);
+        // Realistic tenant context: a real seller belongs to a tenant, and its
+        // business settings are read scoped to that tenant.
+        $tenant = \App\Models\Tenant::create(['name' => 'pos-tenant', 'slug' => 'pos-tenant', 'status' => 'active']);
+
+        $settings = BusinessSetting::first();
+        $settings->tenant_id = $tenant->id;
+        $settings->require_cash_session = true;
+        $settings->save();
+
+        $this->seller->tenant_id = $tenant->id;
+        $this->seller->save();
 
         $response = $this->actingAs($this->seller)
             ->get(route('pos.index'));
