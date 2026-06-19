@@ -60,8 +60,6 @@ class Tenant extends Model
     }
 
     // --- Relationships ---
-    // NOTE: estas relaciones empiezan a funcionar cuando cada tabla reciba
-    // su columna tenant_id (PR-2) y su trait BelongsToTenant (PR-4).
 
     public function businessSetting(): HasOne
     {

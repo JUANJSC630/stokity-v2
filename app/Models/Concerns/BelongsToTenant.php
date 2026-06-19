@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - Adds the global TenantScope so all queries are filtered by the current tenant.
  * - Auto-stamps tenant_id on create from the current tenant context.
  *
- * NOTE: not applied to any model yet (that is PR-4). The trait lives here so the
- * infrastructure is complete and testable.
+ * tenant_id is intentionally kept out of $fillable so a request can never inject
+ * a foreign tenant_id; the trait stamps it directly from the tenant context.
  *
  * @property int $tenant_id
  */
