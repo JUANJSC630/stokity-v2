@@ -32,9 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
             prepend: \App\Http\Middleware\IdentifyTenant::class,
         );
 
-        // Also available as a route-level alias.
+        // Also available as route-level aliases.
         $middleware->alias([
             'tenant' => \App\Http\Middleware\IdentifyTenant::class,
+            'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

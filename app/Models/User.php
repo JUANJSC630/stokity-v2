@@ -27,6 +27,9 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use BelongsToTenant, HasFactory, Notifiable, SoftDeletes;
 
+    /** Platform owner role: tenant_id is NULL and access is the /admin panel. */
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -99,6 +102,14 @@ class User extends Authenticatable
     public function isSeller(): bool
     {
         return $this->role === 'vendedor';
+    }
+
+    /**
+     * Platform owner: belongs to no tenant, manages every tenant from /admin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     /**
