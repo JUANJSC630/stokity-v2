@@ -24,9 +24,12 @@
 | **6** Uniques por tenant | ✅ | uniques compuestos `(tenant_id, code/document/email)` en products/sales/credit_sales/payment_methods/clients + validaciones `Rule::unique()->where()` scopeadas. `users.email` sigue global. **`tenant_id` queda NULLABLE** (NOT NULL diferido hasta que las factories lo estampen) |
 | **7** Login redirect | ✅ | super‑admin → `/admin`, tenant → `/dashboard` (en `AuthenticatedSessionController`) |
 | **8** Onboarding + SuperAdmin panel | ✅ | `User::ROLE_SUPER_ADMIN` + `isSuperAdmin()`, middleware `EnsureSuperAdmin`, `TenantProvisioner` (negocio+admin+settings+sucursal+métodos de pago+Consumidor Final), `Admin\TenantController` + `routes/admin.php` (list/create/suspend/activate), páginas `admin/tenants/{index,create}`, comando `tenancy:make-super-admin`, **`/register` deshabilitado** |
-| **9** `db:clean-transactional` tenant‑aware | ⬜ | hoy borra global → filtrar por `--tenant=` |
+| **9** `db:clean-transactional` tenant‑aware | ✅ | exige `--tenant=ID`, borra solo ese negocio (delete where tenant_id), conserva sus users/settings/branches; cross‑DB (rompe el ciclo FK sales↔credit_sales sin desactivar FKs) |
 
-**Verificado:** 169 tests pasan (incl. 4 de aislamiento + 6 de SuperAdmin). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+**Verificado:** 171 tests pasan (incl. 4 de aislamiento + 6 de SuperAdmin + 2 del comando de limpieza). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+
+### ✅ Migración multi‑tenant FUNCIONALMENTE COMPLETA (Fases 1–9)
+Pendiente solo limpieza/hardening opcional: borrar `RegisteredUserController`+`auth/register.tsx` huérfanos; layout propio del panel SuperAdmin; `tenant_id` NOT NULL (requiere factories tenant‑aware). **Antes del merge a master: backup de producción** (la Fase 3 corre en `migrate --force`).
 
 > **Pendientes menores:** `RegisteredUserController` + `auth/register.tsx` quedan huérfanos (sin ruta) — borrar en limpieza. Panel `/admin` usa el `AppLayout` del tenant (sidebar muestra POS); convendría un layout propio de SuperAdmin. `db:clean-transactional` aún borra global (Fase 9). Forzar `tenant_id` NOT NULL requiere factories tenant‑aware.
 >
