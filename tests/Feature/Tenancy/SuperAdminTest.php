@@ -92,3 +92,11 @@ it('redirects super admin to the admin panel on login', function () {
     $this->post('/login', ['email' => 'owner@platform.test', 'password' => 'password123'])
         ->assertRedirect('/admin/tenants');
 });
+
+it('keeps the super admin out of tenant routes', function () {
+    // No tenant context exists for a super admin, so tenant routes would run
+    // unscoped — they are redirected back to the panel instead.
+    $this->actingAs(superAdmin())
+        ->get('/dashboard')
+        ->assertRedirect(route('admin.tenants.index'));
+});

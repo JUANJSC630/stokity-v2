@@ -35,9 +35,9 @@ class AuthenticatedSessionController extends Controller
         // Update last_login_at for the user
         $request->user()->updateLastLogin();
 
-        // Platform owners go to the admin panel; tenant users to their dashboard.
+        // Platform owners always land on the admin panel (not a stored intended URL).
         if ($request->user()->isSuperAdmin()) {
-            return redirect()->intended(route('admin.tenants.index', absolute: false));
+            return redirect()->route('admin.tenants.index');
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

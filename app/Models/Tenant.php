@@ -39,11 +39,19 @@ class Tenant extends Model
     ];
 
     /**
-     * A tenant can operate while active or on trial.
+     * A tenant can operate while active, or on trial that has not expired.
      */
     public function isActive(): bool
     {
-        return in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_TRIAL], true);
+        if ($this->status === self::STATUS_ACTIVE) {
+            return true;
+        }
+
+        if ($this->status === self::STATUS_TRIAL) {
+            return $this->trial_ends_at === null || $this->trial_ends_at->isFuture();
+        }
+
+        return false;
     }
 
     public function isSuspended(): bool

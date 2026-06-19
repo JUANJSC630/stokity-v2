@@ -44,10 +44,10 @@ class MakeSuperAdmin extends Command
             'email' => $email,
             'password' => Hash::make($password),
             'role' => User::ROLE_SUPER_ADMIN,
-            'tenant_id' => null,
             'branch_id' => null,
             'status' => true,
             'email_verified_at' => now(),
+            // tenant_id stays null: the trait does not stamp it without a tenant context.
         ]);
 
         $this->info("Super-admin creado: {$user->email} (id {$user->id}).");

@@ -18,15 +18,25 @@ class TenantController extends Controller
 {
     public function index(): Response
     {
+        // One grouped count per entity instead of 3 queries per tenant (no N+1).
+        $countByTenant = fn (string $model) => $model::allTenants()
+            ->selectRaw('tenant_id, COUNT(*) as aggregate')
+            ->groupBy('tenant_id')
+            ->pluck('aggregate', 'tenant_id');
+
+        $users = $countByTenant(User::class);
+        $products = $countByTenant(Product::class);
+        $sales = $countByTenant(Sale::class);
+
         $tenants = Tenant::orderByDesc('id')->get()->map(fn (Tenant $t) => [
             'id' => $t->id,
             'name' => $t->name,
             'slug' => $t->slug,
             'status' => $t->status,
             'created_at' => $t->created_at?->format('Y-m-d'),
-            'users_count' => User::withoutGlobalScopes()->where('tenant_id', $t->id)->count(),
-            'products_count' => Product::withoutGlobalScopes()->where('tenant_id', $t->id)->count(),
-            'sales_count' => Sale::withoutGlobalScopes()->where('tenant_id', $t->id)->count(),
+            'users_count' => (int) ($users[$t->id] ?? 0),
+            'products_count' => (int) ($products[$t->id] ?? 0),
+            'sales_count' => (int) ($sales[$t->id] ?? 0),
         ]);
 
         return Inertia::render('admin/tenants/index', ['tenants' => $tenants]);

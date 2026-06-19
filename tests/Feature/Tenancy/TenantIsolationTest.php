@@ -102,3 +102,20 @@ it('blocks login flows for a suspended tenant', function () {
 
     $this->actingAs($user)->get('/dashboard')->assertForbidden();
 });
+
+it('still allows a suspended-tenant user to log out', function () {
+    $tenant = Tenant::create(['name' => 'susp2', 'slug' => 'susp2', 'status' => 'suspended']);
+    $user = app(TenantManager::class)->runAs($tenant, fn () => User::factory()->create([
+        'role' => 'administrador',
+        'status' => true,
+    ]));
+
+    $this->actingAs($user)->post('/logout')->assertRedirect();
+});
+
+it('fails closed when the user tenant no longer exists', function () {
+    $world = makeTenantWorld('gone');
+    $world['tenant']->delete(); // soft delete → Tenant::find() returns null
+
+    $this->actingAs($world['user'])->get('/dashboard')->assertForbidden();
+});

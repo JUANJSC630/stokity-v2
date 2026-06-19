@@ -227,7 +227,10 @@ class DashboardController extends Controller
             ->join('products', 'sale_products.product_id', '=', 'products.id')
             ->whereBetween('sales.date', [$startDate, $endDate])
             ->where('sales.status', 'completed')
-            ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q
+                ->where('sales.tenant_id', $tid)
+                ->where('sale_products.tenant_id', $tid)
+                ->where('products.tenant_id', $tid))
             ->select(
                 'products.id',
                 'products.name',
@@ -257,7 +260,9 @@ class DashboardController extends Controller
             ->join('branches', 'sales.branch_id', '=', 'branches.id')
             ->whereBetween('sales.date', [$startDate, $endDate])
             ->where('sales.status', 'completed')
-            ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q
+                ->where('sales.tenant_id', $tid)
+                ->where('branches.tenant_id', $tid))
             ->select(
                 'branches.id',
                 'branches.name',

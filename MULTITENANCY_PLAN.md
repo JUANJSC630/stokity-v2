@@ -35,8 +35,6 @@
 
 > **Antes del merge a master: backup de producción** (la Fase 3 corre en `migrate --force` del deploy). Tras el deploy: `php artisan tenancy:make-super-admin "Nombre" email`.
 
-> **Pendientes menores:** `RegisteredUserController` + `auth/register.tsx` quedan huérfanos (sin ruta) — borrar en limpieza. Panel `/admin` usa el `AppLayout` del tenant (sidebar muestra POS); convendría un layout propio de SuperAdmin. `db:clean-transactional` aún borra global (Fase 9). Forzar `tenant_id` NOT NULL requiere factories tenant‑aware.
->
 > **Cómo crear el primer SuperAdmin (tras el deploy):** `php artisan tenancy:make-super-admin "Tu Nombre" tu@email.com` (pide contraseña). Luego entra a `/admin/tenants`.
 
 > **Nota sobre NOT NULL (diferido):** `tenant_id` se deja nullable porque las factories de test crean filas sin contexto de tenant. El aislamiento NO depende de NOT NULL (lo garantizan el global scope + FK). Enforzar NOT NULL requiere primero hacer las factories tenant‑aware; se hará junto con la suite de tests de la Fase 8.

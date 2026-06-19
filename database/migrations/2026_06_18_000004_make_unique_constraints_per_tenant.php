@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -51,6 +52,30 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Preflight: restoring a global unique fails if two tenants legitimately
+        // reused the same value. Fail fast with a clear message before touching
+        // the schema, instead of a cryptic duplicate-key error mid-rollback.
+        foreach ($this->map as $table => $columns) {
+            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'tenant_id')) {
+                continue;
+            }
+
+            foreach ($columns as $column) {
+                $hasCrossTenantDupes = DB::table($table)
+                    ->whereNotNull($column)
+                    ->groupBy($column)
+                    ->havingRaw('COUNT(DISTINCT tenant_id) > 1')
+                    ->exists();
+
+                if ($hasCrossTenantDupes) {
+                    throw new RuntimeException(
+                        "No se puede revertir: '{$table}.{$column}' tiene el mismo valor en varios tenants. ".
+                        'Restaurar el índice único global rompería la integridad. Resuelve los duplicados primero.'
+                    );
+                }
+            }
+        }
+
         foreach ($this->map as $table => $columns) {
             if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'tenant_id')) {
                 continue;

@@ -30,6 +30,14 @@ return new class extends Migration
 
     public function up(): void
     {
+        // Atomic: either the tenant is created and ALL rows are assigned, or nothing.
+        DB::transaction(function () {
+            $this->backfill();
+        });
+    }
+
+    private function backfill(): void
+    {
         // 1. Ensure a tenant exists to own all legacy data.
         $existing = DB::table('tenants')->orderBy('id')->first();
 

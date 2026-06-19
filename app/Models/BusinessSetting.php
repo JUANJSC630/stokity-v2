@@ -89,6 +89,15 @@ class BusinessSetting extends Model
     {
         $tenantId = app(TenantManager::class)->id();
 
+        // No tenant in context (guest pages like login, or the super-admin panel):
+        // return a transient default — never read or persist another tenant's row.
+        if (! $tenantId) {
+            return new self([
+                'name' => config('app.name', 'Mi Negocio'),
+                'currency_symbol' => '$',
+            ]);
+        }
+
         return Cache::remember(self::cacheKey($tenantId), self::CACHE_TTL, function () {
             // static::first() is tenant-scoped via BelongsToTenant; create()
             // auto-stamps tenant_id from the current tenant context.
