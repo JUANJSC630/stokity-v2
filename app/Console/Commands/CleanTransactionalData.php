@@ -16,7 +16,8 @@ class CleanTransactionalData extends Command
 
     /**
      * Tables wiped for the tenant, ordered children-before-parents.
-     * FK checks are disabled during the delete so order is not strictly required.
+     * The sales↔credit_sales FK cycle is broken manually before deleting;
+     * all other FK constraints are respected by the children-first order.
      *
      * @var list<string>
      */
@@ -82,8 +83,16 @@ class CleanTransactionalData extends Command
             DB::table('sales')->where('tenant_id', $tenantId)->update(['credit_sale_id' => null]);
 
             foreach ($this->tables as $table) {
-                if (! DB::getSchemaBuilder()->hasTable($table)) {
+                $schema = DB::getSchemaBuilder();
+
+                if (! $schema->hasTable($table)) {
                     $this->line("  - {$table} (omitida, no existe)");
+
+                    continue;
+                }
+
+                if (! $schema->hasColumn($table, 'tenant_id')) {
+                    $this->line("  - {$table} (omitida, sin columna tenant_id)");
 
                     continue;
                 }

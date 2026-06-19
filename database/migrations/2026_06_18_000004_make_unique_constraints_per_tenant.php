@@ -61,10 +61,13 @@ return new class extends Migration
             }
 
             foreach ($columns as $column) {
+                // COUNT(*) > 1 catches any duplicate of $column (including rows
+                // from the same tenant or rows with tenant_id = NULL), which is
+                // the condition that would fail when restoring the global UNIQUE.
                 $hasCrossTenantDupes = DB::table($table)
                     ->whereNotNull($column)
                     ->groupBy($column)
-                    ->havingRaw('COUNT(DISTINCT tenant_id) > 1')
+                    ->havingRaw('COUNT(*) > 1')
                     ->exists();
 
                 if ($hasCrossTenantDupes) {
