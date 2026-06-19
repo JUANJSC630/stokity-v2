@@ -191,6 +191,11 @@ const adminNavItems: NavItem[] = [
         href: '/admin/tenants',
         icon: Building2,
     },
+    {
+        title: 'Mi cuenta',
+        href: '/admin/account',
+        icon: UserRound,
+    },
 ];
 
 const SIDEBAR_SCROLL_KEY = 'stokity_sidebar_scroll';

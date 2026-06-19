@@ -100,3 +100,21 @@ it('keeps the super admin out of tenant routes', function () {
         ->get('/dashboard')
         ->assertRedirect(route('admin.tenants.index'));
 });
+
+it('redirects /admin to the tenants panel', function () {
+    $this->actingAs(superAdmin())->get('/admin')->assertRedirect('/admin/tenants');
+});
+
+it('lets the super admin change their own password', function () {
+    $admin = superAdmin();
+
+    $this->actingAs($admin)
+        ->put('/admin/account/password', [
+            'current_password' => 'password123',
+            'password' => 'new-password-456',
+            'password_confirmation' => 'new-password-456',
+        ])
+        ->assertRedirect();
+
+    expect(Hash::check('new-password-456', $admin->fresh()->password))->toBeTrue();
+});
