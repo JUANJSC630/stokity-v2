@@ -66,6 +66,25 @@ it('forbids a tenant user from the admin panel', function () {
     $this->actingAs($admin)->get('/admin/tenants')->assertForbidden();
 });
 
+it('archives (soft-deletes) a tenant from the panel', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'To Delete',
+        'admin_name' => 'Del Admin',
+        'admin_email' => 'del@x.test',
+        'admin_password' => 'password123',
+    ]);
+
+    $this->actingAs(superAdmin())
+        ->delete("/admin/tenants/{$tenant->id}")
+        ->assertRedirect('/admin/tenants');
+
+    expect($tenant->fresh()->trashed())->toBeTrue();
+
+    // Its admin user can no longer reach tenant routes (fail closed).
+    $admin = User::where('email', 'del@x.test')->first();
+    $this->actingAs($admin)->get('/dashboard')->assertForbidden();
+});
+
 it('creates a tenant from the panel', function () {
     $this->actingAs(superAdmin())
         ->post('/admin/tenants', [

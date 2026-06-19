@@ -76,4 +76,16 @@ class TenantController extends Controller
 
         return back()->with('success', "Negocio «{$tenant->name}» activado.");
     }
+
+    /**
+     * Archive a business (soft delete). Its data is preserved and its users are
+     * locked out (IdentifyTenant fails closed for a missing/deleted tenant).
+     */
+    public function destroy(Tenant $tenant): RedirectResponse
+    {
+        $tenant->delete();
+
+        return redirect()->route('admin.tenants.index')
+            ->with('success', "Negocio «{$tenant->name}» eliminado.");
+    }
 }

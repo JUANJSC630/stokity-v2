@@ -1,9 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Building2, Pause, Play, Plus } from 'lucide-react';
+import { Building2, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface TenantRow {
     id: number;
@@ -25,9 +27,19 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
+    const [deleteTarget, setDeleteTarget] = useState<TenantRow | null>(null);
+
     const toggle = (t: TenantRow) => {
         const action = t.status === 'suspended' ? 'activate' : 'suspend';
         router.post(`/admin/tenants/${t.id}/${action}`, {}, { preserveScroll: true });
+    };
+
+    const confirmDelete = () => {
+        if (!deleteTarget) return;
+        router.delete(`/admin/tenants/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onFinish: () => setDeleteTarget(null),
+        });
     };
 
     return (
@@ -82,17 +94,27 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                                         <td className="py-2 pr-4">{t.sales_count}</td>
                                         <td className="py-2 pr-4 text-muted-foreground">{t.created_at}</td>
                                         <td className="py-2 pr-4 text-right">
-                                            <Button variant="outline" size="sm" onClick={() => toggle(t)}>
-                                                {t.status === 'suspended' ? (
-                                                    <>
-                                                        <Play className="mr-1 h-3 w-3" /> Activar
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Pause className="mr-1 h-3 w-3" /> Suspender
-                                                    </>
-                                                )}
-                                            </Button>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => toggle(t)}>
+                                                    {t.status === 'suspended' ? (
+                                                        <>
+                                                            <Play className="mr-1 h-3 w-3" /> Activar
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Pause className="mr-1 h-3 w-3" /> Suspender
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-red-600 hover:text-red-700"
+                                                    onClick={() => setDeleteTarget(t)}
+                                                >
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -108,6 +130,26 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                     </CardContent>
                 </Card>
             </div>
+
+            <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Eliminar negocio</DialogTitle>
+                        <DialogDescription>
+                            ¿Seguro que quieres eliminar «{deleteTarget?.name}»? Sus usuarios perderán el acceso. Los datos se conservan
+                            (eliminación reversible).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete}>
+                            Eliminar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
