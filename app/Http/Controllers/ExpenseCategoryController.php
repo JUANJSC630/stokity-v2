@@ -3,13 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExpenseCategory;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ExpenseCategoryController extends Controller
 {
+    /** Constrain a unique rule to the current tenant. */
+    private function perTenant(): \Closure
+    {
+        return fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id());
+    }
+
     public function index(): Response
     {
         return Inertia::render('expenses/categories', [
@@ -20,7 +28,7 @@ class ExpenseCategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:100|unique:expense_categories,name',
+            'name' => ['required', 'string', 'max:100', Rule::unique('expense_categories', 'name')->where($this->perTenant())],
             'color' => 'nullable|string|max:30',
         ]);
 
@@ -41,7 +49,7 @@ class ExpenseCategoryController extends Controller
         }
 
         $data = $request->validate([
-            'name' => 'required|string|max:100|unique:expense_categories,name,'.$expenseCategory->id,
+            'name' => ['required', 'string', 'max:100', Rule::unique('expense_categories', 'name')->ignore($expenseCategory->id)->where($this->perTenant())],
             'color' => 'nullable|string|max:30',
         ]);
 

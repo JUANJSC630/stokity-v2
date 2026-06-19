@@ -3,12 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ClientController extends Controller
 {
+    /** Constrain a unique rule to the current tenant. */
+    private function perTenant(): \Closure
+    {
+        return fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id());
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -51,10 +59,10 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'document' => 'required|string|max:20|unique:clients,document',
+            'document' => ['required', 'string', 'max:20', Rule::unique('clients', 'document')->where($this->perTenant())],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'email' => 'nullable|string|email|max:255|unique:clients,email',
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('clients', 'email')->where($this->perTenant())],
             'birthdate' => 'nullable|date',
         ]);
 
@@ -114,10 +122,10 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'document' => 'required|string|max:20|unique:clients,document,'.$client->id,
+            'document' => ['required', 'string', 'max:20', Rule::unique('clients', 'document')->ignore($client->id)->where($this->perTenant())],
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
-            'email' => 'nullable|string|email|max:255|unique:clients,email,'.$client->id,
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($client->id)->where($this->perTenant())],
             'birthdate' => 'nullable|date',
         ]);
 

@@ -74,6 +74,25 @@ it('cannot open another tenant product (404 via scoped route binding)', function
         ->assertNotFound();
 });
 
+it('allows the same product code in two different tenants', function () {
+    $a = Tenant::create(['name' => 'ta', 'slug' => 'ta', 'status' => 'active']);
+    $b = Tenant::create(['name' => 'tb', 'slug' => 'tb', 'status' => 'active']);
+    $tm = app(TenantManager::class);
+
+    $tm->runAs($a, function () {
+        $branch = Branch::factory()->create();
+        Product::factory()->create(['branch_id' => $branch->id, 'code' => 'SHARED-CODE']);
+    });
+
+    // Same code under tenant B must NOT collide.
+    $tm->runAs($b, function () {
+        $branch = Branch::factory()->create();
+        Product::factory()->create(['branch_id' => $branch->id, 'code' => 'SHARED-CODE']);
+    });
+
+    expect(Product::withoutGlobalScopes()->where('code', 'SHARED-CODE')->count())->toBe(2);
+});
+
 it('blocks login flows for a suspended tenant', function () {
     $tenant = Tenant::create(['name' => 'susp', 'slug' => 'susp', 'status' => 'suspended']);
     $user = app(TenantManager::class)->runAs($tenant, fn () => User::factory()->create([

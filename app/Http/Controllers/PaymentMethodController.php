@@ -3,12 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\PaymentMethod;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class PaymentMethodController extends Controller
 {
+    /** Constrain a unique rule to the current tenant. */
+    private function perTenant(): \Closure
+    {
+        return fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id());
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -36,7 +43,7 @@ class PaymentMethodController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:50|unique:payment_methods,code',
+            'code' => ['required', 'string', 'max:50', Rule::unique('payment_methods', 'code')->where($this->perTenant())],
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
@@ -65,7 +72,7 @@ class PaymentMethodController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => ['required', 'string', 'max:50', Rule::unique('payment_methods', 'code')->ignore($paymentMethod->id)],
+            'code' => ['required', 'string', 'max:50', Rule::unique('payment_methods', 'code')->ignore($paymentMethod->id)->where($this->perTenant())],
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
