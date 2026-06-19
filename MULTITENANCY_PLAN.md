@@ -22,11 +22,15 @@
 | **5b** Queries crudas | ✅ | 23 `DB::table()` scopeadas (Dashboard, Finance, ReportQueryService) + cache keys por tenant |
 | **5c** Switch (middleware) | ✅ | `IdentifyTenant` activo, **corre antes de SubstituteBindings** → route binding cross‑tenant 404. Tests de aislamiento HTTP en verde |
 | **6** Uniques por tenant | ✅ | uniques compuestos `(tenant_id, code/document/email)` en products/sales/credit_sales/payment_methods/clients + validaciones `Rule::unique()->where()` scopeadas. `users.email` sigue global. **`tenant_id` queda NULLABLE** (NOT NULL diferido hasta que las factories lo estampen) |
-| **7** business_settings UI / login | ⬜ | redirect super‑admin vs tenant en login |
-| **8** Onboarding + SuperAdmin panel | ⬜ | `TenantProvisioner`, panel `/admin`, deshabilitar `/register` público |
+| **7** Login redirect | ✅ | super‑admin → `/admin`, tenant → `/dashboard` (en `AuthenticatedSessionController`) |
+| **8** Onboarding + SuperAdmin panel | ✅ | `User::ROLE_SUPER_ADMIN` + `isSuperAdmin()`, middleware `EnsureSuperAdmin`, `TenantProvisioner` (negocio+admin+settings+sucursal+métodos de pago+Consumidor Final), `Admin\TenantController` + `routes/admin.php` (list/create/suspend/activate), páginas `admin/tenants/{index,create}`, comando `tenancy:make-super-admin`, **`/register` deshabilitado** |
 | **9** `db:clean-transactional` tenant‑aware | ⬜ | hoy borra global → filtrar por `--tenant=` |
 
-**Verificado:** 163 tests pasan (incl. 4 de aislamiento). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+**Verificado:** 169 tests pasan (incl. 4 de aislamiento + 6 de SuperAdmin). Todo lo hecho es desplegable; el comportamiento del único tenant actual no cambia. El aislamiento ya es real para 2+ tenants.
+
+> **Pendientes menores:** `RegisteredUserController` + `auth/register.tsx` quedan huérfanos (sin ruta) — borrar en limpieza. Panel `/admin` usa el `AppLayout` del tenant (sidebar muestra POS); convendría un layout propio de SuperAdmin. `db:clean-transactional` aún borra global (Fase 9). Forzar `tenant_id` NOT NULL requiere factories tenant‑aware.
+>
+> **Cómo crear el primer SuperAdmin (tras el deploy):** `php artisan tenancy:make-super-admin "Tu Nombre" tu@email.com` (pide contraseña). Luego entra a `/admin/tenants`.
 
 > **Nota sobre NOT NULL (diferido):** `tenant_id` se deja nullable porque las factories de test crean filas sin contexto de tenant. El aislamiento NO depende de NOT NULL (lo garantizan el global scope + FK). Enforzar NOT NULL requiere primero hacer las factories tenant‑aware; se hará junto con la suite de tests de la Fase 8.
 
