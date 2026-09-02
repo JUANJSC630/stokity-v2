@@ -110,6 +110,8 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                                                     variant="outline"
                                                     size="sm"
                                                     className="text-red-600 hover:text-red-700"
+                                                    aria-label={`Eliminar negocio ${t.name}`}
+                                                    title={`Eliminar ${t.name}`}
                                                     onClick={() => setDeleteTarget(t)}
                                                 >
                                                     <Trash2 className="h-3 w-3" />
@@ -136,8 +138,8 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                     <DialogHeader>
                         <DialogTitle>Eliminar negocio</DialogTitle>
                         <DialogDescription>
-                            ¿Seguro que quieres eliminar «{deleteTarget?.name}»? Sus usuarios perderán el acceso. Los datos se conservan
-                            (eliminación reversible).
+                            ¿Seguro que quieres eliminar «{deleteTarget?.name}»? Sus usuarios perderán el acceso. Los datos se conservan (eliminación
+                            reversible).
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>

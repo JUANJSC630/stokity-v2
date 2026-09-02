@@ -36,7 +36,7 @@ class ReportQueryService
     /**
      * Build the standard filters array from a request.
      *
-     * @return array{date_from: ?string, date_to: ?string, branch_id: mixed, seller_id: mixed, category_id: mixed, status: string}
+     * @return array{date_from: ?string, date_to: ?string, branch_id: mixed, seller_id: mixed, category_id: mixed, status: string, tenant_id: int|null}
      */
     public function getFilters(Request $request): array
     {

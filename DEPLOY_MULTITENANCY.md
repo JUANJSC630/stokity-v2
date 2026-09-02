@@ -33,13 +33,16 @@ La rama **NO está mergeada**. Al mergear, Railway despliega y corre `migrate --
 Elige una opción:
 
 - **A) Dashboard de Railway** (recomendado): servicio **MySQL** → pestaña **Backups** → **Create backup**. Espera a que aparezca el snapshot.
-- **B) Dump local:**
+- **B) Dump local** — `railway connect MySQL` abre un cliente interactivo, **no** genera un archivo. Para un dump real:
   ```bash
-  railway connect MySQL
+  railway connect MySQL --tunnel-only
+  # deja esa terminal abierta; en otra, con los datos que imprime:
+  mysqldump -h 127.0.0.1 -P <puerto> -u root -p<password> railway \
+    --single-transaction --routines --triggers --add-drop-table > backup.sql
   ```
-  o un `mysqldump` con las credenciales del servicio.
+  Verifica el archivo antes de continuar: `tail -3 backup.sql` debe terminar en `-- Dump completed`, y `grep -c "^CREATE TABLE" backup.sql` debe dar el número de tablas esperado (31 en este esquema).
 
-✅ No continúes hasta tener el backup confirmado.
+✅ No continúes hasta tener el backup confirmado y verificado.
 
 ---
 
@@ -65,29 +68,34 @@ curl -s -o /dev/null -w "%{http_code}\n" https://stokity-v2-production.up.railwa
 
 Confirma que el backfill creó el tenant y asignó tus datos (no debe haber `tenant_id` nulos).
 
-**Forma recomendada (tinker interactivo — sin problemas de comillas):**
+Revisa **las 23 tablas** que toca el backfill, no solo `products` — un backfill
+parcial puede dejar `tenant_id` nulo en `users`, `sales` u otra tabla y pasar
+desapercibido si solo se mira una.
+
+**Forma recomendada (`railway ssh`, no interactivo):**
 ```bash
-railway ssh
-# ya dentro del contenedor:
-php artisan tinker
+railway ssh --service lu-accesorios -- "php artisan tinker --execute='
+\$tables = [\"business_settings\",\"branches\",\"users\",\"archived_users\",\"categories\",
+  \"products\",\"clients\",\"payment_methods\",\"suppliers\",\"sales\",\"sale_products\",
+  \"sale_returns\",\"sale_return_products\",\"stock_movements\",\"cash_sessions\",
+  \"cash_movements\",\"credit_sales\",\"credit_sale_items\",\"credit_payments\",\"expenses\",
+  \"expense_categories\",\"expense_templates\",\"product_supplier\"];
+echo \"Tenants: \".App\Models\Tenant::count().PHP_EOL;
+foreach (\$tables as \$t) {
+  \$n = DB::table(\$t)->whereNull(\"tenant_id\")->count();
+  echo str_pad(\$t, 24).\": \".\$n.(\$n > 0 ? \"  <-- SIN ASIGNAR\" : \"\").PHP_EOL;
+}
+'"
 ```
-Y dentro de tinker escribe línea por línea (cada una imprime su resultado):
-```php
-App\Models\Tenant::count();
-DB::table('products')->whereNull('tenant_id')->count();
-DB::table('users')->count();
-```
-Sal con `exit` (dos veces: tinker y luego el ssh).
 
-**Esperado:** Tenant = `1`, Productos sin tenant = `0`, Usuarios = `6` (incluye 2 con soft-delete: `DB::table` los cuenta igual).
+**Esperado:** `Tenants: 1` y **0** en las 23 tablas. Cualquier tabla con un
+número mayor que 0 significa backfill incompleto — **no sigas** al Paso 5 hasta
+resolverlo.
 
-> 💡 **En local** (tu máquina con `migrate:fresh --seed`) verás "Productos sin tenant" > 0 — es normal: los seeders crean datos sin tenant. La verificación de "0" aplica **solo en producción**, donde el backfill corre sobre datos existentes.
-
-**One-liner local** (comillas SIMPLES por fuera, dobles dentro del PHP — a prueba de pegado en zsh):
-```bash
-php artisan tinker --execute='echo "Tenants: ".App\Models\Tenant::count().PHP_EOL; echo "Productos sin tenant: ".DB::table("products")->whereNull("tenant_id")->count().PHP_EOL; echo "Usuarios: ".DB::table("users")->count().PHP_EOL;'
-```
-> No uses `\"` (eso era solo para anidar dentro de `railway ssh "..."`). Y nunca rompas la línea a la mitad al pegar.
+> 💡 **En local** (tu máquina con `migrate:fresh --seed`) sí verás filas sin
+> tenant — normal, los seeders crean datos sin tenant. Este chequeo de "0 en
+> todas" aplica **solo en producción**, donde el backfill corre sobre datos
+> que ya existían.
 
 ---
 
@@ -162,8 +170,18 @@ Borra ventas/productos/etc. **solo** de ese negocio; conserva sus usuarios, sucu
 
 ## 🔙 Plan de rollback (si algo sale mal en el deploy)
 
-1. En Railway, **restaura el backup** del Paso 1 (MySQL → Backups → Restore).
-2. Revierte el merge en GitHub (o redeploy del commit anterior a `master`).
+1. En Railway: MySQL → **Backups** → localiza el snapshot del Paso 1 → **Restore**.
+   Railway solo *stagea* el cambio en ese momento — no aplica nada todavía.
+2. Click en **Deploy** en el canvas del proyecto para aplicar el volumen
+   restaurado. Sin este paso, el restore queda pendiente y sin efecto.
+3. Verifica el contenido de la base (`railway ssh` + tinker, igual que el
+   Paso 4) **antes** de seguir.
+4. Revierte el merge en GitHub (o redeploy del commit anterior a `master`)
+   para que el código vuelva a coincidir con los datos restaurados.
+
+Si el backup fue un `mysqldump` (Opción B del Paso 1) en vez del snapshot
+nativo de Railway, restaura importando ese archivo directamente:
+`mysql -h <host> -P <puerto> -u root -p<password> railway < backup.sql`.
 
 ---
 
@@ -171,7 +189,7 @@ Borra ventas/productos/etc. **solo** de ese negocio; conserva sus usuarios, sucu
 
 - **Automático:** cada request fija el tenant del usuario logueado (`IdentifyTenant`); todas las consultas Eloquent se filtran solas por `tenant_id`. Un usuario nunca ve datos de otro negocio.
 - **SuperAdmin:** sin tenant, vive en `/admin`, no puede entrar a rutas de negocio (se le redirige).
-- **Negocio suspendido/borrado:** sus usuarios reciben 403 (excepto logout).
+- **Negocio suspendido, con prueba vencida o borrado (archivado):** sus usuarios reciben 403 (excepto logout).
 - **Códigos por negocio:** dos negocios pueden tener el mismo código de producto, documento de cliente, etc. (uniques compuestos por tenant). El **email de usuario sigue siendo único global** (identidad de login).
 
 ---

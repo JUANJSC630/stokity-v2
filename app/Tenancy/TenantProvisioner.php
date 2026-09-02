@@ -100,7 +100,11 @@ class TenantProvisioner
         $slug = $base;
         $n = 1;
 
-        while (Tenant::where('slug', $slug)->exists()) {
+        // withTrashed(): tenants.slug has a DB UNIQUE constraint that still
+        // sees archived (soft-deleted) rows, so the uniqueness check must too —
+        // otherwise this insert would fail at the database instead of picking
+        // the next free slug.
+        while (Tenant::withTrashed()->where('slug', $slug)->exists()) {
             $slug = $base.'-'.(++$n);
         }
 

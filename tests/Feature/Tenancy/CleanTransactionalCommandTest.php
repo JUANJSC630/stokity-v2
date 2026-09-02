@@ -16,7 +16,7 @@ uses(RefreshDatabase::class);
 
 afterEach(fn () => app(TenantManager::class)->forget());
 
-function seedTenantWithSales(string $slug): Tenant
+function seedTenantWithProduct(string $slug): Tenant
 {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => $slug,
@@ -35,8 +35,8 @@ function seedTenantWithSales(string $slug): Tenant
 }
 
 it('wipes only the targeted tenant business data, preserving users/branches/settings', function () {
-    $a = seedTenantWithSales('alpha');
-    $b = seedTenantWithSales('beta');
+    $a = seedTenantWithProduct('alpha');
+    $b = seedTenantWithProduct('beta');
 
     $countFor = fn (string $model, int $tid) => $model::withoutGlobalScopes()->where('tenant_id', $tid)->count();
 

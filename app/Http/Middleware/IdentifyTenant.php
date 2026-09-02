@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
  * - Tenant user without tenant_id → no context (only happens in tests; in prod
  *   every tenant user is backfilled).
  * - Tenant user whose tenant is missing → 403 (fail closed, never run unscoped).
- * - Suspended tenant → 403, except logout so the user is not trapped.
+ * - Suspended or expired-trial tenant → 403, except logout so the user is not trapped.
  */
 class IdentifyTenant
 {
@@ -55,11 +55,17 @@ class IdentifyTenant
             return $next($request);
         }
 
-        // tenant_id is set but the tenant is missing (e.g. deleted): fail closed
-        // rather than fall through and run unscoped.
+        // tenant_id is set but the tenant is missing — either hard-deleted or
+        // archived (Tenant uses SoftDeletes, so Tenant::find() excludes it too):
+        // fail closed rather than fall through and run unscoped. Logout stays
+        // allowed so the user is not trapped by a business that no longer exists.
         $tenant = Tenant::find($user->tenant_id);
 
         if ($tenant === null) {
+            if ($request->routeIs('logout')) {
+                return $next($request);
+            }
+
             abort(403, 'Tu cuenta no está asociada a un negocio válido.');
         }
 
@@ -70,6 +76,16 @@ class IdentifyTenant
             }
 
             abort(403, 'Esta cuenta está suspendida. Contacta al administrador.');
+        }
+
+        // isActive() also catches a trial whose trial_ends_at has passed —
+        // isSuspended() alone would let an expired trial keep operating.
+        if (! $tenant->isActive()) {
+            if ($request->routeIs('logout')) {
+                return $next($request);
+            }
+
+            abort(403, 'Esta cuenta no está activa. Contacta al administrador.');
         }
 
         $this->tenants->set($tenant);
