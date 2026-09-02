@@ -9,7 +9,9 @@ use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware(['auth', AdminMiddleware::class])->group(function () {
+// Cuenta propia — todo usuario autenticado gestiona su perfil, su contraseña
+// y su preferencia de tema, sin importar el rol.
+Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -22,7 +24,10 @@ Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
+});
 
+// Configuración del negocio — afecta a todos los usuarios, solo administradores.
+Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::post('settings/appearance/default-product-image', [AppearanceController::class, 'updateDefaultProductImage'])->name('appearance.default-product-image');
     Route::post('settings/appearance/brand-colors', [AppearanceController::class, 'updateBrandColors'])->name('appearance.brand-colors');
 

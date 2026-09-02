@@ -75,6 +75,12 @@ class ProductController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // El precio de compra es dato sensible: no debe viajar en el payload de
+        // quien no puede gestionar el catálogo (la tabla tampoco lo muestra).
+        if (! $user->isAdmin() && ! $user->isManager()) {
+            $products->getCollection()->each->makeHidden(['purchase_price']);
+        }
+
         $categories = Category::where('status', true)->get();
 
         // Solo mostrar todas las sucursales si es administrador

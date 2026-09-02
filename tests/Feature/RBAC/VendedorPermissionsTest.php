@@ -48,12 +48,13 @@ describe('Vendedor — Allowed Routes', function () {
 });
 
 describe('Vendedor — Forbidden Routes', function () {
-    // UserController uses abort(403) directly
+    // AdminMiddleware ahora protege la ruta (el abort(403) del controlador
+    // sigue como segunda barrera para llamadas JSON).
     it('cannot access GET /users', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('users.index'));
 
-        $response->assertStatus(403);
+        $response->assertRedirect(route('dashboard'));
     });
 
     // AdminMiddleware redirects to dashboard for non-JSON requests
@@ -119,6 +120,91 @@ describe('Vendedor — Forbidden Routes', function () {
     it('cannot access GET /settings/business', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('settings.business'));
+
+        $response->assertRedirect(route('dashboard'));
+    });
+
+    it('cannot access GET /reports', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('reports.index'));
+
+        $response->assertRedirect(route('dashboard'));
+    });
+
+    it('cannot export a report', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('reports.sales-detail.export.pdf'));
+
+        $response->assertRedirect(route('dashboard'));
+    });
+
+    it('cannot access GET /suppliers', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('suppliers.index'));
+
+        $response->assertRedirect(route('dashboard'));
+    });
+
+    it('cannot POST /suppliers', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->post(route('suppliers.store'), [
+                'name' => 'Proveedor Test',
+                'branch_id' => $this->branch->id,
+            ]);
+
+        $response->assertRedirect(route('dashboard'));
+        expect(\App\Models\Supplier::count())->toBe(0);
+    });
+
+    it('cannot access GET /stock-movements', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('stock-movements.index'));
+
+        $response->assertRedirect(route('dashboard'));
+    });
+});
+
+describe('Vendedor — Cuenta propia', function () {
+    it('can access GET /settings/profile', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('profile.edit'));
+
+        $response->assertOk();
+    });
+
+    it('can access GET /settings/password', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('password.edit'));
+
+        $response->assertOk();
+    });
+
+    it('can change its own password', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->from(route('password.edit'))
+            ->put(route('password.update'), [
+                'current_password' => 'password',
+                'password' => 'nueva-clave-123',
+                'password_confirmation' => 'nueva-clave-123',
+            ]);
+
+        $response->assertRedirect(route('password.edit'));
+        expect(\Illuminate\Support\Facades\Hash::check('nueva-clave-123', $this->vendedor->fresh()->password))->toBeTrue();
+    });
+
+    it('can access GET /settings/appearance', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->get(route('appearance'));
+
+        $response->assertOk();
+    });
+
+    it('still cannot change the business brand colors', function () {
+        $response = $this->actingAs($this->vendedor)
+            ->post(route('appearance.brand-colors'), [
+                'brand_color' => '#000000',
+                'brand_color_secondary' => '#ffffff',
+            ]);
 
         $response->assertRedirect(route('dashboard'));
     });

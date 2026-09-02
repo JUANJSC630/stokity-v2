@@ -2,8 +2,8 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
@@ -26,26 +26,34 @@ const sidebarNavItems: NavItem[] = [
         title: 'Negocio',
         href: '/settings/business',
         icon: null,
+        roles: ['administrador'],
     },
     {
         title: 'Impresora',
         href: '/settings/printer',
         icon: null,
+        roles: ['administrador'],
     },
     {
         title: 'Ticket',
         href: '/settings/ticket',
         icon: null,
+        roles: ['administrador'],
     },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { auth } = usePage<SharedData>().props;
+
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
 
+    const userRole = auth.user.role;
+
     const currentPath = window.location.pathname;
+    const navItems = sidebarNavItems.filter((item) => !item.roles || item.roles.includes(userRole));
 
     return (
         <div className="px-4 py-6">
@@ -54,7 +62,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
                 <aside className="w-full max-w-xl lg:w-48">
                     <nav className="flex flex-col space-y-1 space-x-0">
-                        {sidebarNavItems.map((item, index) => (
+                        {navItems.map((item, index) => (
                             <Button
                                 key={`${item.href}-${index}`}
                                 size="sm"
