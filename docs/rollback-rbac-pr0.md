@@ -73,3 +73,9 @@ Y en la app: iniciar sesión como administrador y abrir `/reports` y `/users`.
 | Commit | Descripción |
 |---|---|
 | `77f38be` | fix(rbac): close route-level access gaps and unblock own-account settings |
+| `a171b4c` | docs(rollback): este runbook |
+| `4ec44b7` | merge a `master` — **es el SHA a revertir en la opción B** |
+
+**Desplegado el 2/09/2026 19:20** como deployment `7be3a662-8964-4a80-a13b-924ca4f9dd70`
+(SUCCESS). Log de arranque: `INFO Nothing to migrate.` — confirmado que no hubo
+cambios de esquema.
