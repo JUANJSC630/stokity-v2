@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -41,7 +42,8 @@ class ProductRequest extends FormRequest
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('products')->ignore($productId),
+                Rule::unique('products')->ignore($productId)
+                    ->where(fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id())),
             ],
             'description' => 'nullable|string',
             'type' => 'sometimes|in:producto,servicio',

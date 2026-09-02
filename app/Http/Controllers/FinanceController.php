@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseTemplate;
+use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,8 @@ class FinanceController extends Controller
     public function summary(Request $request): Response
     {
         $user = Auth::user();
+        // Scopes raw DB::table() queries below, which bypass the BelongsToTenant scope.
+        $tenantId = app(TenantManager::class)->id();
 
         [$dateFrom, $dateTo, $label] = $this->resolvePeriod($request);
 
@@ -36,6 +39,7 @@ class FinanceController extends Controller
             ->where('status', 'completed')
             ->whereNull('deleted_at')
             ->whereBetween('date', [$dateFrom->startOfDay()->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString()])
+            ->when($tenantId, fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
 
         $revenue = (float) $salesQuery->sum('total');
@@ -50,6 +54,7 @@ class FinanceController extends Controller
             })
             ->whereNull('s.deleted_at')
             ->whereBetween('sr.created_at', [$dateFrom->startOfDay(), $dateTo->copy()->endOfDay()])
+            ->when($tenantId, fn ($q, $tid) => $q->where('s.tenant_id', $tid))
             ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
             ->sum(DB::raw('srp.quantity * COALESCE(srp.effective_price, sp.price)'));
 
@@ -63,6 +68,7 @@ class FinanceController extends Controller
             ->where('s.status', 'completed')
             ->whereNull('s.deleted_at')
             ->whereBetween('s.date', [$dateFrom->startOfDay()->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString()])
+            ->when($tenantId, fn ($q, $tid) => $q->where('s.tenant_id', $tid))
             ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
             ->sum(DB::raw('sp.quantity * COALESCE(sp.purchase_price_snapshot, p.purchase_price)'));
 
@@ -75,6 +81,7 @@ class FinanceController extends Controller
             ->where('s.status', 'completed')
             ->whereNull('s.deleted_at')
             ->whereBetween('s.date', [$dateFrom->startOfDay()->toDateTimeString(), $dateTo->copy()->endOfDay()->toDateTimeString()])
+            ->when($tenantId, fn ($q, $tid) => $q->where('s.tenant_id', $tid))
             ->when($branchId, fn ($q) => $q->where('s.branch_id', $branchId))
             ->whereNull('sp.purchase_price_snapshot')
             ->exists();

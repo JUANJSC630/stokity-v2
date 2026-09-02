@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CategoryRequest extends FormRequest
 {
@@ -27,12 +29,14 @@ class CategoryRequest extends FormRequest
             'status' => ['boolean'],
         ];
 
-        // If this is an update request, add a unique rule that excludes the current category
+        // Category names are unique per tenant.
+        $perTenant = fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id());
+
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
             $categoryId = $this->route('category')->id;
-            $rules['name'][] = "unique:categories,name,{$categoryId}";
+            $rules['name'][] = Rule::unique('categories', 'name')->ignore($categoryId)->where($perTenant);
         } else {
-            $rules['name'][] = 'unique:categories,name';
+            $rules['name'][] = Rule::unique('categories', 'name')->where($perTenant);
         }
 
         return $rules;

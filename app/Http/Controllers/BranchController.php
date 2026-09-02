@@ -88,7 +88,7 @@ class BranchController extends Controller
     public function store(BranchRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['manager_id'] = !empty($data['manager_id']) ? $data['manager_id'] : null;
+        $data['manager_id'] = ! empty($data['manager_id']) ? $data['manager_id'] : null;
 
         Branch::create($data);
 
@@ -119,7 +119,7 @@ class BranchController extends Controller
     public function update(BranchRequest $request, Branch $branch): RedirectResponse
     {
         $data = $request->validated();
-        $data['manager_id'] = !empty($data['manager_id']) ? $data['manager_id'] : null;
+        $data['manager_id'] = ! empty($data['manager_id']) ? $data['manager_id'] : null;
 
         $branch->update($data);
 
