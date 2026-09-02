@@ -79,7 +79,7 @@ DB::table('users')->count();
 ```
 Sal con `exit` (dos veces: tinker y luego el ssh).
 
-**Esperado:** Tenant = `1`, Productos sin tenant = `0`, Usuarios = `5`.
+**Esperado:** Tenant = `1`, Productos sin tenant = `0`, Usuarios = `6` (incluye 2 con soft-delete: `DB::table` los cuenta igual).
 
 > 💡 **En local** (tu máquina con `migrate:fresh --seed`) verás "Productos sin tenant" > 0 — es normal: los seeders crean datos sin tenant. La verificación de "0" aplica **solo en producción**, donde el backfill corre sobre datos existentes.
 
@@ -91,26 +91,44 @@ php artisan tinker --execute='echo "Tenants: ".App\Models\Tenant::count().PHP_EO
 
 ---
 
-## Paso 5 — Crear el SuperAdmin (tú)
+## Paso 5 — Convertir tu cuenta en SuperAdmin
 
-**Forma recomendada (tinker/ssh interactivo):**
+> Decisión tomada: **se promueve la cuenta actual** (`juansc0630@gmail.com`, hoy administrador del tenant),
+> no se crea una cuenta nueva. Efecto real: esa cuenta deja de operar el POS del negocio
+> (`tenant_id` queda `null`); Daniela (también administrador del mismo tenant) sigue
+> operando el día a día sin ningún cambio.
+
+Hay dos comandos, para dos casos distintos:
+
+| Comando | Cuándo usarlo |
+|---|---|
+| `tenancy:make-super-admin` | Crear un SuperAdmin con un email **nuevo** que no existe todavía |
+| `tenancy:promote-super-admin` | **Este caso** — convertir una cuenta que **ya existe** y ya opera un tenant |
+
+`tenancy:promote-super-admin` verifica antes de tocar nada que la cuenta no tenga
+ventas, sesiones de caja, sucursales administradas, movimientos de stock ni gastos
+a su nombre — si los tuviera, promoverla dejaría esos registros "sin vendedor" para
+el resto del negocio (el scope de tenant oculta al usuario una vez que `tenant_id`
+es `null`). Se verificó en producción antes de este deploy: **0 en todos los casos**,
+así que es seguro.
+
+**Ejecuta vía `railway ssh` (no interactivo, corre dentro del contenedor real):**
 ```bash
-railway ssh
-# ya dentro:
-php artisan tenancy:make-super-admin 'Tu Nombre' tucorreo@dominio.com
+railway ssh --service lu-accesorios -- "php artisan tenancy:promote-super-admin juansc0630@gmail.com --force"
 ```
-Te pedirá una contraseña (mínimo 8 caracteres). Este usuario queda **fuera de los negocios** (`tenant_id = null`) y gestiona la plataforma.
 
-> Usa **comillas simples** para el nombre (`'Tu Nombre'`) para evitar problemas de escapado.
+`--force` omite la confirmación interactiva (no hay TTY vía este canal) — es seguro
+aquí porque el chequeo de datos históricos ya se hizo y dio limpio.
 
-> ⚠️ Usa un email que **no exista** ya entre los usuarios (el email es único global).
+Para promover a alguien más adelante, sin `--force`, el comando pide confirmación
+y explica el efecto antes de aplicar el cambio.
 
 ---
 
 ## Paso 6 — Verificar los dos tipos de acceso
 
 1. **Negocio existente:** entra con un usuario actual (admin del negocio). Debe ver sus productos, ventas, etc., **exactamente como antes**.
-2. **SuperAdmin:** entra con el usuario del Paso 5 → te redirige a **`/admin/tenants`** y ves tu negocio actual en la lista.
+2. **SuperAdmin:** entra con la misma cuenta ya promovida → te redirige a **`/admin/tenants`** y ves tu negocio actual en la lista.
 
 Si ambos funcionan, la migración fue exitosa. ✅
 
@@ -164,6 +182,6 @@ Borra ventas/productos/etc. **solo** de ese negocio; conserva sus usuarios, sucu
 - [ ] PR #8 mergeado
 - [ ] Deploy verde en Railway
 - [ ] Verificación Paso 4 OK (Tenants: 1, sin nulos)
-- [ ] SuperAdmin creado
+- [ ] SuperAdmin promovido (tenancy:promote-super-admin)
 - [ ] Login negocio existente OK
 - [ ] Login SuperAdmin → `/admin/tenants` OK
