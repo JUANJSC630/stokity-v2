@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\ReportController;
+use App\Http\Middleware\AdminOrManagerMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(function () {
+// Los reportes son para administradores y encargados (coincide con el sidebar).
+Route::middleware(['auth', 'verified', BranchFilterMiddleware::class, AdminOrManagerMiddleware::class])->group(function () {
     // Rutas principales de reportes
     Route::prefix('reports')->name('reports.')->group(function () {
         // Dashboard principal de reportes
@@ -25,7 +27,10 @@ Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(fu
         Route::get('/sellers/export/pdf', [ReportController::class, 'exportSellersPdf'])->name('sellers.export.pdf');
         Route::get('/sellers/export/excel', [ReportController::class, 'exportSellersExcel'])->name('sellers.export.excel');
 
-        // Reporte de sucursales
+        // Reporte de sucursales. El sidebar solo se lo muestra al administrador,
+        // pero por URL el encargado ya entraba: se deja como está para no quitarle
+        // acceso a nadie en producción. Se vuelve configurable en PR-4 con el
+        // permiso reports.branches.view.
         Route::get('/branches', [ReportController::class, 'branchesReport'])->name('branches');
         Route::get('/branches/export/pdf', [ReportController::class, 'exportBranchesPdf'])->name('branches.export.pdf');
         Route::get('/branches/export/excel', [ReportController::class, 'exportBranchesExcel'])->name('branches.export.excel');

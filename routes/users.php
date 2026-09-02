@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->group(function () {
+// Gestión de usuarios: solo administradores. El controlador mantiene sus
+// propios abort(403) como segunda barrera.
+Route::middleware(['auth', AdminMiddleware::class])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
