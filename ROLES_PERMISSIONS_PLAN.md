@@ -1,5 +1,7 @@
 # Plan Maestro — Sistema de Roles y Permisos Granular (Stokity v2)
 
+> ✅ **COMPLETO Y EN PRODUCCIÓN desde el 2026-09-03.** Bloques 0-6 y 9-12 ejecutados en su totalidad (PRs #8, #10, #11, #12, #13, #15 de GitHub — ver el detalle de la secuencia real, que no coincide 1:1 con la numeración PR-1/PR-2/... de este documento, en la memoria `rbac-granular-permissions-complete`). Quedan como **opcionales/futuros**: Bloque 7 (presets de roles, vista previa, gestión desde el panel SuperAdmin), Bloque 8 (capa de personalización visual — activar/desactivar módulos, orden de sidebar), y la limpieza final de `users.role`/`isAdmin()` legacy (último ítem de Bloque 12).
+
 > Objetivo: reemplazar los **3 roles fijos hardcodeados** (`administrador`/`encargado`/`vendedor`) por un sistema de **roles y permisos granular, configurable por cliente (tenant)**, para poder **mostrar/ocultar/habilitar/deshabilitar** módulos y secciones según lo pida cada negocio — de forma profesional y mantenible.
 >
 > **Dolor actual:** cada cliente pide ocultar/mover/mostrar secciones distintas de distintos módulos. Hoy eso es imposible sin tocar código, porque el acceso está cableado a 3 roles.
@@ -268,14 +270,13 @@ Separada de la seguridad. Cubre "mover" y "ocultar por gusto, no por permiso".
 > **Decisión confirmada:** se implementa **multitenancy PRIMERO** y luego este sistema con `team_id = tenant_id` desde el día 1 (no se migra el team dos veces). La edición de roles la harán **tanto el SuperAdmin como el Admin de cada tenant** (Bloque 7).
 
 
-1. **PR‑1 Base:** instalar Spatie (teams), `PermissionCatalog`, seeder de permisos, `User` con `HasRoles`, team resolver.
-2. **PR‑2 Roles por defecto + migración de datos:** seeder de 3 roles por tenant + mapeo de usuarios actuales (Bloque 9). **Backup.**
-3. **PR‑3 Backend enforcement:** rutas con `can:`, Policies, retirar `AdminMiddleware`/`AdminOrManagerMiddleware`, migrar los 129 checks (por módulos).
-4. **PR‑4 Frontend core:** compartir permisos por Inertia, `usePermissions` + `<Can>`, refactor `app-sidebar.tsx`.
-5. **PR‑5 Frontend páginas:** migrar los 128 condicionales (por carpeta de módulo).
-6. **PR‑6 UI de gestión:** editor de roles/permisos (tenant Admin + SuperAdmin).
-7. **PR‑7 (opcional) Capa visual:** toggles de módulos + orden de sidebar/dashboard (Bloque 8).
-8. **PR‑8 Limpieza:** retirar `users.role` legacy y helpers `isAdmin()` deprecados.
+1. ✅ **PR‑1 Base** (GitHub PR #10, `feature/roles-permissions`): instalar Spatie (teams), `PermissionCatalog`, seeder de permisos, `User` con `HasRoles`, team resolver.
+2. ✅ **PR‑2 Roles por defecto + migración de datos** (incluido en PR #10 + comando `roles:seed-defaults`/`roles:assign-legacy`, corridos contra producción): seeder de 3 roles por tenant + mapeo de usuarios actuales (Bloque 9).
+3. ✅ **PR‑3 Backend enforcement** — dividido en dos PRs de GitHub: **#11** (`feature/branch-data-scope`, eje de alcance de datos) y **#12** (`feature/permission-enforcement`, rutas con `can:`, retiro de `AdminMiddleware`/`AdminOrManagerMiddleware`, migración de los checks inline restantes).
+4. ✅ **PR‑4 Frontend core** + **PR‑5 Frontend páginas** — un solo PR de GitHub (**#13**, `feature/frontend-permission-enforcement`): `auth.permissions` por Inertia, `usePermissions()` + `<Can>`, `app-sidebar.tsx` y todas las páginas migradas.
+5. ✅ **PR‑6 UI de gestión** (GitHub PR #15, `feature/role-management-ui`): editor de roles/permisos para el Admin de cada tenant en `/settings/roles`. La gestión desde el panel SuperAdmin (`/admin/tenants/{tenant}/roles`) del Bloque 7 **no se hizo** — el Admin del tenant ya puede autogestionarse.
+6. 🔲 **PR‑7 (opcional) Capa visual:** toggles de módulos + orden de sidebar/dashboard (Bloque 8). No iniciado.
+7. 🔲 **PR‑8 Limpieza:** retirar `users.role` legacy y helpers `isAdmin()` deprecados. No iniciado — varios call-sites siguen usando el fallback aproximado por `data_scope` (`DefaultRoleProvisioner::legacyStringForRole()`), documentado en el código.
 
 ---
 
