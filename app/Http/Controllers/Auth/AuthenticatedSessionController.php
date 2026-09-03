@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,6 +39,16 @@ class AuthenticatedSessionController extends Controller
         // Platform owners always land on the admin panel (not a stored intended URL).
         if ($request->user()->isSuperAdmin()) {
             return redirect()->route('admin.tenants.index');
+        }
+
+        // Remembers this browser's business so the pre-login pages (welcome,
+        // the login form itself) show its real name/logo/colors on a future
+        // visit instead of the generic Stokity default — see
+        // HandleInertiaRequests::resolveBusinessSettings(). Never set for a
+        // super-admin login (handled above), so their own device browsing
+        // never "sticks" to whichever tenant they last checked on.
+        if ($tenant = $request->user()->tenant) {
+            Cookie::queue('last_tenant', $tenant->slug, 60 * 24 * 365);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

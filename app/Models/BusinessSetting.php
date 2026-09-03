@@ -83,6 +83,19 @@ class BusinessSetting extends Model
     protected $appends = ['logo_url', 'default_product_image_url'];
 
     /**
+     * Transient, never-persisted default — used whenever there's no row to
+     * show (no tenant in context) or none should be created on this
+     * caller's behalf (see getSettingsReadOnly()).
+     */
+    private static function defaultSettings(): self
+    {
+        return new self([
+            'name' => config('app.name', 'Mi Negocio'),
+            'currency_symbol' => '$',
+        ]);
+    }
+
+    /**
      * Returns the single business settings row, creating it with defaults if it doesn't exist.
      */
     public static function getSettings(): self
@@ -92,10 +105,7 @@ class BusinessSetting extends Model
         // No tenant in context (guest pages like login, or the super-admin panel):
         // return a transient default — never read or persist another tenant's row.
         if (! $tenantId) {
-            return new self([
-                'name' => config('app.name', 'Mi Negocio'),
-                'currency_symbol' => '$',
-            ]);
+            return self::defaultSettings();
         }
 
         return Cache::remember(self::cacheKey($tenantId), self::CACHE_TTL, function () {
@@ -106,6 +116,30 @@ class BusinessSetting extends Model
                 'currency_symbol' => '$',
             ]);
         });
+    }
+
+    /**
+     * Same lookup as getSettings(), but NEVER creates a row — every real
+     * tenant already gets one at provisioning time (TenantProvisioner), so
+     * a missing row here just means "show the default", not "provision
+     * one". Used by HandleInertiaRequests::resolveBusinessSettings() for
+     * an unauthenticated guest whose browser recognizes a tenant via
+     * cookie: an anonymous page load must never trigger a DB write.
+     *
+     * Deliberately bypasses Cache::remember()'s own miss-caching here:
+     * sharing getSettings()'s cache key would risk caching a `null` under
+     * a key typed to always return `self`, corrupting the next real
+     * (write-capable) lookup for this tenant.
+     */
+    public static function getSettingsReadOnly(): self
+    {
+        $tenantId = app(TenantManager::class)->id();
+
+        if (! $tenantId) {
+            return self::defaultSettings();
+        }
+
+        return Cache::get(self::cacheKey($tenantId)) ?? static::first() ?? self::defaultSettings();
     }
 
     /**
