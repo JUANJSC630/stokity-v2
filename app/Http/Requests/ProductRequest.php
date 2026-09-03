@@ -20,7 +20,20 @@ class ProductRequest extends FormRequest
             return true;
         }
 
-        // Non-admins can only manage products in their own branch
+        // On update, authorize against the EXISTING product's branch — the
+        // submitted branch_id is attacker-controlled input and must never be
+        // trusted for authorization (a restricted user could otherwise pass
+        // their own branch_id to edit another branch's product). It's also
+        // stripped from $validated in the controller before save, so a
+        // restricted user can't reassign a product to their branch either.
+        $product = $this->route('product');
+        if ($product) {
+            return $product->branch_id === $user->branch_id;
+        }
+
+        // On create, there's no existing record yet — the submitted
+        // branch_id is what will actually be assigned, so that's what must
+        // be checked.
         $branchId = (int) $this->input('branch_id');
 
         return $branchId === $user->branch_id;

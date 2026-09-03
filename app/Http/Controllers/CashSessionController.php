@@ -144,6 +144,7 @@ class CashSessionController extends Controller
         if (! $user->can('cash_sessions.view_all') && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
+        abort_if($user->isRestrictedToOwnBranch() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta sesión.');
 
         $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name']);
 
@@ -305,6 +306,7 @@ class CashSessionController extends Controller
         if (! $user->can('cash_sessions.view_all') && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
+        abort_if($user->isRestrictedToOwnBranch() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta sesión.');
 
         $validated = $request->validate([
             'type' => 'required|in:cash_in,cash_out',

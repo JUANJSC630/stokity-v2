@@ -148,6 +148,10 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
+
         // Cargar relaciones
         $product->load(['category', 'branch']);
 
@@ -163,6 +167,8 @@ class ProductController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
+
         $categories = Category::where('status', true)->get();
 
         $branches = ! $user->isRestrictedToOwnBranch()
@@ -200,6 +206,13 @@ class ProductController extends Controller
         // Never overwrite stock through the edit form — use stock movements instead
         unset($validated['stock']);
 
+        // A branch-restricted user can never reassign a product to another
+        // branch, even though ProductRequest::authorize() already confirmed
+        // the product currently belongs to their own branch.
+        if ($request->user()->isRestrictedToOwnBranch()) {
+            unset($validated['branch_id']);
+        }
+
         if ($request->hasFile('image')) {
             // Delete old blob if it exists
             if ($product->image) {
@@ -224,6 +237,7 @@ class ProductController extends Controller
     public function syncSuppliers(Request $request, Product $product): RedirectResponse
     {
         abort_unless($request->user()->can('products.sync_suppliers'), 403, 'No tienes permisos para vincular proveedores.');
+        abort_if($request->user()->isRestrictedToOwnBranch() && $product->branch_id !== $request->user()->branch_id, 403);
 
         $request->validate([
             'suppliers' => 'array',
@@ -255,7 +269,10 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        abort_unless(Auth::user()->can('products.delete'), 403, 'No tienes permisos para eliminar productos.');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        abort_unless($user->can('products.delete'), 403, 'No tienes permisos para eliminar productos.');
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
 
         if ($product->stock > 0) {
             return back()->with('error', "No puedes eliminar \"{$product->name}\" porque tiene {$product->stock} unidades en inventario. Da de baja el stock primero desde Movimientos de Stock.");
@@ -293,15 +310,14 @@ class ProductController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        // Filter by branch if requested
-        if ($request->filled('branch')) {
+        // A branch-restricted user can never widen the trash listing past
+        // their own branch, even via a `branch` query param — only an
+        // unrestricted user's explicit filter is honored.
+        $user = Auth::user();
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        } elseif ($request->filled('branch')) {
             $query->where('branch_id', $request->branch);
-        } else {
-            // If user is not admin and has a branch, show only products from that branch
-            $user = Auth::user();
-            if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
-                $query->where('branch_id', $user->branch_id);
-            }
         }
 
         $paginatedProducts = $query->paginate(10)->withQueryString();
@@ -334,9 +350,12 @@ class ProductController extends Controller
      */
     public function restore($id)
     {
-        abort_unless(Auth::user()->can('products.restore'), 403, 'No tienes permisos para restaurar productos.');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        abort_unless($user->can('products.restore'), 403, 'No tienes permisos para restaurar productos.');
 
         $product = Product::onlyTrashed()->findOrFail($id);
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
         $product->restore();
 
         return redirect()->route('products.trashed')
@@ -348,9 +367,12 @@ class ProductController extends Controller
      */
     public function forceDelete($id)
     {
-        abort_unless(Auth::user()->can('products.force_delete'), 403, 'No tienes permisos para eliminar productos permanentemente.');
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        abort_unless($user->can('products.force_delete'), 403, 'No tienes permisos para eliminar productos permanentemente.');
 
         $product = Product::onlyTrashed()->findOrFail($id);
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
 
         if ($product->image) {
             $this->blob->delete($product->image);
@@ -368,6 +390,7 @@ class ProductController extends Controller
     public function updateStock(Request $request, Product $product)
     {
         abort_unless($request->user()->can('products.update_stock'), 403, 'No tienes permisos para ajustar el stock.');
+        abort_if($request->user()->isRestrictedToOwnBranch() && $product->branch_id !== $request->user()->branch_id, 403);
 
         $request->validate([
             'stock' => 'required|integer|min:0',

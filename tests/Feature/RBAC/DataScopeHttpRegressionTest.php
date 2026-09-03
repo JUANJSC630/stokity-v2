@@ -86,6 +86,61 @@ it('an Encargado with a real Spatie role cannot open a product from another bran
         ->assertOk();
 });
 
+it('an Encargado cannot view, edit, or delete a product from another branch by guessing its ID', function () {
+    // CodeRabbit PR-12 finding: ProductController's record-level actions had
+    // no branch-ownership check at all — only the index() listing was
+    // scoped. Encargado holds products.update/delete by default (only
+    // users./branches./settings./payment_methods.write/sales.view_deleted
+    // are excluded), so this was a live IDOR against real production data,
+    // not just a future-custom-role gap.
+    $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+
+    $this->actingAs($manager)->get(route('products.show', $this->productB))->assertForbidden();
+    $this->actingAs($manager)->get(route('products.edit', $this->productB))->assertForbidden();
+    $this->actingAs($manager)->delete(route('products.destroy', $this->productB))->assertForbidden();
+});
+
+it('an Encargado cannot edit a product from another branch even by submitting their own branch_id', function () {
+    // The deeper bug: ProductRequest::authorize() validated the SUBMITTED
+    // branch_id (attacker-controlled), not the bound product's real branch —
+    // so simply passing your own branch_id in the form satisfied the old
+    // check regardless of which product you targeted, and $product->update()
+    // would have silently moved productB into branchA.
+    $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+
+    $this->actingAs($manager)->put(route('products.update', $this->productB), [
+        'name' => 'Hijacked', 'code' => $this->productB->code, 'sale_price' => 1, 'tax' => 0,
+        'category_id' => $this->productB->category_id, 'min_stock' => 0,
+        'branch_id' => $this->branchA->id,
+    ])->assertForbidden();
+
+    expect($this->productB->fresh()->branch_id)->toBe($this->branchB->id)
+        ->and($this->productB->fresh()->name)->not->toBe('Hijacked');
+});
+
+it('an Encargado editing their own product cannot reassign it to another branch via branch_id', function () {
+    $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+
+    $this->actingAs($manager)->put(route('products.update', $this->productA), [
+        'name' => $this->productA->name, 'code' => $this->productA->code, 'sale_price' => 1, 'tax' => 0,
+        'category_id' => $this->productA->category_id, 'min_stock' => 0,
+        'branch_id' => $this->branchB->id,
+    ])->assertRedirect(route('products.show', $this->productA));
+
+    expect($this->productA->fresh()->branch_id)->toBe($this->branchA->id);
+});
+
+it('an Encargado cannot widen the trashed-products listing past their own branch via ?branch=', function () {
+    app(TenantManager::class)->runAs($this->tenant, fn () => $this->productB->delete());
+    $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+
+    $response = $this->actingAs($manager)->get(route('products.trashed', ['branch' => $this->branchB->id]));
+
+    $response->assertOk();
+    $ids = collect($response->viewData('page')['props']['products']['data'])->pluck('id');
+    expect($ids)->not->toContain($this->productB->id);
+});
+
 it('THE KEY CAPABILITY: a custom role with data_scope=all sees every branch, with zero controller changes', function () {
     // Exactly what a tenant admin does from the future role-management UI:
     // duplicate Encargado, flip its data_scope. No code touched.

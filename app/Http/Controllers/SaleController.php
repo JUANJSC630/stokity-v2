@@ -526,12 +526,17 @@ class SaleController extends Controller
      */
     public function deletedIndex(Request $request)
     {
+        $user = Auth::user();
         $with = ['branch'];
         if (! $request->search) {
             $with[] = 'client';
             $with[] = 'seller';
         }
         $query = Sale::onlyTrashed()->with($with);
+
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
+            $query->where('sales.branch_id', $user->branch_id);
+        }
 
         if ($request->search) {
             $search = $request->search;
@@ -566,6 +571,7 @@ class SaleController extends Controller
      */
     public function deletedShow($id)
     {
+        $user = Auth::user();
         $sale = Sale::onlyTrashed()->with([
             'branch.manager',
             'client',
@@ -573,6 +579,7 @@ class SaleController extends Controller
             'saleProducts.product',
             'saleReturns.products',
         ])->findOrFail($id);
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         $business = \App\Models\BusinessSetting::getSettings();
 
@@ -660,9 +667,11 @@ class SaleController extends Controller
      */
     public function edit(Sale $sale)
     {
-        if (! auth()->user()->can('sales.update')) {
+        $user = auth()->user();
+        if (! $user->can('sales.update')) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         // Block editing of credit-linked sales
         if ($sale->credit_sale_id) {
@@ -687,9 +696,11 @@ class SaleController extends Controller
      */
     public function update(Request $request, Sale $sale)
     {
-        if (! auth()->user()->can('sales.update')) {
+        $user = auth()->user();
+        if (! $user->can('sales.update')) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         // Block editing of credit-linked sales
         if ($sale->credit_sale_id) {
@@ -713,6 +724,11 @@ class SaleController extends Controller
             'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
+        // A branch-restricted user can never reassign a sale to another branch.
+        if ($user->isRestrictedToOwnBranch()) {
+            unset($validated['branch_id']);
+        }
+
         $sale->update($validated);
 
         return redirect()->route('sales.show', $sale)->with('success', 'Venta actualizada exitosamente.');
@@ -723,9 +739,11 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
-        if (! auth()->user()->can('sales.delete')) {
+        $user = auth()->user();
+        if (! $user->can('sales.delete')) {
             abort(403, 'No tienes permisos para eliminar ventas.');
         }
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         // Block deletion of credit-linked sales
         if ($sale->credit_sale_id) {

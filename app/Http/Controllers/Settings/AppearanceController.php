@@ -13,6 +13,8 @@ class AppearanceController extends Controller
 
     public function updateBrandColors(Request $request)
     {
+        abort_unless($request->user()->can('settings.appearance.update'), 403, 'No tienes permisos para editar la apariencia.');
+
         $request->validate([
             'brand_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'brand_color_secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
@@ -25,6 +27,8 @@ class AppearanceController extends Controller
 
     public function updateDefaultProductImage(Request $request)
     {
+        abort_unless($request->user()->can('settings.appearance.update'), 403, 'No tienes permisos para editar la apariencia.');
+
         $request->validate([
             'image' => 'required|image|max:2048',
         ]);
