@@ -2,6 +2,7 @@
 
 namespace App\Tenancy;
 
+use App\Authorization\DefaultRoleProvisioner;
 use App\Models\Branch;
 use App\Models\BusinessSetting;
 use App\Models\Client;
@@ -20,7 +21,10 @@ use Illuminate\Support\Str;
  */
 class TenantProvisioner
 {
-    public function __construct(private TenantManager $tenants) {}
+    public function __construct(
+        private TenantManager $tenants,
+        private DefaultRoleProvisioner $roles,
+    ) {}
 
     /**
      * @param  array{business_name: string, admin_name: string, admin_email: string, admin_password: string, branch_name?: string}  $data
@@ -34,7 +38,16 @@ class TenantProvisioner
                 'status' => Tenant::STATUS_ACTIVE,
             ]);
 
-            $this->tenants->runAs($tenant, function () use ($data) {
+            $this->tenants->runAs($tenant, function () use ($data, $tenant) {
+                // Roles must exist before the admin user is assigned one below.
+                // Seeded inside runAs (not before it) so DefaultRoleProvisioner's
+                // own PermissionRegistrar::setPermissionsTeamId() call is the one
+                // runAs snapshots and restores — calling it outside would leave
+                // Spatie's team id pointing at this tenant for the rest of the
+                // request once create() returns (e.g. back in the super-admin's
+                // own, team-less session).
+                $this->roles->seedFor($tenant);
+
                 BusinessSetting::create([
                     'name' => $data['business_name'],
                     'currency_symbol' => '$',
@@ -48,7 +61,7 @@ class TenantProvisioner
                     'status' => true,
                 ]);
 
-                User::create([
+                $admin = User::create([
                     'name' => $data['admin_name'],
                     'email' => $data['admin_email'],
                     'password' => Hash::make($data['admin_password']),
@@ -57,6 +70,7 @@ class TenantProvisioner
                     'status' => true,
                     'email_verified_at' => now(),
                 ]);
+                $admin->assignRole(DefaultRoleProvisioner::ADMINISTRADOR);
 
                 $this->seedPaymentMethods();
                 $this->seedDefaultClient();

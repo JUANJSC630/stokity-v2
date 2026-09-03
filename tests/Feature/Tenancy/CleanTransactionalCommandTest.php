@@ -10,9 +10,14 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use App\Tenancy\TenantProvisioner;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+// TenantProvisioner now seeds default roles and assigns one to the new admin,
+// which requires the permission catalog to already exist.
+beforeEach(fn () => $this->seed(PermissionSeeder::class));
 
 afterEach(fn () => app(TenantManager::class)->forget());
 
