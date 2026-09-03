@@ -54,6 +54,7 @@ class ExpenseTemplateController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expense_templates.manage'), 403, 'No tienes permisos para gestionar plantillas de gastos.');
 
         $data = $request->validate([
             'branch_id' => 'required|exists:branches,id',
@@ -76,6 +77,7 @@ class ExpenseTemplateController extends Controller
     public function update(Request $request, ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expense_templates.manage'), 403, 'No tienes permisos para gestionar plantillas de gastos.');
         if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
@@ -96,6 +98,7 @@ class ExpenseTemplateController extends Controller
     public function unregisterMonth(ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expense_templates.manage'), 403, 'No tienes permisos para gestionar plantillas de gastos.');
         if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
@@ -117,6 +120,7 @@ class ExpenseTemplateController extends Controller
     public function destroy(Request $request, ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expense_templates.manage'), 403, 'No tienes permisos para gestionar plantillas de gastos.');
         if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }

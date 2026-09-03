@@ -3,7 +3,6 @@
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
-use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -16,7 +15,7 @@ Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(fu
     Route::get('sales/pending', [SaleController::class, 'pendingForBranch'])->name('sales.pending');
 
     // Ventas eliminadas — solo administradores
-    Route::middleware(AdminMiddleware::class)->group(function () {
+    Route::middleware('can:sales.view_deleted')->group(function () {
         Route::get('sales/deleted', [SaleController::class, 'deletedIndex'])->name('sales.deleted.index');
         Route::get('sales/deleted/{id}', [SaleController::class, 'deletedShow'])->name('sales.deleted.show');
     });

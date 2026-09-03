@@ -18,10 +18,10 @@ beforeEach(function () {
 });
 
 describe('Finance Summary', function () {
-    it('vendedor cannot access finances (redirected)', function () {
+    it('vendedor cannot access finances', function () {
         $this->actingAs($this->seller)
             ->get(route('finances.summary'))
-            ->assertRedirect(); // AdminOrManagerMiddleware redirects to dashboard
+            ->assertForbidden(); // can:finances.view — Vendedor has no finance-related permission
     });
 
     it('returns correct revenue and COGS for the period', function () {

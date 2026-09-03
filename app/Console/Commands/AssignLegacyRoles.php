@@ -31,13 +31,6 @@ class AssignLegacyRoles extends Command
 
     protected $description = 'Assign each existing user the Spatie role matching their legacy role column';
 
-    /** @var array<string, string> */
-    private const MAP = [
-        'administrador' => DefaultRoleProvisioner::ADMINISTRADOR,
-        'encargado' => DefaultRoleProvisioner::ENCARGADO,
-        'vendedor' => DefaultRoleProvisioner::VENDEDOR,
-    ];
-
     public function handle(TenantManager $tenants): int
     {
         $dryRun = (bool) $this->option('dry-run');
@@ -55,7 +48,7 @@ class AssignLegacyRoles extends Command
 
         $query = User::withoutGlobalScope(TenantScope::class)
             ->whereNotNull('tenant_id')
-            ->whereIn('role', array_keys(self::MAP));
+            ->whereIn('role', array_keys(DefaultRoleProvisioner::legacyRoleMap()));
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -86,7 +79,7 @@ class AssignLegacyRoles extends Command
                     return;
                 }
 
-                $roleName = self::MAP[$user->role];
+                $roleName = DefaultRoleProvisioner::roleNameForLegacy($user->role);
 
                 if (! $dryRun) {
                     $user->assignRole($roleName);

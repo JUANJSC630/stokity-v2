@@ -23,6 +23,8 @@ class BusinessSettingController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->can('settings.business.update'), 403, 'No tienes permisos para editar el negocio.');
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'nit' => 'nullable|string|max:50',

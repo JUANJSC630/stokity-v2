@@ -11,7 +11,9 @@ class BranchRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->isAdmin();
+        return $this->isMethod('PUT') || $this->isMethod('PATCH')
+            ? $this->user()->can('branches.update')
+            : $this->user()->can('branches.create');
     }
 
     /**

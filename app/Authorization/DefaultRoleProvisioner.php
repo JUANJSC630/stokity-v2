@@ -30,6 +30,50 @@ class DefaultRoleProvisioner
 
     public const VENDEDOR = 'Vendedor';
 
+    /**
+     * Single source of truth for legacy `users.role` string → default Spatie
+     * role name. Used by roles:assign-legacy (one-time backfill) and by
+     * UserController (every create/update from here on) — those two MUST
+     * agree, or an employee's actual permissions silently drift from what
+     * the "Rol" field in the UI claims.
+     *
+     * @return array<string, string>
+     */
+    public static function legacyRoleMap(): array
+    {
+        return [
+            'administrador' => self::ADMINISTRADOR,
+            'encargado' => self::ENCARGADO,
+            'vendedor' => self::VENDEDOR,
+        ];
+    }
+
+    public static function roleNameForLegacy(string $legacyRole): ?string
+    {
+        return self::legacyRoleMap()[$legacyRole] ?? null;
+    }
+
+    /**
+     * The default permission set for a legacy role string, computed without
+     * touching the database. Backs User::hasPermissionTo()'s fallback: a
+     * tenant that hasn't run roles:assign-legacy yet (or a bare test fixture)
+     * has no Spatie role row to read from, but must still behave exactly
+     * like it will once migrated — same source these 3 sets seed into real
+     * roles via seedFor() below, just evaluated in memory instead of synced
+     * onto a Role.
+     *
+     * @return list<string>
+     */
+    public static function defaultPermissionsForLegacyRole(string $legacyRole): array
+    {
+        return match ($legacyRole) {
+            'administrador' => PermissionCatalog::names(),
+            'encargado' => self::encargadoPermissions(),
+            'vendedor' => self::vendedorPermissions(),
+            default => [],
+        };
+    }
+
     public function seedFor(Tenant $tenant): void
     {
         DB::transaction(function () use ($tenant) {
@@ -45,8 +89,8 @@ class DefaultRoleProvisioner
             $this->ensurePermissionsExist();
 
             $this->syncRole(self::ADMINISTRADOR, 'all', PermissionCatalog::names(), 'Control total del negocio.');
-            $this->syncRole(self::ENCARGADO, 'branch', $this->encargadoPermissions(), 'Opera la sucursal: catálogo, ventas, inventario, finanzas — sin usuarios, sucursales ni ajustes globales.');
-            $this->syncRole(self::VENDEDOR, 'branch', $this->vendedorPermissions(), 'Vende en el punto de venta y atiende clientes — sin precios de compra ni reportes.');
+            $this->syncRole(self::ENCARGADO, 'branch', self::encargadoPermissions(), 'Opera la sucursal: catálogo, ventas, inventario, finanzas — sin usuarios, sucursales ni ajustes globales.');
+            $this->syncRole(self::VENDEDOR, 'branch', self::vendedorPermissions(), 'Vende en el punto de venta y atiende clientes — sin precios de compra ni reportes.');
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         });
@@ -87,7 +131,7 @@ class DefaultRoleProvisioner
     /**
      * Everything except: users.*, branches.*, payment_methods.create/update/
      * delete, settings.* (business/ticket/appearance/printer/roles/modules),
-     * reports.branches.view, sales.view_deleted, sales.delete — matches
+     * reports.branches.view, sales.view_deleted/update/delete — matches
      * AdminOrManagerMiddleware's reach today, minus the admin-only slices
      * AdminMiddleware still guards (routes/settings.php, routes/payment-
      * methods.php's Route::resource — but NOT its auth-only `active` list
@@ -95,16 +139,30 @@ class DefaultRoleProvisioner
      * declares it as a hard requirement, and stripping the whole
      * payment_methods.* prefix silently broke that dependency).
      *
+     * sales.update is excluded too: SaleController::edit()/update() gate on
+     * `! auth()->user()->isAdmin()` alone (editing a *completed* sale is
+     * admin-only today) — sales.create/manage_pending (POS, pending-sale
+     * flow) stay granted, this only removes editing an already-completed one.
+     *
+     * cash_sessions.view_all is excluded too: CashSessionController::index()/
+     * show()/addMovement() gate their "see someone else's session" check on
+     * isAdmin() alone — Encargado is restricted to their own sessions there,
+     * same as Vendedor. (closeForm()/close() DO let Encargado close someone
+     * else's session — a genuinely different, action-specific rule with no
+     * catalog permission of its own yet, deliberately left as a literal
+     * isAdmin()||isManager() check rather than force-fit into this one.)
+     *
      * @return list<string>
      */
-    private function encargadoPermissions(): array
+    public static function encargadoPermissions(): array
     {
         $excluded = [
             'payment_methods.create', 'payment_methods.update', 'payment_methods.delete',
             'settings.business.view', 'settings.business.update', 'settings.ticket.update',
             'settings.appearance.update', 'settings.printer.manage',
             'settings.roles.manage', 'settings.modules.manage',
-            'sales.view_deleted', 'sales.delete', 'reports.branches.view',
+            'sales.view_deleted', 'sales.update', 'sales.delete', 'reports.branches.view',
+            'cash_sessions.view_all',
         ];
 
         return collect(PermissionCatalog::names())
@@ -123,7 +181,7 @@ class DefaultRoleProvisioner
      *
      * @return list<string>
      */
-    private function vendedorPermissions(): array
+    public static function vendedorPermissions(): array
     {
         return [
             'dashboard.view',

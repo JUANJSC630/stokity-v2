@@ -5,7 +5,6 @@ use App\Http\Controllers\Settings\BusinessSettingController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TicketSettingController;
-use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,7 +26,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Configuración del negocio — afecta a todos los usuarios, solo administradores.
-Route::middleware(['auth', AdminMiddleware::class])->group(function () {
+Route::middleware(['auth', 'can:settings.business.view'])->group(function () {
     Route::post('settings/appearance/default-product-image', [AppearanceController::class, 'updateDefaultProductImage'])->name('appearance.default-product-image');
     Route::post('settings/appearance/brand-colors', [AppearanceController::class, 'updateBrandColors'])->name('appearance.brand-colors');
 

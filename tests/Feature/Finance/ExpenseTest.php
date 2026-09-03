@@ -53,10 +53,10 @@ describe('Expense CRUD', function () {
             ->assertForbidden();
     });
 
-    it('vendedor cannot access expenses (redirected)', function () {
+    it('vendedor cannot access expenses', function () {
         $this->actingAs($this->seller)
             ->get(route('expenses.index'))
-            ->assertRedirect(); // AdminOrManagerMiddleware redirects to dashboard
+            ->assertForbidden(); // can:finances.view — Vendedor has no finance-related permission
     });
 
     it('admin can delete an expense', function () {

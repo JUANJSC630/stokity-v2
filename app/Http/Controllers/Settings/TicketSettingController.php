@@ -31,6 +31,8 @@ class TicketSettingController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->can('settings.ticket.update'), 403, 'No tienes permisos para editar el ticket.');
+
         $validated = $request->validate([
             // Shared
             'paper_width' => 'required|in:58,80',

@@ -1,12 +1,11 @@
 <?php
 
 use App\Http\Controllers\StockMovementController;
-use App\Http\Middleware\AdminOrManagerMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Movimientos de stock: administradores y encargados (coincide con el sidebar).
-Route::middleware(['auth', BranchFilterMiddleware::class, AdminOrManagerMiddleware::class])->group(function () {
+Route::middleware(['auth', BranchFilterMiddleware::class, 'can:stock_movements.view'])->group(function () {
     Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
     Route::get('/stock-movements/statistics', [StockMovementController::class, 'statistics'])->name('stock-movements.statistics');
 

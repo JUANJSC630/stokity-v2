@@ -132,6 +132,8 @@ class BranchController extends Controller
      */
     public function destroy(Branch $branch): RedirectResponse
     {
+        abort_unless(request()->user()->can('branches.delete'), 403, 'No tienes permisos para eliminar sucursales.');
+
         $branch->delete();
 
         return redirect()->route('branches.index')
@@ -143,6 +145,8 @@ class BranchController extends Controller
      */
     public function restore($id): RedirectResponse
     {
+        abort_unless(request()->user()->can('branches.restore'), 403, 'No tienes permisos para restaurar sucursales.');
+
         $branch = Branch::onlyTrashed()->findOrFail($id);
         $branch->restore();
 
@@ -155,6 +159,11 @@ class BranchController extends Controller
      */
     public function forceDelete($id): RedirectResponse
     {
+        // No dedicated branches.force_delete in the catalog — branches.delete
+        // is the closest match (same as the soft-delete gate; this is just
+        // its permanent variant, matching restore()'s requires chain).
+        abort_unless(request()->user()->can('branches.delete'), 403, 'No tienes permisos para eliminar sucursales permanentemente.');
+
         $branch = Branch::onlyTrashed()->findOrFail($id);
         $branch->forceDelete();
 

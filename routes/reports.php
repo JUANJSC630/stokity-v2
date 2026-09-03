@@ -1,12 +1,11 @@
 <?php
 
 use App\Http\Controllers\ReportController;
-use App\Http\Middleware\AdminOrManagerMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Los reportes son para administradores y encargados (coincide con el sidebar).
-Route::middleware(['auth', 'verified', BranchFilterMiddleware::class, AdminOrManagerMiddleware::class])->group(function () {
+Route::middleware(['auth', 'verified', BranchFilterMiddleware::class, 'can:reports.view'])->group(function () {
     // Rutas principales de reportes
     Route::prefix('reports')->name('reports.')->group(function () {
         // Dashboard principal de reportes

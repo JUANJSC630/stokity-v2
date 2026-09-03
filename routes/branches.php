@@ -1,11 +1,10 @@
 <?php
 
 use App\Http\Controllers\BranchController;
-use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Routes for branch management (protected with auth and admin middleware)
-Route::middleware(['auth'])->middleware(AdminMiddleware::class)->group(function () {
+Route::middleware(['auth', 'can:branches.view'])->group(function () {
     // Regular branch CRUD routes
     Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
 

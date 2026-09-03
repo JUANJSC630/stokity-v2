@@ -27,6 +27,8 @@ class ExpenseCategoryController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->can('expense_categories.manage'), 403, 'No tienes permisos para gestionar categorías de gasto.');
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', Rule::unique('expense_categories', 'name')->where($this->perTenant())],
             'color' => 'nullable|string|max:30',
@@ -44,6 +46,8 @@ class ExpenseCategoryController extends Controller
 
     public function update(Request $request, ExpenseCategory $expenseCategory): RedirectResponse
     {
+        abort_unless($request->user()->can('expense_categories.manage'), 403, 'No tienes permisos para gestionar categorías de gasto.');
+
         if ($expenseCategory->is_system) {
             return back()->withErrors(['name' => 'Las categorías del sistema no se pueden editar.']);
         }
@@ -63,6 +67,8 @@ class ExpenseCategoryController extends Controller
 
     public function destroy(Request $request, ExpenseCategory $expenseCategory): RedirectResponse
     {
+        abort_unless($request->user()->can('expense_categories.manage'), 403, 'No tienes permisos para gestionar categorías de gasto.');
+
         if ($expenseCategory->is_system) {
             return back()->withErrors(['name' => 'Las categorías del sistema no se pueden eliminar.']);
         }

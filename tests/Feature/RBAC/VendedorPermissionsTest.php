@@ -48,24 +48,24 @@ describe('Vendedor — Allowed Routes', function () {
 });
 
 describe('Vendedor — Forbidden Routes', function () {
-    // AdminMiddleware ahora protege la ruta (el abort(403) del controlador
-    // sigue como segunda barrera para llamadas JSON).
+    // can:users.view now gates the route (the controller's own abort(403)
+    // stays as a second barrier for JSON calls). Denial is a 403 (Laravel's
+    // default for a failed Gate check, matching the app's existing custom
+    // errors/403.blade.php page already used by every inline abort(403) call).
     it('cannot access GET /users', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('users.index'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
-    // AdminMiddleware redirects to dashboard for non-JSON requests
     it('cannot access GET /branches', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('branches.index'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
-    // AdminOrManagerMiddleware redirects to dashboard for non-JSON requests
     it('cannot POST /products', function () {
         $response = $this->actingAs($this->vendedor)
             ->post(route('products.store'), [
@@ -80,7 +80,7 @@ describe('Vendedor — Forbidden Routes', function () {
                 'branch_id' => $this->branch->id,
             ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot PUT /products/{id}', function () {
@@ -101,7 +101,7 @@ describe('Vendedor — Forbidden Routes', function () {
                 'branch_id' => $this->branch->id,
             ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot DELETE /products/{id}', function () {
@@ -113,36 +113,35 @@ describe('Vendedor — Forbidden Routes', function () {
         $response = $this->actingAs($this->vendedor)
             ->delete(route('products.destroy', $product));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
-    // AdminMiddleware redirects to dashboard
     it('cannot access GET /settings/business', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('settings.business'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot access GET /reports', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('reports.index'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot export a report', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('reports.sales-detail.export.pdf'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot access GET /suppliers', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('suppliers.index'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 
     it('cannot POST /suppliers', function () {
@@ -152,7 +151,7 @@ describe('Vendedor — Forbidden Routes', function () {
                 'branch_id' => $this->branch->id,
             ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
         expect(\App\Models\Supplier::count())->toBe(0);
     });
 
@@ -160,7 +159,7 @@ describe('Vendedor — Forbidden Routes', function () {
         $response = $this->actingAs($this->vendedor)
             ->get(route('stock-movements.index'));
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 });
 
@@ -206,6 +205,6 @@ describe('Vendedor — Cuenta propia', function () {
                 'brand_color_secondary' => '#ffffff',
             ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertForbidden();
     });
 });

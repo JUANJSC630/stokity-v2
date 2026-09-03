@@ -26,7 +26,14 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use BelongsToTenant, HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use BelongsToTenant, HasFactory, Notifiable, SoftDeletes;
+
+    // HasRoles's hasPermissionTo() is a trait method, not inherited from a
+    // parent class — `parent::` can't reach it. Alias it under another name
+    // so the override below can call the real Spatie check before falling back.
+    use HasRoles {
+        hasPermissionTo as private spatieHasPermissionTo;
+    }
 
     /** Platform owner role: tenant_id is NULL and access is the /admin panel. */
     public const ROLE_SUPER_ADMIN = 'super_admin';
@@ -112,6 +119,54 @@ class User extends Authenticatable
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
     }
+
+    /**
+     * Backs every `can:permission.name` route, Gate::check(), and @can Blade
+     * directive — Spatie's Gate::before() hook calls this for every ability
+     * string (see PermissionRegistrar::registerPermissions()).
+     *
+     * Falls back to DefaultRoleProvisioner's in-memory permission sets when
+     * the real Spatie check says no AND the user has no role row at all —
+     * mirroring dataScope()'s exact same fallback, for the exact same reason:
+     * a tenant that hasn't run roles:assign-legacy yet (or any bare test
+     * fixture using a legacy-only user) must behave identically to how it
+     * will once migrated, not suddenly lose all access. A user who DOES have
+     * a role and was still denied gets a real "no" — that role's deliberate
+     * restriction must not be silently bypassed.
+     *
+     * @param  string|int|\Spatie\Permission\Contracts\Permission  $permission
+     */
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        try {
+            if ($this->spatieHasPermissionTo($permission, $guardName)) {
+                return true;
+            }
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            // Catalog isn't seeded in this context (bare test fixture, or a
+            // tenant mid-migration before the seed_permission_catalog
+            // migration/PermissionSeeder has run) — fall through below, which
+            // never touches the database.
+        }
+
+        if ($this->isSuperAdmin() || ($this->hasSpatieRoleCache ??= $this->roles()->exists())) {
+            return false;
+        }
+
+        if (is_string($permission)) {
+            $permissionName = $permission;
+        } elseif (is_int($permission)) {
+            $found = \Spatie\Permission\Models\Permission::find($permission);
+            $permissionName = $found ? (string) $found->name : (string) $permission;
+        } else {
+            // Only a Permission contract instance can reach here per the type hint.
+            $permissionName = (string) $permission->name;
+        }
+
+        return in_array($permissionName, \App\Authorization\DefaultRoleProvisioner::defaultPermissionsForLegacyRole($this->role ?? ''), true);
+    }
+
+    private ?bool $hasSpatieRoleCache = null;
 
     private ?string $dataScopeCache = null;
 

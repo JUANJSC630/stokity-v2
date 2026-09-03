@@ -70,6 +70,8 @@ class PaymentMethodController extends Controller
      */
     public function update(Request $request, PaymentMethod $paymentMethod)
     {
+        abort_unless($request->user()->can('payment_methods.update'), 403, 'No tienes permisos para editar métodos de pago.');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => ['required', 'string', 'max:50', Rule::unique('payment_methods', 'code')->ignore($paymentMethod->id)->where($this->perTenant())],
@@ -89,6 +91,8 @@ class PaymentMethodController extends Controller
      */
     public function destroy(PaymentMethod $paymentMethod)
     {
+        abort_unless(request()->user()->can('payment_methods.delete'), 403, 'No tienes permisos para eliminar métodos de pago.');
+
         // Verificar si hay ventas usando este método de pago
         $salesCount = $paymentMethod->sales()->count();
 
@@ -114,6 +118,8 @@ class PaymentMethodController extends Controller
      */
     public function reorder(Request $request)
     {
+        abort_unless($request->user()->can('payment_methods.update'), 403, 'No tienes permisos para editar métodos de pago.');
+
         $validated = $request->validate([
             'order' => 'required|array',
             'order.*.id' => 'required|integer|exists:payment_methods,id',
@@ -132,6 +138,8 @@ class PaymentMethodController extends Controller
      */
     public function toggleActive(PaymentMethod $paymentMethod)
     {
+        abort_unless(request()->user()->can('payment_methods.update'), 403, 'No tienes permisos para editar métodos de pago.');
+
         $paymentMethod->update([
             'is_active' => ! $paymentMethod->is_active,
         ]);
