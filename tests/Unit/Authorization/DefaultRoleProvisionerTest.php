@@ -45,7 +45,7 @@ it('gives Administrador every permission in the catalog', function () {
     expect($admin->data_scope)->toBe('all');
 });
 
-it('keeps Encargado away from users, branches, payment methods and role management', function () {
+it('keeps Encargado away from users, branches, payment method management and role management', function () {
     $tenant = Tenant::create(['name' => 'Acme', 'slug' => 'acme', 'status' => 'active']);
     (new DefaultRoleProvisioner)->seedFor($tenant);
     app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
@@ -55,7 +55,19 @@ it('keeps Encargado away from users, branches, payment methods and role manageme
 
     expect($names->contains(fn (string $n) => str_starts_with($n, 'users.')))->toBeFalse()
         ->and($names->contains(fn (string $n) => str_starts_with($n, 'branches.')))->toBeFalse()
-        ->and($names->contains(fn (string $n) => str_starts_with($n, 'payment_methods.')))->toBeFalse()
+        // payment_methods.view stays IN: routes/payment-methods.php gates only
+        // the management resource behind AdminMiddleware, its `active` list
+        // endpoint is auth-only today, and pos.access declares this permission
+        // as a hard requirement in the catalog.
+        ->and($names)->toContain('payment_methods.view')
+        ->and($names)->not->toContain('payment_methods.create')
+        ->and($names)->not->toContain('payment_methods.update')
+        ->and($names)->not->toContain('payment_methods.delete')
+        ->and($names)->not->toContain('settings.business.view')
+        ->and($names)->not->toContain('settings.business.update')
+        ->and($names)->not->toContain('settings.ticket.update')
+        ->and($names)->not->toContain('settings.appearance.update')
+        ->and($names)->not->toContain('settings.printer.manage')
         ->and($names)->not->toContain('settings.roles.manage')
         ->and($names)->not->toContain('sales.view_deleted')
         ->and($names)->not->toContain('sales.delete')

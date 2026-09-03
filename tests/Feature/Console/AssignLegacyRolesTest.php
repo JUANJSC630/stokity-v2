@@ -99,3 +99,10 @@ it('only migrates the given tenant with --tenant', function () {
         expect($outOfScope->fresh()->roles()->count())->toBe(0);
     });
 });
+
+it('fails loudly when --tenant does not match any tenant, matching roles:seed-defaults', function () {
+    // A silent "no users to migrate" here would read as "already done"
+    // rather than "wrong tenant id" — must fail the same way the sibling
+    // migration command does.
+    $this->artisan('roles:assign-legacy', ['--tenant' => 999])->assertFailed();
+});

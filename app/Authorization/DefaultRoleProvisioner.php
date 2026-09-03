@@ -66,24 +66,31 @@ class DefaultRoleProvisioner
     }
 
     /**
-     * Everything except: users.*, branches.*, payment_methods.*,
-     * settings.roles.manage, settings.modules.manage, reports.branches.view,
-     * sales.view_deleted, sales.delete — matches AdminOrManagerMiddleware's
-     * reach today, minus the admin-only slices AdminMiddleware still guards.
+     * Everything except: users.*, branches.*, payment_methods.create/update/
+     * delete, settings.* (business/ticket/appearance/printer/roles/modules),
+     * reports.branches.view, sales.view_deleted, sales.delete — matches
+     * AdminOrManagerMiddleware's reach today, minus the admin-only slices
+     * AdminMiddleware still guards (routes/settings.php, routes/payment-
+     * methods.php's Route::resource — but NOT its auth-only `active` list
+     * endpoint, which is why payment_methods.view is NOT excluded: pos.access
+     * declares it as a hard requirement, and stripping the whole
+     * payment_methods.* prefix silently broke that dependency).
      *
      * @return list<string>
      */
     private function encargadoPermissions(): array
     {
         $excluded = [
-            'sales.view_deleted', 'sales.delete', 'reports.branches.view',
+            'payment_methods.create', 'payment_methods.update', 'payment_methods.delete',
+            'settings.business.view', 'settings.business.update', 'settings.ticket.update',
+            'settings.appearance.update', 'settings.printer.manage',
             'settings.roles.manage', 'settings.modules.manage',
+            'sales.view_deleted', 'sales.delete', 'reports.branches.view',
         ];
 
         return collect(PermissionCatalog::names())
             ->reject(fn (string $name) => str_starts_with($name, 'users.')
                 || str_starts_with($name, 'branches.')
-                || str_starts_with($name, 'payment_methods.')
                 || in_array($name, $excluded, true))
             ->values()
             ->all();

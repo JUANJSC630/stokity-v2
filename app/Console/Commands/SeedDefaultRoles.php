@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Authorization\DefaultRoleProvisioner;
 use App\Models\Tenant;
+use App\Tenancy\TenantManager;
 use Illuminate\Console\Command;
 
 /**
@@ -23,24 +24,29 @@ class SeedDefaultRoles extends Command
 
     protected $description = 'Seed the 3 default roles (Administrador, Encargado, Vendedor) for one or all tenants';
 
-    public function handle(DefaultRoleProvisioner $provisioner): int
+    public function handle(DefaultRoleProvisioner $provisioner, TenantManager $tenants): int
     {
-        $tenants = $this->option('tenant')
+        $allTenants = $this->option('tenant')
             ? Tenant::where('id', $this->option('tenant'))->get()
             : Tenant::all();
 
-        if ($tenants->isEmpty()) {
+        if ($allTenants->isEmpty()) {
             $this->error('No matching tenant found.');
 
             return self::FAILURE;
         }
 
-        $this->withProgressBar($tenants, function (Tenant $tenant) use ($provisioner) {
-            $provisioner->seedFor($tenant);
+        // seedFor() sets Spatie's permission team id directly and never resets
+        // it — runAs() is what guarantees it's restored (to whatever it was
+        // before, e.g. null in this console context) once the loop finishes,
+        // instead of leaking the last-processed tenant's id for the rest of
+        // this process (see TenantManager's own docblock on this invariant).
+        $this->withProgressBar($allTenants, function (Tenant $tenant) use ($provisioner, $tenants) {
+            $tenants->runAs($tenant, fn () => $provisioner->seedFor($tenant));
         });
 
         $this->newLine(2);
-        $this->info("Seeded default roles for {$tenants->count()} tenant(s).");
+        $this->info("Seeded default roles for {$allTenants->count()} tenant(s).");
 
         return self::SUCCESS;
     }

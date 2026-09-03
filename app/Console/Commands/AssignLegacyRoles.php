@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Authorization\DefaultRoleProvisioner;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use App\Tenancy\TenantScope;
@@ -41,11 +42,22 @@ class AssignLegacyRoles extends Command
     {
         $dryRun = (bool) $this->option('dry-run');
 
+        if ($tenantId = $this->option('tenant')) {
+            // Fail loudly on a typo'd id, matching roles:seed-defaults — a
+            // silent "no users to migrate" here would read as "already done"
+            // instead of "wrong tenant id".
+            if (! Tenant::where('id', $tenantId)->exists()) {
+                $this->error('No matching tenant found.');
+
+                return self::FAILURE;
+            }
+        }
+
         $query = User::withoutGlobalScope(TenantScope::class)
             ->whereNotNull('tenant_id')
             ->whereIn('role', array_keys(self::MAP));
 
-        if ($tenantId = $this->option('tenant')) {
+        if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
 
