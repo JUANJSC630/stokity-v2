@@ -2,7 +2,7 @@
 
 > Instrucciones ordenadas para activar multi-tenancy correctamente. **Sigue el orden exacto.**
 >
-> Rama: `feature/multitenancy-infra` → `master` · Plataforma: Railway (proyecto "Lu Accesorios", servicio `lu-accesorios`, MySQL).
+> Rama: `feature/multitenancy-infra` → `master` · Plataforma: Railway (proyecto "stokity", servicio `stokity`, MySQL; renombrado desde "Lu Accesorios"/`lu-accesorios` tras la migración a multi-tenant).
 
 ---
 
@@ -74,7 +74,7 @@ desapercibido si solo se mira una.
 
 **Forma recomendada (`railway ssh`, no interactivo):**
 ```bash
-railway ssh --service lu-accesorios -- "php artisan tinker --execute='
+railway ssh --service stokity -- "php artisan tinker --execute='
 \$tables = [\"business_settings\",\"branches\",\"users\",\"archived_users\",\"categories\",
   \"products\",\"clients\",\"payment_methods\",\"suppliers\",\"sales\",\"sale_products\",
   \"sale_returns\",\"sale_return_products\",\"stock_movements\",\"cash_sessions\",
@@ -122,7 +122,7 @@ así que es seguro.
 
 **Ejecuta vía `railway ssh` (no interactivo, corre dentro del contenedor real):**
 ```bash
-railway ssh --service lu-accesorios -- "php artisan tenancy:promote-super-admin juansc0630@gmail.com --force"
+railway ssh --service stokity -- "php artisan tenancy:promote-super-admin juansc0630@gmail.com --force"
 ```
 
 `--force` omite la confirmación interactiva (no hay TTY vía este canal) — es seguro
