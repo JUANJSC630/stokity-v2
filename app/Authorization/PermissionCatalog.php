@@ -20,6 +20,11 @@ namespace App\Authorization;
  *
  * Permissions are global (same catalog for every tenant); what varies per
  * tenant is which ROLE holds which permission.
+ *
+ * Adding an entry here is enough on its own — DefaultRoleProvisioner::
+ * ensurePermissionsExist() creates any missing row in `permissions` the next
+ * time any tenant's roles are (re)synced, so a new permission never needs its
+ * own migration to actually take effect.
  */
 class PermissionCatalog
 {

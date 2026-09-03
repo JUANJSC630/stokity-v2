@@ -24,12 +24,12 @@ class DatabaseSeeder extends Seeder
         if (\App\Models\ExpenseCategory::count() === 0) {
             $this->call(ExpenseCategorySeeder::class);
         }
-        // Permissions are global, not tenant-scoped — this count is never
-        // affected by how many tenants exist. Re-run any time the catalog
-        // gains a permission; firstOrCreate() never touches existing rows.
-        if (\Spatie\Permission\Models\Permission::count() < count(\App\Authorization\PermissionCatalog::names())) {
-            $this->call(PermissionSeeder::class);
-        }
+        // Unconditional: firstOrCreate() never touches an existing row, so this
+        // is always a cheap no-op after the first run. A count-based guard here
+        // would be unreliable — Permission::count() also includes any other
+        // guard or a permission added by hand through a future role-management
+        // UI, so it can never be safely compared against the catalog's size.
+        $this->call(PermissionSeeder::class);
 
         // Test/development data — never run in production
         if (app()->environment('local', 'testing')) {

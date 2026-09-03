@@ -108,6 +108,25 @@ it('is idempotent: re-seeding does not duplicate roles or lose the tenant scope'
     expect(Role::where('tenant_id', $tenant->id)->count())->toBe(3);
 });
 
+it('self-heals a permission missing from the database instead of throwing', function () {
+    // Simulates the real gap this guards against: a permission added to
+    // PermissionCatalog after the one-time seeding migration already ran —
+    // Laravel never re-runs it, so on a real deploy this row would just be
+    // absent until ensurePermissionsExist() fills it in here.
+    \Spatie\Permission\Models\Permission::where('name', 'dashboard.view')->delete();
+    expect(\Spatie\Permission\Models\Permission::where('name', 'dashboard.view')->exists())->toBeFalse();
+
+    $tenant = Tenant::create(['name' => 'Acme', 'slug' => 'acme', 'status' => 'active']);
+
+    (new DefaultRoleProvisioner)->seedFor($tenant);
+
+    app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+    $admin = Role::where('tenant_id', $tenant->id)->where('name', 'Administrador')->first();
+
+    expect(\Spatie\Permission\Models\Permission::where('name', 'dashboard.view')->exists())->toBeTrue()
+        ->and($admin->permissions->pluck('name'))->toContain('dashboard.view');
+});
+
 it('never lets two tenants share role rows', function () {
     $a = Tenant::create(['name' => 'A', 'slug' => 'a', 'status' => 'active']);
     $b = Tenant::create(['name' => 'B', 'slug' => 'b', 'status' => 'active']);

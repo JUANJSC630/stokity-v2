@@ -26,9 +26,12 @@ class SeedDefaultRoles extends Command
 
     public function handle(DefaultRoleProvisioner $provisioner, TenantManager $tenants): int
     {
+        // An explicit --tenant is honored regardless of status (e.g. re-seeding
+        // right after reactivating one); the "seed everyone" default run only
+        // touches active tenants, matching the --tenant option's own docstring.
         $allTenants = $this->option('tenant')
             ? Tenant::where('id', $this->option('tenant'))->get()
-            : Tenant::all();
+            : Tenant::all()->filter(fn (Tenant $tenant) => $tenant->isActive())->values();
 
         if ($allTenants->isEmpty()) {
             $this->error('No matching tenant found.');

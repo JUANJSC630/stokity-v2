@@ -32,6 +32,26 @@ it('fails when --tenant does not match any tenant', function () {
     $this->artisan('roles:seed-defaults', ['--tenant' => 999])->assertFailed();
 });
 
+it('skips suspended and expired-trial tenants on the default (no --tenant) run', function () {
+    $active = Tenant::create(['name' => 'Active', 'slug' => 'active', 'status' => 'active']);
+    $suspended = Tenant::create(['name' => 'Suspended', 'slug' => 'suspended', 'status' => 'suspended']);
+    $expiredTrial = Tenant::create(['name' => 'Expired', 'slug' => 'expired', 'status' => 'trial', 'trial_ends_at' => now()->subDay()]);
+
+    $this->artisan('roles:seed-defaults')->assertSuccessful();
+
+    expect(Role::where('tenant_id', $active->id)->count())->toBe(3)
+        ->and(Role::where('tenant_id', $suspended->id)->count())->toBe(0)
+        ->and(Role::where('tenant_id', $expiredTrial->id)->count())->toBe(0);
+});
+
+it('still seeds a suspended tenant when explicitly targeted with --tenant', function () {
+    $suspended = Tenant::create(['name' => 'Suspended', 'slug' => 'suspended', 'status' => 'suspended']);
+
+    $this->artisan('roles:seed-defaults', ['--tenant' => $suspended->id])->assertSuccessful();
+
+    expect(Role::where('tenant_id', $suspended->id)->count())->toBe(3);
+});
+
 it('is safe to run twice', function () {
     $tenant = Tenant::create(['name' => 'A', 'slug' => 'a', 'status' => 'active']);
 

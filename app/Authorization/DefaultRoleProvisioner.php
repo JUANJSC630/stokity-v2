@@ -5,6 +5,7 @@ namespace App\Authorization;
 use App\Models\Role;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -34,12 +35,30 @@ class DefaultRoleProvisioner
         DB::transaction(function () use ($tenant) {
             app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
 
+            // Laravel never re-runs a migration once it's recorded in the
+            // `migrations` table — so a permission added to PermissionCatalog
+            // in a future deploy needs its OWN new migration to actually reach
+            // the `permissions` table, or Role::syncPermissions() below throws
+            // PermissionDoesNotExist the moment any tenant is (re)seeded.
+            // Self-healing here removes that footgun: any catalog name still
+            // missing gets created before it's ever synced onto a role.
+            $this->ensurePermissionsExist();
+
             $this->syncRole(self::ADMINISTRADOR, 'all', PermissionCatalog::names(), 'Control total del negocio.');
             $this->syncRole(self::ENCARGADO, 'branch', $this->encargadoPermissions(), 'Opera la sucursal: catálogo, ventas, inventario, finanzas — sin usuarios, sucursales ni ajustes globales.');
             $this->syncRole(self::VENDEDOR, 'branch', $this->vendedorPermissions(), 'Vende en el punto de venta y atiende clientes — sin precios de compra ni reportes.');
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         });
+    }
+
+    private function ensurePermissionsExist(): void
+    {
+        $existing = Permission::where('guard_name', 'web')->pluck('name')->all();
+
+        foreach (array_diff(PermissionCatalog::names(), $existing) as $name) {
+            Permission::create(['name' => $name, 'guard_name' => 'web']);
+        }
     }
 
     /**
