@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
@@ -11,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Sale } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -120,8 +121,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Index({ sales, filters }: PageProps) {
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
-    const isAdmin = auth.user.role === 'administrador';
+    const { can } = usePermissions();
 
     // Polling: refresh sales list every 60 seconds
     usePolling(['sales'], 60_000);
@@ -335,7 +335,7 @@ export default function Index({ sales, filters }: PageProps) {
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Administración de Ventas</h1>
                     <div className="flex items-center gap-2">
-                        {isAdmin && (
+                        {can('sales.view_deleted') && (
                             <Link href={route('sales.deleted.index')}>
                                 <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-muted-foreground">
                                     <Trash2 className="h-3.5 w-3.5" />

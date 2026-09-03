@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
@@ -7,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Category } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { AlertTriangle, Edit2, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -35,7 +36,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Categories({ categories, filters = { search: '' } }: CategoriesPageProps) {
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    const { can } = usePermissions();
     usePolling(['categories'], 120_000);
 
     const [search, setSearch] = useState(filters.search || '');
@@ -173,13 +174,13 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <h1 className="text-3xl font-bold">Gestión de Categorías</h1>
                     <div className="flex gap-2">
-                        {(auth.user.role === 'administrador' || auth.user.role === 'encargado') && (
+                        {can('categories.create') && (
                             <Button className="flex gap-1" onClick={openCreateModal}>
                                 <Plus className="mr-1 size-4" />
                                 Nueva Categoría
                             </Button>
                         )}
-                        {auth.user.role === 'administrador' && (
+                        {can('categories.delete') && (
                             <Link href="/categories/trashed">
                                 <Button variant="outline" className="flex gap-2">
                                     <Trash2 className="size-4" />

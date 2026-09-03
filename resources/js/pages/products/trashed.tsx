@@ -5,8 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 
 import { Table, type Column } from '@/components/common/Table';
+import { usePermissions } from '@/hooks/use-permissions';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowUpRight, Recycle, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -75,7 +76,6 @@ export default function TrashedProducts({
               },
     };
 
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
     const [branchFilter, setBranchFilter] = useState(filters?.branch || 'all');
@@ -83,9 +83,9 @@ export default function TrashedProducts({
     const [productToForceDelete, setProductToForceDelete] = useState<Product | null>(null);
     const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
 
-    const isAdmin = auth.user.role === 'administrador';
-    const isManager = auth.user.role === 'encargado';
-    const canManageProducts = isAdmin || isManager;
+    const { can } = usePermissions();
+    const isAdmin = can('branches.view');
+    const canManageProducts = can('products.create');
 
     // Update search results when filters change
     useEffect(() => {

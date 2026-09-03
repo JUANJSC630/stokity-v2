@@ -47,6 +47,10 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+                // Empty for guests and for the platform super-admin (who has
+                // no tenant context/roles — see IdentifyTenant) — the
+                // frontend's isSuperAdmin branch never consults this array.
+                'permissions' => fn () => $request->user()?->allPermissionNames() ?? [],
             ],
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),

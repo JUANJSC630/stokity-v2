@@ -73,6 +73,8 @@ it('keeps Encargado away from users, branches, payment method management and rol
         ->and($names)->not->toContain('sales.update')
         ->and($names)->not->toContain('sales.delete')
         ->and($names)->not->toContain('cash_sessions.view_all')
+        ->and($names)->not->toContain('dashboard.low_stock.view')
+        ->and($names)->not->toContain('dashboard.branch_sales.view')
         ->and($names)->not->toContain('reports.branches.view')
         ->and($names)->toContain('finances.view')
         ->and($names)->toContain('stock_movements.create')

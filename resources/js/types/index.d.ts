@@ -3,6 +3,9 @@ import type { Config } from 'ziggy-js';
 
 export interface Auth {
     user: User;
+    // Empty for guests and for the platform super-admin, who has no tenant
+    // context/roles — see IdentifyTenant and HandleInertiaRequests.
+    permissions: string[];
 }
 
 export interface BreadcrumbItem {
@@ -20,7 +23,7 @@ export interface NavItem {
     href: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
-    roles?: string[]; // Which roles can access this menu item
+    permission?: string; // Permission required to see this item — omit to show to everyone authenticated
     children?: NavItem[]; // Sub-items for nested navigation
     disabled?: boolean; // Show as disabled (no access)
     highlight?: boolean; // Visual emphasis (e.g., POS button)
