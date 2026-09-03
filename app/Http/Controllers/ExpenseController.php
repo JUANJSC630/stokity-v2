@@ -21,8 +21,8 @@ class ExpenseController extends Controller
         $now = Carbon::now('America/Bogota');
 
         $query = Expense::with(['category', 'template', 'user', 'branch'])
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
-            ->when($user->isAdmin() && $request->filled('branch'), fn ($q) => $q->where('branch_id', $request->branch))
+            ->when($user->isRestrictedToOwnBranch(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when(! $user->isRestrictedToOwnBranch() && $request->filled('branch'), fn ($q) => $q->where('branch_id', $request->branch))
             ->when($request->filled('category'), fn ($q) => $q->where('expense_category_id', $request->category))
             ->when($request->filled('start_date'), fn ($q) => $q->whereDate('expense_date', '>=', $request->start_date))
             ->when($request->filled('end_date'), fn ($q) => $q->whereDate('expense_date', '<=', $request->end_date));
@@ -32,13 +32,13 @@ class ExpenseController extends Controller
         // Plantillas activas sin registrar en el mes actual → banner de pendientes
         $pendingTemplates = ExpenseTemplate::with('category')
             ->where('is_active', true)
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when($user->isRestrictedToOwnBranch(), fn ($q) => $q->where('branch_id', $user->branch_id))
             ->get()
             ->filter(fn ($t) => ! $t->isRegisteredForMonth($now->year, $now->month))
             ->values();
 
         $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $branches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('expenses/index', [
             'expenses' => $expenses,
@@ -69,7 +69,7 @@ class ExpenseController extends Controller
             ]);
 
             foreach ($request->expenses as $item) {
-                if (! $user->isAdmin() && (int) $item['branch_id'] !== $user->branch_id) {
+                if ($user->isRestrictedToOwnBranch() && (int) $item['branch_id'] !== $user->branch_id) {
                     continue; // silently skip unauthorized branches
                 }
                 Expense::create($item + ['user_id' => $user->id]);
@@ -89,7 +89,7 @@ class ExpenseController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        if (! $user->isAdmin() && (int) $data['branch_id'] !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && (int) $data['branch_id'] !== $user->branch_id) {
             abort(403);
         }
 
@@ -101,7 +101,7 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user->isAdmin() && $expense->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $expense->branch_id !== $user->branch_id) {
             abort(403);
         }
 
@@ -121,7 +121,7 @@ class ExpenseController extends Controller
     public function destroy(Request $request, Expense $expense): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user->isAdmin() && $expense->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $expense->branch_id !== $user->branch_id) {
             abort(403);
         }
 

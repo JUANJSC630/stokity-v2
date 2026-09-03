@@ -16,7 +16,7 @@ class ProductRequest extends FormRequest
         $user = $this->user();
 
         // Admins can assign products to any branch
-        if ($user->isAdmin()) {
+        if (! $user->isRestrictedToOwnBranch()) {
             return true;
         }
 

@@ -20,7 +20,7 @@ class ExpenseTemplateController extends Controller
         $now = Carbon::now('America/Bogota');
 
         $templates = ExpenseTemplate::with('category')
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when($user->isRestrictedToOwnBranch(), fn ($q) => $q->where('branch_id', $user->branch_id))
             ->orderBy('due_day')
             ->orderBy('name')
             ->get()
@@ -40,7 +40,7 @@ class ExpenseTemplateController extends Controller
             });
 
         $categories = ExpenseCategory::orderBy('name')->get(['id', 'name', 'icon', 'color']);
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $branches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         return Inertia::render('expenses/templates', [
             'templates' => $templates,
@@ -64,7 +64,7 @@ class ExpenseTemplateController extends Controller
         ]);
 
         // Encargado solo puede crear plantillas para su sucursal
-        if (! $user->isAdmin() && (int) $data['branch_id'] !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && (int) $data['branch_id'] !== $user->branch_id) {
             abort(403);
         }
 
@@ -76,7 +76,7 @@ class ExpenseTemplateController extends Controller
     public function update(Request $request, ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user->isAdmin() && $expenseTemplate->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
 
@@ -96,7 +96,7 @@ class ExpenseTemplateController extends Controller
     public function unregisterMonth(ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user->isAdmin() && $expenseTemplate->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
 
@@ -117,7 +117,7 @@ class ExpenseTemplateController extends Controller
     public function destroy(Request $request, ExpenseTemplate $expenseTemplate): RedirectResponse
     {
         $user = Auth::user();
-        if (! $user->isAdmin() && $expenseTemplate->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $expenseTemplate->branch_id !== $user->branch_id) {
             abort(403);
         }
 

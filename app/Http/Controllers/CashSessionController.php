@@ -50,6 +50,17 @@ class CashSessionController extends Controller
         $query = CashSession::with(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name'])
             ->latest('opened_at');
 
+        // Kept on the legacy isAdmin() check, deliberately, for the whole
+        // method: this mixes the branch axis with per-record ownership
+        // (opened_by_user_id) into one non-admin bucket. Converting only the
+        // branch-facing lines (branch_id filter, availableBranches, isAdmin
+        // prop) while this base query stayed on isAdmin() would tell a
+        // data_scope='all' custom role "you have full access" in the UI while
+        // every session still came back restricted to their own — worse than
+        // not touching the method at all. Splitting "sees every branch" from
+        // "sees other people's sessions in their branch" needs a real
+        // permission (cash_sessions.view_all, already in the PR-2 catalog),
+        // which is PR-4 work, not this one.
         if (! $user->isAdmin()) {
             $query->where('opened_by_user_id', $user->id)
                 ->where('branch_id', $user->branch_id);

@@ -41,10 +41,10 @@ class ReportController extends Controller
         return Inertia::render('reports/index', [
             'dashboardData' => $dashboardData,
             'filters' => $filters,
-            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'branches' => ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
             'user' => [
-                'is_admin' => $user->isAdmin(),
+                'is_admin' => ! $user->isRestrictedToOwnBranch(),
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
@@ -98,10 +98,10 @@ class ReportController extends Controller
         return Inertia::render('reports/products-report', [
             'productsData' => $productsData,
             'filters' => $filters,
-            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'branches' => ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
             'user' => [
-                'is_admin' => $user->isAdmin(),
+                'is_admin' => ! $user->isRestrictedToOwnBranch(),
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
@@ -126,10 +126,10 @@ class ReportController extends Controller
         return Inertia::render('reports/sellers-report', [
             'sellersData' => $sellersData,
             'filters' => $filters,
-            'branches' => $user->isAdmin() ? Branch::where('status', true)->get() : collect(),
+            'branches' => ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
             'user' => [
-                'is_admin' => $user->isAdmin(),
+                'is_admin' => ! $user->isRestrictedToOwnBranch(),
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
@@ -235,10 +235,10 @@ class ReportController extends Controller
         return Inertia::render('reports/returns-report', [
             'returnsData' => $returnsData,
             'filters' => $filters,
-            'branches' => Branch::where('status', true)->get(),
+            'branches' => ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
             'user' => [
-                'is_admin' => $user->isAdmin(),
+                'is_admin' => ! $user->isRestrictedToOwnBranch(),
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch ? ($user->branch->business_name || $user->branch->name) : null,
             ],
@@ -253,7 +253,7 @@ class ReportController extends Controller
         $user = Auth::user();
         $date = $request->get('date', today()->toDateString());
 
-        $branchFilter = $user->isAdmin() ? $request->get('branch_id') : $user->branch_id;
+        $branchFilter = ! $user->isRestrictedToOwnBranch() ? $request->get('branch_id') : $user->branch_id;
 
         // Ventas completadas del día, agrupadas por sucursal y método de pago
         $salesQuery = Sale::query()
@@ -284,7 +284,7 @@ class ReportController extends Controller
         $branchIds = $salesRows->pluck('branch_id')->merge($returnsByBranch->keys())->unique();
         $branches = \App\Models\Branch::whereIn('id', $branchIds)->get()->keyBy('id');
 
-        $availableBranches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $availableBranches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         $grouped = $salesRows->groupBy('branch_id')->map(function ($rows, $branchId) use ($branches, $returnsByBranch) {
             $branch = $branches->get($branchId);
@@ -316,7 +316,7 @@ class ReportController extends Controller
             'data' => $grouped,
             'filters' => ['date' => $date, 'branch_id' => $branchFilter],
             'availableBranches' => $availableBranches,
-            'isAdmin' => $user->isAdmin(),
+            'isAdmin' => ! $user->isRestrictedToOwnBranch(),
         ]);
     }
 

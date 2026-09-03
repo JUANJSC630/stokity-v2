@@ -37,7 +37,7 @@ class SaleController extends Controller
 
         // Filtrar por sucursal del usuario si no es administrador
         $user = Auth::user();
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -84,7 +84,7 @@ class SaleController extends Controller
         $user = Auth::user();
 
         // Solo mostrar sucursales disponibles según el rol
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -262,7 +262,7 @@ class SaleController extends Controller
         $query = Sale::with(['client:id,name', 'saleProducts.product:id,name,tax,stock,image'])
             ->where('status', 'pending');
 
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -304,7 +304,7 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
@@ -427,7 +427,7 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
@@ -480,7 +480,7 @@ class SaleController extends Controller
         }
 
         $user = Auth::user();
-        if (! $user->isAdmin() && $sale->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
@@ -496,7 +496,7 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
         // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
         $sale->load([

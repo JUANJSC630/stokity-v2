@@ -54,7 +54,7 @@ class ReportQueryService
         ];
 
         // Non-admin users are locked to their own branch
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $filters['branch_id'] = $user->branch_id;
         }
 

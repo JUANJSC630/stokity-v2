@@ -28,7 +28,7 @@ class SaleReturnController extends Controller
         $user = Auth::user();
 
         // Verify user belongs to the sale's branch (prevent cross-branch returns)
-        if (! $user->isAdmin() && $user->branch_id && $sale->branch_id !== $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id && $sale->branch_id !== $user->branch_id) {
             abort(403, 'No tienes acceso a ventas de otra sucursal.');
         }
 
