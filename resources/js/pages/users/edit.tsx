@@ -57,7 +57,13 @@ export default function EditUser({ user, branches, roles, currentRoleId }: Props
     const form = useForm({
         name: user.name,
         email: user.email,
-        role_id: currentRoleId ?? (roles[0]?.id ?? ''),
+        // Never default to roles[0] — is_system roles sort first and
+        // "Administrador" sorts first among those, so a user with no role
+        // assigned (a data-integrity edge case, not the common path) would
+        // silently pre-select full admin and grant it on any unrelated
+        // save. Leave it empty instead — role_id is required server-side,
+        // so the form can't submit without the admin explicitly choosing.
+        role_id: currentRoleId ?? ('' as number | ''),
         branch_id: user.branch_id ? String(user.branch_id) : '',
         password: '',
         password_confirmation: '',
@@ -259,6 +265,11 @@ export default function EditUser({ user, branches, roles, currentRoleId }: Props
                                             className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
                                             disabled={form.processing}
                                         >
+                                            {form.data.role_id === '' && (
+                                                <option value="" disabled>
+                                                    Selecciona un rol
+                                                </option>
+                                            )}
                                             {roles.map((role) => (
                                                 <option key={role.id} value={role.id}>
                                                     {role.name}

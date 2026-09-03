@@ -237,8 +237,9 @@ class UserController extends Controller
 
             // Asignar al usuario como encargado de la nueva sucursal
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
-        } elseif (! $isSystemEncargado) {
-            // Si el usuario ha dejado de ser encargado, quitarlo como manager de cualquier sucursal
+        } else {
+            // Si el usuario ha dejado de ser encargado, o sigue siéndolo pero
+            // sin sucursal asignada, quitarlo como manager de cualquier sucursal.
             Branch::where('manager_id', $user->id)->update(['manager_id' => null]);
         }
 

@@ -8,6 +8,7 @@ use App\Http\Requests\RoleRequest;
 use App\Models\Role;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -97,30 +98,41 @@ class RoleController extends Controller
         $validated = $request->validated();
         $permissions = PermissionCatalog::expandWithDependencies($validated['permissions']);
 
-        // Prevent locking every admin out of the role editor itself: at
-        // least one role in the tenant must keep settings.roles.manage
-        // after this save.
-        if (! in_array('settings.roles.manage', $permissions, true) && ! $this->anotherRoleStillManagesRoles($role)) {
+        // Lock the tenant's whole role set for the duration of the guard +
+        // mutation: without this, two concurrent requests could each read
+        // "someone else still manages roles" as true right before both
+        // strip the permission, leaving zero roles that can manage roles.
+        $blocked = DB::transaction(function () use ($role, $validated, $permissions) {
+            $this->lockTenantRoles();
+
+            if (! in_array('settings.roles.manage', $permissions, true) && ! $this->anotherRoleStillManagesRoles($role)) {
+                return true;
+            }
+
+            $role->forceFill([
+                'description' => $validated['description'] ?? null,
+                'data_scope' => $validated['data_scope'],
+            ])->save();
+
+            // System roles (Administrador/Encargado/Vendedor) keep their
+            // name locked: DefaultRoleProvisioner::roleNameForLegacy() and
+            // UserController match the legacy `role` column by this literal
+            // name — renaming here would silently break that sync for every
+            // future create/update of a user with that legacy role.
+            if (! $role->is_system && $validated['name'] !== $role->name) {
+                $role->update(['name' => $validated['name']]);
+            }
+
+            $role->syncPermissions($permissions);
+
+            return false;
+        });
+
+        if ($blocked) {
             return back()->withErrors([
                 'permissions' => 'Al menos un rol del negocio debe conservar el permiso "Gestionar roles y permisos" — de lo contrario nadie podría volver a editar los roles.',
             ]);
         }
-
-        $role->forceFill([
-            'description' => $validated['description'] ?? null,
-            'data_scope' => $validated['data_scope'],
-        ])->save();
-
-        // System roles (Administrador/Encargado/Vendedor) keep their name
-        // locked: DefaultRoleProvisioner::roleNameForLegacy() and
-        // UserController match the legacy `role` column by this literal
-        // name — renaming here would silently break that sync for every
-        // future create/update of a user with that legacy role.
-        if (! $role->is_system && $validated['name'] !== $role->name) {
-            $role->update(['name' => $validated['name']]);
-        }
-
-        $role->syncPermissions($permissions);
 
         return redirect()->route('settings.roles.index')->with('success', 'Rol actualizado correctamente.');
     }
@@ -138,16 +150,24 @@ class RoleController extends Controller
             return back()->withErrors(['role' => 'No puedes eliminar un rol con usuarios asignados. Reasígnalos a otro rol primero.']);
         }
 
-        // Same lockout guard as update(): a role holding settings.roles.manage
-        // can't be deleted if it's the tenant's only one — see
-        // anotherRoleStillManagesRoles().
-        if ($role->hasPermissionTo('settings.roles.manage') && ! $this->anotherRoleStillManagesRoles($role)) {
+        // Same lock + guard pattern as update() — see the comment there.
+        $blocked = DB::transaction(function () use ($role) {
+            $this->lockTenantRoles();
+
+            if ($role->hasPermissionTo('settings.roles.manage') && ! $this->anotherRoleStillManagesRoles($role)) {
+                return true;
+            }
+
+            $role->delete();
+
+            return false;
+        });
+
+        if ($blocked) {
             return back()->withErrors([
                 'role' => 'Este rol es el único que puede gestionar roles y permisos — no se puede eliminar sin dejar el negocio sin nadie que pueda volver a editarlos.',
             ]);
         }
-
-        $role->delete();
 
         return redirect()->route('settings.roles.index')->with('success', 'Rol eliminado correctamente.');
     }
@@ -161,6 +181,18 @@ class RoleController extends Controller
     private function authorizeSameTenant(Role $role): void
     {
         abort_if($role->tenant_id !== app(TenantManager::class)->id(), 404);
+    }
+
+    /**
+     * Row-locks every role in the current tenant, so a concurrent update()
+     * or destroy() on a different role can't interleave with this one and
+     * both see "someone else still manages roles" as true right before
+     * each removes the permission — must be called inside the same
+     * DB::transaction() that performs the guarded mutation.
+     */
+    private function lockTenantRoles(): void
+    {
+        Role::where('tenant_id', app(TenantManager::class)->id())->lockForUpdate()->get();
     }
 
     /**

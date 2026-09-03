@@ -42,7 +42,10 @@ export default function RolesIndex({ roles }: { roles: RoleRow[] }) {
         if (!roleToDelete) return;
         router.delete(route('settings.roles.destroy', roleToDelete.id), {
             onSuccess: () => setRoleToDelete(null),
-            onError: () => setRoleToDelete(null),
+            onError: (errors) => {
+                toast.error(errors.role ?? 'No se pudo eliminar el rol.');
+                setRoleToDelete(null);
+            },
         });
     };
 
