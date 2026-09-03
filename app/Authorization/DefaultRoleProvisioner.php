@@ -56,13 +56,19 @@ class DefaultRoleProvisioner
     /**
      * The inverse of roleNameForLegacy(): given an actual Spatie role
      * (system or a tenant's custom one), the closest legacy `role` string —
-     * still written to `users.role` on create/update so the handful of
-     * isAdmin()/isManager()/isSeller() call sites not yet migrated to
-     * permission checks (e.g. CashSessionController::closeForm()/close())
-     * keep behaving reasonably for a user holding a custom role. This is
-     * necessarily an approximation for anything that isn't one of the 3
-     * system roles — retiring `users.role` entirely (Bloque 8 of
-     * ROLES_PERMISSIONS_PLAN.md) is what removes the need for it.
+     * still written to `users.role` on create/update because
+     * User::hasPermissionTo() and dataScope() both fall back to this
+     * column for any user with no Spatie role row yet (an unmigrated
+     * tenant, or a bare test fixture). No controller call site reads
+     * isAdmin()/isManager()/isSeller() directly anymore — the last ones
+     * (CashSessionController::closeForm()/close(), migrated to
+     * cash_sessions.close_any in PR-6; StockMovementController, migrated
+     * to isRestrictedToOwnBranch() in the legacy-cleanup pass that
+     * followed it) are gone — this is purely about keeping the fallback
+     * path correct. Necessarily an approximation for anything
+     * that isn't one of the 3 system roles — retiring `users.role`
+     * entirely (Bloque 8 of ROLES_PERMISSIONS_PLAN.md) is what removes
+     * the need for it.
      */
     public static function legacyStringForRole(Role $role): string
     {
@@ -152,17 +158,16 @@ class DefaultRoleProvisioner
      * Everything except: users.*, branches.*, payment_methods.create/update/
      * delete, settings.* (business/ticket/appearance/printer/roles/modules),
      * reports.branches.view, sales.view_deleted/update/delete — matches
-     * AdminOrManagerMiddleware's reach today, minus the admin-only slices
-     * AdminMiddleware still guards (routes/settings.php, routes/payment-
-     * methods.php's Route::resource — but NOT its auth-only `active` list
-     * endpoint, which is why payment_methods.view is NOT excluded: pos.access
-     * declares it as a hard requirement, and stripping the whole
-     * payment_methods.* prefix silently broke that dependency).
+     * what routes/*.php's `can:` middleware gates admin-only today (payment_
+     * methods.view is NOT excluded despite the rest of that prefix being
+     * admin-only: pos.access declares it as a hard requirement, and
+     * stripping the whole payment_methods.* prefix silently broke that
+     * dependency).
      *
      * sales.update is excluded too: SaleController::edit()/update() gate on
-     * `! auth()->user()->isAdmin()` alone (editing a *completed* sale is
-     * admin-only today) — sales.create/manage_pending (POS, pending-sale
-     * flow) stay granted, this only removes editing an already-completed one.
+     * can('sales.update') alone (editing a *completed* sale is admin-only
+     * today) — sales.create/manage_pending (POS, pending-sale flow) stay
+     * granted, this only removes editing an already-completed one.
      *
      * cash_sessions.view_all is excluded too: CashSessionController::index()/
      * show()/addMovement() gate their "see someone else's session" check on

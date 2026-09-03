@@ -94,7 +94,7 @@ class StockMovementController extends Controller
             $selectedProduct = Product::with(['category', 'branch'])->find($request->product_id);
         }
 
-        $branches = $user->isAdmin() || $user->isManager()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -133,8 +133,14 @@ class StockMovementController extends Controller
         $user = Auth::user();
         $product = Product::findOrFail($request->product_id);
 
-        // Verificar permisos de sucursal
-        if (! $user->isAdmin() && ! $user->isManager() && $product->branch_id !== $user->branch_id) {
+        // Verificar permisos de sucursal. Nota de comportamiento: antes de
+        // este cleanup, esta línea usaba `! isAdmin() && ! isManager()`, lo
+        // que dejaba a Encargado crear movimientos para CUALQUIER sucursal
+        // — inconsistente con index() de este mismo controller, que ya
+        // restringe a Encargado a su propia sucursal. isRestrictedToOwnBranch()
+        // ahora trata Encargado igual en todo el controller (y en el resto
+        // de la app), corrigiendo esa inconsistencia.
+        if ($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id) {
             return redirect()->back()->with('error', 'No tienes permisos para modificar este producto.');
         }
 
@@ -262,7 +268,7 @@ class StockMovementController extends Controller
         $query = StockMovement::query();
 
         // Filtrar por sucursal si el usuario no es admin
-        if (! $user->isAdmin() && ! $user->isManager()) {
+        if ($user->isRestrictedToOwnBranch()) {
             $query->where('branch_id', $user->branch_id);
         } elseif ($request->filled('branch')) {
             $query->where('branch_id', $request->branch);
@@ -288,7 +294,7 @@ class StockMovementController extends Controller
                 ->toArray(),
         ];
 
-        $branches = $user->isAdmin() || $user->isManager() ? Branch::where('status', true)->get() : collect();
+        $branches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect();
 
         return Inertia::render('stock-movements/statistics', [
             'statistics' => $statistics,

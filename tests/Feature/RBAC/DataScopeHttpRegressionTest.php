@@ -72,9 +72,9 @@ it('an Encargado with a real Spatie role only sees products from their own branc
 });
 
 it('an Encargado with a real Spatie role cannot open a product from another branch', function () {
-    // stock-movements.product is gated by AdminOrManagerMiddleware (PR-0), so
-    // a vendedor can't reach it at all — use Encargado to test the record-level
-    // abort_if() inside the controller instead.
+    // stock-movements.product is gated by can:stock_movements.view, which
+    // Vendedor lacks, so it can't reach it at all — use Encargado to test
+    // the record-level abort_if() inside the controller instead.
     $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
 
     $this->actingAs($manager)
@@ -84,6 +84,65 @@ it('an Encargado with a real Spatie role cannot open a product from another bran
     $this->actingAs($manager)
         ->get(route('stock-movements.product', $this->productA))
         ->assertOk();
+});
+
+it('StockMovementController now keys its branch checks off data_scope, not isAdmin()/isManager() — a custom role is correctly scoped', function () {
+    // Regression for the legacy isAdmin()/isManager() cleanup: these were
+    // the last real call sites in the app, converted to
+    // isRestrictedToOwnBranch() so a custom role (not literally
+    // administrador/encargado) is scoped correctly here too.
+    $regional = app(TenantManager::class)->runAs($this->tenant, function () {
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'Regional', 'guard_name' => 'web', 'data_scope' => 'all'])
+            ->syncPermissions(\App\Authorization\PermissionCatalog::names());
+        $user = User::create([
+            'name' => 'Regional', 'email' => 'regional-stock@acme.test', 'password' => bcrypt('x'),
+            'role' => 'encargado', 'branch_id' => $this->branchA->id, 'status' => true, 'email_verified_at' => now(),
+        ]);
+        $user->assignRole($role);
+
+        return $user;
+    });
+
+    // data_scope=all: can reach a product from another branch and sees
+    // every branch in the create-form dropdown.
+    $response = $this->actingAs($regional)->get(route('stock-movements.product', $this->productB));
+    $response->assertOk();
+
+    $createResponse = $this->actingAs($regional)->get(route('stock-movements.create'));
+    $createResponse->assertOk();
+    expect($createResponse->viewData('page')['props']['branches'])->toHaveCount(2);
+});
+
+it('a default Encargado can no longer create a stock movement for another branch\'s product — intentional behavior correction', function () {
+    // Before this cleanup, store() used `! isAdmin() && ! isManager()`,
+    // which let Encargado create movements for ANY branch's product —
+    // inconsistent with index() (same controller) already restricting
+    // Encargado to their own branch, and with every other module in the
+    // app. isRestrictedToOwnBranch() now treats Encargado consistently
+    // here too. This is a deliberate narrowing, not a bug — asserted
+    // explicitly so it's never silently reverted.
+    $manager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+
+    $this->actingAs($manager)->get(route('stock-movements.create'))->assertOk();
+    $createProps = $this->actingAs($manager)->get(route('stock-movements.create'))->viewData('page')['props'];
+    expect($createProps['branches'])->toHaveCount(1)
+        ->and($createProps['branches'][0]['id'])->toBe($this->branchA->id);
+
+    $this->actingAs($manager)->post(route('stock-movements.store'), [
+        'product_id' => $this->productB->id,
+        'type' => 'ingreso',
+        'quantity' => 1,
+        'movement_date' => now()->format('Y-m-d'),
+    ])->assertSessionHas('error');
+
+    app(TenantManager::class)->runAs($this->tenant, fn () => expect($this->productB->fresh()->stock)->toBe($this->productB->stock));
+
+    $this->actingAs($manager)->post(route('stock-movements.store'), [
+        'product_id' => $this->productA->id,
+        'type' => 'ingreso',
+        'quantity' => 1,
+        'movement_date' => now()->format('Y-m-d'),
+    ])->assertSessionHasNoErrors();
 });
 
 it('an Encargado cannot view, edit, or delete a product from another branch by guessing its ID', function () {

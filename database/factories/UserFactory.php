@@ -26,7 +26,11 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'role' => 'user',
+            // Matches the users.role column's own DB-level default — 'user'
+            // was Laravel's original scaffolding value and never matched any
+            // of the app's real legacy roles (administrador/encargado/
+            // vendedor/super_admin).
+            'role' => 'vendedor',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -40,16 +44,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
-        ]);
-    }
-
-    /**
-     * Indicate that the user is an admin.
-     */
-    public function admin(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'admin',
         ]);
     }
 }
