@@ -50,14 +50,13 @@ class CashSessionController extends Controller
         $query = CashSession::with(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name'])
             ->latest('opened_at');
 
-        // Two independent axes, now properly split instead of one combined
-        // isAdmin() bucket: cash_sessions.view_all controls whose sessions
-        // (own vs. everyone's), data_scope controls which branch(es) — see
-        // DefaultRoleProvisioner::encargadoPermissions() for why Encargado
-        // excludes view_all (today it's restricted to its own sessions here,
-        // same as Vendedor; the broader close-someone-else's-session rule
-        // lives only in closeForm()/close(), a separate, deliberately
-        // unconverted distinction).
+        // Two independent axes: cash_sessions.view_all controls whose
+        // sessions (own vs. everyone's), data_scope controls which
+        // branch(es) — see DefaultRoleProvisioner::encargadoPermissions()
+        // for why Encargado excludes view_all (restricted to its own
+        // sessions here, same as Vendedor). The broader
+        // close-someone-else's-session rule in closeForm()/close() is a
+        // genuinely different permission, cash_sessions.close_any.
         if (! $user->can('cash_sessions.view_all')) {
             $query->where('opened_by_user_id', $user->id);
         }

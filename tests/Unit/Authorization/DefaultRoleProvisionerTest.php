@@ -55,10 +55,10 @@ it('keeps Encargado away from users, branches, payment method management and rol
 
     expect($names->contains(fn (string $n) => str_starts_with($n, 'users.')))->toBeFalse()
         ->and($names->contains(fn (string $n) => str_starts_with($n, 'branches.')))->toBeFalse()
-        // payment_methods.view stays IN: routes/payment-methods.php gates only
-        // the management resource behind AdminMiddleware, its `active` list
-        // endpoint is auth-only today, and pos.access declares this permission
-        // as a hard requirement in the catalog.
+        // payment_methods.view stays IN: routes/payment-methods.php gates the
+        // management resource behind can:payment_methods.create, its `active`
+        // list endpoint is auth-only today, and pos.access declares this
+        // permission as a hard requirement in the catalog.
         ->and($names)->toContain('payment_methods.view')
         ->and($names)->not->toContain('payment_methods.create')
         ->and($names)->not->toContain('payment_methods.update')
