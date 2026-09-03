@@ -1,6 +1,8 @@
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { usePermissions } from '@/hooks/use-permissions';
+import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
@@ -35,91 +37,98 @@ const allNavItems: NavItem[] = [
         title: 'Inicio',
         href: '/dashboard',
         icon: LayoutGrid,
-        roles: ['administrador', 'encargado', 'vendedor'], // All roles can access
+        permission: 'dashboard.view',
     },
     {
         title: 'Usuarios',
         href: '/users',
         icon: Users,
-        roles: ['administrador'], // Only admin
+        permission: 'users.view',
     },
     {
         title: 'Sucursales',
         href: '/branches',
         icon: Building2,
-        roles: ['administrador'], // Only admin
+        permission: 'branches.view',
     },
     {
         title: 'Categorías',
         href: '/categories',
         icon: Tags,
-        roles: ['administrador', 'encargado'], // Admin and manager
+        permission: 'categories.view',
     },
     {
         title: 'Catálogo',
         href: '/products',
         icon: Package,
-        roles: ['administrador', 'encargado'], // Admin and manager
+        // products.view is also held by Vendedor (needed for POS lookups) —
+        // products.create is what actually separates admin/encargado from
+        // vendedor for this catalog-management page, and matches the group
+        // this item's routes fall under (routes/products.php).
+        permission: 'products.create',
     },
     {
         title: 'Clientes',
         href: '/clients',
         icon: UserRound,
-        roles: ['administrador', 'encargado', 'vendedor'], // All roles
+        permission: 'clients.view',
     },
     {
         title: 'POS',
         href: '/pos',
         icon: ScanLine,
+        permission: 'pos.access',
         highlight: true,
     },
     {
         title: 'Historial de Caja',
         href: '/cash-sessions',
         icon: BookOpen,
-        roles: ['administrador', 'encargado', 'vendedor'],
+        permission: 'cash_sessions.view',
     },
     {
         title: 'Ventas',
         href: '/sales',
         icon: Banknote,
-        roles: ['administrador', 'encargado', 'vendedor'], // All roles
+        permission: 'sales.view',
     },
     {
         title: 'Créditos',
         href: '/credits',
         icon: HandCoins,
-        roles: ['administrador', 'encargado', 'vendedor'],
+        permission: 'credits.view',
     },
     {
         title: 'Proveedores',
         href: '/suppliers',
         icon: Truck,
-        roles: ['administrador', 'encargado'],
+        permission: 'suppliers.view',
     },
     {
         title: 'Movimientos de Stock',
         href: '/stock-movements',
         icon: Activity,
-        roles: ['administrador', 'encargado'], // Admin and manager
+        permission: 'stock_movements.view',
     },
     {
         title: 'Métodos de Pago',
         href: '/payment-methods',
         icon: CreditCard,
-        roles: ['administrador'], // Only admin
+        // payment_methods.view is held by every role (POS needs it) —
+        // .create is what actually gates routes/payment-methods.php.
+        permission: 'payment_methods.create',
     },
     {
         title: 'Finanzas',
         href: '/finances',
         icon: TrendingUp,
-        roles: ['administrador', 'encargado'],
+        permission: 'finances.view',
     },
     {
         title: 'Gastos',
         href: '/expenses',
         icon: Receipt,
-        roles: ['administrador', 'encargado'],
+        permission: 'expenses.view',
         children: [
             {
                 title: 'Historial de gastos',
@@ -142,7 +151,7 @@ const allNavItems: NavItem[] = [
         title: 'Reportes',
         href: '',
         icon: BarChart3,
-        roles: ['administrador', 'encargado'], // Admin and manager
+        permission: 'reports.view',
         children: [
             {
                 title: 'Principal',
@@ -168,7 +177,7 @@ const allNavItems: NavItem[] = [
                 title: 'Sucursales',
                 href: '/reports/branches',
                 icon: Building,
-                roles: ['administrador'], // Only admin
+                permission: 'reports.branches.view',
             },
             {
                 title: 'Balance de Caja',
@@ -207,6 +216,7 @@ function getSidebarContentEl(): HTMLElement | null {
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
+    const { can } = usePermissions();
 
     // Restore sidebar scroll position on every mount (i.e. after each navigation)
     useEffect(() => {
@@ -227,7 +237,7 @@ export function AppSidebar() {
 
     // Super admins get the platform nav; tenant users get the store nav by role.
     const isSuperAdmin = userRole === 'super_admin';
-    const filteredNavItems = isSuperAdmin ? adminNavItems : allNavItems.filter((item) => !item.roles || item.roles.includes(userRole));
+    const filteredNavItems = isSuperAdmin ? adminNavItems : filterNavItemsByPermission(allNavItems, can);
     const homeHref = isSuperAdmin ? '/admin/tenants' : '/dashboard';
     return (
         <Sidebar collapsible="icon" variant="inset">

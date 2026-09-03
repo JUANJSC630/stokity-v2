@@ -1,14 +1,15 @@
 import SaleReturnTicket from '@/components/SaleReturnTicket';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
+import { usePermissions } from '@/hooks/use-permissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
-import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn, type User } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn } from '@/types';
+import { Head, Link, router } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, CreditCard, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -66,8 +67,7 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
     };
 
     // Obtener el usuario autenticado
-    const { auth } = usePage<{ auth: { user: User } }>().props;
-    const isAdmin = auth.user.role === 'administrador';
+    const { can } = usePermissions();
 
     // Calcular cantidad devuelta por producto
     // Tipos para productos y devoluciones
@@ -269,7 +269,7 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                             Devolución
                         </button>
                         {sale.id &&
-                            (isAdmin ? (
+                            (can('sales.update') ? (
                                 <Link href={route('sales.edit', sale.id)}>
                                     <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                                         <Edit className="h-3.5 w-3.5" />
@@ -279,7 +279,7 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                             ) : (
                                 <button
                                     disabled
-                                    title="Solo administradores pueden editar ventas"
+                                    title="No tienes permisos para editar ventas"
                                     className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground opacity-40"
                                 >
                                     <Edit className="h-3.5 w-3.5" />

@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
@@ -50,7 +51,7 @@ export default function Products({
     branches = [],
     filters = { search: '', status: 'all', category: 'all', branch: 'all' },
 }: ProductsPageProps) {
-    const { auth, flash } = usePage<{ auth: { user: { role: string } }; flash: { error?: string } }>().props;
+    const { flash } = usePage<{ flash: { error?: string } }>().props;
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
@@ -73,9 +74,10 @@ export default function Products({
     // Polling: refresh product list (stock levels) every 60 seconds
     usePolling(['products'], 60_000);
 
-    const isAdmin = auth.user.role === 'administrador';
-    const isManager = auth.user.role === 'encargado';
-    const canManageProducts = isAdmin || isManager;
+    const { can } = usePermissions();
+    // branches.view: only Administrador holds it among the default roles —
+    // matches the previous admin-only branch column/filter exactly.
+    const isAdmin = can('branches.view');
 
     // Debounced auto-search on text input change
     useEffect(() => {
@@ -248,20 +250,20 @@ export default function Products({
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Catálogo</h1>
                     <div className="flex gap-2">
-                        {canManageProducts && (
-                            <>
-                                <Link href="/products/create">
-                                    <Button size="sm" className="flex items-center gap-1">
-                                        <Plus className="h-4 w-4" />
-                                        Nuevo
-                                    </Button>
-                                </Link>
-                                <Link href="/products/trashed">
-                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </Link>
-                            </>
+                        {can('products.create') && (
+                            <Link href="/products/create">
+                                <Button size="sm" className="flex items-center gap-1">
+                                    <Plus className="h-4 w-4" />
+                                    Nuevo
+                                </Button>
+                            </Link>
+                        )}
+                        {can('products.delete') && (
+                            <Link href="/products/trashed">
+                                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </Link>
                         )}
                     </div>
                 </div>

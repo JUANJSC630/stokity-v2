@@ -1,9 +1,11 @@
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { usePermissions } from '@/hooks/use-permissions';
+import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { cn } from '@/lib/utils';
-import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { type NavItem } from '@/types';
+import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
@@ -26,34 +28,37 @@ const sidebarNavItems: NavItem[] = [
         title: 'Negocio',
         href: '/settings/business',
         icon: null,
-        roles: ['administrador'],
+        // All 3 items share this permission: routes/settings.php gates the
+        // whole "Configuración del negocio" group (business/printer/ticket)
+        // on settings.business.view alone — the more specific
+        // settings.printer.manage/settings.ticket.update only gate the
+        // write actions, not visiting the page.
+        permission: 'settings.business.view',
     },
     {
         title: 'Impresora',
         href: '/settings/printer',
         icon: null,
-        roles: ['administrador'],
+        permission: 'settings.business.view',
     },
     {
         title: 'Ticket',
         href: '/settings/ticket',
         icon: null,
-        roles: ['administrador'],
+        permission: 'settings.business.view',
     },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
-    const { auth } = usePage<SharedData>().props;
+    const { can } = usePermissions();
 
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
 
-    const userRole = auth.user.role;
-
     const currentPath = window.location.pathname;
-    const navItems = sidebarNavItems.filter((item) => !item.roles || item.roles.includes(userRole));
+    const navItems = filterNavItemsByPermission(sidebarNavItems, can);
 
     return (
         <div className="px-4 py-6">

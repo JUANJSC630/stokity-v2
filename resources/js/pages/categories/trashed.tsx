@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Category } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { AlertTriangle, ArrowLeft, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -38,7 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function TrashedCategories({ categories, filters = { search: '' } }: TrashedCategoriesPageProps) {
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    const { can } = usePermissions();
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
     const [categoryToForceDelete, setCategoryToForceDelete] = useState<Category | null>(null);
@@ -121,18 +122,20 @@ export default function TrashedCategories({ categories, filters = { search: '' }
             title: 'Acciones',
             render: (_: unknown, category: Category) => (
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                            setCategoryToRestore(category);
-                            setRestoreModalOpen(true);
-                        }}
-                    >
-                        <ArrowLeft className="size-4" />
-                    </Button>
-                    {auth.user.role === 'administrador' && (
+                    {can('categories.restore') && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                                setCategoryToRestore(category);
+                                setRestoreModalOpen(true);
+                            }}
+                        >
+                            <ArrowLeft className="size-4" />
+                        </Button>
+                    )}
+                    {can('categories.delete') && (
                         <Button
                             variant="ghost"
                             size="icon"

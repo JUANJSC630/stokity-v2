@@ -3,6 +3,7 @@
 use App\Authorization\DefaultRoleProvisioner;
 use App\Models\Branch;
 use App\Models\CashSession;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Tenant;
@@ -136,6 +137,18 @@ it('a custom role holding only products.create cannot delete/restore/sync-suppli
     $this->actingAs($creatorOnly)->put(route('products.restore', $product->id))->assertForbidden();
     $this->actingAs($creatorOnly)->post(route('products.sync-suppliers', $product), ['suppliers' => []])->assertForbidden();
     $this->actingAs($creatorOnly)->post(route('products.update-stock', $product), ['stock' => 5, 'operation' => 'set'])->assertForbidden();
+});
+
+it('a custom role holding only categories.view cannot create/update/delete/restore categories — CategoryRequest/CategoryController backstops', function () {
+    // CategoryRequest::authorize() and CategoryController used to defer
+    // entirely to the route's categories.view gate — the same class of gap
+    // CodeRabbit flagged for products, fixed the same way here.
+    $viewerOnly = customRoleUser($this->tenant, $this->branch, ['categories.view']);
+    $category = app(TenantManager::class)->runAs($this->tenant, fn () => Category::factory()->create());
+
+    $this->actingAs($viewerOnly)->post(route('categories.store'), ['name' => 'Nope'])->assertForbidden();
+    $this->actingAs($viewerOnly)->put(route('categories.update', $category), ['name' => 'Nope'])->assertForbidden();
+    $this->actingAs($viewerOnly)->delete(route('categories.destroy', $category))->assertForbidden();
 });
 
 it('a custom role explicitly granted products.delete can delete a product with zero stock', function () {

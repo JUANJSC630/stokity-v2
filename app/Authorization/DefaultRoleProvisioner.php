@@ -152,6 +152,11 @@ class DefaultRoleProvisioner
      * catalog permission of its own yet, deliberately left as a literal
      * isAdmin()||isManager() check rather than force-fit into this one.)
      *
+     * dashboard.low_stock.view and dashboard.branch_sales.view are excluded
+     * too: dashboard.tsx gates the "Productos en inventario" and "Ventas por
+     * sucursal" cards on `userRole === 'administrador'` — admin-only today,
+     * even though DashboardController computes both regardless of role.
+     *
      * @return list<string>
      */
     public static function encargadoPermissions(): array
@@ -163,6 +168,7 @@ class DefaultRoleProvisioner
             'settings.roles.manage', 'settings.modules.manage',
             'sales.view_deleted', 'sales.update', 'sales.delete', 'reports.branches.view',
             'cash_sessions.view_all',
+            'dashboard.low_stock.view', 'dashboard.branch_sales.view',
         ];
 
         return collect(PermissionCatalog::names())

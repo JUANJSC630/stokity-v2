@@ -166,6 +166,26 @@ class User extends Authenticatable
         return in_array($permissionName, \App\Authorization\DefaultRoleProvisioner::defaultPermissionsForLegacyRole($this->role ?? ''), true);
     }
 
+    /**
+     * Every permission name this user holds, real or legacy-fallback — the
+     * SAME two branches as hasPermissionTo() above, so the two can never
+     * disagree. Backs the `auth.permissions` Inertia prop (see
+     * HandleInertiaRequests) that the frontend's usePermissions()/<Can>
+     * read; calling Spatie's getAllPermissions() directly there would skip
+     * the fallback entirely and show an empty sidebar to any legacy-only
+     * user the backend actually still grants access to.
+     *
+     * @return list<string>
+     */
+    public function allPermissionNames(): array
+    {
+        if ($this->isSuperAdmin() || ($this->hasSpatieRoleCache ??= $this->roles()->exists())) {
+            return $this->getAllPermissions()->pluck('name')->values()->all();
+        }
+
+        return \App\Authorization\DefaultRoleProvisioner::defaultPermissionsForLegacyRole($this->role ?? '');
+    }
+
     private ?bool $hasSpatieRoleCache = null;
 
     private ?string $dataScopeCache = null;

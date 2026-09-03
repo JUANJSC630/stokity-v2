@@ -13,7 +13,9 @@ class CategoryRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization will be handled by the middleware
+        return $this->isMethod('PUT') || $this->isMethod('PATCH')
+            ? $this->user()->can('categories.update')
+            : $this->user()->can('categories.create');
     }
 
     /**

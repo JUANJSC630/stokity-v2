@@ -5,8 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import AppLayout from '@/layouts/app-layout';
 
 import { Table, type Column } from '@/components/common/Table';
+import { usePermissions } from '@/hooks/use-permissions';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowUpRight, Recycle, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -75,7 +76,6 @@ export default function TrashedProducts({
               },
     };
 
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
     const [categoryFilter, setCategoryFilter] = useState(filters?.category || 'all');
     const [branchFilter, setBranchFilter] = useState(filters?.branch || 'all');
@@ -83,9 +83,8 @@ export default function TrashedProducts({
     const [productToForceDelete, setProductToForceDelete] = useState<Product | null>(null);
     const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
 
-    const isAdmin = auth.user.role === 'administrador';
-    const isManager = auth.user.role === 'encargado';
-    const canManageProducts = isAdmin || isManager;
+    const { can } = usePermissions();
+    const isAdmin = can('branches.view');
 
     // Update search results when filters change
     useEffect(() => {
@@ -200,24 +199,24 @@ export default function TrashedProducts({
             title: 'Acciones',
             render: (_: unknown, row: Product) => (
                 <div className="flex gap-1">
-                    {canManageProducts && (
-                        <>
-                            <Button onClick={() => handleRestore(row.id)} variant="outline" size="sm" className="flex h-8 items-center gap-1">
-                                <Recycle className="h-4 w-4" />
-                                <span>Restaurar</span>
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    setProductToForceDelete(row);
-                                    setForceDeleteModalOpen(true);
-                                }}
-                                variant="destructive"
-                                size="sm"
-                                className="h-8 w-8"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </>
+                    {can('products.restore') && (
+                        <Button onClick={() => handleRestore(row.id)} variant="outline" size="sm" className="flex h-8 items-center gap-1">
+                            <Recycle className="h-4 w-4" />
+                            <span>Restaurar</span>
+                        </Button>
+                    )}
+                    {can('products.force_delete') && (
+                        <Button
+                            onClick={() => {
+                                setProductToForceDelete(row);
+                                setForceDeleteModalOpen(true);
+                            }}
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 w-8"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
                     )}
                 </div>
             ),
@@ -357,29 +356,29 @@ export default function TrashedProducts({
                                         <div className="mb-1 text-xs text-muted-foreground">Sucursal: {product.branch?.name}</div>
                                     )}
                                     <div className="mt-2 flex justify-end gap-2">
-                                        {canManageProducts && (
-                                            <>
-                                                <Button
-                                                    onClick={() => handleRestore(product.id)}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex h-8 items-center gap-1"
-                                                >
-                                                    <Recycle className="h-4 w-4" />
-                                                    <span>Restaurar</span>
-                                                </Button>
-                                                <Button
-                                                    onClick={() => {
-                                                        setProductToForceDelete(product);
-                                                        setForceDeleteModalOpen(true);
-                                                    }}
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </>
+                                        {can('products.restore') && (
+                                            <Button
+                                                onClick={() => handleRestore(product.id)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex h-8 items-center gap-1"
+                                            >
+                                                <Recycle className="h-4 w-4" />
+                                                <span>Restaurar</span>
+                                            </Button>
+                                        )}
+                                        {can('products.force_delete') && (
+                                            <Button
+                                                onClick={() => {
+                                                    setProductToForceDelete(product);
+                                                    setForceDeleteModalOpen(true);
+                                                }}
+                                                variant="destructive"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         )}
                                     </div>
                                 </div>

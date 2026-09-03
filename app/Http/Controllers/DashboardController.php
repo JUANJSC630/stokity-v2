@@ -117,7 +117,6 @@ class DashboardController extends Controller
             'lowStockProducts' => $lowStockProducts,
             'pendingSales' => $pendingSales,
             'dailySales' => $dailySales,
-            'userRole' => $user->role,
             'userName' => $user->name,
         ]);
     }

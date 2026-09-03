@@ -1,4 +1,5 @@
 import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -90,7 +91,6 @@ interface DashboardProps {
         total_sales: number;
         total_amount: number;
     }>;
-    userRole: string;
     userName: string;
 }
 
@@ -102,11 +102,13 @@ export default function Dashboard({
     recentSales,
     lowStockProducts,
     pendingSales = { total: 0, items: [] },
-    userRole,
     userName,
 }: DashboardProps) {
     // Polling: refresh dashboard data every 2 minutes
     usePolling(['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'pendingSales', 'salesByBranch'], 120_000);
+    const { can } = usePermissions();
+    const canViewLowStock = can('dashboard.low_stock.view');
+    const canViewBranchSales = can('dashboard.branch_sales.view');
 
     const [currentGreeting, setCurrentGreeting] = useState('');
 
@@ -150,7 +152,7 @@ export default function Dashboard({
                 <PendingSalesAlert sales={pendingSales.items} total={pendingSales.total} />
 
                 {/* Metric cards */}
-                <div className={`grid grid-cols-2 gap-3 md:gap-4 ${userRole === 'administrador' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
+                <div className={`grid grid-cols-2 gap-3 md:gap-4 ${canViewLowStock ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
                     <MetricCard
                         title="Ventas Hoy"
                         value={metrics.total_sales_today}
@@ -171,7 +173,7 @@ export default function Dashboard({
                         description={
                             <span>
                                 {metrics.total_sales_month} transacciones · bruto antes de devoluciones
-                                {userRole !== 'vendedor' && (
+                                {can('finances.view') && (
                                     <>
                                         {' · '}
                                         <a href={route('finances.summary')} className="underline underline-offset-2 hover:text-foreground">
@@ -184,7 +186,7 @@ export default function Dashboard({
                         icon={<DollarSign className="h-4 w-4" />}
                     />
                     <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
-                    {userRole === 'administrador' && (
+                    {canViewLowStock && (
                         <MetricCard
                             title="Productos"
                             value={metrics.total_products}
@@ -201,7 +203,7 @@ export default function Dashboard({
                 </div>
 
                 {/* Ventas por sucursal — admins only */}
-                {userRole === 'administrador' && salesByBranch.length > 0 && <SalesByBranch branches={salesByBranch} />}
+                {canViewBranchSales && salesByBranch.length > 0 && <SalesByBranch branches={salesByBranch} />}
             </div>
         </AppLayout>
     );

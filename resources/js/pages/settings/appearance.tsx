@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
+import { usePermissions } from '@/hooks/use-permissions';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
@@ -22,9 +23,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Appearance() {
-    const { auth, business } = usePage<SharedData>().props;
-    // Configuración del negocio: solo administradores. La preferencia de tema es de cada usuario.
-    const isAdmin = auth.user.role === 'administrador';
+    const { business } = usePage<SharedData>().props;
+    const { can } = usePermissions();
+    // Configuración del negocio: gated by settings.appearance.update. La preferencia de tema es de cada usuario.
+    const isAdmin = can('settings.appearance.update');
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 

@@ -1,4 +1,5 @@
 import EyeButton from '@/components/common/EyeButton';
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Label } from '@radix-ui/react-label';
 import { AlertTriangle, Eye, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -39,7 +40,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Branches({ branches, filters = { search: '', status: 'all' } }: BranchesPageProps) {
-    const { auth } = usePage<{ auth: { user: { role: string } } }>().props;
+    const { can } = usePermissions();
     usePolling(['branches'], 120_000);
 
     const [search, setSearch] = useState(filters.search || '');
@@ -162,7 +163,7 @@ export default function Branches({ branches, filters = { search: '', status: 'al
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-center text-2xl font-bold sm:text-left">Gestión de Sucursales</h1>
                     <div className="flex flex-row justify-center gap-2">
-                        {auth.user.role === 'administrador' && (
+                        {can('branches.create') && (
                             <Button asChild className="flex gap-1">
                                 <Link href="/branches/create">
                                     <Plus className="size-4" />
@@ -170,7 +171,7 @@ export default function Branches({ branches, filters = { search: '', status: 'al
                                 </Link>
                             </Button>
                         )}
-                        {auth.user.role === 'administrador' && (
+                        {can('branches.delete') && (
                             <Button variant="outline" asChild>
                                 <Link href="/branches/trashed">
                                     <Trash2 className="mr-2 size-4" />

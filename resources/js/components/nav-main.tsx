@@ -16,6 +16,8 @@ import {
     SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { usePermissions } from '@/hooks/use-permissions';
+import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronDown } from 'lucide-react';
@@ -26,7 +28,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { state, isMobile } = useSidebar();
     // On mobile the sidebar renders as a Sheet (drawer) — always show expanded view inside it
     const isCollapsed = !isMobile && state === 'collapsed';
-    const userRole = page.props.auth.user.role;
+    const { can } = usePermissions();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(() => {
         // Auto-expand groups whose children include the current page
@@ -89,8 +91,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     <DropdownMenuContent side="right" align="start" className="min-w-44">
                                         <DropdownMenuLabel className="text-xs text-muted-foreground">{item.title}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
-                                        {item.children
-                                            .filter((child) => !child.roles || child.roles.includes(userRole))
+                                        {filterNavItemsByPermission(item.children, can)
                                             .map((child) => (
                                                 <DropdownMenuItem key={child.title} asChild>
                                                     <Link
@@ -135,8 +136,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     </SidebarMenuButton>
                                     {expandedItems.includes(item.title) && (
                                         <SidebarMenuSub>
-                                            {item.children
-                                                .filter((child) => !child.roles || child.roles.includes(userRole))
+                                            {filterNavItemsByPermission(item.children, can)
                                                 .map((child) => {
                                                     const active = isChildActive(child);
                                                     return (
