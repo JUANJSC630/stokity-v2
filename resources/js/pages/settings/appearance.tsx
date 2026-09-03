@@ -33,8 +33,8 @@ export default function Appearance() {
     });
 
     const colorsForm = useForm({
-        brand_color: business.brand_color ?? '#C850C0',
-        brand_color_secondary: business.brand_color_secondary ?? '#FFCC70',
+        brand_color: business.brand_color ?? '#3F3F46',
+        brand_color_secondary: business.brand_color_secondary ?? '#A1A1AA',
     });
 
     const handleColorSubmit = (e: React.FormEvent) => {
