@@ -7,10 +7,15 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Tenancy\TenantManager;
 use App\Tenancy\TenantProvisioner;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
+
+// TenantProvisioner now seeds the 3 default roles and assigns the new admin
+// one of them, which requires the permission catalog to already exist.
+beforeEach(fn () => $this->seed(PermissionSeeder::class));
 
 afterEach(fn () => app(TenantManager::class)->forget());
 
@@ -47,6 +52,14 @@ it('provisions a full tenant world', function () {
     expect($admin->role)->toBe('administrador')
         ->and($admin->email)->toBe('ana@cafe.test')
         ->and($admin->tenant_id)->toBe($tenant->id);
+
+    app(TenantManager::class)->runAs($tenant, function () use ($admin) {
+        expect($admin->hasRole('Administrador'))->toBeTrue()
+            ->and($admin->getAllPermissions())->toHaveCount(count(\App\Authorization\PermissionCatalog::names()));
+    });
+
+    expect(\App\Models\Role::where('tenant_id', $tenant->id)->pluck('name')->sort()->values()->all())
+        ->toBe(['Administrador', 'Encargado', 'Vendedor']);
 });
 
 it('lets a super admin open the panel', function () {

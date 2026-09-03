@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property int $id
@@ -25,7 +26,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use BelongsToTenant, HasFactory, Notifiable, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /** Platform owner role: tenant_id is NULL and access is the /admin panel. */
     public const ROLE_SUPER_ADMIN = 'super_admin';

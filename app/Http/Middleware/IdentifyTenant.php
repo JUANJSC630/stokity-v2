@@ -13,6 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
  * TenantManager. Runs before SubstituteBindings (see bootstrap/app.php) so the
  * tenant scope also applies to route-model binding.
  *
+ * TenantManager::set()/forget() also keep Spatie's "team" (permission.teams,
+ * team_foreign_key = tenant_id) in lockstep with the tenant, so role/permission
+ * lookups are scoped correctly without this middleware having to know about it.
+ *
  * Behaviour:
  * - Guest (login, password reset, ...) → no tenant set; scope stays open.
  * - SuperAdmin → no tenant; allowed only on /admin and logout, redirected to the
