@@ -1,6 +1,6 @@
 # Stokity v2 — Plan de Trabajo
 
-> Última actualización: 2026-03-24
+> Última actualización: 2026-09-03
 
 ---
 
@@ -9,7 +9,9 @@
 | Módulo | Estado |
 |--------|--------|
 | POS core (ventas, productos, clientes) | ✅ Funcional |
-| Multi-sucursal + RBAC | ✅ Funcional |
+| Multi-sucursal | ✅ Funcional |
+| Multitenancy (SaaS multi-negocio, 1 BD + `tenant_id`) | ✅ Funcional — ver `MULTITENANCY_PLAN.md` |
+| RBAC granular (roles/permisos configurables por tenant, UI en `/settings/roles`) | ✅ Funcional — ver `ROLES_PERMISSIONS_PLAN.md` |
 | Métodos de pago dinámicos | ✅ Funcional |
 | Devoluciones | ✅ Funcional |
 | Impresión térmica ESC/POS (QZ Tray) | ⚠️ Funcional — bug activo en corte superior |
@@ -28,9 +30,20 @@
 | Auto-formato inputs COP (CurrencyInput) | ✅ Funcional |
 | UX improvements (28 hallazgos) | ✅ Completo |
 | Auditoría pre-producción (28 hallazgos) | ✅ 24 corregidos, 4 descartados |
-| Tests backend (Pest PHP) | ✅ 117 tests, 325 assertions |
-| Tests frontend (Vitest + Testing Library) | ✅ 69 tests, 8 archivos |
+| Tests backend (Pest PHP) | ✅ 291 tests, 1013 assertions |
+| Tests frontend (Vitest + Testing Library) | ✅ 87 tests, 12 archivos |
 | ESLint + TypeScript | ✅ 0 errores |
+
+---
+
+## Multitenancy + RBAC granular (completado 2026-09-03)
+
+Migración de negocio único con 3 roles fijos a **SaaS multi-negocio con permisos configurables por tenant**. Planes maestros: `MULTITENANCY_PLAN.md` (15 bloques) y `ROLES_PERMISSIONS_PLAN.md` (13 bloques). Secuencia real de PRs (GitHub): #8 multitenancy-infra → #9 branding neutral → #10 Spatie permissions (teams) → #11 alcance de datos (branch scope) → #12 enforcement backend (`can:`) → #13 enforcement frontend (`usePermissions`/`<Can>`) → #15 UI de gestión de roles (`/settings/roles`).
+
+- **Multitenancy:** 1 sola BD, `tenant_id` en cada tabla de negocio, global scope (`BelongsToTenant`/`TenantScope`), resolución por usuario logueado, panel SuperAdmin en `/admin/tenants` (crear/suspender/archivar negocios).
+- **RBAC granular:** catálogo de ~99 permisos (`app/Authorization/PermissionCatalog.php`), roles por tenant vía `spatie/laravel-permission` (teams, `team_id = tenant_id`), 3 roles por defecto (administrador/encargado/vendedor) editables y roles personalizados ilimitados, editor visual en `/settings/roles` con matriz de permisos por módulo.
+- **Verificado en producción** contra los 4 usuarios reales de los 2 negocios existentes (Lu Accesorios, El Palenque) tras cada cambio de catálogo.
+- **Pendiente (opcional, no bloqueante):** presets de roles y gestión desde el panel SuperAdmin (Bloque 7 de `ROLES_PERMISSIONS_PLAN.md`), capa de personalización visual — activar/desactivar módulos y ordenar sidebar por preferencia (Bloque 8), retiro de la columna legacy `users.role` y los helpers `isAdmin()/isManager()/isSeller()` (Bloque 8 del plan de PRs).
 
 ---
 
