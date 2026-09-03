@@ -33,11 +33,14 @@ class DatabaseSeeder extends Seeder
 
         // Test/development data — never run in production
         if (app()->environment('local', 'testing')) {
-            if (User::count() === 0) {
-                $this->call(UserSeeder::class);
-            }
+            // Branch must run before User: UserSeeder looks up the "Zarzal"
+            // branch to assign non-admin users to, and finds nothing if it
+            // runs first.
             if (Branch::count() === 0) {
                 $this->call(BranchSeeder::class);
+            }
+            if (User::count() === 0) {
+                $this->call(UserSeeder::class);
             }
             if (Category::count() === 0) {
                 $this->call(CategorySeeder::class);

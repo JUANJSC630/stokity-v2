@@ -11,7 +11,7 @@
 |---|---|
 | **Deployment en vivo antes del cambio** | `cd75cd0b-de1a-4481-8662-39062a381179` (SUCCESS, 18/06/2026 17:29) |
 | **Commit desplegado antes del cambio** | `0a07f86f9ba34b43bd747cc513f61546a370a5d7` |
-| Proyecto / servicio Railway | `Lu Accesorios` / `lu-accesorios` (producción) |
+| Proyecto / servicio Railway | `stokity` / `stokity` (producción; renombrado desde `Lu Accesorios`/`lu-accesorios` tras la migración a multi-tenant) |
 | Dominio | https://stokity-v2-production.up.railway.app |
 | Repo conectado | `JUANJSC630/stokity-v2`, rama `master` (auto-deploy en cada push) |
 | Start command | `php artisan migrate --force && php artisan serve …` (sin migraciones nuevas: no-op) |
@@ -20,7 +20,7 @@
 
 Es lo más rápido si algo se ve mal en caliente. No toca el repositorio.
 
-1. Abrir el dashboard: `railway open` (o https://railway.app → proyecto **Lu Accesorios** → servicio **lu-accesorios**).
+1. Abrir el dashboard: `railway open` (o https://railway.app → proyecto **stokity** → servicio **stokity**).
 2. Pestaña **Deployments**.
 3. Buscar el deployment `cd75cd0b-de1a-4481-8662-39062a381179` (18/06/2026, commit `0a07f86`).
 4. Menú `⋮` → **Redeploy**.
