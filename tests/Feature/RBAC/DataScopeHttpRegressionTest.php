@@ -131,29 +131,37 @@ it('cross-tenant isolation still holds regardless of data_scope', function () {
     expect($ids)->not->toContain($otherProduct->id);
 });
 
-it('cash-sessions index stays internally consistent for a custom-scope role (own+branch axis is deferred as a whole)', function () {
-    // Regression for a review finding: converting only the branch-facing
-    // lines (branch_id filter, availableBranches, isAdmin prop) while the
-    // base query stayed on the legacy isAdmin() check would tell the
-    // frontend "you see every branch" while every session still came back
-    // restricted to the user's own — worse than not touching the method.
-    // The whole method must agree: 'isAdmin' prop, availableBranches, and
-    // the actual query all say the same thing for the same user.
+it('cash-sessions index correctly separates the branch axis from the view_all permission axis', function () {
+    // PR-4 update: these were briefly one combined isAdmin() bucket in PR-3
+    // (deliberately deferred back then, see git history) — now properly split.
+    // A data_scope='all' custom role widens the BRANCH axis (isAdmin prop /
+    // availableBranches / branch filter) without needing cash_sessions.view_all,
+    // exactly like every other module's branch-scope check — but still can't
+    // see OTHER people's sessions, since that's the separate ownership axis.
     \Illuminate\Support\Facades\DB::table('roles')
         ->where('name', 'Encargado')
         ->update(['data_scope' => 'all']);
 
     $regionalManager = roleAssignedUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+    $otherSession = app(TenantManager::class)->runAs($this->tenant, function () {
+        $someoneElse = User::factory()->create(['role' => 'vendedor', 'branch_id' => $this->branchA->id]);
+
+        return \App\Models\CashSession::create([
+            'branch_id' => $this->branchA->id, 'opened_by_user_id' => $someoneElse->id,
+            'status' => 'open', 'opening_amount' => 0, 'opened_at' => now(),
+        ]);
+    });
 
     $response = $this->actingAs($regionalManager)->get(route('cash-sessions.index'));
 
     $response->assertOk();
     $props = $response->viewData('page')['props'];
-    // data_scope='all' does NOT translate to cash-session admin bypass —
-    // that split needs a real permission (cash_sessions.view_all), not this
-    // axis. isAdmin/availableBranches must match: both still say "no".
-    expect($props['isAdmin'])->toBeFalse()
-        ->and($props['availableBranches'])->toBe([]);
+    // Branch axis: widened by the custom role's data_scope.
+    expect($props['isAdmin'])->toBeTrue()
+        ->and($props['availableBranches'])->not->toBeEmpty();
+    // Ownership axis: still restricted — Encargado excludes cash_sessions.view_all.
+    $sessionIds = collect($props['sessions']['data'])->pluck('id');
+    expect($sessionIds)->not->toContain($otherSession->id);
 });
 
 it('returns report scopes the branches list like its sibling report methods', function () {

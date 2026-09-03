@@ -198,7 +198,7 @@ class CreditSaleController extends Controller
         return Inertia::render('credits/show', [
             'credit' => $credit,
             'paymentMethods' => $paymentMethods,
-            'canCancel' => $user->isAdmin() || $user->role === 'encargado',
+            'canCancel' => $user->can('credits.cancel'),
         ]);
     }
 
@@ -255,7 +255,7 @@ class CreditSaleController extends Controller
     {
         $user = Auth::user();
 
-        if (! $user->isAdmin() && $user->role !== 'encargado') {
+        if (! $user->can('credits.cancel')) {
             abort(403, 'No tienes permisos para cancelar créditos.');
         }
 

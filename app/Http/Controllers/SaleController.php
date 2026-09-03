@@ -660,8 +660,7 @@ class SaleController extends Controller
      */
     public function edit(Sale $sale)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->can('sales.update')) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
@@ -688,8 +687,7 @@ class SaleController extends Controller
      */
     public function update(Request $request, Sale $sale)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->can('sales.update')) {
             abort(403, 'No tienes permisos para editar ventas.');
         }
 
@@ -725,8 +723,7 @@ class SaleController extends Controller
      */
     public function destroy(Sale $sale)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
+        if (! auth()->user()->can('sales.delete')) {
             abort(403, 'No tienes permisos para eliminar ventas.');
         }
 

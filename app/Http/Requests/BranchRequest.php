@@ -11,7 +11,10 @@ class BranchRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->isAdmin();
+        // Shared by store() and update() — branches.* is entirely admin-only
+        // in the catalog, so either permission gates identically; branches.
+        // create is just the representative check.
+        return $this->user()->can('branches.create');
     }
 
     /**

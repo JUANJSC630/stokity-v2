@@ -54,6 +54,7 @@ class ExpenseController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expenses.create'), 403, 'No tienes permisos para registrar gastos.');
 
         // Acepta un gasto único o un array de gastos (confirmación de plantillas mensuales)
         if ($request->has('expenses')) {
@@ -101,6 +102,7 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expenses.update'), 403, 'No tienes permisos para editar gastos.');
         if ($user->isRestrictedToOwnBranch() && $expense->branch_id !== $user->branch_id) {
             abort(403);
         }
@@ -121,6 +123,7 @@ class ExpenseController extends Controller
     public function destroy(Request $request, Expense $expense): RedirectResponse
     {
         $user = Auth::user();
+        abort_unless($user->can('expenses.delete'), 403, 'No tienes permisos para eliminar gastos.');
         if ($user->isRestrictedToOwnBranch() && $expense->branch_id !== $user->branch_id) {
             abort(403);
         }

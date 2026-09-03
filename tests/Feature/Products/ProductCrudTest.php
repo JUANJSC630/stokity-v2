@@ -60,8 +60,8 @@ describe('Product CRUD', function () {
         $response = $this->actingAs($vendedor)
             ->post(route('products.store'), productPayload(['code' => '66666666']));
 
-        // AdminOrManagerMiddleware redirects non-JSON requests to dashboard
-        $response->assertRedirect(route('dashboard'));
+        // can:products.create — Vendedor doesn't hold this permission
+        $response->assertForbidden();
     });
 
     it('name is required', function () {

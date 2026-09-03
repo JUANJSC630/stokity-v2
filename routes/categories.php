@@ -1,11 +1,10 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
-use App\Http\Middleware\AdminOrManagerMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Routes for category management (protected with auth and admin/manager middleware)
-Route::middleware(['auth'])->middleware(AdminOrManagerMiddleware::class)->group(function () {
+Route::middleware(['auth', 'can:categories.view'])->group(function () {
     // Main index route
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 

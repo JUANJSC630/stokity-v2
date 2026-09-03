@@ -125,25 +125,25 @@ describe('Encargado — Sigue sin acceso', function () {
     it('cannot access GET /users', function () {
         $this->actingAs($this->encargado)
             ->get(route('users.index'))
-            ->assertRedirect(route('dashboard'));
+            ->assertForbidden(); // can:users.view — admin-only in the catalog
     });
 
     it('cannot access GET /branches', function () {
         $this->actingAs($this->encargado)
             ->get(route('branches.index'))
-            ->assertRedirect(route('dashboard'));
+            ->assertForbidden(); // can:branches.view — admin-only in the catalog
     });
 
     it('cannot access GET /settings/business', function () {
         $this->actingAs($this->encargado)
             ->get(route('settings.business'))
-            ->assertRedirect(route('dashboard'));
+            ->assertForbidden(); // can:settings.business.view — admin-only in the catalog
     });
 
     it('cannot list users through the debug relationships endpoint', function () {
         $this->actingAs($this->encargado)
             ->get(route('users.relationships.definitive'))
-            ->assertRedirect(route('dashboard'));
+            ->assertForbidden(); // can:users.view — admin-only in the catalog
     });
 });
 

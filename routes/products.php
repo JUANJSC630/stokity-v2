@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\ProductController;
-use App\Http\Middleware\AdminOrManagerMiddleware;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -14,7 +13,7 @@ Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 
     // Admin and manager only routes
-    Route::middleware(AdminOrManagerMiddleware::class)->group(function () {
+    Route::middleware('can:products.create')->group(function () {
         // Static routes must come before dynamic routes to avoid conflicts
         Route::get('/products/trashed', [ProductController::class, 'trashed'])->name('products.trashed');
         Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');

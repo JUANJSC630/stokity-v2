@@ -86,6 +86,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        abort_unless($user->can('suppliers.create'), 403, 'No tienes permisos para crear proveedores.');
 
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
@@ -175,6 +176,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        abort_unless($user->can('suppliers.update'), 403, 'No tienes permisos para editar proveedores.');
         abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $validated = $request->validate([
@@ -205,6 +207,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        abort_unless($user->can('suppliers.delete'), 403, 'No tienes permisos para eliminar proveedores.');
         abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $supplier->delete();

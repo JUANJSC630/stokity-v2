@@ -76,8 +76,8 @@ class ProductController extends Controller
             ->withQueryString();
 
         // El precio de compra es dato sensible: no debe viajar en el payload de
-        // quien no puede gestionar el catálogo (la tabla tampoco lo muestra).
-        if (! $user->isAdmin() && ! $user->isManager()) {
+        // quien no tiene el permiso de campo products.view_purchase_price.
+        if (! $user->can('products.view_purchase_price')) {
             $products->getCollection()->each->makeHidden(['purchase_price']);
         }
 
@@ -192,6 +192,8 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product)
     {
+        abort_unless($request->user()->can('products.update'), 403, 'No tienes permisos para editar productos.');
+
         // Validar y obtener datos
         $validated = $request->validated();
 
@@ -221,6 +223,8 @@ class ProductController extends Controller
      */
     public function syncSuppliers(Request $request, Product $product): RedirectResponse
     {
+        abort_unless($request->user()->can('products.sync_suppliers'), 403, 'No tienes permisos para vincular proveedores.');
+
         $request->validate([
             'suppliers' => 'array',
             'suppliers.*.supplier_id' => [
@@ -251,6 +255,8 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        abort_unless(Auth::user()->can('products.delete'), 403, 'No tienes permisos para eliminar productos.');
+
         if ($product->stock > 0) {
             return back()->with('error', "No puedes eliminar \"{$product->name}\" porque tiene {$product->stock} unidades en inventario. Da de baja el stock primero desde Movimientos de Stock.");
         }
@@ -266,6 +272,8 @@ class ProductController extends Controller
      */
     public function trashed(Request $request)
     {
+        abort_unless($request->user()->can('products.delete'), 403, 'No tienes permisos para ver la papelera de productos.');
+
         $query = Product::onlyTrashed()
             ->with(['category', 'branch'])
             ->orderBy('name');
@@ -326,6 +334,8 @@ class ProductController extends Controller
      */
     public function restore($id)
     {
+        abort_unless(Auth::user()->can('products.restore'), 403, 'No tienes permisos para restaurar productos.');
+
         $product = Product::onlyTrashed()->findOrFail($id);
         $product->restore();
 
@@ -338,6 +348,8 @@ class ProductController extends Controller
      */
     public function forceDelete($id)
     {
+        abort_unless(Auth::user()->can('products.force_delete'), 403, 'No tienes permisos para eliminar productos permanentemente.');
+
         $product = Product::onlyTrashed()->findOrFail($id);
 
         if ($product->image) {
@@ -355,6 +367,8 @@ class ProductController extends Controller
      */
     public function updateStock(Request $request, Product $product)
     {
+        abort_unless($request->user()->can('products.update_stock'), 403, 'No tienes permisos para ajustar el stock.');
+
         $request->validate([
             'stock' => 'required|integer|min:0',
             'operation' => 'required|in:set,add,subtract',
