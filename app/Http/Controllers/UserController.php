@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Authorization\DefaultRoleProvisioner;
 use App\Models\ArchivedUser;
 use App\Models\Branch;
+use App\Models\Role;
 use App\Models\User;
+use App\Tenancy\TenantManager;
 use App\Services\BlobStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,10 +25,7 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para ver usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.view'), 403, 'No tienes permisos para ver usuarios.');
 
         $query = User::query();
 
@@ -58,16 +57,13 @@ class UserController extends Controller
      */
     public function create()
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para crear usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.create'), 403, 'No tienes permisos para crear usuarios.');
 
         $branches = Branch::where('status', true)->get();
 
         return Inertia::render('users/create', [
             'branches' => $branches,
-            'roles' => ['administrador', 'encargado', 'vendedor'],
+            'roles' => $this->assignableRoles(),
         ]);
     }
 
@@ -76,17 +72,14 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para crear usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.create'), 403, 'No tienes permisos para crear usuarios.');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'role' => 'required|in:administrador,encargado,vendedor',
+            'role_id' => ['required', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id()))],
             'branch_id' => [
-                Rule::requiredIf(fn () => $request->role !== 'administrador'),
+                Rule::requiredIf(fn () => Role::where('tenant_id', app(TenantManager::class)->id())->find($request->role_id)?->data_scope !== 'all'),
                 'nullable',
                 'exists:branches,id',
             ],
@@ -104,28 +97,29 @@ class UserController extends Controller
             }
         }
 
+        $role = Role::where('tenant_id', app(TenantManager::class)->id())->findOrFail($validated['role_id']);
+
         // Create user
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
+            // Legacy string column — approximated for a custom role, see
+            // DefaultRoleProvisioner::legacyStringForRole().
+            'role' => DefaultRoleProvisioner::legacyStringForRole($role),
             'branch_id' => $validated['branch_id'] ?? null,
             'password' => Hash::make($validated['password']),
             'status' => $validated['status'] ?? true,
             'photo' => $validated['photo'] ?? null,
         ]);
 
-        // Keep the Spatie role in lockstep with the legacy `role` column —
-        // without this, a newly created employee has a "Rol" the UI shows
-        // correctly but zero actual Spatie permissions, since nothing else
-        // assigns one for a user created after the one-time roles:assign-legacy
-        // backfill.
-        if ($roleName = DefaultRoleProvisioner::roleNameForLegacy($validated['role'])) {
-            $user->assignRole($roleName);
-        }
+        $user->assignRole($role);
 
-        // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
-        if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
+        // Si el usuario recibe el rol Encargado del sistema y una sucursal,
+        // queda registrado como su gerente. Un rol personalizado no dispara
+        // esto automáticamente — no hay forma de saber si un rol a medida
+        // implica "gerente de sucursal"; el admin puede asignarlo a mano
+        // desde Sucursales.
+        if ($role->is_system && $role->name === DefaultRoleProvisioner::ENCARGADO && isset($validated['branch_id'])) {
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
         }
 
@@ -138,10 +132,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para ver usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.view'), 403, 'No tienes permisos para ver usuarios.');
 
         return Inertia::render('users/show', [
             'user' => $user->load('branch'),
@@ -153,17 +144,15 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para editar usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.update'), 403, 'No tienes permisos para editar usuarios.');
 
         $branches = Branch::where('status', true)->get();
 
         return Inertia::render('users/edit', [
             'user' => $user->load('branch'),
             'branches' => $branches,
-            'roles' => ['administrador', 'encargado', 'vendedor'],
+            'roles' => $this->assignableRoles(),
+            'currentRoleId' => $this->currentRoleId($user),
         ]);
     }
 
@@ -172,10 +161,7 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para editar usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.update'), 403, 'No tienes permisos para editar usuarios.');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -186,7 +172,7 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
-            'role' => 'required|in:administrador,encargado,vendedor',
+            'role_id' => ['required', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id()))],
             'branch_id' => [
                 'nullable',
                 'exists:branches,id',
@@ -209,11 +195,15 @@ class UserController extends Controller
             }
         }
 
+        $role = Role::where('tenant_id', app(TenantManager::class)->id())->findOrFail($validated['role_id']);
+
         // Update user data
         $userData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $validated['role'],
+            // Legacy string column — approximated for a custom role, see
+            // DefaultRoleProvisioner::legacyStringForRole().
+            'role' => DefaultRoleProvisioner::legacyStringForRole($role),
             'branch_id' => $validated['branch_id'] ?? null,
             'status' => $validated['status'] ?? $user->status,
         ];
@@ -234,12 +224,12 @@ class UserController extends Controller
         // design, and this "Rol" field is how an admin changes it — assignRole()
         // would just ADD the new one, leaving the old attached too, and this
         // user would end up with the union of both roles' permissions.
-        if ($roleName = DefaultRoleProvisioner::roleNameForLegacy($validated['role'])) {
-            $user->syncRoles([$roleName]);
-        }
+        $user->syncRoles([$role]);
 
-        // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
-        if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
+        // Igual que en store(): solo el rol Encargado del sistema dispara el
+        // auto-registro como gerente de sucursal.
+        $isSystemEncargado = $role->is_system && $role->name === DefaultRoleProvisioner::ENCARGADO;
+        if ($isSystemEncargado && isset($validated['branch_id'])) {
             // Si el usuario ya era encargado de otra sucursal, quitarlo como encargado
             Branch::where('manager_id', $user->id)
                 ->where('id', '!=', $validated['branch_id'])
@@ -247,7 +237,7 @@ class UserController extends Controller
 
             // Asignar al usuario como encargado de la nueva sucursal
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
-        } elseif ($validated['role'] !== 'encargado') {
+        } elseif (! $isSystemEncargado) {
             // Si el usuario ha dejado de ser encargado, quitarlo como manager de cualquier sucursal
             Branch::where('manager_id', $user->id)->update(['manager_id' => null]);
         }
@@ -261,10 +251,7 @@ class UserController extends Controller
      */
     public function destroy(Request $request, User $user)
     {
-        // Verificar que el usuario sea administrador
-        if (! auth()->user()->isAdmin()) {
-            abort(403, 'No tienes permisos para eliminar usuarios.');
-        }
+        abort_unless(auth()->user()->can('users.delete'), 403, 'No tienes permisos para eliminar usuarios.');
 
         // Prevent self-deletion
         if ($user->id === Auth::id()) {
@@ -315,5 +302,36 @@ class UserController extends Controller
             'branch' => $branch,
             'branch_manager' => $manager,
         ]);
+    }
+
+    private function currentRoleId(User $user): ?int
+    {
+        /** @var Role|null $role */
+        $role = $user->roles()->first();
+
+        return $role?->id;
+    }
+
+    /**
+     * Every role the current tenant can assign to a user — the 3 system
+     * roles plus whatever custom roles the tenant has created. Role
+     * carries NO automatic tenant scope (see app/Models/Role.php), so the
+     * explicit tenant_id filter below is required, not defensive extra.
+     *
+     * @return array<int, array{id: int, name: string, is_system: bool}>
+     */
+    private function assignableRoles(): array
+    {
+        return Role::where('tenant_id', app(TenantManager::class)->id())
+            ->orderByDesc('is_system')
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_system', 'data_scope'])
+            ->map(fn (Role $role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'is_system' => $role->is_system,
+                'data_scope' => $role->data_scope,
+            ])
+            ->all();
     }
 }

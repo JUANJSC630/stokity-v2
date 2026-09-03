@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type AssignableRole, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -34,10 +34,11 @@ type User = {
 interface Props {
     user: User;
     branches: Branch[];
-    roles: string[];
+    roles: AssignableRole[];
+    currentRoleId: number | null;
 }
 
-export default function EditUser({ user, branches, roles }: Props) {
+export default function EditUser({ user, branches, roles, currentRoleId }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Usuarios',
@@ -56,7 +57,7 @@ export default function EditUser({ user, branches, roles }: Props) {
     const form = useForm({
         name: user.name,
         email: user.email,
-        role: user.role,
+        role_id: currentRoleId ?? (roles[0]?.id ?? ''),
         branch_id: user.branch_id ? String(user.branch_id) : '',
         password: '',
         password_confirmation: '',
@@ -69,7 +70,7 @@ export default function EditUser({ user, branches, roles }: Props) {
 
     // Manejar la lógica de cambio de rol
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        form.setData('role', e.target.value);
+        form.setData('role_id', Number(e.target.value));
     };
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(user.photo_url || null);
@@ -250,22 +251,22 @@ export default function EditUser({ user, branches, roles }: Props) {
                                 {/* Rol */}
                                 <div>
                                     <Label htmlFor="role">Rol</Label>
-                                    <div className={form.errors.role ? 'border-red-500' : ''}>
+                                    <div className={form.errors.role_id ? 'border-red-500' : ''}>
                                         <select
                                             id="role"
-                                            value={form.data.role}
+                                            value={form.data.role_id}
                                             onChange={handleRoleChange}
                                             className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
                                             disabled={form.processing}
                                         >
                                             {roles.map((role) => (
-                                                <option key={role} value={role}>
-                                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                                <option key={role.id} value={role.id}>
+                                                    {role.name}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
-                                    {form.errors.role && <p className="mt-1 text-xs text-red-500">{form.errors.role}</p>}
+                                    {form.errors.role_id && <p className="mt-1 text-xs text-red-500">{form.errors.role_id}</p>}
                                 </div>
 
                                 {/* Sucursal */}

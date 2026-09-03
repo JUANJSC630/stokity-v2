@@ -62,15 +62,22 @@ class PermissionCatalog
     }
 
     /**
-     * Permissions grouped by module, for the role-editor matrix.
+     * Permissions grouped by module, for the role-editor matrix. Excludes
+     * alwaysGranted() (profile.*) — every user gets those regardless of
+     * role, so they have no business being a checkbox any admin could
+     * accidentally uncheck.
      *
      * @return array<string, array<string, array{module: string, label: string, type?: string, requires?: list<string>}>>
      */
     public static function byModule(): array
     {
         $grouped = [];
+        $alwaysGranted = self::alwaysGranted();
 
         foreach (self::all() as $name => $meta) {
+            if (in_array($name, $alwaysGranted, true)) {
+                continue;
+            }
             $grouped[$meta['module']][$name] = $meta;
         }
 
@@ -87,6 +94,39 @@ class PermissionCatalog
     public static function alwaysGranted(): array
     {
         return array_keys(self::profile());
+    }
+
+    /**
+     * Expands a requested permission set to also include every transitive
+     * `requires` dependency — e.g. requesting just `pos.apply_discount`
+     * also pulls in `pos.access`, which itself pulls in `sales.create`,
+     * `products.view`, `payment_methods.view`, `clients.view`. This is the
+     * role editor's server-side safety net: the frontend UI should already
+     * auto-check dependencies as the admin clicks, but a role saved via a
+     * direct request must never end up with a permission whose
+     * prerequisite it lacks (the individual controllers only check the
+     * leaf permission, not its chain).
+     *
+     * Unknown permission names are dropped silently rather than rejected —
+     * validation catches those before this ever runs.
+     *
+     * @param  list<string>  $names
+     * @return list<string>
+     */
+    public static function expandWithDependencies(array $names): array
+    {
+        $catalog = self::all();
+        $result = array_values(array_intersect($names, array_keys($catalog)));
+
+        for ($i = 0; $i < count($result); $i++) {
+            foreach ($catalog[$result[$i]]['requires'] ?? [] as $dependency) {
+                if (! in_array($dependency, $result, true)) {
+                    $result[] = $dependency;
+                }
+            }
+        }
+
+        return $result;
     }
 
     /** @return array<string, array{module: string, label: string}> */
@@ -225,6 +265,7 @@ class PermissionCatalog
             'cash_sessions.view_all' => ['module' => 'cash_sessions', 'label' => 'Ver sesiones de caja de todos', 'requires' => ['cash_sessions.view']],
             'cash_sessions.open' => ['module' => 'cash_sessions', 'label' => 'Abrir caja', 'requires' => ['cash_sessions.view']],
             'cash_sessions.close' => ['module' => 'cash_sessions', 'label' => 'Cerrar caja', 'requires' => ['cash_sessions.view']],
+            'cash_sessions.close_any' => ['module' => 'cash_sessions', 'label' => 'Cerrar la caja de cualquier usuario', 'requires' => ['cash_sessions.close']],
             'cash_sessions.movements' => ['module' => 'cash_sessions', 'label' => 'Registrar entradas/salidas de caja', 'requires' => ['cash_sessions.view']],
             'cash_sessions.view_expected' => ['module' => 'cash_sessions', 'label' => 'Ver efectivo esperado al cerrar (vs. cierre ciego)', 'type' => 'field', 'requires' => ['cash_sessions.close']],
         ];

@@ -79,7 +79,7 @@ it('Encargado cannot view a cash session opened by someone else, but Administrad
     $this->actingAs($admin)->get(route('cash-sessions.show', $session))->assertOk();
 });
 
-it('Encargado CAN still close a session opened by someone else (deliberately unconverted isAdmin()||isManager() rule)', function () {
+it('Encargado CAN still close a session opened by someone else — backed by cash_sessions.close_any (PR-6)', function () {
     $manager = roleUser($this->tenant, $this->branch, 'encargado', DefaultRoleProvisioner::ENCARGADO);
     $session = app(TenantManager::class)->runAs($this->tenant, function () {
         $someoneElse = User::factory()->create(['role' => 'vendedor', 'branch_id' => $this->branch->id]);
@@ -121,6 +121,29 @@ function customRoleUser(Tenant $tenant, Branch $branch, array $permissions): Use
         return $user;
     });
 }
+
+it('a custom data_scope=all role WITHOUT cash_sessions.close_any cannot close someone else\'s session', function () {
+    // Regression: legacyStringForRole() (PR-6) approximates any data_scope
+    // ='all' custom role as legacy 'administrador' for the handful of
+    // isAdmin()-based checks not yet migrated to permissions — this proved
+    // CashSessionController::closeForm()/close() were still gating on
+    // isAdmin()||isManager() instead of a real permission, so ANY
+    // data_scope=all custom role (e.g. a read-only "Auditor") would have
+    // inherited the ability to close any user's cash session with zero
+    // explicit grant. Fixed by converting to cash_sessions.close_any.
+    $auditor = customRoleUser($this->tenant, $this->branch, ['dashboard.view', 'reports.view', 'finances.view']);
+    app(TenantManager::class)->runAs($this->tenant, fn () => $auditor->roles()->first()->update(['data_scope' => 'all']));
+    $session = app(TenantManager::class)->runAs($this->tenant, function () {
+        $someoneElse = User::factory()->create(['role' => 'vendedor', 'branch_id' => $this->branch->id]);
+
+        return CashSession::create([
+            'branch_id' => $this->branch->id, 'opened_by_user_id' => $someoneElse->id,
+            'status' => 'open', 'opening_amount' => 0, 'opened_at' => now(),
+        ]);
+    });
+
+    $this->actingAs($auditor)->get(route('cash-sessions.close.form', $session))->assertForbidden();
+});
 
 it('a custom role holding only products.create cannot delete/restore/sync-suppliers/adjust-stock — the route gate is not a backstop for those', function () {
     // Route middleware only checks products.create (the group-wide gate,

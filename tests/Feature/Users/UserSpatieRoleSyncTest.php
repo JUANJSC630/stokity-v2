@@ -34,10 +34,12 @@ beforeEach(function () {
 });
 
 it('assigns the matching Spatie role when creating a user through the UI', function () {
+    $vendedorId = app(TenantManager::class)->runAs($this->tenant, fn () => \App\Models\Role::where('name', DefaultRoleProvisioner::VENDEDOR)->first()->id);
+
     $this->actingAs($this->admin)->post(route('users.store'), [
         'name' => 'Nueva Vendedora',
         'email' => 'vendedora@acme.test',
-        'role' => 'vendedor',
+        'role_id' => $vendedorId,
         'branch_id' => $this->branch->id,
         'password' => 'password123',
         'password_confirmation' => 'password123',
@@ -61,10 +63,12 @@ it('re-syncs the Spatie role when an admin changes it, without leaving the old o
         return $user;
     });
 
+    $encargadoId = app(TenantManager::class)->runAs($this->tenant, fn () => \App\Models\Role::where('name', DefaultRoleProvisioner::ENCARGADO)->first()->id);
+
     $this->actingAs($this->admin)->put(route('users.update', $employee), [
         'name' => 'Empleado',
         'email' => 'empleado@acme.test',
-        'role' => 'encargado',
+        'role_id' => $encargadoId,
         'branch_id' => $this->branch->id,
         'status' => true,
     ])->assertRedirect();

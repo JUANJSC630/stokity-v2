@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
+import { type AssignableRole, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
 
 import { Switch } from '@/components/ui/switch';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type Branch = {
     id: number;
@@ -17,7 +17,7 @@ type Branch = {
 
 interface Props {
     branches: Branch[];
-    roles: string[];
+    roles: AssignableRole[];
 }
 
 export default function CreateUser({ branches, roles }: Props) {
@@ -32,10 +32,12 @@ export default function CreateUser({ branches, roles }: Props) {
         },
     ];
 
+    const defaultRoleId = roles.find((r) => r.name === 'Vendedor')?.id ?? roles[0]?.id ?? '';
+
     const form = useForm<{
         name: string;
         email: string;
-        role: string;
+        role_id: number | '';
         branch_id: string;
         password: string;
         password_confirmation: string;
@@ -44,7 +46,7 @@ export default function CreateUser({ branches, roles }: Props) {
     }>({
         name: '',
         email: '',
-        role: 'vendedor',
+        role_id: defaultRoleId,
         branch_id: '',
         password: '',
         password_confirmation: '',
@@ -52,28 +54,23 @@ export default function CreateUser({ branches, roles }: Props) {
         photo: null,
     });
 
-    // Handle the branch field visibility based on role
-    const [showBranchField, setShowBranchField] = useState(true);
+    // El campo de sucursal solo aplica a roles que no ven todas las sucursales.
+    const [showBranchField, setShowBranchField] = useState(
+        () => roles.find((r) => r.id === defaultRoleId)?.data_scope !== 'all',
+    );
 
-    // Manejar la lógica de cambio de rol
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newRole = e.target.value;
-        form.setData('role', newRole);
+        const newRoleId = Number(e.target.value);
+        form.setData('role_id', newRoleId);
 
-        // Si el rol es administrador, ocultar campo de sucursal y limpiar su valor
-        if (newRole === 'administrador') {
+        const selectedRole = roles.find((r) => r.id === newRoleId);
+        if (selectedRole?.data_scope === 'all') {
             setShowBranchField(false);
             form.setData('branch_id', '');
         } else {
             setShowBranchField(true);
         }
     };
-
-    // Configuración inicial del estado del campo de sucursal basado en el rol
-    const initialRole = form.data.role;
-    useEffect(() => {
-        setShowBranchField(initialRole !== 'administrador');
-    }, [initialRole]);
 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -255,22 +252,22 @@ export default function CreateUser({ branches, roles }: Props) {
                                 {/* Rol */}
                                 <div>
                                     <Label htmlFor="role">Rol</Label>
-                                    <div className={form.errors.role ? 'border-red-500' : ''}>
+                                    <div className={form.errors.role_id ? 'border-red-500' : ''}>
                                         <select
                                             id="role"
-                                            value={form.data.role}
+                                            value={form.data.role_id}
                                             onChange={handleRoleChange}
                                             className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
                                             disabled={form.processing}
                                         >
                                             {roles.map((role) => (
-                                                <option key={role} value={role}>
-                                                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                                                <option key={role.id} value={role.id}>
+                                                    {role.name}
                                                 </option>
                                             ))}
                                         </select>
                                     </div>
-                                    {form.errors.role && <p className="mt-1 text-xs text-red-500">{form.errors.role}</p>}
+                                    {form.errors.role_id && <p className="mt-1 text-xs text-red-500">{form.errors.role_id}</p>}
                                 </div>
 
                                 {/* Sucursal - Solo visible si el rol no es "administrador" */}

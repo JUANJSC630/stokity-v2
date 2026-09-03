@@ -172,7 +172,7 @@ class CashSessionController extends Controller
             return redirect()->route('cash-sessions.show', $session)->withErrors(['session' => 'Esta sesión ya fue cerrada.']);
         }
 
-        if (! $user->isAdmin() && ! $user->isManager() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->can('cash_sessions.close_any') && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 
@@ -216,7 +216,7 @@ class CashSessionController extends Controller
             return back()->withErrors(['session' => 'Esta sesión ya fue cerrada.']);
         }
 
-        if (! $user->isAdmin() && ! $user->isManager() && $session->opened_by_user_id !== $user->id) {
+        if (! $user->can('cash_sessions.close_any') && $session->opened_by_user_id !== $user->id) {
             abort(403, 'No tienes acceso a esta sesión.');
         }
 

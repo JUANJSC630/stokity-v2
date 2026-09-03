@@ -47,9 +47,15 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
         permission: 'settings.business.view',
     },
+    {
+        title: 'Roles',
+        href: '/settings/roles',
+        icon: null,
+        permission: 'settings.roles.manage',
+    },
 ];
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
+export default function SettingsLayout({ children, wide = false }: PropsWithChildren<{ wide?: boolean }>) {
     const { can } = usePermissions();
 
     // When server-side rendering, we only render the layout on the client...
@@ -87,8 +93,8 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
                 <Separator className="my-6 md:hidden" />
 
-                <div className="flex-1 md:max-w-2xl">
-                    <section className="max-w-xl space-y-12">{children}</section>
+                <div className={cn('flex-1', wide ? 'md:max-w-5xl' : 'md:max-w-2xl')}>
+                    <section className={cn('space-y-12', wide ? 'max-w-5xl' : 'max-w-xl')}>{children}</section>
                 </div>
             </div>
         </div>
