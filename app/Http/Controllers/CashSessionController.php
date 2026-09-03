@@ -55,7 +55,7 @@ class CashSessionController extends Controller
                 ->where('branch_id', $user->branch_id);
         }
 
-        if ($request->filled('branch_id') && $user->isAdmin()) {
+        if ($request->filled('branch_id') && ! $user->isRestrictedToOwnBranch()) {
             $query->where('branch_id', $request->branch_id);
         }
 
@@ -68,7 +68,7 @@ class CashSessionController extends Controller
 
         $sessions = $query->paginate(20)->withQueryString();
 
-        $availableBranches = $user->isAdmin()
+        $availableBranches = ! $user->isRestrictedToOwnBranch()
             ? \App\Models\Branch::where('status', true)->get(['id', 'name'])
             : [];
 
@@ -76,7 +76,7 @@ class CashSessionController extends Controller
             'sessions' => $sessions,
             'filters' => $request->only(['date_from', 'date_to', 'branch_id']),
             'availableBranches' => $availableBranches,
-            'isAdmin' => $user->isAdmin(),
+            'isAdmin' => ! $user->isRestrictedToOwnBranch(),
         ]);
     }
 

@@ -66,7 +66,7 @@ class PrintController extends Controller
     public function receipt(Request $request, Sale $sale)
     {
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo.');
+        abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo.');
 
         $sale->load(['branch', 'client', 'seller', 'saleProducts.product']);
 
@@ -97,7 +97,7 @@ class PrintController extends Controller
     public function cashSessionReport(Request $request, CashSession $session)
     {
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
+        abort_if($user->isRestrictedToOwnBranch() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
 
         $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name', 'movements']);
 
@@ -259,7 +259,7 @@ class PrintController extends Controller
         $saleReturn->load(['sale.branch', 'sale.client', 'sale.seller', 'products']);
 
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $saleReturn->sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo de devolución.');
+        abort_if($user->isRestrictedToOwnBranch() && $saleReturn->sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a este recibo de devolución.');
 
         $business = BusinessSetting::getSettings();
         $config = $business->getTicketConfig();
@@ -1321,7 +1321,7 @@ class PrintController extends Controller
     public function creditReceipt(Request $request, CreditSale $credit)
     {
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $credit->branch_id !== $user->branch_id, 403);
 
         $credit->load(['branch', 'client', 'seller', 'items.product']);
 
@@ -1443,7 +1443,7 @@ class PrintController extends Controller
         $credit = $payment->creditSale;
 
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $credit->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $credit->branch_id !== $user->branch_id, 403);
 
         $business = BusinessSetting::getSettings();
         $config = $business->getTicketConfig();

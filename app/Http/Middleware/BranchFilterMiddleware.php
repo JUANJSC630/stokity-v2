@@ -19,7 +19,7 @@ class BranchFilterMiddleware
         $user = Auth::user();
 
         // Si el usuario no es administrador y tiene una sucursal asignada
-        if ($user && ! $user->isAdmin() && $user->branch_id) {
+        if ($user && $user->isRestrictedToOwnBranch() && $user->branch_id) {
             // Agregar el branch_id del usuario a la request para que los controladores lo usen
             $request->merge(['user_branch_id' => $user->branch_id]);
 

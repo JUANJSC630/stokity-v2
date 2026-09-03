@@ -114,6 +114,42 @@ class User extends Authenticatable
     }
 
     /**
+     * The data axis (§6.4 of ROLES_PERMISSIONS_ARCHITECTURE.md): 'all' sees
+     * every branch, 'branch' only their own, 'own' only records they created
+     * (narrowed further per-resource by a dedicated permission, e.g.
+     * cash_sessions.view_all — this method never returns 'own' itself).
+     *
+     * Read from the user's Spatie role (assigned by roles:assign-legacy).
+     * Falls back to the legacy role string for a tenant that hasn't run that
+     * migration yet, so behavior never changes for someone not yet migrated.
+     */
+    public function dataScope(): string
+    {
+        if ($this->isSuperAdmin()) {
+            return 'all';
+        }
+
+        /** @var \App\Models\Role|null $role */
+        $role = $this->roles()->first();
+
+        if ($role) {
+            return $role->data_scope;
+        }
+
+        return $this->isAdmin() ? 'all' : 'branch';
+    }
+
+    /**
+     * True for anyone who must be filtered to their own branch — the exact
+     * inverse of today's `! $user->isAdmin()` branch-filter checks, now
+     * backed by the role's data_scope instead of a hardcoded role string.
+     */
+    public function isRestrictedToOwnBranch(): bool
+    {
+        return $this->dataScope() !== 'all';
+    }
+
+    /**
      * Get the branches managed by the user.
      */
     public function managedBranches(): HasMany

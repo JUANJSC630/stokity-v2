@@ -28,9 +28,9 @@ class StockMovementController extends Controller
         $query = StockMovement::with(['product' => fn ($q) => $q->withTrashed(), 'user', 'branch']);
 
         // Filtrar por sucursal si el usuario no es administrador
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
-        } elseif ($request->filled('branch') && $user->isAdmin()) {
+        } elseif ($request->filled('branch') && ! $user->isRestrictedToOwnBranch()) {
             $query->where('branch_id', $request->branch);
         }
 
@@ -70,7 +70,7 @@ class StockMovementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get() : collect();
+        $branches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect();
         $products = Product::where('status', true)->get();
 
         return Inertia::render('stock-movements/index', [
@@ -104,7 +104,7 @@ class StockMovementController extends Controller
             'userBranchId' => $user->branch_id,
             'selectedType' => $request->input('type', 'ingreso'),
             'now' => now()->format('Y-m-d\TH:i'),
-            'suppliers' => Supplier::when(! $user->isAdmin() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
+            'suppliers' => Supplier::when($user->isRestrictedToOwnBranch() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
                 ->where('status', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
@@ -219,7 +219,7 @@ class StockMovementController extends Controller
     public function show(StockMovement $stockMovement): Response
     {
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $stockMovement->branch_id !== $user->branch_id, 403, 'No tienes acceso a este movimiento.');
+        abort_if($user->isRestrictedToOwnBranch() && $stockMovement->branch_id !== $user->branch_id, 403, 'No tienes acceso a este movimiento.');
 
         $stockMovement->load(['product', 'user', 'branch', 'supplier']);
 
@@ -235,7 +235,7 @@ class StockMovementController extends Controller
     {
         $user = Auth::user();
 
-        abort_if(! $user->isAdmin() && $product->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
 
         $product->load(['category', 'branch']);
 

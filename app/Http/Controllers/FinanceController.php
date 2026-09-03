@@ -116,7 +116,7 @@ class FinanceController extends Controller
 
         $netProfit = $grossProfit - $totalExpenses;
 
-        $branches = $user->isAdmin() ? Branch::where('status', true)->get(['id', 'name']) : collect();
+        $branches = ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get(['id', 'name']) : collect();
 
         // ── Gastos del período (lista inline) ────────────────────────────────
         $expensesList = $expensesQuery->clone()
@@ -129,7 +129,7 @@ class FinanceController extends Controller
         $now = Carbon::now('America/Bogota');
         $pendingTemplates = ExpenseTemplate::with('category')
             ->where('is_active', true)
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when($user->isRestrictedToOwnBranch(), fn ($q) => $q->where('branch_id', $user->branch_id))
             ->get()
             ->filter(fn ($t) => ! $t->isRegisteredForMonth($now->year, $now->month))
             ->values();

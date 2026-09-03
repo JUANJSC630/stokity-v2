@@ -80,7 +80,7 @@ class ClientController extends Controller
         $user = Auth::user();
 
         $salesQuery = $client->sales()
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id));
+            ->when($user->isRestrictedToOwnBranch(), fn ($q) => $q->where('branch_id', $user->branch_id));
 
         $sales = (clone $salesQuery)
             ->with('seller')

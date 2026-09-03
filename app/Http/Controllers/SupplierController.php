@@ -23,7 +23,7 @@ class SupplierController extends Controller
 
         $query = Supplier::with('branch');
 
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -42,7 +42,7 @@ class SupplierController extends Controller
             $query->where('status', $request->status === 'active');
         }
 
-        if ($request->filled('branch') && $user->isAdmin()) {
+        if ($request->filled('branch') && ! $user->isRestrictedToOwnBranch()) {
             $query->where('branch_id', $request->branch);
         }
 
@@ -50,7 +50,7 @@ class SupplierController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get(['id', 'name'])
             : [];
 
@@ -69,7 +69,7 @@ class SupplierController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get(['id', 'name'])
             : Branch::where('id', $user->branch_id)->get(['id', 'name']);
 
@@ -100,7 +100,7 @@ class SupplierController extends Controller
         ]);
 
         // Non-admins are locked to their branch
-        if (! $user->isAdmin()) {
+        if ($user->isRestrictedToOwnBranch()) {
             $validated['branch_id'] = $user->branch_id;
         }
 
@@ -116,7 +116,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $supplier->load(['branch', 'products' => function ($q) {
             $q->with('category')->withPivot(['purchase_price', 'supplier_code', 'is_default']);
@@ -156,9 +156,9 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get(['id', 'name'])
             : Branch::where('id', $user->branch_id)->get(['id', 'name']);
 
@@ -175,7 +175,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
@@ -189,7 +189,7 @@ class SupplierController extends Controller
             'status' => 'boolean',
         ]);
 
-        if (! $user->isAdmin()) {
+        if ($user->isRestrictedToOwnBranch()) {
             $validated['branch_id'] = $user->branch_id;
         }
 
@@ -205,7 +205,7 @@ class SupplierController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        abort_if(! $user->isAdmin() && $supplier->branch_id !== $user->branch_id, 403);
+        abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $supplier->delete();
 

@@ -38,7 +38,7 @@ class DashboardController extends Controller
 
         // Filtros por sucursal si el usuario no es administrador
         $branchFilter = null;
-        if (! $user->isAdmin()) {
+        if ($user->isRestrictedToOwnBranch()) {
             $branchFilter = $user->branch_id;
         }
 
@@ -92,7 +92,7 @@ class DashboardController extends Controller
 
         // Ventas por sucursal (solo para administradores)
         $salesByBranch = [];
-        if ($user->isAdmin()) {
+        if (! $user->isRestrictedToOwnBranch()) {
             $salesByBranch = $this->getSalesByBranch($startOfMonth, $endOfMonth);
         }
 

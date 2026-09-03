@@ -37,7 +37,7 @@ class ProductController extends Controller
 
         // Filtrar por sucursal del usuario si no es administrador
         $user = Auth::user();
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
@@ -63,7 +63,7 @@ class ProductController extends Controller
         }
 
         // Solo permitir filtro por sucursal si es administrador
-        if ($request->branch && $user->isAdmin()) {
+        if ($request->branch && ! $user->isRestrictedToOwnBranch()) {
             $query->where('branch_id', $request->branch);
         }
 
@@ -84,7 +84,7 @@ class ProductController extends Controller
         $categories = Category::where('status', true)->get();
 
         // Solo mostrar todas las sucursales si es administrador
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -105,7 +105,7 @@ class ProductController extends Controller
         $categories = Category::where('status', true)->get();
 
         // If user is admin, get all branches, otherwise only user's branch
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -165,7 +165,7 @@ class ProductController extends Controller
         $user = Auth::user();
         $categories = Category::where('status', true)->get();
 
-        $branches = $user->isAdmin()
+        $branches = ! $user->isRestrictedToOwnBranch()
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
@@ -291,14 +291,14 @@ class ProductController extends Controller
         } else {
             // If user is not admin and has a branch, show only products from that branch
             $user = Auth::user();
-            if (! $user->isAdmin() && $user->branch_id) {
+            if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
                 $query->where('branch_id', $user->branch_id);
             }
         }
 
         $paginatedProducts = $query->paginate(10)->withQueryString();
         $categories = Category::all();
-        $branches = Auth::user()->isAdmin() ? Branch::all() : [];
+        $branches = ! Auth::user()->isRestrictedToOwnBranch() ? Branch::all() : [];
 
         $products = [
             'data' => $paginatedProducts->items(),
@@ -423,7 +423,7 @@ class ProductController extends Controller
             });
         }
 
-        if (! $user->isAdmin() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('branch_id', $user->branch_id);
         }
 
