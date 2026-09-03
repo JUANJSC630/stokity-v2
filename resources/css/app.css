@@ -96,11 +96,12 @@
 }
 
 :root {
-    /* Brand colors — overridden at runtime by BrandColors component */
-    --brand-primary: #c850c0;
-    --brand-primary-rgb: 200, 80, 192;
-    --brand-secondary: #ffcc70;
-    --brand-secondary-rgb: 255, 204, 112;
+    /* Brand colors — overridden at runtime by BrandColors component.
+       Neutral graphite/silver default so a fresh tenant starts unbranded. */
+    --brand-primary: #3f3f46;
+    --brand-primary-rgb: 63, 63, 70;
+    --brand-secondary: #a1a1aa;
+    --brand-secondary-rgb: 161, 161, 170;
     /* Derived brand utilities (auto-cascade when rgb vars update) */
     --brand-primary-hover: rgba(var(--brand-primary-rgb), 0.15);
     --brand-primary-soft: rgba(var(--brand-primary-rgb), 0.08);
