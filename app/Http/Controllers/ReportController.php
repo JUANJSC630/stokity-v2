@@ -235,7 +235,7 @@ class ReportController extends Controller
         return Inertia::render('reports/returns-report', [
             'returnsData' => $returnsData,
             'filters' => $filters,
-            'branches' => Branch::where('status', true)->get(),
+            'branches' => ! $user->isRestrictedToOwnBranch() ? Branch::where('status', true)->get() : collect(),
             'categories' => Category::where('status', true)->get(),
             'user' => [
                 'is_admin' => ! $user->isRestrictedToOwnBranch(),

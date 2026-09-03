@@ -50,12 +50,23 @@ class CashSessionController extends Controller
         $query = CashSession::with(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name'])
             ->latest('opened_at');
 
+        // Kept on the legacy isAdmin() check, deliberately, for the whole
+        // method: this mixes the branch axis with per-record ownership
+        // (opened_by_user_id) into one non-admin bucket. Converting only the
+        // branch-facing lines (branch_id filter, availableBranches, isAdmin
+        // prop) while this base query stayed on isAdmin() would tell a
+        // data_scope='all' custom role "you have full access" in the UI while
+        // every session still came back restricted to their own — worse than
+        // not touching the method at all. Splitting "sees every branch" from
+        // "sees other people's sessions in their branch" needs a real
+        // permission (cash_sessions.view_all, already in the PR-2 catalog),
+        // which is PR-4 work, not this one.
         if (! $user->isAdmin()) {
             $query->where('opened_by_user_id', $user->id)
                 ->where('branch_id', $user->branch_id);
         }
 
-        if ($request->filled('branch_id') && ! $user->isRestrictedToOwnBranch()) {
+        if ($request->filled('branch_id') && $user->isAdmin()) {
             $query->where('branch_id', $request->branch_id);
         }
 
@@ -68,7 +79,7 @@ class CashSessionController extends Controller
 
         $sessions = $query->paginate(20)->withQueryString();
 
-        $availableBranches = ! $user->isRestrictedToOwnBranch()
+        $availableBranches = $user->isAdmin()
             ? \App\Models\Branch::where('status', true)->get(['id', 'name'])
             : [];
 
@@ -76,7 +87,7 @@ class CashSessionController extends Controller
             'sessions' => $sessions,
             'filters' => $request->only(['date_from', 'date_to', 'branch_id']),
             'availableBranches' => $availableBranches,
-            'isAdmin' => ! $user->isRestrictedToOwnBranch(),
+            'isAdmin' => $user->isAdmin(),
         ]);
     }
 
