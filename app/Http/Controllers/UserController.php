@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Authorization\DefaultRoleProvisioner;
 use App\Models\ArchivedUser;
 use App\Models\Branch;
 use App\Models\User;
@@ -114,6 +115,15 @@ class UserController extends Controller
             'photo' => $validated['photo'] ?? null,
         ]);
 
+        // Keep the Spatie role in lockstep with the legacy `role` column —
+        // without this, a newly created employee has a "Rol" the UI shows
+        // correctly but zero actual Spatie permissions, since nothing else
+        // assigns one for a user created after the one-time roles:assign-legacy
+        // backfill.
+        if ($roleName = DefaultRoleProvisioner::roleNameForLegacy($validated['role'])) {
+            $user->assignRole($roleName);
+        }
+
         // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
         if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {
             Branch::where('id', $validated['branch_id'])->update(['manager_id' => $user->id]);
@@ -219,6 +229,14 @@ class UserController extends Controller
         }
 
         $user->update($userData);
+
+        // syncRoles() (not assignRole()): a user holds exactly one role by
+        // design, and this "Rol" field is how an admin changes it — assignRole()
+        // would just ADD the new one, leaving the old attached too, and this
+        // user would end up with the union of both roles' permissions.
+        if ($roleName = DefaultRoleProvisioner::roleNameForLegacy($validated['role'])) {
+            $user->syncRoles([$roleName]);
+        }
 
         // Si el usuario es encargado y se le asigna una sucursal, actualizar el manager_id de la sucursal
         if ($validated['role'] === 'encargado' && isset($validated['branch_id'])) {

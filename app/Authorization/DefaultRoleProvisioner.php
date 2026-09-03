@@ -30,6 +30,29 @@ class DefaultRoleProvisioner
 
     public const VENDEDOR = 'Vendedor';
 
+    /**
+     * Single source of truth for legacy `users.role` string → default Spatie
+     * role name. Used by roles:assign-legacy (one-time backfill) and by
+     * UserController (every create/update from here on) — those two MUST
+     * agree, or an employee's actual permissions silently drift from what
+     * the "Rol" field in the UI claims.
+     *
+     * @return array<string, string>
+     */
+    public static function legacyRoleMap(): array
+    {
+        return [
+            'administrador' => self::ADMINISTRADOR,
+            'encargado' => self::ENCARGADO,
+            'vendedor' => self::VENDEDOR,
+        ];
+    }
+
+    public static function roleNameForLegacy(string $legacyRole): ?string
+    {
+        return self::legacyRoleMap()[$legacyRole] ?? null;
+    }
+
     public function seedFor(Tenant $tenant): void
     {
         DB::transaction(function () use ($tenant) {
