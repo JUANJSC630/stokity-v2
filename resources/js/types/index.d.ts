@@ -117,6 +117,13 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
+export interface AssignableRole {
+    id: number;
+    name: string;
+    is_system: boolean;
+    data_scope: 'all' | 'branch' | 'own';
+}
+
 export interface Client {
     id: number;
     name: string;

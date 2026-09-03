@@ -54,6 +54,26 @@ class DefaultRoleProvisioner
     }
 
     /**
+     * The inverse of roleNameForLegacy(): given an actual Spatie role
+     * (system or a tenant's custom one), the closest legacy `role` string —
+     * still written to `users.role` on create/update so the handful of
+     * isAdmin()/isManager()/isSeller() call sites not yet migrated to
+     * permission checks (e.g. CashSessionController::closeForm()/close())
+     * keep behaving reasonably for a user holding a custom role. This is
+     * necessarily an approximation for anything that isn't one of the 3
+     * system roles — retiring `users.role` entirely (Bloque 8 of
+     * ROLES_PERMISSIONS_PLAN.md) is what removes the need for it.
+     */
+    public static function legacyStringForRole(Role $role): string
+    {
+        if ($role->is_system) {
+            return array_flip(self::legacyRoleMap())[$role->name] ?? 'vendedor';
+        }
+
+        return $role->data_scope === 'all' ? 'administrador' : 'encargado';
+    }
+
+    /**
      * The default permission set for a legacy role string, computed without
      * touching the database. Backs User::hasPermissionTo()'s fallback: a
      * tenant that hasn't run roles:assign-legacy yet (or a bare test fixture)
@@ -146,11 +166,11 @@ class DefaultRoleProvisioner
      *
      * cash_sessions.view_all is excluded too: CashSessionController::index()/
      * show()/addMovement() gate their "see someone else's session" check on
-     * isAdmin() alone — Encargado is restricted to their own sessions there,
-     * same as Vendedor. (closeForm()/close() DO let Encargado close someone
-     * else's session — a genuinely different, action-specific rule with no
-     * catalog permission of its own yet, deliberately left as a literal
-     * isAdmin()||isManager() check rather than force-fit into this one.)
+     * it — Encargado is restricted to their own sessions there, same as
+     * Vendedor. closeForm()/close() are a genuinely different, broader rule
+     * (Encargado CAN close someone else's session) — backed by its own
+     * cash_sessions.close_any permission (PR-6), which is NOT excluded here
+     * on purpose, so Encargado keeps that reach.
      *
      * dashboard.low_stock.view and dashboard.branch_sales.view are excluded
      * too: dashboard.tsx gates the "Productos en inventario" and "Ventas por

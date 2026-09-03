@@ -61,9 +61,10 @@ it('keeps profile permissions out of the assignable, per-role catalog', function
     expect($alwaysGranted)->not->toBeEmpty();
 });
 
-it('groups every permission under its module in byModule()', function () {
+it('groups every assignable permission under its module in byModule(), excluding alwaysGranted()', function () {
     $byModule = PermissionCatalog::byModule();
     $total = collect($byModule)->sum(fn ($perms) => count($perms));
 
-    expect($total)->toBe(count(PermissionCatalog::all()));
+    expect($total)->toBe(count(PermissionCatalog::all()) - count(PermissionCatalog::alwaysGranted()))
+        ->and($byModule)->not->toHaveKey('profile');
 });

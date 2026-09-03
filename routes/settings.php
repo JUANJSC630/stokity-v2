@@ -4,6 +4,7 @@ use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\BusinessSettingController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\RoleController;
 use App\Http\Controllers\Settings\TicketSettingController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -39,4 +40,12 @@ Route::middleware(['auth', 'can:settings.business.view'])->group(function () {
 
     Route::get('settings/ticket', [TicketSettingController::class, 'edit'])->name('settings.ticket');
     Route::post('settings/ticket', [TicketSettingController::class, 'update'])->name('settings.ticket.update');
+});
+
+// Gestión de roles y permisos — su propio permiso, distinto del resto de
+// configuración del negocio, para poder delegarlo independientemente.
+Route::middleware(['auth', 'can:settings.roles.manage'])->group(function () {
+    Route::resource('settings/roles', RoleController::class)
+        ->except(['show'])
+        ->names('settings.roles');
 });
