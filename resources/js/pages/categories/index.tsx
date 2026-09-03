@@ -147,20 +147,24 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
             title: 'Acciones',
             render: (_: unknown, row: Category) => (
                 <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
-                        <Edit2 className="size-4" />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-500"
-                        onClick={() => {
-                            setCategoryToDelete(row);
-                            setDeleteModalOpen(true);
-                        }}
-                    >
-                        <Trash2 className="size-4" />
-                    </Button>
+                    {can('categories.update') && (
+                        <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
+                            <Edit2 className="size-4" />
+                        </Button>
+                    )}
+                    {can('categories.delete') && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500"
+                            onClick={() => {
+                                setCategoryToDelete(row);
+                                setDeleteModalOpen(true);
+                            }}
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    )}
                 </div>
             ),
         },
@@ -249,20 +253,29 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                         <div className="mb-2 flex items-center justify-between">
                                             <div className="text-base font-semibold">{category.name}</div>
                                             <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0" onClick={() => openEditModal(category)}>
-                                                    <Edit2 className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 p-0 text-red-500"
-                                                    onClick={() => {
-                                                        setCategoryToDelete(category);
-                                                        setDeleteModalOpen(true);
-                                                    }}
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
+                                                {can('categories.update') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => openEditModal(category)}
+                                                    >
+                                                        <Edit2 className="size-4" />
+                                                    </Button>
+                                                )}
+                                                {can('categories.delete') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 p-0 text-red-500"
+                                                        onClick={() => {
+                                                            setCategoryToDelete(category);
+                                                            setDeleteModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

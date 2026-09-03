@@ -78,7 +78,6 @@ export default function Products({
     // branches.view: only Administrador holds it among the default roles —
     // matches the previous admin-only branch column/filter exactly.
     const isAdmin = can('branches.view');
-    const canManageProducts = can('products.create');
 
     // Debounced auto-search on text input change
     useEffect(() => {
@@ -251,20 +250,20 @@ export default function Products({
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Catálogo</h1>
                     <div className="flex gap-2">
-                        {canManageProducts && (
-                            <>
-                                <Link href="/products/create">
-                                    <Button size="sm" className="flex items-center gap-1">
-                                        <Plus className="h-4 w-4" />
-                                        Nuevo
-                                    </Button>
-                                </Link>
-                                <Link href="/products/trashed">
-                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </Link>
-                            </>
+                        {can('products.create') && (
+                            <Link href="/products/create">
+                                <Button size="sm" className="flex items-center gap-1">
+                                    <Plus className="h-4 w-4" />
+                                    Nuevo
+                                </Button>
+                            </Link>
+                        )}
+                        {can('products.delete') && (
+                            <Link href="/products/trashed">
+                                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </Link>
                         )}
                     </div>
                 </div>

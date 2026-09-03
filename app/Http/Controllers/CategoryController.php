@@ -119,6 +119,8 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
+        abort_unless(request()->user()->can('categories.delete'), 403, 'No tienes permisos para eliminar categorías.');
+
         $category->delete();
 
         return redirect()->route('categories.index')
@@ -130,6 +132,8 @@ class CategoryController extends Controller
      */
     public function restore($id)
     {
+        abort_unless(request()->user()->can('categories.restore'), 403, 'No tienes permisos para restaurar categorías.');
+
         $category = Category::onlyTrashed()->findOrFail($id);
         $category->restore();
 
@@ -142,6 +146,10 @@ class CategoryController extends Controller
      */
     public function forceDelete($id)
     {
+        // No dedicated categories.force_delete in the catalog — categories.delete
+        // is the closest match, same as BranchController::forceDelete()'s precedent.
+        abort_unless(request()->user()->can('categories.delete'), 403, 'No tienes permisos para eliminar categorías permanentemente.');
+
         $category = Category::onlyTrashed()->findOrFail($id);
 
         // Check if category has associated products (including soft-deleted ones)

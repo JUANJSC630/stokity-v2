@@ -85,7 +85,6 @@ export default function TrashedProducts({
 
     const { can } = usePermissions();
     const isAdmin = can('branches.view');
-    const canManageProducts = can('products.create');
 
     // Update search results when filters change
     useEffect(() => {
@@ -200,24 +199,24 @@ export default function TrashedProducts({
             title: 'Acciones',
             render: (_: unknown, row: Product) => (
                 <div className="flex gap-1">
-                    {canManageProducts && (
-                        <>
-                            <Button onClick={() => handleRestore(row.id)} variant="outline" size="sm" className="flex h-8 items-center gap-1">
-                                <Recycle className="h-4 w-4" />
-                                <span>Restaurar</span>
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    setProductToForceDelete(row);
-                                    setForceDeleteModalOpen(true);
-                                }}
-                                variant="destructive"
-                                size="sm"
-                                className="h-8 w-8"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </>
+                    {can('products.restore') && (
+                        <Button onClick={() => handleRestore(row.id)} variant="outline" size="sm" className="flex h-8 items-center gap-1">
+                            <Recycle className="h-4 w-4" />
+                            <span>Restaurar</span>
+                        </Button>
+                    )}
+                    {can('products.force_delete') && (
+                        <Button
+                            onClick={() => {
+                                setProductToForceDelete(row);
+                                setForceDeleteModalOpen(true);
+                            }}
+                            variant="destructive"
+                            size="sm"
+                            className="h-8 w-8"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
                     )}
                 </div>
             ),
@@ -357,29 +356,29 @@ export default function TrashedProducts({
                                         <div className="mb-1 text-xs text-muted-foreground">Sucursal: {product.branch?.name}</div>
                                     )}
                                     <div className="mt-2 flex justify-end gap-2">
-                                        {canManageProducts && (
-                                            <>
-                                                <Button
-                                                    onClick={() => handleRestore(product.id)}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex h-8 items-center gap-1"
-                                                >
-                                                    <Recycle className="h-4 w-4" />
-                                                    <span>Restaurar</span>
-                                                </Button>
-                                                <Button
-                                                    onClick={() => {
-                                                        setProductToForceDelete(product);
-                                                        setForceDeleteModalOpen(true);
-                                                    }}
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="h-8 w-8"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </>
+                                        {can('products.restore') && (
+                                            <Button
+                                                onClick={() => handleRestore(product.id)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex h-8 items-center gap-1"
+                                            >
+                                                <Recycle className="h-4 w-4" />
+                                                <span>Restaurar</span>
+                                            </Button>
+                                        )}
+                                        {can('products.force_delete') && (
+                                            <Button
+                                                onClick={() => {
+                                                    setProductToForceDelete(product);
+                                                    setForceDeleteModalOpen(true);
+                                                }}
+                                                variant="destructive"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         )}
                                     </div>
                                 </div>

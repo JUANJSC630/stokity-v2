@@ -122,17 +122,19 @@ export default function TrashedCategories({ categories, filters = { search: '' }
             title: 'Acciones',
             render: (_: unknown, category: Category) => (
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                            setCategoryToRestore(category);
-                            setRestoreModalOpen(true);
-                        }}
-                    >
-                        <ArrowLeft className="size-4" />
-                    </Button>
+                    {can('categories.restore') && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                                setCategoryToRestore(category);
+                                setRestoreModalOpen(true);
+                            }}
+                        >
+                            <ArrowLeft className="size-4" />
+                        </Button>
+                    )}
                     {can('categories.delete') && (
                         <Button
                             variant="ghost"
