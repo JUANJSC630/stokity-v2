@@ -148,3 +148,14 @@ it('exposes audit logs to an admin viewing the sale', function () {
     $response->assertOk();
     expect($response->viewData('page')['props']['auditLogs'])->toHaveCount(1);
 });
+
+it('exposes the cancellation record when viewing a deleted sale', function () {
+    $this->actingAs($this->admin)->delete(route('sales.destroy', $this->sale));
+
+    $response = $this->actingAs($this->admin)->get(route('sales.deleted.show', $this->sale->id));
+
+    $response->assertOk();
+    $auditLogs = $response->viewData('page')['props']['auditLogs'];
+    expect($auditLogs)->toHaveCount(1);
+    expect($auditLogs[0]['action'])->toBe('cancelled');
+});

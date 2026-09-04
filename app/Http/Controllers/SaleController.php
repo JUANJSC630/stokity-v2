@@ -519,10 +519,6 @@ class SaleController extends Controller
 
         $business = \App\Models\BusinessSetting::getSettings();
 
-        $auditLogs = $user->can('sales.view_audit')
-            ? $sale->auditLogs()->with('user:id,name')->latest('created_at')->limit(50)->get()
-            : collect();
-
         return Inertia::render('sales/show', [
             'sale' => $this->buildSaleData($sale),
             'businessName' => $business->name,
@@ -531,8 +527,20 @@ class SaleController extends Controller
             'businessPhone' => $business->phone,
             'businessLogoUrl' => $business->logo_url,
             'ticketConfig' => $business->getTicketConfig(),
-            'auditLogs' => $auditLogs,
+            'auditLogs' => $this->auditLogsFor($sale, $user),
         ]);
+    }
+
+    /**
+     * F5: audit trail for a sale, gated on sales.view_audit — shared by
+     * show() and deletedShow() so a cancelled sale's own cancellation
+     * record (and any prior edits) stays visible from the trashed view too.
+     */
+    private function auditLogsFor(Sale $sale, User $user): \Illuminate\Support\Collection
+    {
+        return $user->can('sales.view_audit')
+            ? $sale->auditLogs()->with('user:id,name')->latest('created_at')->limit(50)->get()
+            : collect();
     }
 
     /**
@@ -606,6 +614,7 @@ class SaleController extends Controller
             'businessPhone' => $business->phone,
             'businessLogoUrl' => $business->logo_url,
             'ticketConfig' => $business->getTicketConfig(),
+            'auditLogs' => $this->auditLogsFor($sale, $user),
         ]);
     }
 
@@ -744,10 +753,16 @@ class SaleController extends Controller
         }
 
         DB::transaction(function () use ($sale, $validated, $user, $request) {
+            // Re-read with a row lock so a concurrent edit can't have already
+            // changed the field between the route-bound $sale we validated
+            // against and this write — otherwise the audit log's old_value
+            // could record a value that was already stale.
+            $locked = Sale::lockForUpdate()->findOrFail($sale->id);
+
             // Logged and saved together — if the update fails, the audit
             // trail must not claim a field change that never took effect.
-            $this->logSaleFieldChanges($sale, $validated, $user->id, $request->ip());
-            $sale->update($validated);
+            $this->logSaleFieldChanges($locked, $validated, $user->id, $request->ip());
+            $locked->update($validated);
         });
 
         return redirect()->route('sales.show', $sale)->with('success', 'Venta actualizada exitosamente.');
