@@ -1,12 +1,15 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate } from '@/lib/format';
 import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Download, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Edit2, Printer, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import QRCode from 'react-qr-code';
+import toast from 'react-hot-toast';
 
 interface ProductShowProps {
     product: Product;
@@ -14,6 +17,29 @@ interface ProductShowProps {
 
 export default function ProductShow({ product }: ProductShowProps) {
     const isService = product.type === 'servicio';
+    const printer = usePrinter();
+    const [printingLabel, setPrintingLabel] = useState(false);
+
+    const handlePrintLabel = async () => {
+        if (printingLabel) return;
+        if (printer.status !== 'connected' || !printer.selectedPrinter) {
+            toast.error('QZ Tray no conectado. Configura la impresora en el POS.');
+            return;
+        }
+        setPrintingLabel(true);
+        try {
+            const { printedCount } = await printer.printLabels([product.id]);
+            if (printedCount > 0) {
+                toast.success('Etiqueta enviada a la impresora');
+            } else {
+                toast.error('No se pudo imprimir la etiqueta: producto no disponible.');
+            }
+        } catch (err) {
+            toast.error('Error al imprimir: ' + (err as Error).message);
+        } finally {
+            setPrintingLabel(false);
+        }
+    };
 
     const downloadQr = () => {
         const svg = document.getElementById('product-qr') as SVGSVGElement | null;
@@ -98,6 +124,17 @@ export default function ProductShow({ product }: ProductShowProps) {
                                 </Link>
                             </>
                         )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                            onClick={handlePrintLabel}
+                            disabled={printingLabel}
+                            aria-label={printingLabel ? 'Imprimiendo etiqueta' : 'Imprimir etiqueta'}
+                        >
+                            <Printer className="h-4 w-4" />
+                            <span className="hidden sm:inline">{printingLabel ? 'Imprimiendo...' : 'Imprimir etiqueta'}</span>
+                        </Button>
                         <Link href={`/products/${product.id}/edit`}>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
                                 <Edit2 className="h-4 w-4" />

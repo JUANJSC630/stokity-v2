@@ -461,14 +461,15 @@ Cambios de precio no dejan rastro.
 
 ---
 
-### F6 — Impresión de etiquetas de precio / código
-**Prioridad: Media**
+### ✅ F6 — Impresión de etiquetas de precio / código
+**Completado: 2026-09-04**
 
-**Implementación:**
-- Botón "Imprimir etiqueta" en ficha de producto (admin + encargado)
-- Etiqueta: nombre, precio COP, código, QR/barcode
-- Compatible con impresora 58mm vía QZ Tray
-- Opcional: selección múltiple → "Imprimir etiquetas seleccionadas"
+- Botón "Imprimir etiqueta" en ficha de producto (`products/show.tsx`, admin + encargado vía `can:products.create`)
+- Selección múltiple en el catálogo (`products/index.tsx`): checkbox por fila + botón "Imprimir etiquetas (N)"
+- Etiqueta: nombre, precio COP, código, QR (mismo valor que ya escanea el POS) — vía `PrintController::labels()` / `printLabel()`, reutilizando `printQrBitmap()`
+- Compatible con impresora 58mm/80mm vía QZ Tray (`POST /print/labels`, `qzTray.ts printLabels()`)
+- Respeta el alcance de sucursal (`isRestrictedToOwnBranch()`) y tenant — IDs fuera de alcance se excluyen en silencio del lote, y el frontend reporta `printed_count` real (no el número solicitado) cuando difieren
+- Nombre/código del producto se sanean de bytes de control ESC/GS antes de imprimirse (evita inyección de comandos de impresora)
 
 ---
 

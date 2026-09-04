@@ -17,4 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::match(['get', 'post'], 'print/test-template', [PrintController::class, 'testTemplate'])->name('print.test-template');
     Route::get('print/credit/{credit}', [PrintController::class, 'creditReceipt'])->name('print.credit');
     Route::get('print/credit-payment/{payment}', [PrintController::class, 'creditPaymentReceipt'])->name('print.credit-payment');
+
+    // F6: price/code label printing — same reach as the catalog page it's launched from.
+    Route::middleware('can:products.create')->post('print/labels', [PrintController::class, 'labels'])->name('print.labels');
 });

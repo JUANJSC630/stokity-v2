@@ -6,6 +6,7 @@ use App\Models\BusinessSetting;
 use App\Models\CashSession;
 use App\Models\CreditPayment;
 use App\Models\CreditSale;
+use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use Illuminate\Http\Request;
@@ -88,6 +89,57 @@ class PrintController extends Controller
         return response()->json([
             'data' => base64_encode($bytes),
             'code' => $sale->code,
+        ]);
+    }
+
+    /**
+     * Generate ESC/POS price-label bytes for one or more products, base64-encoded.
+     * One label per product, each ending in its own cut. F6 of PLAN.md.
+     */
+    public function labels(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'product_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'product_ids.*' => ['integer'],
+        ]);
+
+        $query = Product::whereIn('id', $validated['product_ids']);
+        if ($user->isRestrictedToOwnBranch()) {
+            // where('branch_id', null) becomes a `branch_id IS NULL` filter,
+            // so a restricted user whose own branch_id is null (e.g. their
+            // branch was deleted, which nullOnDelete()s it) fails closed —
+            // sees nothing — instead of the earlier `&& $user->branch_id`
+            // check silently skipping the filter and leaking every branch.
+            $query->where('branch_id', $user->branch_id);
+        }
+        $products = $query->get();
+
+        abort_if($products->isEmpty(), 404, 'Ninguno de los productos seleccionados está disponible para imprimir.');
+
+        $config = BusinessSetting::getSettings()->getTicketConfig();
+        $paperWidth = (int) $request->query('width', $config['paper_width']);
+        $cols = $paperWidth >= 80 ? 48 : 32;
+
+        $connector = new DummyPrintConnector;
+        $printer = $this->createPrinter($connector);
+
+        try {
+            foreach ($products as $product) {
+                $this->printLabel($printer, $product, $cols);
+            }
+        } finally {
+            $bytes = $connector->getData();
+            $printer->close();
+        }
+
+        return response()->json([
+            'data' => base64_encode($bytes),
+            // Lets the caller tell the user when fewer labels printed than
+            // requested (e.g. a branch-restricted user's batch mixed in a
+            // product from another branch, silently dropped above).
+            'printed_count' => $products->count(),
         ]);
     }
 
@@ -861,6 +913,54 @@ class PrintController extends Controller
         for ($i = 0; $i < 8; $i++) {
             $conn->write("\x1b\x4a\x18"); // ESC J 24 = 24 dots per command
         }
+    }
+
+    /**
+     * Print one price label: name, price, code, and a scannable QR of the
+     * code (same value the POS's own QR/manual-entry search matches on —
+     * see resources/js/pages/products/show.tsx). Ends with its own feed +
+     * cut so labels can be printed back-to-back for a multi-product batch.
+     */
+    private function printLabel(Printer $p, Product $product, int $cols = 32): void
+    {
+        // Defensive reset — same reasoning as printBusinessHeader(): ESC @
+        // is never sent (it retracts paper), so a previous job's line
+        // spacing/size/emphasis can still be in effect on the physical
+        // printer when this one starts.
+        $p->setLineSpacing();
+        $p->setEmphasis(false);
+        $p->setTextSize(1, 1);
+        $p->setJustification(Printer::JUSTIFY_CENTER);
+
+        $p->setEmphasis(true);
+        $p->text($this->truncate($this->stripControlBytes($product->name), $cols)."\n");
+        $p->setEmphasis(false);
+
+        $p->setTextSize(2, 2);
+        $p->text($this->formatMoney($product->sale_price)."\n");
+        $p->setTextSize(1, 1);
+
+        $code = $this->stripControlBytes($product->code);
+        $p->text($code."\n");
+        $this->printQrBitmap($p, $code);
+        $p->text("\n");
+
+        $p->setJustification(Printer::JUSTIFY_LEFT);
+        $this->feedPastDeadZone($p);
+        $p->cut();
+    }
+
+    /**
+     * Strip ASCII control bytes (0x00-0x1F, 0x7F) from user-entered text
+     * before it reaches the raw ESC/POS byte stream. Without this, a
+     * product name/code containing a raw ESC (0x1B) or GS (0x1D) byte
+     * could inject printer commands (unexpected cuts, cash-drawer kick,
+     * corrupted state) — labels are the most direct path from an editable
+     * text field to raw printer bytes in this controller.
+     */
+    private function stripControlBytes(string $text): string
+    {
+        return preg_replace('/[\x00-\x1F\x7F]/', '', $text) ?? '';
     }
 
     /**

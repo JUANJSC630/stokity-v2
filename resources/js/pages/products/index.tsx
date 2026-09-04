@@ -1,11 +1,13 @@
 import EyeButton from '@/components/common/EyeButton';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
+import { usePrinter } from '@/hooks/use-printer';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,8 +16,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, Eye, Plus, Printer, Search, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface ProductsPageProps {
     products: {
@@ -61,6 +64,9 @@ export default function Products({
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [printingLabels, setPrintingLabels] = useState(false);
+    const printer = usePrinter();
 
     // Capture flash error from backend (e.g. blocked delete)
     useEffect(() => {
@@ -68,6 +74,16 @@ export default function Products({
             setDeleteError(flash.error);
         }
     }, [flash?.error]);
+
+    // Drop any selected id that's no longer in the visible page (new
+    // filter/search/page navigation, or the 60s background poll removing a
+    // row) — but keep selections that are still visible, so the 60s poll
+    // doesn't silently wipe out a selection mid-click.
+    useEffect(() => {
+        const visibleIds = new Set(products.data.map((product) => product.id));
+        setSelectedIds((previous) => new Set([...previous].filter((id) => visibleIds.has(id))));
+    }, [products.data]);
+
     const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -152,7 +168,59 @@ export default function Products({
         setDeleteError(null);
     };
 
+    const toggleSelected = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handlePrintSelectedLabels = async () => {
+        if (printer.status !== 'connected' || !printer.selectedPrinter) {
+            toast.error('QZ Tray no conectado. Configura la impresora en el POS.');
+            return;
+        }
+        setPrintingLabels(true);
+        try {
+            const requested = selectedIds.size;
+            const { printedCount } = await printer.printLabels(Array.from(selectedIds));
+            if (printedCount === requested) {
+                toast.success(`${printedCount} etiqueta(s) enviadas a la impresora`);
+            } else if (printedCount > 0) {
+                toast.success(`${printedCount} de ${requested} etiqueta(s) enviadas — algunos productos no están disponibles para ti`);
+            } else {
+                toast.error('Ninguno de los productos seleccionados está disponible para imprimir.');
+            }
+            setSelectedIds(new Set());
+        } catch (err) {
+            toast.error('Error al imprimir: ' + (err as Error).message);
+        } finally {
+            setPrintingLabels(false);
+        }
+    };
+
     const columns: Column<Product & { actions: null }>[] = [
+        ...(can('products.create')
+            ? [
+                  {
+                      key: 'id' as keyof (Product & { actions: null }),
+                      title: '',
+                      render: (_: unknown, row: Product) => (
+                          <Checkbox
+                              checked={selectedIds.has(row.id)}
+                              onCheckedChange={() => toggleSelected(row.id)}
+                              disabled={printingLabels}
+                              aria-label={`Seleccionar ${row.name} para imprimir etiqueta`}
+                          />
+                      ),
+                  },
+              ]
+            : []),
         {
             key: 'name',
             title: 'Producto',
@@ -250,6 +318,18 @@ export default function Products({
                 <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
                     <h1 className="text-3xl font-bold">Catálogo</h1>
                     <div className="flex gap-2">
+                        {can('products.create') && selectedIds.size > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                                onClick={handlePrintSelectedLabels}
+                                disabled={printingLabels}
+                            >
+                                <Printer className="h-4 w-4" />
+                                {printingLabels ? 'Imprimiendo...' : `Imprimir etiquetas (${selectedIds.size})`}
+                            </Button>
+                        )}
                         {can('products.create') && (
                             <Link href="/products/create">
                                 <Button size="sm" className="flex items-center gap-1">
@@ -417,6 +497,14 @@ export default function Products({
                                     className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
                                 >
                                     <div className="mb-2 flex items-center gap-3">
+                                        {can('products.create') && (
+                                            <Checkbox
+                                                checked={selectedIds.has(product.id)}
+                                                onCheckedChange={() => toggleSelected(product.id)}
+                                                disabled={printingLabels}
+                                                aria-label={`Seleccionar ${product.name} para imprimir etiqueta`}
+                                            />
+                                        )}
                                         <img
                                             src={product.image_url}
                                             alt={product.name}
