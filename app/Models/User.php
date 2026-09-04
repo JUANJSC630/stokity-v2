@@ -21,6 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property bool $status
  * @property string|null $photo
  * @property string $photo_url
+ * @property string|null $uploaded_photo_url
  * @property \App\Models\Branch|null $branch
  */
 class User extends Authenticatable
@@ -71,6 +72,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'photo_url',
+        'uploaded_photo_url',
     ];
 
     /**
@@ -256,24 +258,38 @@ class User extends Authenticatable
     }
 
     /**
+     * The user's own uploaded photo URL, or null if they never uploaded one
+     * (or the legacy local file is missing). Distinct from photo_url, which
+     * always resolves to something displayable (falls back to the generic
+     * Stokity icon) — this is for callers that need to tell the two apart,
+     * e.g. showing initials instead of the generic icon.
+     */
+    public function getUploadedPhotoUrlAttribute(): ?string
+    {
+        if (! $this->photo) {
+            return null;
+        }
+
+        // Vercel Blob URL (new uploads)
+        if (str_starts_with($this->photo, 'http')) {
+            return $this->photo;
+        }
+
+        // Legacy local file
+        $path = 'uploads/users/'.$this->photo;
+        if (file_exists(public_path($path))) {
+            return asset($path).'?v='.filemtime(public_path($path));
+        }
+
+        return null;
+    }
+
+    /**
      * Get the photo URL attribute.
      */
     public function getPhotoUrlAttribute(): string
     {
-        if ($this->photo) {
-            // Vercel Blob URL (new uploads)
-            if (str_starts_with($this->photo, 'http')) {
-                return $this->photo;
-            }
-
-            // Legacy local file
-            $path = 'uploads/users/'.$this->photo;
-            if (file_exists(public_path($path))) {
-                return asset($path).'?v='.filemtime(public_path($path));
-            }
-        }
-
-        return asset('stokity-icon.png');
+        return $this->uploaded_photo_url ?? asset('stokity-icon.png');
     }
 
     /**
