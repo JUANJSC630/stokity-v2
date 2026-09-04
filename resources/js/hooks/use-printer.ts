@@ -4,6 +4,7 @@ import {
     isConnected,
     listPrinters,
     printCashSession as qzPrintCashSession,
+    printLabels as qzPrintLabels,
     printReceipt as qzPrintReceipt,
     printReturn as qzPrintReturn,
     printTest as qzPrintTest,
@@ -31,6 +32,7 @@ export interface PrinterState {
     printReceipt: (saleId: number) => Promise<void>;
     printReturn: (saleReturnId: number) => Promise<void>;
     printCashSession: (sessionId: number) => Promise<void>;
+    printLabels: (productIds: number[]) => Promise<{ printedCount: number }>;
     printTest: () => Promise<void>;
     errorMessage: string | null;
 }
@@ -148,6 +150,16 @@ export function usePrinter(): PrinterState {
         [selectedPrinter, status],
     );
 
+    const printLabels = useCallback(
+        async (productIds: number[]) => {
+            if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
+            if (status !== 'connected') throw new Error('QZ Tray no está conectado');
+
+            return await qzPrintLabels(productIds, selectedPrinter);
+        },
+        [selectedPrinter, status],
+    );
+
     const printTest = useCallback(async () => {
         if (!selectedPrinter) throw new Error('No hay impresora seleccionada');
         if (status !== 'connected') throw new Error('QZ Tray no está conectado');
@@ -169,6 +181,7 @@ export function usePrinter(): PrinterState {
         printReceipt,
         printReturn,
         printCashSession,
+        printLabels,
         printTest,
         errorMessage,
     };

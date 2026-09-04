@@ -244,3 +244,44 @@ export async function printReturn(saleReturnId: number, printerName: string): Pr
     const { data } = (await res.json()) as { data: string };
     await printBase64(printerName, data);
 }
+
+/** Reads the XSRF-TOKEN cookie Laravel sets for the current session (needed for a plain `fetch` POST, unlike Inertia's own router which attaches it automatically). */
+function readXsrfToken(): string {
+    return decodeURIComponent(
+        document.cookie
+            .split('; ')
+            .find((c) => c.startsWith('XSRF-TOKEN='))
+            ?.split('=')
+            .slice(1)
+            .join('=') ?? '',
+    );
+}
+
+/**
+ * Fetch ESC/POS price-label bytes for one or more products and send to
+ * printer — one cut label per product, in the order given.
+ *
+ * Returns how many labels the server actually printed, which can be less
+ * than productIds.length: the server silently drops any product outside
+ * the caller's branch/tenant instead of failing the whole batch.
+ */
+export async function printLabels(productIds: number[], printerName: string): Promise<{ printedCount: number }> {
+    const res = await fetch('/print/labels', {
+        method: 'POST',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': readXsrfToken(),
+        },
+        body: JSON.stringify({ product_ids: productIds }),
+    });
+
+    if (!res.ok) {
+        throw new Error(`Label print failed: ${res.status}`);
+    }
+
+    const { data, printed_count: printedCount } = (await res.json()) as { data: string; printed_count: number };
+    await printBase64(printerName, data);
+    return { printedCount };
+}
