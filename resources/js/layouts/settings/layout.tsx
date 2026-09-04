@@ -53,6 +53,12 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
         permission: 'settings.roles.manage',
     },
+    {
+        title: 'Módulos',
+        href: '/settings/modules',
+        icon: null,
+        permission: 'settings.modules.manage',
+    },
 ];
 
 export default function SettingsLayout({ children, wide = false }: PropsWithChildren<{ wide?: boolean }>) {

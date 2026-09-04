@@ -24,6 +24,7 @@ export interface NavItem {
     icon?: LucideIcon | null;
     isActive?: boolean;
     permission?: string; // Permission required to see this item — omit to show to everyone authenticated
+    module?: string; // Business module that must be enabled (business.module_config) — omit if not a toggle-able module
     children?: NavItem[]; // Sub-items for nested navigation
     disabled?: boolean; // Show as disabled (no access)
     highlight?: boolean; // Visual emphasis (e.g., POS button)
@@ -44,6 +45,7 @@ export interface BusinessSetting {
     brand_color: string | null;
     brand_color_secondary: string | null;
     require_cash_session: boolean;
+    module_config?: Record<string, boolean> | null;
 }
 
 export interface CashSession {

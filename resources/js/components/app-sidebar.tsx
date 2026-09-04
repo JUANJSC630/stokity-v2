@@ -1,6 +1,7 @@
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { useModules } from '@/hooks/use-modules';
 import { usePermissions } from '@/hooks/use-permissions';
 import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { type NavItem, type SharedData } from '@/types';
@@ -97,12 +98,14 @@ const allNavItems: NavItem[] = [
         href: '/credits',
         icon: HandCoins,
         permission: 'credits.view',
+        module: 'credits',
     },
     {
         title: 'Proveedores',
         href: '/suppliers',
         icon: Truck,
         permission: 'suppliers.view',
+        module: 'suppliers',
     },
     {
         title: 'Movimientos de Stock',
@@ -123,12 +126,14 @@ const allNavItems: NavItem[] = [
         href: '/finances',
         icon: TrendingUp,
         permission: 'finances.view',
+        module: 'finances',
     },
     {
         title: 'Gastos',
         href: '/expenses',
         icon: Receipt,
         permission: 'expenses.view',
+        module: 'finances',
         children: [
             {
                 title: 'Historial de gastos',
@@ -217,6 +222,7 @@ export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
     const userRole = auth.user.role;
     const { can } = usePermissions();
+    const { moduleEnabled } = useModules();
 
     // Restore sidebar scroll position on every mount (i.e. after each navigation)
     useEffect(() => {
@@ -237,7 +243,7 @@ export function AppSidebar() {
 
     // Super admins get the platform nav; tenant users get the store nav by role.
     const isSuperAdmin = userRole === 'super_admin';
-    const filteredNavItems = isSuperAdmin ? adminNavItems : filterNavItemsByPermission(allNavItems, can);
+    const filteredNavItems = isSuperAdmin ? adminNavItems : filterNavItemsByPermission(allNavItems, can, moduleEnabled);
     const homeHref = isSuperAdmin ? '/admin/tenants' : '/dashboard';
     return (
         <Sidebar collapsible="icon" variant="inset">

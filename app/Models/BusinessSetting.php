@@ -42,11 +42,45 @@ class BusinessSetting extends Model
         'brand_color_secondary',
         'require_cash_session',
         'ticket_config',
+        'module_config',
     ];
 
     protected $casts = [
         'ticket_config' => 'array',
+        'module_config' => 'array',
     ];
+
+    /**
+     * Every toggle-able module and its default state. Deliberately a small,
+     * hand-picked set — modules core to any POS (dashboard, products, sales,
+     * users, branches, settings...) are never in here, only genuinely
+     * optional business features (Bloque 8 of ROLES_PERMISSIONS_PLAN.md).
+     * Independent of the permission system: a permission answers "can this
+     * role do X", this answers "does this business even use X at all".
+     */
+    public const MODULE_DEFAULTS = [
+        'credits' => true,
+        'suppliers' => true,
+        'finances' => true, // bundles Gastos/expenses — same nav section, same route group
+    ];
+
+    /** Returns the merged module config (DB values override defaults). */
+    public function getModuleConfig(): array
+    {
+        return array_merge(self::MODULE_DEFAULTS, $this->module_config ?? []);
+    }
+
+    /** Unknown module names are treated as enabled — fail open, never silently hide something real. */
+    public function isModuleEnabled(string $module): bool
+    {
+        return $this->getModuleConfig()[$module] ?? true;
+    }
+
+    /** Convenience for callers (routes, middleware) that only have a module name, not a loaded instance. */
+    public static function moduleEnabled(string $module): bool
+    {
+        return self::getSettings()->isModuleEnabled($module);
+    }
 
     /** Default ticket template configuration. */
     public const TICKET_DEFAULTS = [
