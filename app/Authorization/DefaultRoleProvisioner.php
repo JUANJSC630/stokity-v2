@@ -186,6 +186,10 @@ class DefaultRoleProvisioner
      * discount is explicitly admin-only per product decision, not tied to
      * any pre-existing route/controller gate the way the others above are.
      *
+     * sales.view_audit is excluded too, same reasoning as sales.update/
+     * sales.delete right above it: only whoever can edit/cancel a sale
+     * should see the trail of who did that and when.
+     *
      * @return list<string>
      */
     public static function encargadoPermissions(): array
@@ -195,7 +199,7 @@ class DefaultRoleProvisioner
             'settings.business.view', 'settings.business.update', 'settings.ticket.update',
             'settings.appearance.update', 'settings.printer.manage',
             'settings.roles.manage', 'settings.modules.manage',
-            'sales.view_deleted', 'sales.update', 'sales.delete', 'reports.branches.view',
+            'sales.view_deleted', 'sales.update', 'sales.delete', 'sales.view_audit', 'reports.branches.view',
             'cash_sessions.view_all',
             'dashboard.low_stock.view', 'dashboard.branch_sales.view',
             'clients.wholesale.manage',

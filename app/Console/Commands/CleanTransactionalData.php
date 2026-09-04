@@ -25,6 +25,7 @@ class CleanTransactionalData extends Command
         'credit_payments',
         'credit_sale_items',
         'credit_sales',
+        'sale_audit_logs',
         'sale_return_products',
         'sale_returns',
         'sale_products',
