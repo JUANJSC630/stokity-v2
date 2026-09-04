@@ -9,6 +9,7 @@ import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
 import AppLayout from '@/layouts/app-layout';
 import { isSessionOpenTooLong } from '@/lib/cash-session';
+import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { usePolling } from '@/hooks/use-polling';
@@ -322,12 +323,38 @@ export default function PosIndex({
     const [cart, setCart] = useState<CartItem[]>([]);
     const [clientId, setClientId] = useState(defaultClientId);
     const [paymentMethod, setPaymentMethod] = useState('');
-    const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
-    const [discountValue, setDiscountValue] = useState('0');
+    // Lazy-initialized from the default client so a wholesale client that
+    // happens to be pre-selected on mount (e.g. no "Consumidor final" seeded,
+    // or it was itself marked wholesale) still gets its discount applied
+    // without requiring the cashier to reselect it from the dropdown.
+    const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>(
+        () => resolveWholesaleDiscount(sortedClients.find((c) => String(c.id) === defaultClientId))?.type ?? 'none',
+    );
+    const [discountValue, setDiscountValue] = useState(
+        () => resolveWholesaleDiscount(sortedClients.find((c) => String(c.id) === defaultClientId))?.value ?? '0',
+    );
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
     const [amountPaid, setAmountPaid] = useState(0);
     const [submitting, setSubmitting] = useState(false);
     const [formKey, setFormKey] = useState(0);
+
+    // F1: switching clients always recalculates the default discount for
+    // the newly selected client — a wholesale client gets their % applied,
+    // anyone else resets to no discount. The discount picker below stays
+    // fully editable (no permission gate on it today), so the cashier can
+    // still clear or adjust it for a one-off sale that isn't wholesale.
+    const handleClientChange = (id: string) => {
+        setClientId(id);
+        const client = sortedClients.find((c) => String(c.id) === id);
+        const suggestion = resolveWholesaleDiscount(client);
+        if (suggestion) {
+            setDiscountType(suggestion.type);
+            setDiscountValue(suggestion.value);
+        } else {
+            setDiscountType('none');
+            setDiscountValue('0');
+        }
+    };
 
     // Pending sales (cotizaciones)
     const [pendingCount, setPendingCount] = useState(initialPendingCount);
@@ -398,6 +425,15 @@ export default function PosIndex({
         discountType === 'percentage' ? Math.round(gross * (dVal / 100) * 100) / 100 : discountType === 'fixed' ? Math.min(dVal, gross) : 0;
     const total = Math.max(0, gross - discountAmount);
     const change = Math.max(0, amountPaid - total);
+
+    // F1: shown next to the discount picker when the currently active
+    // discount still matches the selected client's wholesale default — the
+    // cashier changing type/value away from it (a one-off non-wholesale
+    // sale) makes the badge disappear, without needing separate state.
+    const selectedClient = sortedClients.find((c) => String(c.id) === clientId);
+    const wholesaleSuggestion = resolveWholesaleDiscount(selectedClient);
+    const wholesaleDiscountActive =
+        !!wholesaleSuggestion && discountType === wholesaleSuggestion.type && Number(discountValue) === Number(wholesaleSuggestion.value);
 
     // Ref to printer so we can access it inside router.post callbacks without stale closures
     const printerRef = useRef(printer);
@@ -1490,7 +1526,7 @@ export default function PosIndex({
                     >
                         {/* Client + clear cart + printer status */}
                         <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
-                            <Select value={clientId} onValueChange={setClientId} disabled={!!activePendingId}>
+                            <Select value={clientId} onValueChange={handleClientChange} disabled={!!activePendingId}>
                                 <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
                                     <SelectValue placeholder="Cliente" />
                                 </SelectTrigger>
@@ -1626,6 +1662,11 @@ export default function PosIndex({
                                 {cart.length > 0 && (
                                     <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
                                         <Label className="text-xs text-muted-foreground">Descuento:</Label>
+                                        {wholesaleDiscountActive && (
+                                            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                Cliente mayorista · {wholesaleSuggestion?.value}% aplicado
+                                            </span>
+                                        )}
                                         <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
                                             <SelectTrigger className="h-7 w-32 text-xs">
                                                 <SelectValue />

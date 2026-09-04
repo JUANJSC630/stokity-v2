@@ -18,10 +18,14 @@ class Client extends Model
         'address',
         'email',
         'birthdate',
+        'is_wholesale',
+        'wholesale_discount_pct',
     ];
 
     protected $casts = [
         'birthdate' => 'date',
+        'is_wholesale' => 'boolean',
+        'wholesale_discount_pct' => 'decimal:2',
     ];
 
     public function sales()

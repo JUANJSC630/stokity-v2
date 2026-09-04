@@ -31,6 +31,7 @@ class ClientFactory extends Factory
             'address' => $this->faker->address(),
             'email' => $this->faker->unique()->safeEmail(),
             'birthdate' => $this->faker->date(),
+            'is_wholesale' => false,
         ];
     }
 }

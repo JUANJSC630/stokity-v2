@@ -182,6 +182,10 @@ class DefaultRoleProvisioner
      * sucursal" cards on `userRole === 'administrador'` — admin-only today,
      * even though DashboardController computes both regardless of role.
      *
+     * clients.wholesale.manage is excluded too: the client-level wholesale
+     * discount is explicitly admin-only per product decision, not tied to
+     * any pre-existing route/controller gate the way the others above are.
+     *
      * @return list<string>
      */
     public static function encargadoPermissions(): array
@@ -194,6 +198,7 @@ class DefaultRoleProvisioner
             'sales.view_deleted', 'sales.update', 'sales.delete', 'reports.branches.view',
             'cash_sessions.view_all',
             'dashboard.low_stock.view', 'dashboard.branch_sales.view',
+            'clients.wholesale.manage',
         ];
 
         return collect(PermissionCatalog::names())
