@@ -210,6 +210,7 @@ class PermissionCatalog
             'sales.view_deleted' => ['module' => 'sales', 'label' => 'Ver ventas eliminadas', 'requires' => ['sales.delete']],
             'sales.refund' => ['module' => 'sales', 'label' => 'Registrar devoluciones', 'requires' => ['sales.view']],
             'sales.view_profit' => ['module' => 'sales', 'label' => 'Ver utilidad de la venta', 'type' => 'field', 'requires' => ['sales.view']],
+            'sales.view_audit' => ['module' => 'sales', 'label' => 'Ver auditoría de cambios en ventas', 'requires' => ['sales.view', 'sales.update', 'sales.delete']],
         ];
     }
 

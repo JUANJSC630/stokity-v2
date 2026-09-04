@@ -420,12 +420,16 @@ DELETE /expense-templates/{template}    → ExpenseTemplateController@destroy
 
 ---
 
-### F2 — Transferencia de stock entre sucursales
-**Prioridad: Alta**
+### ⏸️ F2 — Transferencia de stock entre sucursales
+**Prioridad: Alta — POSPUESTO 2026-09-04 (decisión explícita del usuario)**
 
 No existe mecanismo para mover inventario entre sucursales de forma auditable.
 
-**Implementación:**
+**Hallazgo que motivó posponerlo:** `products.code` es único **por tenant**, no por sucursal (migración `2026_06_18_000004_make_unique_constraints_per_tenant.php`), y cada `Product` tiene un solo `branch_id` + un solo `stock` — no existe una tabla de stock por-sucursal. Con este esquema, "transferir" solo puede significar reasignar el producto completo (con todo su stock) a otra sucursal — no permite transferencias parciales ni que el mismo producto siga vendiéndose en ambas sucursales. Hacerlo bien (transferencias parciales reales) exigiría separar el stock en una tabla nueva por-sucursal, un cambio de arquitectura grande que toca POS, ventas y reportes — no algo del tamaño de una feature de roadmap normal.
+
+Además, **ningún tenant real tiene hoy más de una sucursal** (Lu Accesorios y El Palenque son ambos de 1 sola sucursal), así que no hay urgencia ni un caso real que dicte cómo debería organizarse el catálogo multi-sucursal. El usuario decidió posponer hasta que exista un cliente real con varias sucursales — en ese momento se diseñará la transferencia sabiendo cómo ese cliente organiza su catálogo de verdad, en vez de adivinar ahora y arriesgar tener que rehacerlo.
+
+**Implementación original propuesta (referencia, no vigente):**
 - Tabla `stock_transfers`: `id, origin_branch_id, destination_branch_id, requested_by, status (draft/confirmed/cancelled), notes, timestamps`
 - Tabla `stock_transfer_items`: `transfer_id, product_id, quantity`
 - Sección "Transferencias" en inventario (admin + encargado)
@@ -435,16 +439,16 @@ No existe mecanismo para mover inventario entre sucursales de forma auditable.
 
 ---
 
-### F5 — Auditoría de cambios en ventas
-**Prioridad: Alta**
+### ✅ F5 — Auditoría de cambios en ventas
+**Completado: 2026-09-04**
 
-Un admin puede modificar o cancelar ventas sin dejar rastro.
+Tabla propia `sale_audit_logs` (no se instaló `spatie/laravel-activitylog` — no estaba en `composer.json` y el proyecto ya resuelve casos similares con tablas dedicadas, p. ej. `stock_movements`).
 
-**Implementación:**
-- Evaluar `spatie/laravel-activity-log` o tabla propia `sale_audit_log`
-- Campos: `sale_id, user_id, action, field_changed, old_value, new_value, ip_address, created_at`
-- Registrar cambios de: estado, total, método de pago, ítems
-- Sección "Auditoría" en `sales/show.tsx` (solo admin)
+- `sale_id, user_id, action (updated|cancelled), field_changed, old_value, new_value, ip_address, created_at` — log inmutable (sin `updated_at`)
+- `SaleController::update()` registra una fila por cada campo que realmente cambió entre `estado`, `total` y `método de pago` (comparación normalizada para evitar falsos positivos por formato numérico); "ítems" del enunciado original no aplica — `update()` no edita líneas de venta hoy
+- `SaleController::destroy()` (cancelación, soft-delete) registra una fila `action='cancelled'` dentro de la misma transacción que restaura el stock
+- Permiso nuevo `sales.view_audit` — admin-only (excluido de `encargadoPermissions()`, igual criterio que `sales.update`/`sales.delete`)
+- Sección "Auditoría" en `sales/show.tsx`, visible solo con el permiso
 
 ---
 

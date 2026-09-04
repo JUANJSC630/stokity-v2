@@ -38,6 +38,16 @@ interface TicketConfig {
     return_code_graphic: 'none' | 'qr' | 'barcode';
 }
 
+interface AuditLog {
+    id: number;
+    action: 'updated' | 'cancelled';
+    field_changed: string | null;
+    old_value: string | null;
+    new_value: string | null;
+    created_at: string;
+    user: { name: string } | null;
+}
+
 interface Props {
     sale: Sale;
     deleted?: boolean;
@@ -47,11 +57,29 @@ interface Props {
     businessPhone?: string | null;
     businessLogoUrl?: string | null;
     ticketConfig?: TicketConfig;
+    auditLogs?: AuditLog[];
 }
 
-export default function Show({ sale, deleted = false, businessName, businessNit, businessAddress, businessPhone, businessLogoUrl, ticketConfig }: Props) {
+const AUDIT_FIELD_LABELS: Record<string, string> = {
+    status: 'Estado',
+    total: 'Total',
+    payment_method: 'Método de pago',
+};
+
+export default function Show({
+    sale,
+    deleted = false,
+    businessName,
+    businessNit,
+    businessAddress,
+    businessPhone,
+    businessLogoUrl,
+    ticketConfig,
+    auditLogs = [],
+}: Props) {
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
     const printer = usePrinter();
+    const { can } = usePermissions();
 
     const handleThermalPrint = async () => {
         if (printer.status !== 'connected' || !printer.selectedPrinter) {
@@ -65,9 +93,6 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
             toast.error('Error al imprimir: ' + (err as Error).message);
         }
     };
-
-    // Obtener el usuario autenticado
-    const { can } = usePermissions();
 
     // Calcular cantidad devuelta por producto
     // Tipos para productos y devoluciones
@@ -664,6 +689,35 @@ export default function Show({ sale, deleted = false, businessName, businessNit,
                                 </DialogClose>
                             </DialogContent>
                         </Dialog>
+                    </div>
+                )}
+
+                {/* Audit trail — F5, admin only */}
+                {can('sales.view_audit') && auditLogs.length > 0 && (
+                    <div className="rounded-xl border border-border/60 bg-card">
+                        <div className="px-5 py-4">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Auditoría</p>
+                        </div>
+                        <div className="divide-y divide-border/40 border-t border-border/60">
+                            {auditLogs.map((log) => (
+                                <div key={log.id} className="px-5 py-3">
+                                    <p className="text-xs">
+                                        {log.action === 'cancelled' ? (
+                                            <>
+                                                <span className="font-medium">{log.user?.name ?? 'Usuario eliminado'}</span> canceló esta venta
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="font-medium">{log.user?.name ?? 'Usuario eliminado'}</span> cambió{' '}
+                                                <span className="font-medium">{AUDIT_FIELD_LABELS[log.field_changed ?? ''] ?? log.field_changed}</span>{' '}
+                                                de &quot;{log.old_value}&quot; a &quot;{log.new_value}&quot;
+                                            </>
+                                        )}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground">{formatDateTime(log.created_at)}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
