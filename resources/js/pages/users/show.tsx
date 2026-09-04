@@ -1,13 +1,9 @@
-import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ChevronLeft, Edit, Trash } from 'lucide-react';
+import { Building2, CalendarPlus, ChevronLeft, LogIn, Mail, Pencil, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 type User = {
@@ -39,6 +35,18 @@ interface PageProps {
     [key: string]: unknown;
 }
 
+const ROLE_LABELS: Record<string, string> = {
+    administrador: 'Administrador',
+    encargado: 'Encargado',
+    vendedor: 'Vendedor',
+};
+
+const ROLE_PILL_CLASS: Record<string, string> = {
+    administrador: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400',
+    encargado: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
+    vendedor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
+};
+
 export default function ShowUser({ user }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const form = useForm({
@@ -58,27 +66,6 @@ export default function ShowUser({ user }: Props) {
         },
     ];
 
-    const getRoleBadge = (role: string) => {
-        switch (role) {
-            case 'administrador':
-                return <Badge className="bg-blue-500 hover:bg-blue-600">Administrador</Badge>;
-            case 'encargado':
-                return <Badge className="bg-green-500 hover:bg-green-600">Encargado</Badge>;
-            case 'vendedor':
-                return <Badge className="bg-amber-500 hover:bg-amber-600">Vendedor</Badge>;
-            default:
-                return <Badge>{role}</Badge>;
-        }
-    };
-
-    const getStatusBadge = (status: boolean) => {
-        return status ? (
-            <Badge className="bg-green-500 hover:bg-green-600">Activo</Badge>
-        ) : (
-            <Badge className="bg-red-500 hover:bg-red-600">Inactivo</Badge>
-        );
-    };
-
     const handleDelete = () => {
         form.delete(`/users/${user.id}`, {
             onSuccess: () => setIsDeleteDialogOpen(false),
@@ -88,104 +75,118 @@ export default function ShowUser({ user }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Usuario: ${user.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
+            <div className="flex h-full flex-1 flex-col gap-5 p-6">
+                {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col gap-2 text-center sm:flex-row sm:items-center sm:gap-4 sm:text-left">
-                        <Link href="/users">
-                            <Button variant="outline" size="sm" className="flex gap-1">
-                                <ChevronLeft className="size-4" />
-                                <span>Volver</span>
-                            </Button>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/users"
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
                         </Link>
-                        <h1 className="text-2xl font-bold">Detalle del Usuario</h1>
+                        <img
+                            src={user.photo_url || '/stokity-icon.png'}
+                            alt={user.name}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/stokity-icon.png';
+                            }}
+                            className="h-11 w-11 flex-shrink-0 rounded-full border border-border/60 object-cover"
+                        />
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <h1 className="truncate text-xl leading-tight font-bold">{user.name}</h1>
+                                <span
+                                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ROLE_PILL_CLASS[user.role] ?? 'bg-muted text-muted-foreground'}`}
+                                >
+                                    {ROLE_LABELS[user.role] ?? user.role}
+                                </span>
+                                <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                        user.status
+                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
+                                            : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
+                                    }`}
+                                >
+                                    <span className={`h-1.5 w-1.5 rounded-full ${user.status ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    {user.status ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </div>
+                            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                        </div>
                     </div>
-                    <div className="flex flex-row justify-center gap-2">
-                        <Link href={`/users/${user.id}/edit`}>
-                            <Button variant="outline" className="flex gap-1">
-                                <Edit className="size-4" />
-                                <span>Editar</span>
-                            </Button>
+                    <div className="flex flex-shrink-0 gap-2">
+                        <Link
+                            href={`/users/${user.id}/edit`}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar
                         </Link>
                         {/* Botón de eliminar solo si el usuario mostrado NO es el auth */}
                         {user.id !== authUserId && (
-                            <Button variant="destructive" className="flex gap-1" onClick={() => setIsDeleteDialogOpen(true)}>
-                                <Trash className="size-4" />
-                                <span>Eliminar</span>
-                            </Button>
+                            <button
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Eliminar
+                            </button>
                         )}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {/* Información Personal */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Información Personal</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="mb-6 flex flex-col items-center">
-                                <Avatar className="mb-2 h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48">
-                                    {user.photo_url ? (
-                                        <img
-                                            src={user.photo_url}
-                                            alt={user.name}
-                                            className="h-full w-full rounded-full object-cover"
-                                            onError={(e) => {
-                                                console.error('Error al cargar imagen:', user.photo_url);
-                                                (e.target as HTMLImageElement).src = '/stokity-icon.png';
-                                            }}
-                                        />
-                                    ) : (
-                                        <img src="/stokity-icon.png" alt={user.name} className="h-full w-full rounded-full object-cover" />
-                                    )}
-                                </Avatar>
-                                <h2 className="max-w-xs text-center text-xl font-medium break-words sm:max-w-sm">{user.name}</h2>
-                                <p className="max-w-xs text-center break-all text-muted-foreground sm:max-w-sm">{user.email}</p>
+                {/* Info card */}
+                <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+                    <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Información</p>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
+                        <div className="flex items-start gap-2">
+                            <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground">Correo</p>
+                                <p className="truncate text-xs font-medium">{user.email}</p>
                             </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground">Rol</h3>
-                                    <div>{getRoleBadge(user.role)}</div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground">Rol</p>
+                                <p className="truncate text-xs font-medium">{ROLE_LABELS[user.role] ?? user.role}</p>
+                            </div>
+                        </div>
+                        {user.branch && (
+                            <div className="flex items-start gap-2">
+                                <Building2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="min-w-0">
+                                    <p className="text-[11px] text-muted-foreground">Sucursal</p>
+                                    <p className="truncate text-xs font-medium">{user.branch.name}</p>
                                 </div>
-
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground">Estado</h3>
-                                    <div>{getStatusBadge(user.status)}</div>
-                                </div>
-
-                                {user.branch && (
-                                    <div>
-                                        <h3 className="text-sm font-medium text-muted-foreground">Sucursal</h3>
-                                        <p>{user.branch.name}</p>
-                                    </div>
-                                )}
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Información de la Cuenta */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Información de la Cuenta</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">Fecha de Registro</h3>
-                                <p>{formatDateTime(user.created_at)}</p>
+                        )}
+                        <div className="flex items-start gap-2">
+                            <CalendarPlus className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground">Fecha de registro</p>
+                                <p className="truncate text-xs font-medium">{formatDateTime(user.created_at)}</p>
                             </div>
-
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">Última Actualización</h3>
-                                <p>{formatDateTime(user.updated_at)}</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <RefreshCw className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground">Última actualización</p>
+                                <p className="truncate text-xs font-medium">{formatDateTime(user.updated_at)}</p>
                             </div>
-
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground">Último Acceso</h3>
-                                <p>{formatDateTime(user.last_login_at)}</p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <LogIn className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="min-w-0">
+                                <p className="text-[11px] text-muted-foreground">Último acceso</p>
+                                <p className="truncate text-xs font-medium">
+                                    {user.last_login_at ? formatDateTime(user.last_login_at) : '—'}
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Delete Dialog */}
@@ -212,12 +213,20 @@ export default function ShowUser({ user }: Props) {
                         </div>
 
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={form.processing}>
+                            <button
+                                onClick={() => setIsDeleteDialogOpen(false)}
+                                disabled={form.processing}
+                                className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                            >
                                 Cancelar
-                            </Button>
-                            <Button variant="destructive" onClick={handleDelete} disabled={form.processing}>
-                                {form.processing ? 'Eliminando...' : 'Eliminar Usuario'}
-                            </Button>
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={form.processing}
+                                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {form.processing ? 'Eliminando...' : 'Eliminar usuario'}
+                            </button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
