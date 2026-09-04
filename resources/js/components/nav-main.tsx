@@ -16,6 +16,7 @@ import {
     SidebarSeparator,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useModules } from '@/hooks/use-modules';
 import { usePermissions } from '@/hooks/use-permissions';
 import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { type NavItem, type SharedData } from '@/types';
@@ -29,6 +30,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     // On mobile the sidebar renders as a Sheet (drawer) — always show expanded view inside it
     const isCollapsed = !isMobile && state === 'collapsed';
     const { can } = usePermissions();
+    const { moduleEnabled } = useModules();
 
     const [expandedItems, setExpandedItems] = useState<string[]>(() => {
         // Auto-expand groups whose children include the current page
@@ -91,7 +93,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     <DropdownMenuContent side="right" align="start" className="min-w-44">
                                         <DropdownMenuLabel className="text-xs text-muted-foreground">{item.title}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
-                                        {filterNavItemsByPermission(item.children, can)
+                                        {filterNavItemsByPermission(item.children, can, moduleEnabled)
                                             .map((child) => (
                                                 <DropdownMenuItem key={child.title} asChild>
                                                     <Link
@@ -136,7 +138,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     </SidebarMenuButton>
                                     {expandedItems.includes(item.title) && (
                                         <SidebarMenuSub>
-                                            {filterNavItemsByPermission(item.children, can)
+                                            {filterNavItemsByPermission(item.children, can, moduleEnabled)
                                                 .map((child) => {
                                                     const active = isChildActive(child);
                                                     return (

@@ -4,7 +4,7 @@ use App\Http\Controllers\CreditSaleController;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', BranchFilterMiddleware::class])->group(function () {
+Route::middleware(['auth', 'verified', 'module:credits', BranchFilterMiddleware::class])->group(function () {
     Route::get('credits', [CreditSaleController::class, 'index'])->name('credits.index');
     Route::get('credits/create', [CreditSaleController::class, 'create'])->name('credits.create');
     Route::post('credits', [CreditSaleController::class, 'store'])->name('credits.store');

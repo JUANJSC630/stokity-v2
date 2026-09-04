@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\BusinessSettingController;
+use App\Http\Controllers\Settings\ModuleSettingController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\RoleController;
@@ -48,4 +49,11 @@ Route::middleware(['auth', 'can:settings.roles.manage'])->group(function () {
     Route::resource('settings/roles', RoleController::class)
         ->except(['show'])
         ->names('settings.roles');
+});
+
+// Activar/desactivar módulos del negocio (Créditos, Proveedores, Finanzas) —
+// independiente de permisos, ver BusinessSetting::MODULE_DEFAULTS.
+Route::middleware(['auth', 'can:settings.modules.manage'])->group(function () {
+    Route::get('settings/modules', [ModuleSettingController::class, 'edit'])->name('settings.modules');
+    Route::post('settings/modules', [ModuleSettingController::class, 'update'])->name('settings.modules.update');
 });

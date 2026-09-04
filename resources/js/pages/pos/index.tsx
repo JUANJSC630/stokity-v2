@@ -4,6 +4,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useModules } from '@/hooks/use-modules';
 import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
 import AppLayout from '@/layouts/app-layout';
@@ -290,6 +291,7 @@ export default function PosIndex({
     requireCashSession,
 }: Props) {
     const { auth } = usePage<SharedData>().props;
+    const { moduleEnabled } = useModules();
 
     // Polling: refresh clients, session state and pending sales count every 60 seconds
     usePolling(['clients', 'currentSession', 'pendingSalesCount'], 60_000);
@@ -1716,25 +1718,27 @@ export default function PosIndex({
                                             <ClipboardList className="h-3.5 w-3.5 shrink-0" />
                                             <span className="truncate">{activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}</span>
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (cart.length === 0) {
-                                                    toast.error('Agrega al menos un producto');
-                                                    return;
-                                                }
-                                                if (!clientId || clientId === defaultClientId) {
-                                                    toast.error('Selecciona un cliente para registrar un crédito');
-                                                    return;
-                                                }
-                                                setShowCreditModal(true);
-                                            }}
-                                            disabled={submitting || cart.length === 0}
-                                            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
-                                        >
-                                            <HandCoins className="h-3.5 w-3.5 shrink-0" />
-                                            <span className="truncate">Vender a crédito</span>
-                                        </button>
+                                        {moduleEnabled('credits') && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (cart.length === 0) {
+                                                        toast.error('Agrega al menos un producto');
+                                                        return;
+                                                    }
+                                                    if (!clientId || clientId === defaultClientId) {
+                                                        toast.error('Selecciona un cliente para registrar un crédito');
+                                                        return;
+                                                    }
+                                                    setShowCreditModal(true);
+                                                }}
+                                                disabled={submitting || cart.length === 0}
+                                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                            >
+                                                <HandCoins className="h-3.5 w-3.5 shrink-0" />
+                                                <span className="truncate">Vender a crédito</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

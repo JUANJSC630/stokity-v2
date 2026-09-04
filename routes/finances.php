@@ -6,7 +6,7 @@ use App\Http\Controllers\ExpenseTemplateController;
 use App\Http\Controllers\FinanceController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'can:finances.view'])->group(function () {
+Route::middleware(['auth', 'verified', 'module:finances', 'can:finances.view'])->group(function () {
     // Dashboard financiero (P&L)
     Route::get('/finances', [FinanceController::class, 'summary'])->name('finances.summary');
 
