@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,11 +37,19 @@ class ModuleSettingController extends Controller
 
         // Merge onto the current config rather than replacing it outright —
         // a request that omits a known module key (e.g. a partial API call)
-        // must not silently re-enable it.
-        $settings = BusinessSetting::getSettings();
-        $moduleConfig = array_merge($settings->getModuleConfig(), $submitted);
+        // must not silently re-enable it. Locked inside a transaction: two
+        // admins submitting concurrent partial updates must not race each
+        // other's read-merge-write and clobber one another's toggle.
+        DB::transaction(function () use ($submitted) {
+            // Real tenants always have a row from provisioning — this only
+            // matters as a safety net (e.g. a tenant provisioned before this
+            // feature existed) before we lock it.
+            BusinessSetting::getSettings();
 
-        $settings->update(['module_config' => $moduleConfig]);
+            $settings = BusinessSetting::query()->lockForUpdate()->firstOrFail();
+            $moduleConfig = array_merge($settings->getModuleConfig(), $submitted);
+            $settings->update(['module_config' => $moduleConfig]);
+        });
 
         return back()->with('success', 'Módulos actualizados correctamente.');
     }

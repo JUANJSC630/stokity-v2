@@ -45,7 +45,7 @@ export interface BusinessSetting {
     brand_color: string | null;
     brand_color_secondary: string | null;
     require_cash_session: boolean;
-    module_config?: Record<string, boolean>;
+    module_config?: Record<string, boolean> | null;
 }
 
 export interface CashSession {
