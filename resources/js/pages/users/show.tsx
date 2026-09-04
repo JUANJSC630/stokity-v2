@@ -13,6 +13,7 @@ type User = {
     role: string;
     status: boolean;
     photo_url?: string;
+    uploaded_photo_url?: string | null;
     branch?: {
         id: number;
         name: string;
@@ -92,9 +93,9 @@ export default function ShowUser({ user }: Props) {
             <div className="grid h-full flex-1 gap-5 p-6 lg:grid-cols-[260px_1fr]">
                 {/* Rail: identidad + acciones */}
                 <aside className="h-fit rounded-2xl border border-border/60 bg-card px-6 py-7 text-center">
-                    {user.photo_url && !photoFailed ? (
+                    {user.uploaded_photo_url && !photoFailed ? (
                         <img
-                            src={user.photo_url}
+                            src={user.uploaded_photo_url}
                             alt={user.name}
                             onError={() => setPhotoFailed(true)}
                             className="mx-auto mb-4 h-[84px] w-[84px] rounded-full border border-border/60 object-cover"
