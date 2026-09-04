@@ -8,11 +8,13 @@ import { useModules } from '@/hooks/use-modules';
 import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
 import AppLayout from '@/layouts/app-layout';
+import { isSessionOpenTooLong } from '@/lib/cash-session';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { usePolling } from '@/hooks/use-polling';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
+    AlertTriangle,
     ArrowDownCircle,
     ArrowUpCircle,
     ClipboardList,
@@ -86,6 +88,21 @@ function formatCOP(value: number | string) {
 
 function formatNumber(value: number) {
     return new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+}
+
+/**
+ * F7: reads the per-session dismissal flag for the stale-session banner.
+ * Wrapped in try/catch — sessionStorage can throw (Safari "Block All
+ * Cookies", restrictive iframe/storage-access policies), and this is a
+ * purely cosmetic reminder that must never be able to crash the POS page.
+ */
+function readStaleSessionDismissed(sessionId: number | undefined): boolean {
+    if (!sessionId) return false;
+    try {
+        return sessionStorage.getItem(`stokity_stale_session_dismissed_${sessionId}`) === 'true';
+    } catch {
+        return false;
+    }
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'POS', href: '/pos' }];
@@ -341,6 +358,12 @@ export default function PosIndex({
     // Cash session
     const [currentSession, setCurrentSession] = useState<CashSession | null>(initialSession);
     const [showOpenSessionModal, setShowOpenSessionModal] = useState(false);
+    // F7: non-blocking "session open too long" banner. `now` ticks every
+    // minute so the banner can appear without a page reload once a session
+    // crosses the 10h mark; dismissal is per-session (sessionStorage key
+    // includes the session id) so a NEW session always starts un-dismissed.
+    const [now, setNow] = useState(() => Date.now());
+    const [staleSessionDismissed, setStaleSessionDismissed] = useState(() => readStaleSessionDismissed(initialSession?.id));
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [openingAmount, setOpeningAmount] = useState('');
     const [openingNotes, setOpeningNotes] = useState('');
@@ -758,6 +781,36 @@ export default function PosIndex({
     useEffect(() => {
         setCurrentSession(initialSession);
     }, [initialSession]);
+
+    // F7: tick `now` every minute so the stale-session banner can appear
+    // without requiring a page reload once a long-open session crosses 10h.
+    // Skips ticking while the tab is hidden, matching usePolling's behavior.
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'hidden') return;
+            setNow(Date.now());
+        }, 60_000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // F7: re-check dismissal (per session id) whenever the active session
+    // changes — covers both a new session opening (undismissed) and the
+    // current one closing out from under the page (nothing to dismiss).
+    useEffect(() => {
+        setStaleSessionDismissed(readStaleSessionDismissed(currentSession?.id));
+    }, [currentSession?.id]);
+
+    const sessionOpenTooLong = currentSession ? isSessionOpenTooLong(currentSession.opened_at, now) : false;
+
+    const dismissStaleSessionBanner = () => {
+        if (!currentSession) return;
+        try {
+            sessionStorage.setItem(`stokity_stale_session_dismissed_${currentSession.id}`, 'true');
+        } catch {
+            // Storage unavailable — dismissal just won't survive a remount, not worth surfacing.
+        }
+        setStaleSessionDismissed(true);
+    };
 
     // --- Pending sales (cotizaciones) ---
     async function fetchRawPendingSales(): Promise<PendingSale[]> {
@@ -1216,6 +1269,26 @@ export default function PosIndex({
             )}
 
             <div className="flex h-[calc(100dvh-64px)] flex-col">
+                {/* ── F7: session open too long — non-blocking, dismissible per session ── */}
+                {sessionOpenTooLong && !staleSessionDismissed && (
+                    <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                            <span className="text-xs font-medium sm:text-sm">
+                                La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno?
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={dismissStaleSessionBanner}
+                            className="shrink-0 rounded p-1 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                            aria-label="Descartar aviso"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                )}
+
                 {/* ── Panels (LEFT + RIGHT) — stacked on mobile, side-by-side on desktop ── */}
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
                     {/* ── LEFT: Search + Results ── */}

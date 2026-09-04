@@ -473,13 +473,13 @@ Cambios de precio no dejan rastro.
 
 ---
 
-### F7 — Alerta de sesión de caja abierta demasiado tiempo
-**Prioridad: Alta**
+### ✅ F7 — Alerta de sesión de caja abierta demasiado tiempo
+**Completado: 2026-09-04**
 
-**Implementación:**
-- Si `session.opened_at` > 10 horas: banner amarillo no bloqueante en el POS
+- Banner amarillo no bloqueante en el POS cuando `currentSession.opened_at` lleva más de 10 horas abierto — `resources/js/pages/pos/index.tsx`, umbral en `resources/js/lib/cash-session.ts` (`isSessionOpenTooLong`, testeado con vitest)
 - Texto: *"La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno?"*
-- Dismiss en `sessionStorage`
+- Dismiss por sesión vía `sessionStorage` (clave incluye el id de sesión, así una sesión nueva siempre empieza sin descartar) — lectura envuelta en try/catch para no tumbar la página si el storage está bloqueado
+- Se recalcula cada minuto sin recargar la página (respeta `document.visibilityState`, igual que `usePolling`)
 
 ---
 
