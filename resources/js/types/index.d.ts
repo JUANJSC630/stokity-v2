@@ -133,6 +133,8 @@ export interface Client {
     phone?: string;
     email?: string;
     address?: string;
+    is_wholesale?: boolean;
+    wholesale_discount_pct?: string | null;
 }
 
 export interface PaymentMethod {

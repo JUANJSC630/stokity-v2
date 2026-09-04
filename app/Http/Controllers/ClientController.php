@@ -66,10 +66,43 @@ class ClientController extends Controller
             'birthdate' => 'nullable|date',
         ]);
 
+        $validated = array_merge($validated, $this->validatedWholesaleFields($request));
+
         $client = Client::create($validated);
         // Si la petición es Inertia, devolver redirect para Inertia
 
         return redirect()->back()->with('success', 'Cliente creado exitosamente.');
+    }
+
+    /**
+     * Validates and returns the wholesale fields (is_wholesale,
+     * wholesale_discount_pct) only when the caller holds
+     * clients.wholesale.manage — otherwise returns an empty array, so those
+     * fields are silently dropped from the request instead of erroring out
+     * the rest of the client save. Admin-only by product decision (see
+     * DefaultRoleProvisioner::encargadoPermissions()).
+     *
+     * @return array<string, mixed>
+     */
+    private function validatedWholesaleFields(Request $request): array
+    {
+        if (! $request->user()->can('clients.wholesale.manage')) {
+            return [];
+        }
+
+        $validated = $request->validate([
+            'is_wholesale' => ['boolean'],
+            'wholesale_discount_pct' => ['nullable', 'required_if:is_wholesale,true', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        // A client that isn't wholesale never keeps a stale rate — avoids
+        // silently reviving an old percentage if the flag is toggled back
+        // on later without re-entering a value.
+        if (empty($validated['is_wholesale'])) {
+            $validated['wholesale_discount_pct'] = null;
+        }
+
+        return $validated;
     }
 
     /**
@@ -128,6 +161,8 @@ class ClientController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($client->id)->where($this->perTenant())],
             'birthdate' => 'nullable|date',
         ]);
+
+        $validated = array_merge($validated, $this->validatedWholesaleFields($request));
 
         $client->update($validated);
 

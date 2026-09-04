@@ -194,6 +194,7 @@ class PermissionCatalog
             'clients.update' => ['module' => 'clients', 'label' => 'Editar clientes', 'requires' => ['clients.view']],
             'clients.delete' => ['module' => 'clients', 'label' => 'Eliminar clientes', 'requires' => ['clients.view']],
             'clients.view_history' => ['module' => 'clients', 'label' => 'Ver historial de compras del cliente', 'requires' => ['clients.view']],
+            'clients.wholesale.manage' => ['module' => 'clients', 'label' => 'Marcar clientes mayoristas y su % de descuento', 'requires' => ['clients.update']],
         ];
     }
 

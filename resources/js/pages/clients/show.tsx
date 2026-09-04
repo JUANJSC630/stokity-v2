@@ -14,6 +14,8 @@ interface Client {
     address: string | null;
     email: string | null;
     birthdate: string | null;
+    is_wholesale: boolean;
+    wholesale_discount_pct: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -110,7 +112,14 @@ export default function Show({ client, sales, stats }: Props) {
                             </Link>
                         )}
                         <div>
-                            <h1 className="text-xl leading-tight font-bold">{client.name}</h1>
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-xl leading-tight font-bold">{client.name}</h1>
+                                {client.is_wholesale && (
+                                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                        Mayorista · {Number(client.wholesale_discount_pct)}% dto.
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-xs text-muted-foreground">Desde {new Date(client.created_at).toLocaleDateString('es-CO')}</p>
                         </div>
                     </div>

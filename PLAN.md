@@ -78,17 +78,16 @@ Migración de negocio único con 3 roles fijos a **SaaS multi-negocio con permis
 
 ## Funcionalidades pendientes
 
-### F1 — Descuentos por cliente (mayorista / VIP)
-**Prioridad: Alta**
+### ✅ F1 — Descuentos por cliente (mayorista / VIP)
+**Completado: 2026-09-04**
 
-No hay forma de marcar clientes mayoristas con descuento automático.
+Alcance final acordado con el cliente: marcado **manual** (el admin decide qué cliente es mayorista, no por volumen de compra histórico), **un solo %** por cliente (no precios especiales por producto), aplicado **siempre** que ese cliente compra pero **libremente ajustable** por el cajero para una venta puntual que no sea mayorista — el selector de descuento del POS ya no tenía ningún gate de permisos, así que no hizo falta lógica nueva de "¿es venta mayorista sí/no?", solo auto-rellenar y dejarlo visible/editable.
 
-**Implementación:**
-- Columna `discount_pct DECIMAL(5,2) DEFAULT NULL` en `clients`
-- Campo "Descuento especial (%)" en crear/editar cliente (solo admin y encargado)
-- En POS: al seleccionar cliente con `discount_pct`, aplicar automáticamente
-- Badge en el POS: *"Cliente VIP — 15% dto."* junto al nombre
-- Vendedor no puede aumentar el descuento por encima del configurado
+- `is_wholesale` (boolean) + `wholesale_discount_pct` (decimal 5,2 nullable) en `clients`
+- Permiso nuevo `clients.wholesale.manage` — **solo Administrador** (excluido explícitamente de `encargadoPermissions()`, a diferencia del resto de campos de cliente que Encargado sí puede editar)
+- Toggle "Cliente mayorista" + % en `clients/create.tsx` y `edit.tsx`, visible solo con el permiso; badge "Mayorista · X% dto." en `clients/show.tsx`
+- POS: al cambiar de cliente (`handleClientChange`), se recalcula el descuento por defecto vía `resolveWholesaleDiscount()` (`resources/js/lib/wholesale-discount.ts`, testeado con vitest) — mayorista aplica su %, cualquier otro resetea a "Ninguno". Badge "Cliente mayorista · X% aplicado" junto al selector de descuento mientras siga activo el valor sugerido
+- `PosController::index()` incluye los campos mayoristas en la consulta de clientes que recibe el POS
 
 ---
 

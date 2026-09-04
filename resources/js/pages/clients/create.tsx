@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -19,6 +21,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
+    const { can } = usePermissions();
+    const canManageWholesale = can('clients.wholesale.manage');
+
     const form = useForm<{
         name: string;
         document: string;
@@ -26,6 +31,8 @@ export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => vo
         address: string;
         email: string;
         birthdate: string;
+        is_wholesale: boolean;
+        wholesale_discount_pct: string;
     }>({
         name: '',
         document: '',
@@ -33,6 +40,8 @@ export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => vo
         address: '',
         email: '',
         birthdate: '',
+        is_wholesale: false,
+        wholesale_discount_pct: '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -141,6 +150,44 @@ export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => vo
                             {form.errors.birthdate && <p className="text-sm text-red-500">{form.errors.birthdate}</p>}
                         </div>
                     </div>
+                    {canManageWholesale && (
+                        <div className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <Label htmlFor="is_wholesale">Cliente mayorista</Label>
+                                    <p className="text-xs text-muted-foreground">Aplica su descuento automáticamente en el POS al seleccionarlo.</p>
+                                </div>
+                                <Switch
+                                    id="is_wholesale"
+                                    checked={form.data.is_wholesale}
+                                    onCheckedChange={(checked) => {
+                                        form.setData('is_wholesale', checked);
+                                        if (!checked) form.setData('wholesale_discount_pct', '');
+                                    }}
+                                />
+                            </div>
+                            {form.data.is_wholesale && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="wholesale_discount_pct">
+                                        Descuento (%) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Input
+                                        id="wholesale_discount_pct"
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        step="0.01"
+                                        className="max-w-32 bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                        value={form.data.wholesale_discount_pct}
+                                        onChange={(e) => form.setData('wholesale_discount_pct', e.target.value)}
+                                    />
+                                    {form.errors.wholesale_discount_pct && (
+                                        <p className="text-sm text-red-500">{form.errors.wholesale_discount_pct}</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className="flex justify-end space-x-2">
                         <Button variant="outline" type="button" onClick={handleCancel}>
                             Cancelar

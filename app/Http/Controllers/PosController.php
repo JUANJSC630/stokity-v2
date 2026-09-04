@@ -21,7 +21,7 @@ class PosController extends Controller
             ? Branch::where('status', true)->get()
             : Branch::where('id', $user->branch_id)->get();
 
-        $clients = Client::orderBy('name')->limit(500)->get(['id', 'name', 'document']);
+        $clients = Client::orderBy('name')->limit(500)->get(['id', 'name', 'document', 'is_wholesale', 'wholesale_discount_pct']);
 
         $pendingSalesCount = Sale::where('status', 'pending')
             ->when($user->isRestrictedToOwnBranch() && $user->branch_id, fn ($q) => $q->where('branch_id', $user->branch_id))
