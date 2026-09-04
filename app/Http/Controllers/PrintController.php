@@ -106,7 +106,12 @@ class PrintController extends Controller
         ]);
 
         $query = Product::whereIn('id', $validated['product_ids']);
-        if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
+        if ($user->isRestrictedToOwnBranch()) {
+            // where('branch_id', null) becomes a `branch_id IS NULL` filter,
+            // so a restricted user whose own branch_id is null (e.g. their
+            // branch was deleted, which nullOnDelete()s it) fails closed —
+            // sees nothing — instead of the earlier `&& $user->branch_id`
+            // check silently skipping the filter and leaking every branch.
             $query->where('branch_id', $user->branch_id);
         }
         $products = $query->get();

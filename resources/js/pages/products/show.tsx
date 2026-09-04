@@ -130,6 +130,7 @@ export default function ProductShow({ product }: ProductShowProps) {
                             className="flex items-center gap-1"
                             onClick={handlePrintLabel}
                             disabled={printingLabel}
+                            aria-label={printingLabel ? 'Imprimiendo etiqueta' : 'Imprimir etiqueta'}
                         >
                             <Printer className="h-4 w-4" />
                             <span className="hidden sm:inline">{printingLabel ? 'Imprimiendo...' : 'Imprimir etiqueta'}</span>

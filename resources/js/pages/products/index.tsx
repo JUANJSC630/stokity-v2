@@ -75,11 +75,13 @@ export default function Products({
         }
     }, [flash?.error]);
 
-    // Clear the label-print selection whenever the visible page changes
-    // (new filter/search/page) — a stale selection could reference a
-    // product the user can no longer see, which is confusing to act on.
+    // Drop any selected id that's no longer in the visible page (new
+    // filter/search/page navigation, or the 60s background poll removing a
+    // row) — but keep selections that are still visible, so the 60s poll
+    // doesn't silently wipe out a selection mid-click.
     useEffect(() => {
-        setSelectedIds(new Set());
+        const visibleIds = new Set(products.data.map((product) => product.id));
+        setSelectedIds((previous) => new Set([...previous].filter((id) => visibleIds.has(id))));
     }, [products.data]);
 
     const searchRef = useRef<HTMLInputElement>(null);
@@ -212,6 +214,7 @@ export default function Products({
                           <Checkbox
                               checked={selectedIds.has(row.id)}
                               onCheckedChange={() => toggleSelected(row.id)}
+                              disabled={printingLabels}
                               aria-label={`Seleccionar ${row.name} para imprimir etiqueta`}
                           />
                       ),
@@ -494,6 +497,14 @@ export default function Products({
                                     className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
                                 >
                                     <div className="mb-2 flex items-center gap-3">
+                                        {can('products.create') && (
+                                            <Checkbox
+                                                checked={selectedIds.has(product.id)}
+                                                onCheckedChange={() => toggleSelected(product.id)}
+                                                disabled={printingLabels}
+                                                aria-label={`Seleccionar ${product.name} para imprimir etiqueta`}
+                                            />
+                                        )}
                                         <img
                                             src={product.image_url}
                                             alt={product.name}

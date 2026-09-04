@@ -156,3 +156,16 @@ it('rejects an empty product_ids array', function () {
         'product_ids' => [],
     ])->assertUnprocessable();
 });
+
+it('fails closed instead of leaking every branch when a restricted user has no branch_id', function () {
+    // A branch getting deleted nullOnDelete()s every user's branch_id who
+    // was assigned to it — isRestrictedToOwnBranch() stays true, but
+    // branch_id becomes null. The filter must still apply (as `branch_id
+    // IS NULL`, matching nothing real) rather than being skipped outright.
+    $manager = labelPrintUser($this->tenant, $this->branchA, 'encargado', DefaultRoleProvisioner::ENCARGADO);
+    app(TenantManager::class)->runAs($this->tenant, fn () => $manager->update(['branch_id' => null]));
+
+    $this->actingAs($manager)->postJson('/print/labels', [
+        'product_ids' => [$this->productA->id, $this->productB->id],
+    ])->assertNotFound();
+});
