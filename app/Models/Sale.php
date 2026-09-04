@@ -102,6 +102,11 @@ class Sale extends Model
         return $this->hasMany(SaleReturn::class);
     }
 
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(SaleAuditLog::class);
+    }
+
     public function creditSale(): BelongsTo
     {
         return $this->belongsTo(CreditSale::class);

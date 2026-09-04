@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\SaleAuditLog;
 use App\Models\User;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
@@ -484,6 +485,14 @@ class SaleController extends Controller
             abort(403, 'No tienes acceso a esta cotización.');
         }
 
+        // A pending sale only ever accumulates audit history if it was once
+        // completed, edited (logged), and manually reverted to pending — real
+        // history the hard-delete below (and its FK cascade) would otherwise
+        // silently destroy, contradicting SaleAuditLog's immutability.
+        if ($sale->auditLogs()->exists()) {
+            abort(422, 'Esta venta tiene historial de auditoría y no puede eliminarse como cotización.');
+        }
+
         $sale->saleProducts()->delete();
         $sale->forceDelete();
 
@@ -518,7 +527,20 @@ class SaleController extends Controller
             'businessPhone' => $business->phone,
             'businessLogoUrl' => $business->logo_url,
             'ticketConfig' => $business->getTicketConfig(),
+            'auditLogs' => $this->auditLogsFor($sale, $user),
         ]);
+    }
+
+    /**
+     * F5: audit trail for a sale, gated on sales.view_audit — shared by
+     * show() and deletedShow() so a cancelled sale's own cancellation
+     * record (and any prior edits) stays visible from the trashed view too.
+     */
+    private function auditLogsFor(Sale $sale, User $user): \Illuminate\Support\Collection
+    {
+        return $user->can('sales.view_audit')
+            ? $sale->auditLogs()->with('user:id,name')->latest('created_at')->limit(50)->get()
+            : collect();
     }
 
     /**
@@ -592,6 +614,7 @@ class SaleController extends Controller
             'businessPhone' => $business->phone,
             'businessLogoUrl' => $business->logo_url,
             'ticketConfig' => $business->getTicketConfig(),
+            'auditLogs' => $this->auditLogsFor($sale, $user),
         ]);
     }
 
@@ -729,15 +752,65 @@ class SaleController extends Controller
             unset($validated['branch_id']);
         }
 
-        $sale->update($validated);
+        DB::transaction(function () use ($sale, $validated, $user, $request) {
+            // Re-read with a row lock so a concurrent edit can't have already
+            // changed the field between the route-bound $sale we validated
+            // against and this write — otherwise the audit log's old_value
+            // could record a value that was already stale.
+            $locked = Sale::lockForUpdate()->findOrFail($sale->id);
+
+            // Logged and saved together — if the update fails, the audit
+            // trail must not claim a field change that never took effect.
+            $this->logSaleFieldChanges($locked, $validated, $user->id, $request->ip());
+            $locked->update($validated);
+        });
 
         return redirect()->route('sales.show', $sale)->with('success', 'Venta actualizada exitosamente.');
     }
 
     /**
+     * F5: one SaleAuditLog row per tracked field that's actually changing.
+     * Only status/total/payment_method are tracked — the other editable
+     * fields (branch/client/seller/date) are reassignments, not the kind of
+     * "changed the numbers after the fact" this audit trail exists to catch.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function logSaleFieldChanges(Sale $sale, array $validated, int $userId, ?string $ipAddress): void
+    {
+        $tracked = ['status', 'total', 'payment_method'];
+
+        foreach ($tracked as $field) {
+            if (! array_key_exists($field, $validated)) {
+                continue;
+            }
+
+            // $sale->{$field} is read pre-update, so 'total' already comes
+            // through as a fixed 2-decimal string via the model's decimal:2
+            // cast — only the raw incoming value needs normalizing.
+            $oldValue = (string) $sale->{$field};
+            $newValue = $field === 'total' ? number_format((float) $validated[$field], 2, '.', '') : (string) $validated[$field];
+
+            if ($oldValue === $newValue) {
+                continue;
+            }
+
+            SaleAuditLog::create([
+                'sale_id' => $sale->id,
+                'user_id' => $userId,
+                'action' => 'updated',
+                'field_changed' => $field,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+                'ip_address' => $ipAddress,
+            ]);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Sale $sale)
+    public function destroy(Request $request, Sale $sale)
     {
         $user = auth()->user();
         if (! $user->can('sales.delete')) {
@@ -750,7 +823,7 @@ class SaleController extends Controller
             abort(422, 'Esta venta está vinculada a un crédito. Cancélala desde el módulo de créditos.');
         }
 
-        DB::transaction(function () use ($sale) {
+        DB::transaction(function () use ($sale, $user, $request) {
             foreach ($sale->saleProducts as $saleProduct) {
                 $product = Product::lockForUpdate()->find($saleProduct->product_id);
                 if ($product && ! $product->isService()) {
@@ -771,6 +844,13 @@ class SaleController extends Controller
                     );
                 }
             }
+
+            SaleAuditLog::create([
+                'sale_id' => $sale->id,
+                'user_id' => $user->id,
+                'action' => 'cancelled',
+                'ip_address' => $request->ip(),
+            ]);
 
             $sale->delete();
         });
