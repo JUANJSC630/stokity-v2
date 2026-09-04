@@ -653,10 +653,8 @@ export default function PosIndex({
             setCart([]);
             setAmountPaid(0);
             setAmountPaidDisplay('');
-            setDiscountType('none');
-            setDiscountValue('0');
             setPaymentMethod('');
-            setClientId(defaultClientId);
+            handleClientChange(defaultClientId);
             setFormKey((k) => k + 1);
             setActivePendingId(null);
             setPendingCount((c) => Math.max(0, activePendingId ? c - 1 : c));
@@ -930,9 +928,7 @@ export default function PosIndex({
     function cancelActivePending() {
         setActivePendingId(null);
         setCart([]);
-        setClientId(defaultClientId);
-        setDiscountType('none');
-        setDiscountValue('0');
+        handleClientChange(defaultClientId);
         setPaymentMethod('');
         setAmountPaid(0);
         setAmountPaidDisplay('');
@@ -961,10 +957,8 @@ export default function PosIndex({
             setCart([]);
             setAmountPaid(0);
             setAmountPaidDisplay('');
-            setDiscountType('none');
-            setDiscountValue('0');
             setPaymentMethod('');
-            setClientId(defaultClientId);
+            handleClientChange(defaultClientId);
             setFormKey((k) => k + 1);
             setActivePendingId(null);
             setMobileTab('search');
@@ -1073,7 +1067,7 @@ export default function PosIndex({
                     toast.success('Crédito registrado exitosamente');
                     setShowCreditModal(false);
                     setCart([]);
-                    setClientId(defaultClientId);
+                    handleClientChange(defaultClientId);
                     setFormKey((k) => k + 1);
                     setCreditType('layaway');
                     setCreditInitialPayment(0);
