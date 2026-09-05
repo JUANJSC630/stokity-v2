@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -70,6 +71,7 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     const [revealedPassword, setRevealedPassword] = useState<{ userName: string; password: string } | null>(null);
     const [pendingResetUserId, setPendingResetUserId] = useState<number | null>(null);
     const [impersonating, setImpersonating] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ type: 'reset' | 'impersonate'; user: TenantUser } | null>(null);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -104,7 +106,6 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     };
 
     const resetPassword = (user: TenantUser) => {
-        if (!confirm(`¿Generar una nueva contraseña temporal para ${user.name}?`)) return;
         setPendingResetUserId(user.id);
         router.post(
             `/admin/tenants/${tenant.id}/users/${user.id}/reset-password`,
@@ -117,7 +118,6 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     };
 
     const impersonate = (user: TenantUser) => {
-        if (!confirm(`¿Entrar como ${user.name}? Actuarás con todos sus permisos hasta que salgas de la sesión.`)) return;
         setImpersonating(true);
         // May first redirect to /confirm-password if the super admin hasn't
         // re-entered their password recently (password.confirm middleware).
@@ -130,6 +130,13 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
             {},
             { onFinish: () => setImpersonating(false) },
         );
+    };
+
+    const confirmPendingAction = () => {
+        if (!confirmAction) return;
+        if (confirmAction.type === 'reset') resetPassword(confirmAction.user);
+        else impersonate(confirmAction.user);
+        setConfirmAction(null);
     };
 
     return (
@@ -209,7 +216,7 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                         {ROLE_LABELS[u.role] ?? u.role}
                                     </span>
                                     <button
-                                        onClick={() => resetPassword(u)}
+                                        onClick={() => setConfirmAction({ type: 'reset', user: u })}
                                         title={`Restablecer contraseña de ${u.name}`}
                                         className="flex items-center gap-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     >
@@ -217,7 +224,7 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                         Restablecer
                                     </button>
                                     <button
-                                        onClick={() => impersonate(u)}
+                                        onClick={() => setConfirmAction({ type: 'impersonate', user: u })}
                                         disabled={!u.status || tenant.status !== 'active' || impersonating}
                                         title={
                                             !u.status
@@ -352,6 +359,33 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                     </div>
                 </div>
             )}
+
+            <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{confirmAction?.type === 'reset' ? 'Restablecer contraseña' : 'Entrar como este usuario'}</DialogTitle>
+                        <DialogDescription>
+                            {confirmAction?.type === 'reset'
+                                ? `¿Generar una nueva contraseña temporal para ${confirmAction.user.name}?`
+                                : `¿Entrar como ${confirmAction?.user.name}? Actuarás con todos sus permisos hasta que salgas de la sesión.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <button
+                            onClick={() => setConfirmAction(null)}
+                            className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={confirmPendingAction}
+                            className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        >
+                            Confirmar
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }
