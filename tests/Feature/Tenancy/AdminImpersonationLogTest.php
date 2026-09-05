@@ -142,6 +142,32 @@ it('keeps showing the tenant and impersonated user names after a normal (soft) d
     expect($log['impersonated_user']['email'])->toBe('ana@cafe.test');
 });
 
+it('keeps showing the acting super admin\'s email after their own account is soft-deleted', function () {
+    $actor = auditLogSuperAdmin();
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
+    ]);
+    $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
+
+    TenantImpersonation::create([
+        'super_admin_id' => $actor->id, 'tenant_id' => $tenant->id, 'impersonated_user_id' => $admin->id, 'started_at' => now(),
+    ]);
+
+    $actor->delete();
+
+    // A realistically distinct viewer — a soft-deleted super admin
+    // wouldn't be the one still logged in to check the log.
+    $viewer = User::create([
+        'name' => 'Viewer', 'email' => 'viewer@platform.test', 'password' => Hash::make('password123'),
+        'role' => User::ROLE_SUPER_ADMIN, 'status' => true, 'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($viewer)->get('/admin/impersonations');
+
+    $log = $response->viewData('page')['props']['logs']['data'][0];
+    expect($log['super_admin']['email'])->toBe('owner@platform.test');
+});
+
 it('forbids a tenant user from viewing the impersonation log', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',

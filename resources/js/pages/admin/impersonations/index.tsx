@@ -33,6 +33,17 @@ interface Paginated<T> {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Auditoría', href: '/admin/impersonations' }];
 
+function formatDuration(startedAt: string, endedAt: string): string {
+    const minutes = Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 60000));
+    if (minutes < 1) return '<1 min';
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    if (hours < 24) return rest > 0 ? `${hours} h ${rest} min` : `${hours} h`;
+    const days = Math.floor(hours / 24);
+    return `${days} d`;
+}
+
 export default function ImpersonationLogIndex({ logs, tenantId }: { logs: Paginated<LogRow>; tenantId: number | null }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -94,7 +105,7 @@ export default function ImpersonationLogIndex({ logs, tenantId }: { logs: Pagina
                                         <td className="px-3 py-3">
                                             {log.ended_at ? (
                                                 <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-                                                    Cerrada · {formatDateTime(log.ended_at)}
+                                                    Cerrada · {formatDateTime(log.ended_at)} ({formatDuration(log.started_at, log.ended_at)})
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
