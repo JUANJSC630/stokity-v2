@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -162,10 +163,12 @@ class TenantController extends Controller
 
     /**
      * Log in as a tenant user with full control of their account ("Entrar
-     * como este usuario"). Gated by the `password.confirm` route middleware
-     * (fresh re-authentication) on top of `auth`+`super_admin`. Every entry
-     * is logged in tenant_impersonations; ImpersonationController::stop()
-     * closes the log and restores the super-admin session.
+     * como este usuario"). Requires the super admin's own password in the
+     * same request — validated directly here rather than via Laravel's
+     * password.confirm + redirect dance, which needs a second round trip
+     * to actually resume a POST action. Every entry is logged in
+     * tenant_impersonations; ImpersonationController::stop() closes the
+     * log and restores the super-admin session.
      *
      * Nested impersonation is structurally impossible: once Auth::login()
      * below switches the session to the tenant user, that user is not a
@@ -178,6 +181,12 @@ class TenantController extends Controller
      */
     public function impersonate(Request $request, Tenant $tenant, User $user): RedirectResponse
     {
+        $request->validate(['password' => 'required|string']);
+
+        if (! Auth::guard('web')->validate(['email' => $request->user()->email, 'password' => $request->string('password')])) {
+            throw ValidationException::withMessages(['password' => 'La contraseña no es correcta.']);
+        }
+
         abort_unless($user->tenant_id === $tenant->id, 404);
         abort_if($user->isSuperAdmin(), 403);
         abort_if($request->session()->has('impersonator_id'), 409);
@@ -203,10 +212,9 @@ class TenantController extends Controller
         // session ID (prevents fixation) but keeps existing attributes.
         $request->session()->put('impersonator_id', $request->user()->id);
         $request->session()->put('impersonation_log_id', $log->id);
-        // Don't let the super admin's own just-confirmed password carry
-        // over as if the impersonated user had confirmed theirs — no
-        // tenant-facing route uses password.confirm today, but this keeps
-        // the session boundary honest if one ever does.
+        // Don't let any earlier password.confirm timestamp carry over into
+        // the impersonated session — no tenant-facing route uses it today,
+        // but this keeps the session boundary honest if one ever does.
         $request->session()->forget('auth.password_confirmed_at');
 
         Auth::login($user);

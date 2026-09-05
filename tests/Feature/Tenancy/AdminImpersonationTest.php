@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * PR 3 of the super-admin panel plan: "enter as this user" impersonation.
- * Covers the full sudo-style flow — password re-confirmation, session
- * hand-off, the platform-level log, and returning to the super admin.
+ * The super admin's own password is validated inline, in the same request
+ * that performs the impersonation (not via Laravel's password.confirm
+ * redirect flow, which needs an extra round trip to resume a POST action).
  */
 uses(RefreshDatabase::class);
 
@@ -31,35 +32,22 @@ function impersonationSuperAdmin(): User
     ]);
 }
 
-it('requires a fresh password confirmation before impersonating', function () {
+it('requires the password field', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
     ]);
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    // No 'auth.password_confirmed_at' in session — must bounce to confirm-password
-    // instead of performing the impersonation.
     $this->actingAs($superAdmin)
         ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
-        ->assertRedirect(route('password.confirm'));
+        ->assertSessionHasErrors('password');
 
     $this->assertAuthenticatedAs($superAdmin);
     expect(TenantImpersonation::count())->toBe(0);
 });
 
-it('lets a super admin actually reach the confirm-password page instead of bouncing to the tenant list', function () {
-    // Regression test: IdentifyTenant used to only allow super admins on
-    // admin.* / logout routes, so the redirect from the test above landed
-    // the super admin right back on /admin/tenants without ever showing
-    // them the password form — impersonation was completely unusable
-    // whenever the password hadn't been confirmed in the last few hours.
-    $superAdmin = impersonationSuperAdmin();
-
-    $this->actingAs($superAdmin)->get(route('password.confirm'))->assertOk();
-});
-
-it('completes the impersonation after confirming the password from the redirected flow', function () {
+it('rejects impersonation with the wrong password', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
     ]);
@@ -67,26 +55,22 @@ it('completes the impersonation after confirming the password from the redirecte
     $superAdmin = impersonationSuperAdmin();
 
     $this->actingAs($superAdmin)
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
-        ->assertRedirect(route('password.confirm'));
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'not-the-right-password'])
+        ->assertSessionHasErrors('password');
 
-    $this->post('/confirm-password', ['password' => 'password123'])->assertSessionHasNoErrors();
-
-    $this->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
-        ->assertRedirect(route('dashboard'));
-
-    $this->assertAuthenticatedAs($admin);
+    $this->assertAuthenticatedAs($superAdmin);
+    expect(TenantImpersonation::count())->toBe(0);
 });
 
-it('logs in as the tenant user and records the impersonation once the password is confirmed', function () {
+it('logs in as the tenant user and records the impersonation in a single request', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
     ]);
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $response = $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate");
+    $response = $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123']);
 
     $response->assertRedirect(route('dashboard'));
     $this->assertAuthenticatedAs($admin);
@@ -112,8 +96,8 @@ it('refuses to impersonate a user from a different tenant', function () {
     $userB = app(TenantManager::class)->runAs($tenantB, fn () => User::where('email', 'b@b.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenantA->id}/users/{$userB->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenantA->id}/users/{$userB->id}/impersonate", ['password' => 'password123'])
         ->assertNotFound();
 });
 
@@ -124,8 +108,8 @@ it('stops the impersonation, closes the log and restores the super admin session
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     $this->assertAuthenticatedAs($admin);
@@ -145,8 +129,8 @@ it('closes the impersonation log if the tenant user logs out instead of using th
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate");
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123']);
 
     $this->post('/logout');
 
@@ -165,8 +149,8 @@ it('blocks nested impersonation because the impersonated user is never a super a
     $otherAdmin = app(TenantManager::class)->runAs($otherTenant, fn () => User::where('email', 'otro@otra.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     // Now "logged in" as $admin (a tenant user, not a super admin). Route
@@ -174,8 +158,7 @@ it('blocks nested impersonation because the impersonated user is never a super a
     // itself tenant-scoped to $admin's own tenant (via IdentifyTenant), so
     // a cross-tenant target 404s before the role check is even reached —
     // either way, there is no path to a second, nested impersonation.
-    $this->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$otherTenant->id}/users/{$otherAdmin->id}/impersonate")
+    $this->post("/admin/tenants/{$otherTenant->id}/users/{$otherAdmin->id}/impersonate", ['password' => 'password123'])
         ->assertNotFound();
 });
 
@@ -190,15 +173,14 @@ it('blocks a nested impersonation of a same-tenant user via the role check', fun
     ]));
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     // Same-tenant target: route-model binding succeeds (both users share
     // $admin's own tenant), so this time the super_admin role check is
     // what actually blocks the nested attempt.
-    $this->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$coworker->id}/impersonate")
+    $this->post("/admin/tenants/{$tenant->id}/users/{$coworker->id}/impersonate", ['password' => 'password123'])
         ->assertForbidden();
 });
 
@@ -212,8 +194,8 @@ it('refuses to impersonate a disabled user', function () {
     ]));
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$disabled->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$disabled->id}/impersonate", ['password' => 'password123'])
         ->assertForbidden();
 
     $this->assertAuthenticatedAs($superAdmin);
@@ -228,8 +210,8 @@ it('refuses to impersonate into a suspended tenant, so nobody gets trapped past 
     $tenant->update(['status' => \App\Models\Tenant::STATUS_SUSPENDED]);
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertStatus(409);
 
     $this->assertAuthenticatedAs($superAdmin);
@@ -244,7 +226,7 @@ it('does not carry the super admin\'s own password confirmation into the imperso
     $superAdmin = impersonationSuperAdmin();
 
     $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     expect(session('auth.password_confirmed_at'))->toBeNull();
@@ -257,8 +239,8 @@ it('lets the super admin exit an impersonation even after the tenant gets suspen
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     $tenant->update(['status' => \App\Models\Tenant::STATUS_SUSPENDED]);
@@ -279,8 +261,8 @@ it('closes the log and forces a fresh login if the super admin was demoted while
     $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
     $superAdmin = impersonationSuperAdmin();
 
-    $this->actingAs($superAdmin)->withSession(['auth.password_confirmed_at' => time()])
-        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
         ->assertRedirect(route('dashboard'));
 
     // Another operator revokes the super-admin role while this session is open.

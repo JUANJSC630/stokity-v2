@@ -19,9 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Behaviour:
  * - Guest (login, password reset, ...) → no tenant set; scope stays open.
- * - SuperAdmin → no tenant; allowed only on /admin, logout, and confirm-password
- *   (needed for the password.confirm gate in front of impersonation), redirected
- *   to the panel elsewhere (no tenant context means unscoped reads / orphaned writes).
+ * - SuperAdmin → no tenant; allowed only on /admin and logout, redirected to the
+ *   panel elsewhere (no tenant context means unscoped reads / orphaned writes).
  * - Tenant user without tenant_id → no context (only happens in tests; in prod
  *   every tenant user is backfilled).
  * - Tenant user whose tenant is missing → 403 (fail closed, never run unscoped).
@@ -48,10 +47,7 @@ class IdentifyTenant
         // Anywhere else there is no tenant context, so keep them out to avoid
         // unscoped reads / orphaned writes.
         if ($user->isSuperAdmin()) {
-            // /confirm-password (GET to view the form, POST to submit it —
-            // the POST route is unnamed, hence checking the path) is needed
-            // for the password.confirm gate in front of impersonation.
-            if ($request->routeIs('admin.*') || $request->routeIs('logout') || $request->is('confirm-password')) {
+            if ($request->routeIs('admin.*') || $request->routeIs('logout')) {
                 return $next($request);
             }
 
