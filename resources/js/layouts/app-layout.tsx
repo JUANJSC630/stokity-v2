@@ -1,4 +1,3 @@
-import ImpersonationBanner from '@/components/impersonation-banner';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
@@ -11,11 +10,8 @@ interface AppLayoutProps {
 }
 
 export default ({ children, breadcrumbs, headerActions, ...props }: AppLayoutProps) => (
-    <>
-        <ImpersonationBanner />
-        <AppLayoutTemplate breadcrumbs={breadcrumbs} headerActions={headerActions} {...props}>
-            {children}
-            <Toaster position="top-right" />
-        </AppLayoutTemplate>
-    </>
+    <AppLayoutTemplate breadcrumbs={breadcrumbs} headerActions={headerActions} {...props}>
+        {children}
+        <Toaster position="top-right" />
+    </AppLayoutTemplate>
 );

@@ -40,7 +40,7 @@ class TenantController extends Controller
             'name' => $t->name,
             'slug' => $t->slug,
             'status' => $t->status,
-            'created_at' => $t->created_at?->format('Y-m-d'),
+            'created_at' => $t->created_at?->toIso8601String(),
             'users_count' => (int) ($users[$t->id] ?? 0),
             'products_count' => (int) ($products[$t->id] ?? 0),
             'sales_count' => (int) ($sales[$t->id] ?? 0),
