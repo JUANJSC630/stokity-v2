@@ -15,6 +15,7 @@ import {
     Building2,
     CreditCard,
     HandCoins,
+    History,
     LayoutGrid,
     Package,
     Package2,
@@ -204,6 +205,11 @@ const adminNavItems: NavItem[] = [
         title: 'Negocios',
         href: '/admin/tenants',
         icon: Building2,
+    },
+    {
+        title: 'Auditoría',
+        href: '/admin/impersonations',
+        icon: History,
     },
     {
         title: 'Mi cuenta',
