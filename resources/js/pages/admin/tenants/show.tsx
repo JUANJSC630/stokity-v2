@@ -1,7 +1,8 @@
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Building2, ChevronLeft, Key, Pencil, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, Key, LogIn, Pencil, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -12,6 +13,7 @@ interface TenantDetail {
     status: string;
     plan: string | null;
     created_at: string | null;
+    can_impersonate: boolean;
 }
 
 interface TenantUser {
@@ -69,6 +71,8 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     const [editing, setEditing] = useState(false);
     const [revealedPassword, setRevealedPassword] = useState<{ userName: string; password: string } | null>(null);
     const [pendingResetUserId, setPendingResetUserId] = useState<number | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ type: 'reset' | 'impersonate'; user: TenantUser } | null>(null);
+    const impersonateForm = useForm({ password: '' });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -103,7 +107,6 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     };
 
     const resetPassword = (user: TenantUser) => {
-        if (!confirm(`¿Generar una nueva contraseña temporal para ${user.name}?`)) return;
         setPendingResetUserId(user.id);
         router.post(
             `/admin/tenants/${tenant.id}/users/${user.id}/reset-password`,
@@ -113,6 +116,27 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                 onError: () => setPendingResetUserId(null),
             },
         );
+    };
+
+    const openConfirm = (type: 'reset' | 'impersonate', user: TenantUser) => {
+        impersonateForm.reset();
+        impersonateForm.clearErrors();
+        setConfirmAction({ type, user });
+    };
+
+    const submitConfirm = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!confirmAction) return;
+
+        if (confirmAction.type === 'reset') {
+            resetPassword(confirmAction.user);
+            setConfirmAction(null);
+            return;
+        }
+
+        impersonateForm.post(`/admin/tenants/${tenant.id}/users/${confirmAction.user.id}/impersonate`, {
+            onSuccess: () => setConfirmAction(null),
+        });
     };
 
     return (
@@ -192,12 +216,27 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                         {ROLE_LABELS[u.role] ?? u.role}
                                     </span>
                                     <button
-                                        onClick={() => resetPassword(u)}
+                                        onClick={() => openConfirm('reset', u)}
                                         title={`Restablecer contraseña de ${u.name}`}
                                         className="flex items-center gap-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                     >
                                         <Key className="h-3 w-3" />
                                         Restablecer
+                                    </button>
+                                    <button
+                                        onClick={() => openConfirm('impersonate', u)}
+                                        disabled={!u.status || !tenant.can_impersonate}
+                                        title={
+                                            !u.status
+                                                ? 'No se puede entrar como un usuario inactivo'
+                                                : !tenant.can_impersonate
+                                                  ? 'El negocio debe estar activo para entrar'
+                                                  : `Entrar como ${u.name}`
+                                        }
+                                        className="flex items-center gap-1 rounded-lg border border-amber-200 bg-card px-2.5 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-50 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                    >
+                                        <LogIn className="h-3 w-3" />
+                                        Entrar
                                     </button>
                                 </div>
                             </div>
@@ -320,6 +359,53 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                     </div>
                 </div>
             )}
+
+            <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+                <DialogContent>
+                    <form onSubmit={submitConfirm}>
+                        <DialogHeader>
+                            <DialogTitle>{confirmAction?.type === 'reset' ? 'Restablecer contraseña' : 'Entrar como este usuario'}</DialogTitle>
+                            <DialogDescription>
+                                {confirmAction?.type === 'reset'
+                                    ? `¿Generar una nueva contraseña temporal para ${confirmAction.user.name}?`
+                                    : `¿Entrar como ${confirmAction?.user.name}? Actuarás con todos sus permisos hasta que salgas de la sesión.`}
+                            </DialogDescription>
+                        </DialogHeader>
+                        {confirmAction?.type === 'impersonate' && (
+                            <div className="mt-4 space-y-1.5">
+                                <label htmlFor="impersonate-password" className="text-xs font-medium">
+                                    Confirma tu contraseña
+                                </label>
+                                <input
+                                    id="impersonate-password"
+                                    type="password"
+                                    autoFocus
+                                    value={impersonateForm.data.password}
+                                    onChange={(e) => impersonateForm.setData('password', e.target.value)}
+                                    className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                                />
+                                {impersonateForm.errors.password && <p className="text-xs text-red-500">{impersonateForm.errors.password}</p>}
+                            </div>
+                        )}
+                        <DialogFooter className="mt-4">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmAction(null)}
+                                className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={confirmAction?.type === 'impersonate' && impersonateForm.processing}
+                                className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                Confirmar
+                            </button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

@@ -1,7 +1,9 @@
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArchiveRestore, ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
 
 interface ArchivedTenant {
     id: number;
@@ -16,9 +18,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function TenantsArchived({ tenants }: { tenants: ArchivedTenant[] }) {
-    const restore = (t: ArchivedTenant) => {
-        if (!confirm(`¿Restaurar «${t.name}»? Sus usuarios recuperarán el acceso.`)) return;
-        router.post(`/admin/tenants/${t.id}/restore`, {}, { preserveScroll: true });
+    const [restoreTarget, setRestoreTarget] = useState<ArchivedTenant | null>(null);
+
+    const confirmRestore = () => {
+        if (!restoreTarget) return;
+        router.post(`/admin/tenants/${restoreTarget.id}/restore`, {}, { preserveScroll: true, onFinish: () => setRestoreTarget(null) });
     };
 
     return (
@@ -59,7 +63,7 @@ export default function TenantsArchived({ tenants }: { tenants: ArchivedTenant[]
                                         <td className="px-3 py-3 text-xs text-muted-foreground">{t.deleted_at}</td>
                                         <td className="px-6 py-3 text-right">
                                             <button
-                                                onClick={() => restore(t)}
+                                                onClick={() => setRestoreTarget(t)}
                                                 className="ml-auto flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                             >
                                                 <ArchiveRestore className="h-3 w-3" />
@@ -80,6 +84,29 @@ export default function TenantsArchived({ tenants }: { tenants: ArchivedTenant[]
                     </div>
                 </div>
             </div>
+
+            <Dialog open={restoreTarget !== null} onOpenChange={(open) => !open && setRestoreTarget(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Restaurar negocio</DialogTitle>
+                        <DialogDescription>¿Restaurar «{restoreTarget?.name}»? Sus usuarios recuperarán el acceso.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <button
+                            onClick={() => setRestoreTarget(null)}
+                            className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={confirmRestore}
+                            className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        >
+                            Restaurar
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

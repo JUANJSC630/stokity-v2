@@ -142,6 +142,34 @@
     --sidebar-ring: oklch(0.87 0 0);
 }
 
+/* Auth pages (login, confirm-password, register, ...) hard-code a light,
+   branded background — force the light theme regardless of the app-wide
+   dark-mode toggle, otherwise text/inputs pick up dark-mode colors
+   (near-white) against that always-light background and disappear.
+   Hardcoded literal values here on purpose, not CSS variable overrides:
+   Tailwind's utilities read the --color-* theme aliases (e.g. --color-foreground:
+   var(--foreground)), and those aliases are inherited as already-resolved
+   values from the .dark ancestor — redeclaring --foreground on a descendant
+   does not retroactively change them. */
+.dark .auth-light-scope {
+    color: #0a0a0a !important;
+}
+
+.dark .auth-light-scope input {
+    color: #0a0a0a !important;
+    background-color: transparent !important;
+    border-color: #e5e5e5 !important;
+}
+
+.dark .auth-light-scope input::placeholder {
+    color: #8d8d8d !important;
+}
+
+.dark .auth-light-scope button[data-slot='button'] {
+    background-color: #1a1a1a !important;
+    color: #fafafa !important;
+}
+
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);

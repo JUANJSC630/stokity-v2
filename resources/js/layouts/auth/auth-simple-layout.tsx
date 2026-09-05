@@ -21,7 +21,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
         <>
             <BrandColors />
             <div
-                className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12"
+                className="auth-light-scope text-foreground relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12"
                 style={{
                     background: `
                     radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(var(--brand-primary-rgb), 0.10) 0%, transparent 60%),

@@ -45,6 +45,7 @@ it('shows tenant detail with users, branches and metrics', function () {
     $response->assertOk();
     $page = $response->viewData('page')['props'];
     expect($page['tenant']['name'])->toBe('Café Central');
+    expect($page['tenant']['can_impersonate'])->toBeTrue();
     expect($page['metrics']['users_count'])->toBe(1);
     expect($page['users'])->toHaveCount(1);
     expect($page['users'][0]['email'])->toBe('ana@cafe.test');
