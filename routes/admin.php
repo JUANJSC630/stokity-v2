@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\ImpersonationLogController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantRoleController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,8 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::get('tenants/{tenant}/roles/{role}/edit', [TenantRoleController::class, 'edit'])->name('tenants.roles.edit');
     Route::put('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'update'])->name('tenants.roles.update');
     Route::delete('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'destroy'])->name('tenants.roles.destroy');
+
+    Route::get('impersonations', [ImpersonationLogController::class, 'index'])->name('impersonations.index');
 
     // Super-admin's own account (password) — inside /admin so IdentifyTenant allows it.
     Route::get('account', [AccountController::class, 'edit'])->name('account.edit');
