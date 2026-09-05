@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
+import { formatDate } from '@/lib/format';
+import { TENANT_STATUS_DOT_CLASS, TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { Archive, Building2, Pause, Play, Plus, Trash2 } from 'lucide-react';
@@ -17,24 +19,6 @@ interface TenantRow {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocios', href: '/admin/tenants' }];
-
-const STATUS_LABELS: Record<string, string> = {
-    active: 'Activo',
-    suspended: 'Suspendido',
-    trial: 'Prueba',
-};
-
-const STATUS_PILL_CLASS: Record<string, string> = {
-    active: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
-    suspended: 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400',
-    trial: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
-};
-
-const STATUS_DOT_CLASS: Record<string, string> = {
-    active: 'bg-emerald-500',
-    suspended: 'bg-red-500',
-    trial: 'bg-amber-500',
-};
 
 export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
     const [deleteTarget, setDeleteTarget] = useState<TenantRow | null>(null);
@@ -110,16 +94,16 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                                         </td>
                                         <td className="px-3 py-3">
                                             <span
-                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${STATUS_PILL_CLASS[t.status] ?? 'bg-muted text-muted-foreground'}`}
+                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${TENANT_STATUS_PILL_CLASS[t.status] ?? 'bg-muted text-muted-foreground'}`}
                                             >
-                                                <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`} />
-                                                {STATUS_LABELS[t.status] ?? t.status}
+                                                <span className={`h-1.5 w-1.5 rounded-full ${TENANT_STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`} />
+                                                {TENANT_STATUS_LABELS[t.status] ?? t.status}
                                             </span>
                                         </td>
                                         <td className="px-3 py-3 tabular-nums">{t.users_count}</td>
                                         <td className="px-3 py-3 tabular-nums">{t.products_count}</td>
                                         <td className="px-3 py-3 tabular-nums">{t.sales_count}</td>
-                                        <td className="px-3 py-3 text-xs text-muted-foreground">{t.created_at}</td>
+                                        <td className="px-3 py-3 text-xs text-muted-foreground">{formatDate(t.created_at)}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex justify-end gap-2">
                                                 <button

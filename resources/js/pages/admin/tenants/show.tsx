@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
+import { formatDate } from '@/lib/format';
+import { TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Building2, ChevronLeft, Key, LogIn, Pencil, Users, X } from 'lucide-react';
@@ -47,18 +49,6 @@ interface FlashProps {
     flash: { success?: string; temporaryPassword?: string };
     [key: string]: unknown;
 }
-
-const STATUS_LABELS: Record<string, string> = {
-    active: 'Activo',
-    suspended: 'Suspendido',
-    trial: 'Prueba',
-};
-
-const STATUS_PILL_CLASS: Record<string, string> = {
-    active: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
-    suspended: 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400',
-    trial: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
-};
 
 const ROLE_LABELS: Record<string, string> = {
     administrador: 'Administrador',
@@ -157,14 +147,15 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                             <div className="flex items-center gap-2">
                                 <h1 className="text-xl leading-tight font-bold">{tenant.name}</h1>
                                 <span
-                                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${STATUS_PILL_CLASS[tenant.status] ?? 'bg-muted text-muted-foreground'}`}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${TENANT_STATUS_PILL_CLASS[tenant.status] ?? 'bg-muted text-muted-foreground'}`}
                                 >
-                                    {STATUS_LABELS[tenant.status] ?? tenant.status}
+                                    {TENANT_STATUS_LABELS[tenant.status] ?? tenant.status}
                                 </span>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 {tenant.slug}
                                 {tenant.plan && ` · Plan ${tenant.plan}`}
+                                {tenant.created_at && ` · Creado el ${formatDate(tenant.created_at)}`}
                             </p>
                         </div>
                     </div>
