@@ -4,7 +4,7 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Building2, ChevronLeft, History, Key, LogIn, Pencil, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, History, Key, LogIn, Pencil, ShieldCheck, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -167,6 +167,13 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                         >
                             <History className="h-3.5 w-3.5" />
                             Historial de accesos
+                        </Link>
+                        <Link
+                            href={`/admin/tenants/${tenant.id}/roles`}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Roles y permisos
                         </Link>
                         <button
                             onClick={() => setEditing(true)}

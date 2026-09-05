@@ -6,14 +6,16 @@ use App\Authorization\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleRequest;
 use App\Models\Role;
+use App\Services\RoleGuardService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RoleController extends Controller
 {
+    public function __construct(private RoleGuardService $roleGuard) {}
+
     /**
      * Display the tenant's roles.
      */
@@ -98,35 +100,7 @@ class RoleController extends Controller
         $validated = $request->validated();
         $permissions = PermissionCatalog::expandWithDependencies($validated['permissions']);
 
-        // Lock the tenant's whole role set for the duration of the guard +
-        // mutation: without this, two concurrent requests could each read
-        // "someone else still manages roles" as true right before both
-        // strip the permission, leaving zero roles that can manage roles.
-        $blocked = DB::transaction(function () use ($role, $validated, $permissions) {
-            $this->lockTenantRoles();
-
-            if (! in_array('settings.roles.manage', $permissions, true) && ! $this->anotherRoleStillManagesRoles($role)) {
-                return true;
-            }
-
-            $role->forceFill([
-                'description' => $validated['description'] ?? null,
-                'data_scope' => $validated['data_scope'],
-            ])->save();
-
-            // System roles (Administrador/Encargado/Vendedor) keep their
-            // name locked: DefaultRoleProvisioner::roleNameForLegacy() and
-            // UserController match the legacy `role` column by this literal
-            // name — renaming here would silently break that sync for every
-            // future create/update of a user with that legacy role.
-            if (! $role->is_system && $validated['name'] !== $role->name) {
-                $role->update(['name' => $validated['name']]);
-            }
-
-            $role->syncPermissions($permissions);
-
-            return false;
-        });
+        $blocked = $this->roleGuard->updateWithGuard($role, $validated, $permissions, app(TenantManager::class)->id());
 
         if ($blocked) {
             return back()->withErrors([
@@ -150,18 +124,7 @@ class RoleController extends Controller
             return back()->withErrors(['role' => 'No puedes eliminar un rol con usuarios asignados. Reasígnalos a otro rol primero.']);
         }
 
-        // Same lock + guard pattern as update() — see the comment there.
-        $blocked = DB::transaction(function () use ($role) {
-            $this->lockTenantRoles();
-
-            if ($role->hasPermissionTo('settings.roles.manage') && ! $this->anotherRoleStillManagesRoles($role)) {
-                return true;
-            }
-
-            $role->delete();
-
-            return false;
-        });
+        $blocked = $this->roleGuard->deleteWithGuard($role, app(TenantManager::class)->id());
 
         if ($blocked) {
             return back()->withErrors([
@@ -181,31 +144,5 @@ class RoleController extends Controller
     private function authorizeSameTenant(Role $role): void
     {
         abort_if($role->tenant_id !== app(TenantManager::class)->id(), 404);
-    }
-
-    /**
-     * Row-locks every role in the current tenant, so a concurrent update()
-     * or destroy() on a different role can't interleave with this one and
-     * both see "someone else still manages roles" as true right before
-     * each removes the permission — must be called inside the same
-     * DB::transaction() that performs the guarded mutation.
-     */
-    private function lockTenantRoles(): void
-    {
-        Role::where('tenant_id', app(TenantManager::class)->id())->lockForUpdate()->get();
-    }
-
-    /**
-     * Whether some OTHER role in this tenant (besides $excluding) still
-     * holds settings.roles.manage — the lockout guard both update() and
-     * destroy() use before they'd otherwise leave the tenant with no role
-     * able to manage roles at all.
-     */
-    private function anotherRoleStillManagesRoles(Role $excluding): bool
-    {
-        return Role::where('tenant_id', app(TenantManager::class)->id())
-            ->where('id', '!=', $excluding->id)
-            ->get()
-            ->contains(fn (Role $other) => $other->hasPermissionTo('settings.roles.manage'));
     }
 }
