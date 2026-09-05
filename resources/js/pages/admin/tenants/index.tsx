@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Building2, Pause, Play, Plus, Trash2 } from 'lucide-react';
+import { Archive, Building2, Pause, Play, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface TenantRow {
@@ -62,13 +62,22 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                         <h1 className="text-xl leading-tight font-bold">Negocios</h1>
                         <p className="text-xs text-muted-foreground">Gestiona los clientes de la plataforma.</p>
                     </div>
-                    <Link
-                        href="/admin/tenants/create"
-                        className="flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
-                    >
-                        <Plus className="h-3.5 w-3.5" />
-                        Nuevo negocio
-                    </Link>
+                    <div className="flex gap-2">
+                        <Link
+                            href="/admin/tenants/archived"
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <Archive className="h-3.5 w-3.5" />
+                            Archivados
+                        </Link>
+                        <Link
+                            href="/admin/tenants/create"
+                            className="flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            Nuevo negocio
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Table card */}
@@ -94,7 +103,9 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                                 {tenants.map((t) => (
                                     <tr key={t.id} className="transition-colors hover:bg-muted/30">
                                         <td className="px-6 py-3">
-                                            <div className="font-medium">{t.name}</div>
+                                            <Link href={`/admin/tenants/${t.id}`} className="font-medium hover:underline">
+                                                {t.name}
+                                            </Link>
                                             <div className="text-xs text-muted-foreground">{t.slug}</div>
                                         </td>
                                         <td className="px-3 py-3">

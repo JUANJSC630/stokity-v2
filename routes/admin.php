@@ -11,8 +11,13 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
     Route::get('tenants/create', [TenantController::class, 'create'])->name('tenants.create');
     Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+    Route::get('tenants/archived', [TenantController::class, 'archivedIndex'])->name('tenants.archived');
+    Route::post('tenants/{tenant}/restore', [TenantController::class, 'restore'])->name('tenants.restore');
+    Route::get('tenants/{tenant}', [TenantController::class, 'show'])->name('tenants.show');
+    Route::put('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
     Route::post('tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
+    Route::post('tenants/{tenant}/users/{user}/reset-password', [TenantController::class, 'resetUserPassword'])->name('tenants.users.reset-password');
     Route::delete('tenants/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
 
     // Super-admin's own account (password) — inside /admin so IdentifyTenant allows it.

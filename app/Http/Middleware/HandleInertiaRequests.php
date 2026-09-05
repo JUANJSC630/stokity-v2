@@ -66,6 +66,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'last_sale_id' => fn () => $request->session()->get('last_sale_id'),
                 'last_sale_code' => fn () => $request->session()->get('last_sale_code'),
+                'temporaryPassword' => fn () => $request->session()->get('temporaryPassword'),
             ],
         ];
     }
