@@ -18,6 +18,9 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::post('tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('tenants.suspend');
     Route::post('tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('tenants.activate');
     Route::post('tenants/{tenant}/users/{user}/reset-password', [TenantController::class, 'resetUserPassword'])->name('tenants.users.reset-password');
+    Route::post('tenants/{tenant}/users/{user}/impersonate', [TenantController::class, 'impersonate'])
+        ->middleware('password.confirm')
+        ->name('tenants.users.impersonate');
     Route::delete('tenants/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
 
     // Super-admin's own account (password) — inside /admin so IdentifyTenant allows it.

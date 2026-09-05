@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Building2, ChevronLeft, Key, Pencil, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, Key, LogIn, Pencil, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -69,6 +69,7 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
     const [editing, setEditing] = useState(false);
     const [revealedPassword, setRevealedPassword] = useState<{ userName: string; password: string } | null>(null);
     const [pendingResetUserId, setPendingResetUserId] = useState<number | null>(null);
+    const [impersonating, setImpersonating] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -112,6 +113,22 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                 preserveScroll: true,
                 onError: () => setPendingResetUserId(null),
             },
+        );
+    };
+
+    const impersonate = (user: TenantUser) => {
+        if (!confirm(`¿Entrar como ${user.name}? Actuarás con todos sus permisos hasta que salgas de la sesión.`)) return;
+        setImpersonating(true);
+        // May first redirect to /confirm-password if the super admin hasn't
+        // re-entered their password recently (password.confirm middleware).
+        // Laravel's redirect-back-to-intended doesn't resubmit this POST, so
+        // confirming does not automatically finish the impersonation — the
+        // super admin may need to click "Entrar" again afterwards, which by
+        // then goes straight through.
+        router.post(
+            `/admin/tenants/${tenant.id}/users/${user.id}/impersonate`,
+            {},
+            { onFinish: () => setImpersonating(false) },
         );
     };
 
@@ -198,6 +215,21 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                     >
                                         <Key className="h-3 w-3" />
                                         Restablecer
+                                    </button>
+                                    <button
+                                        onClick={() => impersonate(u)}
+                                        disabled={!u.status || tenant.status !== 'active' || impersonating}
+                                        title={
+                                            !u.status
+                                                ? 'No se puede entrar como un usuario inactivo'
+                                                : tenant.status !== 'active'
+                                                  ? 'El negocio debe estar activo para entrar'
+                                                  : `Entrar como ${u.name}`
+                                        }
+                                        className="flex items-center gap-1 rounded-lg border border-amber-200 bg-card px-2.5 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-50 disabled:pointer-events-none disabled:opacity-50 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                    >
+                                        <LogIn className="h-3 w-3" />
+                                        Entrar
                                     </button>
                                 </div>
                             </div>

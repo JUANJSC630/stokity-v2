@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
                 'last_sale_code' => fn () => $request->session()->get('last_sale_code'),
                 'temporaryPassword' => fn () => $request->session()->get('temporaryPassword'),
             ],
+            'impersonating' => fn () => $this->impersonationInfo($request),
         ];
     }
 
@@ -108,6 +109,23 @@ class HandleInertiaRequests extends Middleware
         // Read-only: an anonymous page load must never provision a
         // BusinessSetting row on a tenant's behalf.
         return $this->tenants->runAs($tenant, fn () => BusinessSetting::getSettingsReadOnly());
+    }
+
+    /**
+     * Whether the current session is a super admin impersonating a tenant
+     * user, and which tenant — read straight off the currently
+     * authenticated user, which by then IS the impersonated user (see
+     * TenantController::impersonate()).
+     *
+     * @return array{active: bool, tenantName: string|null}
+     */
+    private function impersonationInfo(Request $request): array
+    {
+        if (! $request->session()->has('impersonator_id')) {
+            return ['active' => false, 'tenantName' => null];
+        }
+
+        return ['active' => true, 'tenantName' => $request->user()?->tenant?->name];
     }
 
     /**

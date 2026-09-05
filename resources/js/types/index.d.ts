@@ -97,7 +97,9 @@ export interface SharedData {
         success?: string | null;
         last_sale_id?: number | null;
         last_sale_code?: string | null;
+        temporaryPassword?: string | null;
     };
+    impersonating: { active: boolean; tenantName: string | null };
     [key: string]: unknown;
 }
 

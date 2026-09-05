@@ -7,10 +7,12 @@ use App\Models\Branch;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Tenant;
+use App\Models\TenantImpersonation;
 use App\Models\User;
 use App\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -156,6 +158,60 @@ class TenantController extends Controller
             'success' => "Contraseña de «{$user->name}» restablecida.",
             'temporaryPassword' => $temporaryPassword,
         ]);
+    }
+
+    /**
+     * Log in as a tenant user with full control of their account ("Entrar
+     * como este usuario"). Gated by the `password.confirm` route middleware
+     * (fresh re-authentication) on top of `auth`+`super_admin`. Every entry
+     * is logged in tenant_impersonations; ImpersonationController::stop()
+     * closes the log and restores the super-admin session.
+     *
+     * Nested impersonation is structurally impossible: once Auth::login()
+     * below switches the session to the tenant user, that user is not a
+     * super admin, so a further attempt on this same route is always
+     * rejected — either by the `super_admin` middleware (403, for a
+     * same-tenant target) or earlier still by route-model binding, which
+     * is itself tenant-scoped by IdentifyTenant to the impersonated user's
+     * own tenant (404, for a cross-tenant target). The abort_if here is
+     * defense in depth only.
+     */
+    public function impersonate(Request $request, Tenant $tenant, User $user): RedirectResponse
+    {
+        abort_unless($user->tenant_id === $tenant->id, 404);
+        abort_if($user->isSuperAdmin(), 403);
+        abort_if($request->session()->has('impersonator_id'), 409);
+        // A disabled account can't log in on its own (LoginRequest rejects
+        // status=false) — impersonation must respect that same rule instead
+        // of using Auth::login() to bypass it.
+        abort_unless($user->status, 403, 'No se puede entrar como un usuario inactivo.');
+        // A suspended/expired-trial tenant would 403 on the very first
+        // request after login (IdentifyTenant), trapping the super admin on
+        // a bare error page with no banner and no way back except editing
+        // the URL by hand. Reactivate the tenant first if it needs a visit.
+        abort_unless($tenant->isActive(), 409, 'Solo se puede entrar a un negocio activo.');
+
+        $log = TenantImpersonation::create([
+            'super_admin_id' => $request->user()->id,
+            'tenant_id' => $tenant->id,
+            'impersonated_user_id' => $user->id,
+            'started_at' => now(),
+            'ip_address' => $request->ip(),
+        ]);
+
+        // Set session data before Auth::login(): login() migrates the
+        // session ID (prevents fixation) but keeps existing attributes.
+        $request->session()->put('impersonator_id', $request->user()->id);
+        $request->session()->put('impersonation_log_id', $log->id);
+        // Don't let the super admin's own just-confirmed password carry
+        // over as if the impersonated user had confirmed theirs — no
+        // tenant-facing route uses password.confirm today, but this keeps
+        // the session boundary honest if one ever does.
+        $request->session()->forget('auth.password_confirmed_at');
+
+        Auth::login($user);
+
+        return redirect()->route('dashboard');
     }
 
     public function archivedIndex(): Response

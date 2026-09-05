@@ -24,7 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
  * - Tenant user without tenant_id → no context (only happens in tests; in prod
  *   every tenant user is backfilled).
  * - Tenant user whose tenant is missing → 403 (fail closed, never run unscoped).
- * - Suspended or expired-trial tenant → 403, except logout so the user is not trapped.
+ * - Suspended or expired-trial tenant → 403, except logout (or a super admin
+ *   exiting an impersonation of that tenant) so nobody is trapped.
  */
 class IdentifyTenant
 {
@@ -66,7 +67,7 @@ class IdentifyTenant
         $tenant = Tenant::find($user->tenant_id);
 
         if ($tenant === null) {
-            if ($request->routeIs('logout')) {
+            if ($this->allowedDuringLockout($request)) {
                 return $next($request);
             }
 
@@ -75,7 +76,7 @@ class IdentifyTenant
 
         if ($tenant->isSuspended()) {
             // Allow logout so a suspended user is not trapped.
-            if ($request->routeIs('logout')) {
+            if ($this->allowedDuringLockout($request)) {
                 return $next($request);
             }
 
@@ -85,7 +86,7 @@ class IdentifyTenant
         // isActive() also catches a trial whose trial_ends_at has passed —
         // isSuspended() alone would let an expired trial keep operating.
         if (! $tenant->isActive()) {
-            if ($request->routeIs('logout')) {
+            if ($this->allowedDuringLockout($request)) {
                 return $next($request);
             }
 
@@ -95,5 +96,15 @@ class IdentifyTenant
         $this->tenants->set($tenant);
 
         return $next($request);
+    }
+
+    /**
+     * Routes that must keep working even for a suspended/missing tenant,
+     * so nobody is trapped: logging out, and a super admin exiting an
+     * impersonation of that tenant's user (see ImpersonationController).
+     */
+    private function allowedDuringLockout(Request $request): bool
+    {
+        return $request->routeIs('logout') || $request->routeIs('impersonation.stop');
     }
 }

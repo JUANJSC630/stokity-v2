@@ -7,6 +7,13 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
+Route::middleware('auth')->group(function () {
+    // Reachable by the impersonated tenant user, so it lives outside the
+    // super_admin-gated /admin group (see App\Http\Controllers\ImpersonationController).
+    Route::post('stop-impersonating', [\App\Http\Controllers\ImpersonationController::class, 'stop'])
+        ->name('impersonation.stop');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
