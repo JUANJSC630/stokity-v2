@@ -1,10 +1,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Building2, ChevronLeft, Key, LogIn, Pencil, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, History, Key, LogIn, Pencil, ShieldCheck, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -24,6 +24,7 @@ interface TenantUser {
     email: string;
     role: string;
     status: boolean;
+    last_login_at: string | null;
 }
 
 interface TenantBranch {
@@ -159,13 +160,29 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setEditing(true)}
-                        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Editar
-                    </button>
+                    <div className="flex gap-2">
+                        <Link
+                            href={`/admin/impersonations?tenant_id=${tenant.id}`}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <History className="h-3.5 w-3.5" />
+                            Historial de accesos
+                        </Link>
+                        <Link
+                            href={`/admin/tenants/${tenant.id}/roles`}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            Roles y permisos
+                        </Link>
+                        <button
+                            onClick={() => setEditing(true)}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar
+                        </button>
+                    </div>
                 </div>
 
                 {/* Metrics */}
@@ -196,6 +213,9 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                 <div className="min-w-0">
                                     <p className="truncate text-sm font-medium">{u.name}</p>
                                     <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        Último acceso: {u.last_login_at ? formatDateTime(u.last_login_at) : 'Nunca'}
+                                    </p>
                                 </div>
                                 <div className="flex flex-shrink-0 items-center gap-2">
                                     {!u.status && (

@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\ImpersonationLogController;
 use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\Admin\TenantRoleController;
 use Illuminate\Support\Facades\Route;
 
 // Platform owner panel — manages every tenant. Restricted to super_admin.
@@ -22,6 +24,17 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::post('tenants/{tenant}/users/{user}/impersonate', [TenantController::class, 'impersonate'])
         ->name('tenants.users.impersonate');
     Route::delete('tenants/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
+
+    // Bloque 7.2 of ROLES_PERMISSIONS_PLAN.md — edit any tenant's roles
+    // without impersonating its admin just to reach /settings/roles.
+    Route::get('tenants/{tenant}/roles', [TenantRoleController::class, 'index'])->name('tenants.roles.index');
+    Route::get('tenants/{tenant}/roles/create', [TenantRoleController::class, 'create'])->name('tenants.roles.create');
+    Route::post('tenants/{tenant}/roles', [TenantRoleController::class, 'store'])->name('tenants.roles.store');
+    Route::get('tenants/{tenant}/roles/{role}/edit', [TenantRoleController::class, 'edit'])->name('tenants.roles.edit');
+    Route::put('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'update'])->name('tenants.roles.update');
+    Route::delete('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'destroy'])->name('tenants.roles.destroy');
+
+    Route::get('impersonations', [ImpersonationLogController::class, 'index'])->name('impersonations.index');
 
     Route::get('super-admins', [SuperAdminController::class, 'index'])->name('super-admins.index');
     Route::get('super-admins/create', [SuperAdminController::class, 'create'])->name('super-admins.create');

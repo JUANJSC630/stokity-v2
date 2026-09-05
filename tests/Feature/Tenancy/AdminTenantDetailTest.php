@@ -49,7 +49,24 @@ it('shows tenant detail with users, branches and metrics', function () {
     expect($page['metrics']['users_count'])->toBe(1);
     expect($page['users'])->toHaveCount(1);
     expect($page['users'][0]['email'])->toBe('ana@cafe.test');
+    expect($page['users'][0])->toHaveKey('last_login_at');
     expect($page['branches'])->toHaveCount(1);
+});
+
+it('reports a user\'s last login time in the tenant detail, or null if they never logged in', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
+    ]);
+    $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
+    $superAdmin = superAdminUser();
+
+    $before = $this->actingAs($superAdmin)->get("/admin/tenants/{$tenant->id}");
+    expect($before->viewData('page')['props']['users'][0]['last_login_at'])->toBeNull();
+
+    $admin->update(['last_login_at' => now()]);
+
+    $after = $this->actingAs($superAdmin)->get("/admin/tenants/{$tenant->id}");
+    expect($after->viewData('page')['props']['users'][0]['last_login_at'])->not->toBeNull();
 });
 
 it('never mixes users or branches from another tenant into the detail view', function () {

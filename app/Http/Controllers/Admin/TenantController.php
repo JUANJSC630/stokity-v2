@@ -122,7 +122,7 @@ class TenantController extends Controller
      */
     public function show(Tenant $tenant): Response
     {
-        $users = User::allTenants()->where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name', 'email', 'role', 'status']);
+        $users = User::allTenants()->where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name', 'email', 'role', 'status', 'last_login_at']);
         $branches = Branch::allTenants()->where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name', 'status']);
 
         return Inertia::render('admin/tenants/show', [
