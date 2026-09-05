@@ -48,6 +48,36 @@ it('requires a fresh password confirmation before impersonating', function () {
     expect(TenantImpersonation::count())->toBe(0);
 });
 
+it('lets a super admin actually reach the confirm-password page instead of bouncing to the tenant list', function () {
+    // Regression test: IdentifyTenant used to only allow super admins on
+    // admin.* / logout routes, so the redirect from the test above landed
+    // the super admin right back on /admin/tenants without ever showing
+    // them the password form — impersonation was completely unusable
+    // whenever the password hadn't been confirmed in the last few hours.
+    $superAdmin = impersonationSuperAdmin();
+
+    $this->actingAs($superAdmin)->get(route('password.confirm'))->assertOk();
+});
+
+it('completes the impersonation after confirming the password from the redirected flow', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
+    ]);
+    $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
+    $superAdmin = impersonationSuperAdmin();
+
+    $this->actingAs($superAdmin)
+        ->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+        ->assertRedirect(route('password.confirm'));
+
+    $this->post('/confirm-password', ['password' => 'password123'])->assertSessionHasNoErrors();
+
+    $this->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate")
+        ->assertRedirect(route('dashboard'));
+
+    $this->assertAuthenticatedAs($admin);
+});
+
 it('logs in as the tenant user and records the impersonation once the password is confirmed', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
