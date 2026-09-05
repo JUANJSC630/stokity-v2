@@ -23,7 +23,7 @@ use Inertia\Response;
 
 class TenantController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         // One grouped count per entity instead of 3 queries per tenant (no N+1).
         $countByTenant = fn (string $model) => $model::allTenants()
@@ -35,7 +35,43 @@ class TenantController extends Controller
         $products = $countByTenant(Product::class);
         $sales = $countByTenant(Sale::class);
 
-        $tenants = Tenant::orderByDesc('id')->get()->map(fn (Tenant $t) => [
+        // allTenants()'s per-tenant aggregates above have no idea a tenant
+        // was later archived (soft-deleted) — their keys can include
+        // tenant_ids that no longer show up in $tenants below. Restrict the
+        // platform-wide sums to still-existing tenants so the cards don't
+        // keep counting an archived business's users/sales forever.
+        $activeTenantIds = Tenant::pluck('id');
+
+        $tenantStatusCounts = Tenant::selectRaw('status, COUNT(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
+
+        // Platform-wide summary — always reflects every (non-archived)
+        // tenant, independent of the search filter below (search narrows
+        // the table, not the cards).
+        $summary = [
+            'tenants_active' => (int) ($tenantStatusCounts[Tenant::STATUS_ACTIVE] ?? 0),
+            'tenants_suspended' => (int) ($tenantStatusCounts[Tenant::STATUS_SUSPENDED] ?? 0),
+            'tenants_trial' => (int) ($tenantStatusCounts[Tenant::STATUS_TRIAL] ?? 0),
+            'users_total' => (int) $users->only($activeTenantIds->all())->sum(),
+            'sales_total' => (int) $sales->only($activeTenantIds->all())->sum(),
+            // "Volumen de ventas" — total processed through the platform's
+            // POS, not platform revenue: there is no subscription billing in
+            // this system today. Only completed sales, matching every other
+            // revenue figure in the app (Dashboard/Finance/Report/CashSession
+            // controllers all filter status='completed' the same way).
+            'sales_volume' => (float) Sale::allTenants()
+                ->where('status', 'completed')
+                ->whereIn('tenant_id', $activeTenantIds)
+                ->sum('total'),
+        ];
+
+        $search = trim((string) $request->string('search'));
+
+        $tenantsQuery = Tenant::orderByDesc('id');
+        if ($search !== '') {
+            $tenantsQuery->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('slug', 'like', "%{$search}%"));
+        }
+
+        $tenants = $tenantsQuery->get()->map(fn (Tenant $t) => [
             'id' => $t->id,
             'name' => $t->name,
             'slug' => $t->slug,
@@ -46,7 +82,38 @@ class TenantController extends Controller
             'sales_count' => (int) ($sales[$t->id] ?? 0),
         ]);
 
-        return Inertia::render('admin/tenants/index', ['tenants' => $tenants]);
+        // Cross-tenant user search: answers "which business does this email
+        // belong to" without checking tenant by tenant. Capped at 10 — this
+        // is a quick pointer to the right tenant, not a full directory.
+        $userMatches = [];
+        if ($search !== '') {
+            $userMatches = User::allTenants()
+                ->whereNotNull('tenant_id')
+                ->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"))
+                // withTrashed(): a match whose tenant was later archived
+                // should still name it — otherwise the whole point of this
+                // search ("which business does this email belong to")
+                // silently fails for exactly the tenants most likely to
+                // need a support lookup.
+                ->with(['tenant' => fn ($q) => $q->withTrashed()->select('id', 'name')])
+                ->orderBy('name')
+                ->limit(10)
+                ->get(['id', 'name', 'email', 'status', 'tenant_id'])
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'status' => $u->status,
+                    'tenant' => $u->tenant ? ['id' => $u->tenant->id, 'name' => $u->tenant->name] : null,
+                ]);
+        }
+
+        return Inertia::render('admin/tenants/index', [
+            'tenants' => $tenants,
+            'summary' => $summary,
+            'search' => $search,
+            'userMatches' => $userMatches,
+        ]);
     }
 
     /**

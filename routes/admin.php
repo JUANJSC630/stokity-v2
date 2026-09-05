@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\SuperAdminController;
 use App\Http\Controllers\Admin\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,11 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::post('tenants/{tenant}/users/{user}/impersonate', [TenantController::class, 'impersonate'])
         ->name('tenants.users.impersonate');
     Route::delete('tenants/{tenant}', [TenantController::class, 'destroy'])->name('tenants.destroy');
+
+    Route::get('super-admins', [SuperAdminController::class, 'index'])->name('super-admins.index');
+    Route::get('super-admins/create', [SuperAdminController::class, 'create'])->name('super-admins.create');
+    Route::post('super-admins', [SuperAdminController::class, 'store'])->name('super-admins.store');
+    Route::post('super-admins/{user}/toggle-status', [SuperAdminController::class, 'toggleStatus'])->name('super-admins.toggle-status');
 
     // Super-admin's own account (password) — inside /admin so IdentifyTenant allows it.
     Route::get('account', [AccountController::class, 'edit'])->name('account.edit');
