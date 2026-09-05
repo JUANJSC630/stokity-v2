@@ -339,6 +339,8 @@ Servicio `App\Tenancy\TenantProvisioner::create(array $data)` — envuelto en tr
 
 ## Bloque 10 — Panel SuperAdmin (plataforma) — OBLIGATORIO
 
+> ✅ **COMPLETO Y EN PRODUCCIÓN desde el 2026-09-05**, y ampliado más allá de lo descrito aquí: impersonación ("Entrar como este usuario"), auditoría visible del log de impersonación, edición de roles/permisos de cualquier tenant (Bloque 7.2 de `ROLES_PERMISSIONS_PLAN.md`), dashboard agregado, búsqueda cross-tenant, gestión de otros super admins. Ver memoria `super-admin-panel-complete` para el detalle completo de las 7 PRs (#25-31).
+
 El SuperAdmin (tú) gestiona todos los clientes desde un dashboard propio, separado del POS.
 
 ### 10.1 Identidad del SuperAdmin
@@ -349,7 +351,7 @@ El SuperAdmin (tú) gestiona todos los clientes desde un dashboard propio, separ
 ### 10.2 Rutas y panel
 - Grupo `Route::prefix('admin')->middleware(['auth','super_admin'])` con páginas Inertia propias (`resources/js/pages/admin/*`).
 - Middleware `EnsureSuperAdmin` (403 si no lo es).
-- Vistas: **lista de tenants**, crear tenant (Bloque 9), ver detalle (usuarios, métricas: ventas, # productos, último acceso), **suspender/activar**, resetear contraseña del Admin, eliminar (soft delete) tenant.
+- Vistas: **lista de tenants**, crear tenant (Bloque 9), ver detalle (usuarios, métricas: ventas, # productos, último acceso), **suspender/activar**, resetear contraseña del Admin, eliminar (soft delete) tenant. Todo ✅ hecho — "último acceso" (`last_login_at`) fue lo último en completarse, el 2026-09-05 (PR #29), quedaba pendiente desde la redacción original de este bloque.
 
 ### 10.3 Acceso cross‑tenant del SuperAdmin
 - Para ver datos de un tenant, el panel usa scopes explícitos `Model::where('tenant_id', $id)` **o** `TenantManager::runAs($tenant, ...)` para "entrar" a un negocio.

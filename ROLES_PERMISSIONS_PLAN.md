@@ -1,6 +1,6 @@
 # Plan Maestro — Sistema de Roles y Permisos Granular (Stokity v2)
 
-> ✅ **COMPLETO Y EN PRODUCCIÓN desde el 2026-09-03.** Bloques 0-6 y 9-12 ejecutados en su totalidad (PRs #8, #10, #11, #12, #13, #15 de GitHub — ver el detalle de la secuencia real, que no coincide 1:1 con la numeración PR-1/PR-2/... de este documento, en la memoria `rbac-granular-permissions-complete`). Quedan como **opcionales/futuros**: Bloque 7 (presets de roles, vista previa, gestión desde el panel SuperAdmin), Bloque 8 (capa de personalización visual — activar/desactivar módulos, orden de sidebar), y la limpieza final de `users.role`/`isAdmin()` legacy (último ítem de Bloque 12).
+> ✅ **COMPLETO Y EN PRODUCCIÓN desde el 2026-09-03.** Bloques 0-6 y 9-12 ejecutados en su totalidad (PRs #8, #10, #11, #12, #13, #15 de GitHub — ver el detalle de la secuencia real, que no coincide 1:1 con la numeración PR-1/PR-2/... de este documento, en la memoria `rbac-granular-permissions-complete`). **Bloque 8 (activar/desactivar módulos) — HECHO** el 2026-09-04 (PR #19, scope acotado a Créditos/Proveedores/Finanzas, sin reordenar sidebar — ver `next-steps-order` memoria). **Bloque 7.2 (gestión de roles desde el panel SuperAdmin) — HECHO** el 2026-09-05 (PR #30, `/admin/tenants/{tenant}/roles`, ver memoria `super-admin-panel-complete`). Quedan como **opcionales/futuros**: Bloque 7.1/7.3 (presets de roles, vista previa "qué verá este rol"), y la limpieza final de `users.role`/`isAdmin()` legacy (decidido explícitamente NO perseguir — ver `next-steps-order` memoria).
 
 > Objetivo: reemplazar los **3 roles fijos hardcodeados** (`administrador`/`encargado`/`vendedor`) por un sistema de **roles y permisos granular, configurable por cliente (tenant)**, para poder **mostrar/ocultar/habilitar/deshabilitar** módulos y secciones según lo pida cada negocio — de forma profesional y mantenible.
 >
@@ -203,11 +203,11 @@ can('products.create'); // boolean
 - Editor de permisos: matriz **módulos × acciones** con checkboxes, agrupada por el `PermissionCatalog`.
 - Asignar rol a empleados (integra con `UserController`).
 
-### 7.2 Para el SuperAdmin (`/admin/tenants/{tenant}/roles`)
-- Mismo editor pero para cualquier tenant (atiende pedidos de clientes).
-- Acción rápida: "duplicar set de permisos de un tenant a otro".
+### 7.2 Para el SuperAdmin (`/admin/tenants/{tenant}/roles`) — ✅ HECHO (2026-09-05, PR #30)
+- Mismo editor pero para cualquier tenant (atiende pedidos de clientes) — reutiliza el componente `PermissionMatrix` existente, lógica de guardas compartida vía `App\Services\RoleGuardService`. Ver memoria `super-admin-panel-complete`.
+- Acción rápida "duplicar set de permisos de un tenant a otro" — **no implementada**, mencionada en el PR como fuera de alcance, se puede agregar si se pide.
 
-### 7.3 UX del editor
+### 7.3 UX del editor (no hecho, opcional)
 - Presets ("Vendedor básico", "Cajero", "Solo lectura").
 - Vista previa: "qué verá este rol" (simula el sidebar resultante).
 
@@ -274,9 +274,10 @@ Separada de la seguridad. Cubre "mover" y "ocultar por gusto, no por permiso".
 2. ✅ **PR‑2 Roles por defecto + migración de datos** (incluido en PR #10 + comando `roles:seed-defaults`/`roles:assign-legacy`, corridos contra producción): seeder de 3 roles por tenant + mapeo de usuarios actuales (Bloque 9).
 3. ✅ **PR‑3 Backend enforcement** — dividido en dos PRs de GitHub: **#11** (`feature/branch-data-scope`, eje de alcance de datos) y **#12** (`feature/permission-enforcement`, rutas con `can:`, retiro de `AdminMiddleware`/`AdminOrManagerMiddleware`, migración de los checks inline restantes).
 4. ✅ **PR‑4 Frontend core** + **PR‑5 Frontend páginas** — un solo PR de GitHub (**#13**, `feature/frontend-permission-enforcement`): `auth.permissions` por Inertia, `usePermissions()` + `<Can>`, `app-sidebar.tsx` y todas las páginas migradas.
-5. ✅ **PR‑6 UI de gestión** (GitHub PR #15, `feature/role-management-ui`): editor de roles/permisos para el Admin de cada tenant en `/settings/roles`. La gestión desde el panel SuperAdmin (`/admin/tenants/{tenant}/roles`) del Bloque 7 **no se hizo** — el Admin del tenant ya puede autogestionarse.
-6. 🔲 **PR‑7 (opcional) Capa visual:** toggles de módulos + orden de sidebar/dashboard (Bloque 8). No iniciado.
-7. 🔲 **PR‑8 Limpieza:** retirar `users.role` legacy y helpers `isAdmin()` deprecados. No iniciado — varios call-sites siguen usando el fallback aproximado por `data_scope` (`DefaultRoleProvisioner::legacyStringForRole()`), documentado en el código.
+5. ✅ **PR‑6 UI de gestión** (GitHub PR #15, `feature/role-management-ui`): editor de roles/permisos para el Admin de cada tenant en `/settings/roles`.
+6. ✅ **PR‑7 Capa visual** (GitHub PR #19, `feature/module-toggles`, 2026-09-04): activar/desactivar módulos completos (Créditos/Proveedores/Finanzas) por tenant en `/settings/modules` — scope acotado explícitamente a solo eso, sin reordenar sidebar/dashboard (descartado).
+7. ✅ **Gestión de roles desde el panel SuperAdmin** (Bloque 7.2, GitHub PR #30, `feature/admin-tenant-roles`, 2026-09-05): `/admin/tenants/{tenant}/roles`, ver memoria `super-admin-panel-complete`.
+8. 🔲 **Limpieza:** retirar `users.role` legacy y helpers `isAdmin()` deprecados. **Decidido explícitamente NO hacerlo** (2026-09-03) — 22 archivos de test dependen del fallback legacy sin contexto de tenant real; ver memoria `next-steps-order` para el detalle de la investigación. No es deuda técnica, es un fallback deliberado y bien probado.
 
 ---
 
