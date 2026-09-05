@@ -62,6 +62,17 @@ it('rejects impersonation with the wrong password', function () {
     expect(TenantImpersonation::count())->toBe(0);
 });
 
+it('reports impersonating as inactive for an ordinary, non-impersonated session', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
+    ]);
+    $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
+
+    $dashboard = $this->actingAs($admin)->get('/dashboard');
+
+    expect($dashboard->viewData('page')['props']['impersonating'])->toBe(['active' => false, 'tenantName' => null]);
+});
+
 it('logs in as the tenant user and records the impersonation in a single request', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
@@ -215,6 +226,25 @@ it('refuses to impersonate into a suspended tenant, so nobody gets trapped past 
         ->assertStatus(409);
 
     $this->assertAuthenticatedAs($superAdmin);
+    expect(TenantImpersonation::count())->toBe(0);
+});
+
+it('refuses to impersonate into a tenant whose trial has expired, even though its status is still "trial"', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
+    ]);
+    $admin = app(TenantManager::class)->runAs($tenant, fn () => User::where('email', 'ana@cafe.test')->first());
+    $tenant->update(['status' => \App\Models\Tenant::STATUS_TRIAL, 'trial_ends_at' => now()->subDay()]);
+    $superAdmin = impersonationSuperAdmin();
+
+    // The tenant detail page must reflect this via can_impersonate — a raw
+    // status === 'active' check on the frontend would miss an expired trial.
+    $show = $this->actingAs($superAdmin)->get("/admin/tenants/{$tenant->id}");
+    expect($show->viewData('page')['props']['tenant']['can_impersonate'])->toBeFalse();
+
+    $this->post("/admin/tenants/{$tenant->id}/users/{$admin->id}/impersonate", ['password' => 'password123'])
+        ->assertStatus(409);
+
     expect(TenantImpersonation::count())->toBe(0);
 });
 

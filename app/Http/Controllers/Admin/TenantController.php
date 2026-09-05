@@ -66,6 +66,11 @@ class TenantController extends Controller
                 'status' => $tenant->status,
                 'plan' => $tenant->plan,
                 'created_at' => $tenant->created_at?->toIso8601String(),
+                // Mirrors the impersonate() guard below: isActive() also
+                // catches an expired trial, which "status === 'active'" alone
+                // would miss — the frontend must not show "Entrar" as
+                // available for a tenant it would actually be rejected for.
+                'can_impersonate' => $tenant->isActive(),
             ],
             'metrics' => [
                 'users_count' => $users->count(),

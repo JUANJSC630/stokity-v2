@@ -7,7 +7,7 @@ export default function ImpersonationBanner() {
 
     if (!impersonating?.active) return null;
 
-    const stop = () => router.post('/stop-impersonating');
+    const stop = () => router.post(route('impersonation.stop'));
 
     return (
         <div className="flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-xs font-medium text-amber-950">

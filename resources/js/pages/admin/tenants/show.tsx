@@ -13,6 +13,7 @@ interface TenantDetail {
     status: string;
     plan: string | null;
     created_at: string | null;
+    can_impersonate: boolean;
 }
 
 interface TenantUser {
@@ -224,11 +225,11 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                                     </button>
                                     <button
                                         onClick={() => openConfirm('impersonate', u)}
-                                        disabled={!u.status || tenant.status !== 'active'}
+                                        disabled={!u.status || !tenant.can_impersonate}
                                         title={
                                             !u.status
                                                 ? 'No se puede entrar como un usuario inactivo'
-                                                : tenant.status !== 'active'
+                                                : !tenant.can_impersonate
                                                   ? 'El negocio debe estar activo para entrar'
                                                   : `Entrar como ${u.name}`
                                         }
