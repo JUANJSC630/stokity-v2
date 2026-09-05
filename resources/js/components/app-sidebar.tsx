@@ -22,6 +22,7 @@ import {
     Receipt,
     RotateCcw,
     ScanLine,
+    ShieldCheck,
     Tags,
     TrendingUp,
     Truck,
@@ -210,6 +211,11 @@ const adminNavItems: NavItem[] = [
         title: 'Auditoría',
         href: '/admin/impersonations',
         icon: History,
+    },
+    {
+        title: 'Super Admins',
+        href: '/admin/super-admins',
+        icon: ShieldCheck,
     },
     {
         title: 'Mi cuenta',
