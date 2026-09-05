@@ -1,12 +1,9 @@
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
+import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler, useRef } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Mi cuenta', href: '/admin/account' }];
@@ -43,67 +40,83 @@ export default function AdminAccount() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Mi cuenta" />
-            <div className="max-w-xl p-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Actualizar contraseña</CardTitle>
-                        <CardDescription>Usa una contraseña larga y aleatoria para mantener tu cuenta de plataforma segura.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={updatePassword} className="space-y-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="current_password">Contraseña actual</Label>
-                                <Input
-                                    id="current_password"
-                                    ref={currentPasswordInput}
-                                    value={data.current_password}
-                                    onChange={(e) => setData('current_password', e.target.value)}
-                                    type="password"
-                                    autoComplete="current-password"
-                                />
-                                <InputError message={errors.current_password} />
-                            </div>
+            <div className="flex flex-col gap-5 p-6">
+                <div>
+                    <h1 className="text-xl leading-tight font-bold">Mi cuenta</h1>
+                    <p className="text-xs text-muted-foreground">Usa una contraseña larga y aleatoria para mantener tu cuenta de plataforma segura.</p>
+                </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Nueva contraseña</Label>
-                                <Input
-                                    id="password"
-                                    ref={passwordInput}
-                                    value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                    type="password"
-                                    autoComplete="new-password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
+                <div className="max-w-xl rounded-2xl border border-border/60 bg-card px-6 py-5">
+                    <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Actualizar contraseña</p>
+                    <form onSubmit={updatePassword} className="flex flex-col gap-4">
+                        <div className="space-y-1.5">
+                            <label htmlFor="current_password" className="text-xs font-medium">
+                                Contraseña actual
+                            </label>
+                            <input
+                                id="current_password"
+                                ref={currentPasswordInput}
+                                value={data.current_password}
+                                onChange={(e) => setData('current_password', e.target.value)}
+                                type="password"
+                                autoComplete="current-password"
+                                className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                            />
+                            <InputError message={errors.current_password} />
+                        </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">Confirmar contraseña</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    value={data.password_confirmation}
-                                    onChange={(e) => setData('password_confirmation', e.target.value)}
-                                    type="password"
-                                    autoComplete="new-password"
-                                />
-                                <InputError message={errors.password_confirmation} />
-                            </div>
+                        <div className="space-y-1.5">
+                            <label htmlFor="password" className="text-xs font-medium">
+                                Nueva contraseña
+                            </label>
+                            <input
+                                id="password"
+                                ref={passwordInput}
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                type="password"
+                                autoComplete="new-password"
+                                className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                            />
+                            <InputError message={errors.password} />
+                        </div>
 
-                            <div className="flex items-center gap-4">
-                                <Button disabled={processing}>Guardar contraseña</Button>
-                                <Transition
-                                    show={recentlySuccessful}
-                                    enter="transition ease-in-out"
-                                    enterFrom="opacity-0"
-                                    leave="transition ease-in-out"
-                                    leaveTo="opacity-0"
-                                >
-                                    <p className="text-sm text-neutral-600">Guardado</p>
-                                </Transition>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                        <div className="space-y-1.5">
+                            <label htmlFor="password_confirmation" className="text-xs font-medium">
+                                Confirmar contraseña
+                            </label>
+                            <input
+                                id="password_confirmation"
+                                value={data.password_confirmation}
+                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                type="password"
+                                autoComplete="new-password"
+                                className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                            />
+                            <InputError message={errors.password_confirmation} />
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-1">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                                Guardar contraseña
+                            </button>
+                            <Transition
+                                show={recentlySuccessful}
+                                enter="transition ease-in-out"
+                                enterFrom="opacity-0"
+                                leave="transition ease-in-out"
+                                leaveTo="opacity-0"
+                            >
+                                <p className="text-xs text-muted-foreground">Guardado</p>
+                            </Transition>
+                        </div>
+                    </form>
+                </div>
             </div>
         </AppLayout>
     );

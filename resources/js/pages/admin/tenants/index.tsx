@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -20,10 +18,22 @@ interface TenantRow {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocios', href: '/admin/tenants' }];
 
-const statusStyles: Record<string, string> = {
-    active: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    suspended: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    trial: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+const STATUS_LABELS: Record<string, string> = {
+    active: 'Activo',
+    suspended: 'Suspendido',
+    trial: 'Prueba',
+};
+
+const STATUS_PILL_CLASS: Record<string, string> = {
+    active: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
+    suspended: 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400',
+    trial: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
+};
+
+const STATUS_DOT_CLASS: Record<string, string> = {
+    active: 'bg-emerald-500',
+    suspended: 'bg-red-500',
+    trial: 'bg-amber-500',
 };
 
 export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
@@ -45,92 +55,99 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Negocios" />
-            <div className="flex flex-col gap-4 p-4">
-                <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-5 p-6">
+                {/* Header */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-xl font-semibold">Negocios (Tenants)</h1>
-                        <p className="text-sm text-muted-foreground">Gestiona los clientes de la plataforma.</p>
+                        <h1 className="text-xl leading-tight font-bold">Negocios</h1>
+                        <p className="text-xs text-muted-foreground">Gestiona los clientes de la plataforma.</p>
                     </div>
-                    <Button asChild>
-                        <Link href="/admin/tenants/create">
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo negocio
-                        </Link>
-                    </Button>
+                    <Link
+                        href="/admin/tenants/create"
+                        className="flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                        Nuevo negocio
+                    </Link>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Building2 className="h-4 w-4" /> {tenants.length} negocio(s)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="overflow-x-auto">
+                {/* Table card */}
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                    <div className="flex items-center gap-2 border-b border-border/60 px-6 py-4">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{tenants.length} negocio(s)</p>
+                    </div>
+                    <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead className="text-left text-muted-foreground">
-                                <tr className="border-b">
-                                    <th className="py-2 pr-4">Negocio</th>
-                                    <th className="py-2 pr-4">Estado</th>
-                                    <th className="py-2 pr-4">Usuarios</th>
-                                    <th className="py-2 pr-4">Productos</th>
-                                    <th className="py-2 pr-4">Ventas</th>
-                                    <th className="py-2 pr-4">Creado</th>
-                                    <th className="py-2 pr-4 text-right">Acciones</th>
+                            <thead>
+                                <tr className="border-b border-border/60 text-left text-[11px] text-muted-foreground uppercase">
+                                    <th className="px-6 py-2.5 font-medium">Negocio</th>
+                                    <th className="px-3 py-2.5 font-medium">Estado</th>
+                                    <th className="px-3 py-2.5 font-medium">Usuarios</th>
+                                    <th className="px-3 py-2.5 font-medium">Productos</th>
+                                    <th className="px-3 py-2.5 font-medium">Ventas</th>
+                                    <th className="px-3 py-2.5 font-medium">Creado</th>
+                                    <th className="px-6 py-2.5 text-right font-medium">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-border/40">
                                 {tenants.map((t) => (
-                                    <tr key={t.id} className="border-b last:border-0">
-                                        <td className="py-2 pr-4">
+                                    <tr key={t.id} className="transition-colors hover:bg-muted/30">
+                                        <td className="px-6 py-3">
                                             <div className="font-medium">{t.name}</div>
                                             <div className="text-xs text-muted-foreground">{t.slug}</div>
                                         </td>
-                                        <td className="py-2 pr-4">
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusStyles[t.status] ?? ''}`}>
-                                                {t.status}
+                                        <td className="px-3 py-3">
+                                            <span
+                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${STATUS_PILL_CLASS[t.status] ?? 'bg-muted text-muted-foreground'}`}
+                                            >
+                                                <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`} />
+                                                {STATUS_LABELS[t.status] ?? t.status}
                                             </span>
                                         </td>
-                                        <td className="py-2 pr-4">{t.users_count}</td>
-                                        <td className="py-2 pr-4">{t.products_count}</td>
-                                        <td className="py-2 pr-4">{t.sales_count}</td>
-                                        <td className="py-2 pr-4 text-muted-foreground">{t.created_at}</td>
-                                        <td className="py-2 pr-4 text-right">
+                                        <td className="px-3 py-3 tabular-nums">{t.users_count}</td>
+                                        <td className="px-3 py-3 tabular-nums">{t.products_count}</td>
+                                        <td className="px-3 py-3 tabular-nums">{t.sales_count}</td>
+                                        <td className="px-3 py-3 text-xs text-muted-foreground">{t.created_at}</td>
+                                        <td className="px-6 py-3">
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => toggle(t)}>
+                                                <button
+                                                    onClick={() => toggle(t)}
+                                                    className="flex items-center gap-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                                >
                                                     {t.status === 'suspended' ? (
                                                         <>
-                                                            <Play className="mr-1 h-3 w-3" /> Activar
+                                                            <Play className="h-3 w-3" /> Activar
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Pause className="mr-1 h-3 w-3" /> Suspender
+                                                            <Pause className="h-3 w-3" /> Suspender
                                                         </>
                                                     )}
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-red-600 hover:text-red-700"
+                                                </button>
+                                                <button
                                                     aria-label={`Eliminar negocio ${t.name}`}
                                                     title={`Eliminar ${t.name}`}
                                                     onClick={() => setDeleteTarget(t)}
+                                                    className="flex items-center justify-center rounded-lg border border-red-200 bg-card p-1.5 text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
                                                 >
                                                     <Trash2 className="h-3 w-3" />
-                                                </Button>
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                                 {tenants.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                                        <td colSpan={7} className="px-6 py-10 text-center text-sm text-muted-foreground">
                                             Aún no hay negocios. Crea el primero.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
 
             <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
@@ -143,12 +160,18 @@ export default function TenantsIndex({ tenants }: { tenants: TenantRow[] }) {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                        <button
+                            onClick={() => setDeleteTarget(null)}
+                            className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                        >
                             Cancelar
-                        </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
+                        </button>
+                        <button
+                            onClick={confirmDelete}
+                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
+                        >
                             Eliminar
-                        </Button>
+                        </button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
