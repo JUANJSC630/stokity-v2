@@ -11,6 +11,7 @@ Route::middleware(['auth', 'verified', 'module:credits', BranchFilterMiddleware:
     Route::get('credits/receivables', [CreditSaleController::class, 'receivables'])->name('credits.receivables');
     Route::get('credits/overdue-count', [CreditSaleController::class, 'overdueCount'])->name('credits.overdue-count');
     Route::get('credits/{credit}', [CreditSaleController::class, 'show'])->name('credits.show');
+    Route::patch('credits/{credit}/installments', [CreditSaleController::class, 'updateInstallments'])->name('credits.installments.update');
     Route::post('credits/{credit}/payments', [CreditSaleController::class, 'addPayment'])->name('credits.payments.store');
     Route::post('credits/{credit}/cancel', [CreditSaleController::class, 'cancel'])->name('credits.cancel');
 });

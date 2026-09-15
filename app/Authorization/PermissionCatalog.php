@@ -222,6 +222,7 @@ class PermissionCatalog
             'credits.view' => ['module' => 'credits', 'label' => 'Ver créditos'],
             'credits.create' => ['module' => 'credits', 'label' => 'Crear ventas a crédito', 'requires' => ['credits.view', 'sales.create']],
             'credits.register_payment' => ['module' => 'credits', 'label' => 'Registrar abonos', 'requires' => ['credits.view']],
+            'credits.update' => ['module' => 'credits', 'label' => 'Editar plan de cuotas', 'requires' => ['credits.view']],
             'credits.cancel' => ['module' => 'credits', 'label' => 'Cancelar créditos', 'requires' => ['credits.view']],
             'credits.view_receivables' => ['module' => 'credits', 'label' => 'Ver cartera por cobrar', 'requires' => ['credits.view']],
         ];

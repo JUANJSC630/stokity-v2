@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type CreditSale, type PaymentMethod } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertCircle, ArrowLeft, Ban, DollarSign, FileText, HandCoins, Package } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Ban, DollarSign, FileText, HandCoins, Package, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,7 @@ interface Props {
     credit: CreditSale;
     paymentMethods: PaymentMethod[];
     canCancel: boolean;
+    canUpdateInstallments: boolean;
 }
 
 function cop(value: number): string {
@@ -209,11 +211,100 @@ function CancelModal({ open, onClose, credit }: { open: boolean; onClose: () => 
     );
 }
 
+// ─── Edit Installments Modal ──────────────────────────────────────────────────────
+
+const INSTALLMENT_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24];
+
+function EditInstallmentsModal({ open, onClose, credit }: { open: boolean; onClose: () => void; credit: CreditSale }) {
+    const [count, setCount] = useState(credit.installments_count ?? 2);
+    const [dueDate, setDueDate] = useState(credit.due_date ? credit.due_date.slice(0, 10) : '');
+    const [submitting, setSubmitting] = useState(false);
+
+    function handleSubmit() {
+        setSubmitting(true);
+        router.patch(
+            `/credits/${credit.id}/installments`,
+            { installments_count: count, due_date: dueDate },
+            {
+                onSuccess: () => {
+                    toast.success('Plan de cuotas actualizado');
+                    onClose();
+                },
+                onError: (errors) => {
+                    Object.values(errors).forEach((e) => toast.error(e as string));
+                    setSubmitting(false);
+                },
+                onFinish: () => setSubmitting(false),
+            },
+        );
+    }
+
+    const installmentAmount = Number(credit.total_amount) / count;
+
+    return (
+        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Editar plan de cuotas</DialogTitle>
+                    <DialogDescription>
+                        Solo se puede editar mientras el crédito no tenga abonos registrados. El total del crédito ({cop(Number(credit.total_amount))}
+                        ) no cambia, solo cómo se reparte.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                        <Label>Número de cuotas</Label>
+                        <Select value={String(count)} onValueChange={(v) => setCount(Number(v))}>
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {INSTALLMENT_OPTIONS.map((n) => (
+                                    <SelectItem key={n} value={String(n)}>
+                                        {n} {n === 1 ? 'cuota' : 'cuotas'} — {cop(Math.round(Number(credit.total_amount) / n))} c/u
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="due_date">Fecha límite</Label>
+                        <input
+                            id="due_date"
+                            type="date"
+                            value={dueDate}
+                            onChange={(e) => setDueDate(e.target.value)}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                        Quedará en <strong>{count}</strong> {count === 1 ? 'cuota' : 'cuotas'} de{' '}
+                        <strong>{cop(Math.round(installmentAmount))}</strong> cada una.
+                    </p>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose} disabled={submitting}>
+                        Cancelar
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={submitting || !dueDate}>
+                        {submitting ? 'Guardando...' : 'Guardar plan'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
-export default function CreditShow({ credit, paymentMethods, canCancel }: Props) {
+export default function CreditShow({ credit, paymentMethods, canCancel, canUpdateInstallments }: Props) {
     const [paymentOpen, setPaymentOpen] = useState(false);
     const [cancelOpen, setCancelOpen] = useState(false);
+    const [editInstallmentsOpen, setEditInstallmentsOpen] = useState(false);
     const { flash } = usePage().props as unknown as { flash: { success?: string } };
 
     const statusCfg = STATUS_CONFIG[credit.status] ?? STATUS_CONFIG.active;
@@ -307,8 +398,18 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
                             {credit.installments_count && (
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Cuotas</span>
-                                    <span>
+                                    <span className="flex items-center gap-1.5">
                                         {credit.installments_count} x {cop(Number(credit.installment_amount ?? 0))}
+                                        {canUpdateInstallments && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditInstallmentsOpen(true)}
+                                                className="text-muted-foreground hover:text-foreground"
+                                                title="Editar plan de cuotas"
+                                            >
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
                                     </span>
                                 </div>
                             )}
@@ -424,6 +525,9 @@ export default function CreditShow({ credit, paymentMethods, canCancel }: Props)
 
             <PaymentModal open={paymentOpen} onClose={() => setPaymentOpen(false)} credit={credit} />
             <CancelModal open={cancelOpen} onClose={() => setCancelOpen(false)} credit={credit} />
+            {canUpdateInstallments && (
+                <EditInstallmentsModal open={editInstallmentsOpen} onClose={() => setEditInstallmentsOpen(false)} credit={credit} />
+            )}
         </AppLayout>
     );
 }

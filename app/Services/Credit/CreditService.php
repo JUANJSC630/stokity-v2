@@ -121,6 +121,47 @@ class CreditService
     }
 
     /**
+     * Update the installment plan (count + due date) of an active, unpaid
+     * "Cuotas" credit — the amount/date entered wrong at creation time is a
+     * common slip and forcing "cancel and redo" for a typo is unnecessarily
+     * disruptive. Deliberately narrow to avoid side effects:
+     * - Only CreditSale::TYPE_INSTALLMENTS has a plan to edit at all (layaway/
+     *   hold/due_date don't use installments_count/installment_amount).
+     * - Only while active/overdue — a completed or cancelled credit's plan
+     *   is history, not something to rewrite.
+     * - Only before any payment is registered — payments are a running
+     *   balance with no link to a specific installment number, so changing
+     *   the count after money has already moved would make "installment 2
+     *   of 3" meaningless. Recreate the credit instead in that case.
+     * total_amount/balance and the mirror Sale (which never stored a plan)
+     * are untouched — this only rewrites installments_count/installment_amount/due_date.
+     *
+     * @throws \RuntimeException
+     */
+    public function updateInstallments(CreditSale $credit, int $installmentsCount, string $dueDate): CreditSale
+    {
+        if ($credit->type !== CreditSale::TYPE_INSTALLMENTS) {
+            throw new \RuntimeException('Solo los créditos en cuotas tienen un plan de pagos editable.');
+        }
+
+        if (! in_array($credit->status, [CreditSale::STATUS_ACTIVE, CreditSale::STATUS_OVERDUE])) {
+            throw new \RuntimeException('Solo se puede editar el plan de un crédito activo.');
+        }
+
+        if (bccomp((string) $credit->amount_paid, '0', 2) !== 0) {
+            throw new \RuntimeException('No se puede editar el plan de cuotas de un crédito que ya tiene abonos registrados.');
+        }
+
+        $credit->update([
+            'installments_count' => $installmentsCount,
+            'installment_amount' => round((float) $credit->total_amount / $installmentsCount, 2),
+            'due_date' => $dueDate,
+        ]);
+
+        return $credit->fresh();
+    }
+
+    /**
      * Validate that there is enough stock for the requested items.
      */
     private function validateStock(array $items, bool $checkReserved): void

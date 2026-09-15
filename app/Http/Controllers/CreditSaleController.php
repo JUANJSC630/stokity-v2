@@ -199,7 +199,41 @@ class CreditSaleController extends Controller
             'credit' => $credit,
             'paymentMethods' => $paymentMethods,
             'canCancel' => $user->can('credits.cancel'),
+            'canUpdateInstallments' => $user->can('credits.update')
+                && $credit->type === CreditSale::TYPE_INSTALLMENTS
+                && in_array($credit->status, [CreditSale::STATUS_ACTIVE, CreditSale::STATUS_OVERDUE])
+                && bccomp((string) $credit->amount_paid, '0', 2) === 0,
         ]);
+    }
+
+    /**
+     * PATCH /credits/{credit}/installments — edit the number of installments
+     * and due date of an active, unpaid "Cuotas" credit. See
+     * CreditService::updateInstallments() for the guardrails that keep
+     * this free of side effects on payments, stock, or the mirror Sale.
+     */
+    public function updateInstallments(Request $request, CreditSale $credit)
+    {
+        $user = Auth::user();
+
+        if (! $user->can('credits.update')) {
+            abort(403, 'No tienes permisos para editar el plan de cuotas.');
+        }
+
+        abort_if($user->isRestrictedToOwnBranch() && $credit->branch_id !== $user->branch_id, 403);
+
+        $validated = $request->validate([
+            'installments_count' => 'required|integer|min:1|max:60',
+            'due_date' => 'required|date|after_or_equal:today',
+        ]);
+
+        try {
+            $this->creditService->updateInstallments($credit, $validated['installments_count'], $validated['due_date']);
+
+            return back()->with('success', 'Plan de cuotas actualizado exitosamente.');
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['installments' => $e->getMessage()]);
+        }
     }
 
     /**
