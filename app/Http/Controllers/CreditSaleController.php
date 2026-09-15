@@ -132,7 +132,7 @@ class CreditSaleController extends Controller
             'client_id' => 'required|exists:clients,id',
             'branch_id' => 'required|exists:branches,id',
             'due_date' => 'nullable|date|after_or_equal:today',
-            'installments_count' => 'nullable|integer|min:2|max:60',
+            'installments_count' => 'nullable|integer|min:1|max:60',
             'initial_payment' => 'nullable|numeric|min:0',
             'initial_payment_method' => 'nullable|string',
             'notes' => 'nullable|string|max:500',

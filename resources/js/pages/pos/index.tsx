@@ -2011,9 +2011,9 @@ export default function PosIndex({
                                         }}
                                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     >
-                                        {[2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                                        {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
                                             <option key={n} value={n}>
-                                                {n} cuotas — {formatCOP(Math.round(total / n))} c/u
+                                                {n} {n === 1 ? 'cuota' : 'cuotas'} — {formatCOP(Math.round(total / n))} c/u
                                             </option>
                                         ))}
                                     </select>

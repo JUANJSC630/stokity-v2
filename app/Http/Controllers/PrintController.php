@@ -1515,7 +1515,8 @@ class PrintController extends Controller
             }
 
             if ($credit->installments_count) {
-                $p->text($credit->installments_count.' cuotas de '.$this->formatMoney($credit->installment_amount ?? 0)."\n");
+                $plural = $credit->installments_count === 1 ? 'cuota' : 'cuotas';
+                $p->text($credit->installments_count.' '.$plural.' de '.$this->formatMoney($credit->installment_amount ?? 0)."\n");
             }
 
             $p->text("\n");

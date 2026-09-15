@@ -182,7 +182,7 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
         if (step === 0) return !!clientId && cart.length > 0;
         if (step === 1) {
             if (!creditType) return false;
-            if (creditType === 'installments' && (!installmentsCount || installmentsCount < 2)) return false;
+            if (creditType === 'installments' && (!installmentsCount || installmentsCount < 1)) return false;
             if (creditType === 'due_date' && !dueDate) return false;
             if (initialPayment > cartTotal) return false;
             return true;
@@ -472,9 +472,9 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {[2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((n) => (
+                                                    {[1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((n) => (
                                                         <SelectItem key={n} value={String(n)}>
-                                                            {n} cuotas — {cop(Math.round(cartTotal / n))} c/u
+                                                            {n} {n === 1 ? 'cuota' : 'cuotas'} — {cop(Math.round(cartTotal / n))} c/u
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
