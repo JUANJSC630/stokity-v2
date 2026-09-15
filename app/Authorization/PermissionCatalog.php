@@ -41,6 +41,7 @@ class PermissionCatalog
             self::clients(),
             self::sales(),
             self::credits(),
+            self::wholesale(),
             self::suppliers(),
             self::stockMovements(),
             self::paymentMethods(),
@@ -223,6 +224,25 @@ class PermissionCatalog
             'credits.register_payment' => ['module' => 'credits', 'label' => 'Registrar abonos', 'requires' => ['credits.view']],
             'credits.cancel' => ['module' => 'credits', 'label' => 'Cancelar créditos', 'requires' => ['credits.view']],
             'credits.view_receivables' => ['module' => 'credits', 'label' => 'Ver cartera por cobrar', 'requires' => ['credits.view']],
+        ];
+    }
+
+    /**
+     * Pedidos mayoristas custom, fuera del catálogo/inventario normal —
+     * ver database/migrations/2026_09_15_120000_create_wholesale_sales_table.php.
+     * Admin-only por defecto (decisión de negocio, mismo patrón que
+     * clients.wholesale.manage) — ver DefaultRoleProvisioner::encargadoPermissions().
+     *
+     * @return array<string, array{module: string, label: string, type?: string, requires?: list<string>}>
+     */
+    private static function wholesale(): array
+    {
+        return [
+            'wholesale.view' => ['module' => 'wholesale', 'label' => 'Ver pedidos mayoristas'],
+            'wholesale.create' => ['module' => 'wholesale', 'label' => 'Crear pedidos mayoristas', 'requires' => ['wholesale.view', 'clients.view']],
+            'wholesale.update' => ['module' => 'wholesale', 'label' => 'Editar pedidos mayoristas', 'requires' => ['wholesale.view']],
+            'wholesale.delete' => ['module' => 'wholesale', 'label' => 'Cancelar y eliminar pedidos mayoristas', 'requires' => ['wholesale.view']],
+            'wholesale.view_deleted' => ['module' => 'wholesale', 'label' => 'Ver pedidos mayoristas eliminados', 'requires' => ['wholesale.view']],
         ];
     }
 

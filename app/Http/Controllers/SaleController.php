@@ -26,7 +26,7 @@ class SaleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Sale::query();
+        $query = Sale::query()->whereNull('wholesale_sale_id');
 
         // Solo cargar relaciones si no hay búsqueda, para la tabla
         $with = ['branch'];
@@ -507,6 +507,10 @@ class SaleController extends Controller
         $user = Auth::user();
         abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
 
+        if ($sale->wholesale_sale_id) {
+            return redirect()->route('wholesale.show', $sale->wholesale_sale_id);
+        }
+
         // Cargar relaciones necesarias, incluyendo devoluciones y productos devueltos
         $sale->load([
             'branch.manager',
@@ -554,7 +558,7 @@ class SaleController extends Controller
             $with[] = 'client';
             $with[] = 'seller';
         }
-        $query = Sale::onlyTrashed()->with($with);
+        $query = Sale::onlyTrashed()->whereNull('wholesale_sale_id')->with($with);
 
         if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
             $query->where('sales.branch_id', $user->branch_id);
@@ -602,6 +606,10 @@ class SaleController extends Controller
             'saleReturns.products',
         ])->findOrFail($id);
         abort_if($user->isRestrictedToOwnBranch() && $sale->branch_id !== $user->branch_id, 403, 'No tienes acceso a esta venta.');
+
+        if ($sale->wholesale_sale_id) {
+            return redirect()->route('wholesale.show', $sale->wholesale_sale_id);
+        }
 
         $business = \App\Models\BusinessSetting::getSettings();
 

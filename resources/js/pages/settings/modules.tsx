@@ -15,6 +15,7 @@ const MODULES: { key: string; label: string; description: string }[] = [
     { key: 'credits', label: 'Créditos', description: 'Ventas a crédito, cuotas y pagos diferidos' },
     { key: 'suppliers', label: 'Proveedores', description: 'Catálogo de proveedores y vínculo con productos' },
     { key: 'finances', label: 'Finanzas', description: 'Panel financiero, gastos y categorías de gasto' },
+    { key: 'wholesale', label: 'Mayorista', description: 'Pedidos mayoristas personalizados, fuera del catálogo e inventario normal' },
 ];
 
 export default function ModuleSettings({ moduleConfig }: { moduleConfig: Record<string, boolean> }) {

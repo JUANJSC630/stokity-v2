@@ -282,6 +282,7 @@ class DashboardController extends Controller
     {
         $query = Sale::with(['branch', 'client', 'seller'])
             ->whereIn('status', ['completed', 'credit_pending'])
+            ->whereNull('wholesale_sale_id')
             ->orderBy('created_at', 'desc')
             ->limit($limit);
 

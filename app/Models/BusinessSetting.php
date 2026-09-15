@@ -62,6 +62,7 @@ class BusinessSetting extends Model
         'credits' => true,
         'suppliers' => true,
         'finances' => true, // bundles Gastos/expenses — same nav section, same route group
+        'wholesale' => true, // custom wholesale orders, independent of the normal product catalog/stock
     ];
 
     /** Returns the merged module config (DB values override defaults). */

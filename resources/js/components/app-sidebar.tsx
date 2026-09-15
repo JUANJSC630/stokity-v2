@@ -14,6 +14,7 @@ import {
     Building,
     Building2,
     CreditCard,
+    Gem,
     HandCoins,
     History,
     LayoutGrid,
@@ -101,6 +102,13 @@ const allNavItems: NavItem[] = [
         icon: HandCoins,
         permission: 'credits.view',
         module: 'credits',
+    },
+    {
+        title: 'Mayorista',
+        href: '/wholesale',
+        icon: Gem,
+        permission: 'wholesale.view',
+        module: 'wholesale',
     },
     {
         title: 'Proveedores',

@@ -186,6 +186,10 @@ class DefaultRoleProvisioner
      * discount is explicitly admin-only per product decision, not tied to
      * any pre-existing route/controller gate the way the others above are.
      *
+     * wholesale.* (the whole custom wholesale-orders module) is excluded for
+     * the same reason as clients.wholesale.manage: admin-only per product
+     * decision, not tied to a pre-existing gate.
+     *
      * sales.view_audit is excluded too, same reasoning as sales.update/
      * sales.delete right above it: only whoever can edit/cancel a sale
      * should see the trail of who did that and when.
@@ -203,6 +207,7 @@ class DefaultRoleProvisioner
             'cash_sessions.view_all',
             'dashboard.low_stock.view', 'dashboard.branch_sales.view',
             'clients.wholesale.manage',
+            'wholesale.view', 'wholesale.create', 'wholesale.update', 'wholesale.delete', 'wholesale.view_deleted',
         ];
 
         return collect(PermissionCatalog::names())

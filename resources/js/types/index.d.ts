@@ -243,6 +243,37 @@ export interface Sale {
     saleReturns?: SaleReturn[];
 }
 
+export interface WholesaleSaleItem {
+    id: number;
+    wholesale_sale_id: number;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+}
+
+export interface WholesaleSale {
+    id: number;
+    branch_id: number;
+    client_id: number;
+    seller_id: number;
+    sale_id: number | null;
+    code: string;
+    total: number;
+    estimated_cost: number | null;
+    payment_method: string;
+    date: string;
+    status: 'completed' | 'cancelled';
+    notes?: string | null;
+    created_at: string;
+    updated_at: string;
+    branch?: Branch | null;
+    client?: Client | null;
+    seller?: User | null;
+    sale?: { id: number; code: string } | null;
+    items: WholesaleSaleItem[];
+}
+
 export interface SaleProduct {
     id: number;
     sale_id: number;

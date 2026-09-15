@@ -55,7 +55,7 @@ it('lets an admin view the modules settings page', function () {
 
     $response->assertOk();
     expect($response->viewData('page')['props']['moduleConfig'])->toBe([
-        'credits' => true, 'suppliers' => true, 'finances' => true,
+        'credits' => true, 'suppliers' => true, 'finances' => true, 'wholesale' => true,
     ]);
 });
 

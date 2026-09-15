@@ -37,6 +37,7 @@ class Sale extends Model
         'branch_id',
         'session_id',
         'credit_sale_id',
+        'wholesale_sale_id',
         'code',
         'client_id',
         'seller_id',
@@ -110,5 +111,10 @@ class Sale extends Model
     public function creditSale(): BelongsTo
     {
         return $this->belongsTo(CreditSale::class);
+    }
+
+    public function wholesaleSale(): BelongsTo
+    {
+        return $this->belongsTo(WholesaleSale::class);
     }
 }
