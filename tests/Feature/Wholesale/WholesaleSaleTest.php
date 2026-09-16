@@ -203,6 +203,24 @@ describe('Archiving (delete)', function () {
         $this->actingAs($this->seller)->get(route('wholesale.deleted.index'))->assertForbidden();
         $this->actingAs($this->manager)->get(route('wholesale.deleted.index'))->assertForbidden();
     });
+
+    it('regression: creating a new order after archiving one does not collide on the reused sequence number', function () {
+        // This reproduces the production 500: generateCode() used to count()
+        // active rows only, so after archiving #1 the next create recomputed
+        // "1" again and hit the (tenant_id, code) unique constraint.
+        $this->actingAs($this->admin)->post(route('wholesale.store'), wholesalePayload());
+        $first = WholesaleSale::first();
+        $this->actingAs($this->admin)->post(route('wholesale.cancel', $first));
+        $this->actingAs($this->admin)->delete(route('wholesale.destroy', $first));
+
+        $response = $this->actingAs($this->admin)->post(route('wholesale.store'), wholesalePayload());
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+        expect(WholesaleSale::withTrashed()->count())->toBe(2);
+        $second = WholesaleSale::first(); // only non-trashed row
+        expect($second->code)->not->toBe($first->code);
+    });
 });
 
 describe('Finance/Dashboard aggregation', function () {

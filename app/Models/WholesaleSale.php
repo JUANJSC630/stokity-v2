@@ -81,12 +81,25 @@ class WholesaleSale extends Model
         return $this->hasMany(WholesaleSaleItem::class);
     }
 
+    /**
+     * withTrashed() on both the seed count and the collision check is load-bearing:
+     * a plain count() excludes archived (soft-deleted) orders, so after
+     * cancelling+deleting order #1 the next create would recompute "1" again
+     * and collide with the still-present (tenant_id, code) unique row —
+     * exactly what caused a 500 in production. See ImmediateSaleStrategy's
+     * Sale code generation for the same withTrashed()-guarded pattern.
+     */
     public static function generateCode(int $branchId): string
     {
-        $count = self::where('branch_id', $branchId)->count() + 1;
+        $prefix = 'MAY-'.str_pad((string) $branchId, 2, '0', STR_PAD_LEFT).'-';
+        $sequence = self::withTrashed()->where('branch_id', $branchId)->count() + 1;
 
-        return 'MAY-'.str_pad((string) $branchId, 2, '0', STR_PAD_LEFT)
-            .'-'.str_pad((string) $count, 5, '0', STR_PAD_LEFT);
+        do {
+            $code = $prefix.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while (self::withTrashed()->where('code', $code)->exists());
+
+        return $code;
     }
 
     public function getStatusLabelAttribute(): string
