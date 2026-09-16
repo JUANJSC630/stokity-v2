@@ -152,9 +152,13 @@ class WholesaleSaleController extends Controller
         $user = Auth::user();
         abort_if($user->isRestrictedToOwnBranch() && $wholesaleSale->branch_id !== $user->branch_id, 403);
 
-        $this->service->cancel($wholesaleSale);
+        try {
+            $this->service->cancel($wholesaleSale);
 
-        return back()->with('success', 'Pedido mayorista cancelado.');
+            return back()->with('success', 'Pedido mayorista cancelado.');
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
     }
 
     /**

@@ -33,7 +33,10 @@ function CancelModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
             `/wholesale/${wholesaleSale.id}/cancel`,
             {},
             {
-                onSuccess: () => toast.success('Pedido mayorista cancelado'),
+                onSuccess: () => {
+                    toast.success('Pedido mayorista cancelado');
+                    onClose();
+                },
                 onError: (errors) => {
                     Object.values(errors).forEach((e) => toast.error(e as string));
                     setSubmitting(false);
@@ -75,7 +78,10 @@ function DeleteModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
     function handleDelete() {
         setSubmitting(true);
         router.delete(`/wholesale/${wholesaleSale.id}`, {
-            onSuccess: () => toast.success('Pedido mayorista eliminado'),
+            onSuccess: () => {
+                toast.success('Pedido mayorista eliminado');
+                onClose();
+            },
             onError: (errors) => {
                 Object.values(errors).forEach((e) => toast.error(e as string));
                 setSubmitting(false);

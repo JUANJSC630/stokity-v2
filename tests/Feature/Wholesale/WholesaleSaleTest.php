@@ -153,6 +153,24 @@ describe('Cancellation', function () {
         $response = $this->actingAs($this->admin)->get(route('wholesale.index'));
         $response->assertInertia(fn ($page) => $page->where('wholesaleSales.total', 1));
     });
+
+    it('regression: clicking cancel a second time fails cleanly instead of 500ing', function () {
+        // The cancel modal reloads the same page (back()) rather than navigating
+        // away, so its own "open" local state could survive stale across the
+        // reload if the frontend didn't close it — this is the backend half of
+        // that fix: a repeat POST must be rejected, not silently re-applied or
+        // blow up with an uncaught exception.
+        $this->actingAs($this->admin)->post(route('wholesale.store'), wholesalePayload());
+        $order = WholesaleSale::first();
+
+        $this->actingAs($this->admin)->post(route('wholesale.cancel', $order))->assertSessionDoesntHaveErrors();
+
+        $response = $this->actingAs($this->admin)->post(route('wholesale.cancel', $order));
+
+        $response->assertRedirect(); // back()-with-errors, not a 500
+        $response->assertSessionHasErrors('status');
+        expect($order->fresh()->status)->toBe('cancelled'); // unchanged, not corrupted
+    });
 });
 
 describe('Archiving (delete)', function () {

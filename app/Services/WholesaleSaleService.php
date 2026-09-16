@@ -89,9 +89,21 @@ class WholesaleSaleService
      * Cancel a wholesale order: marks both the order and its mirror Sale as
      * cancelled so it stops counting in Dashboard/Finance/Report aggregates
      * (all of which filter status='completed'), without deleting anything.
+     *
+     * Guarded against double-cancel: the cancel modal's own POST stays on the
+     * same page (it's a `back()` redirect, not a navigation away), so its
+     * "open" state can survive the reload if the frontend doesn't close it —
+     * this backend check is the real guardrail, the frontend closing itself
+     * on success is just the UX half of the fix.
+     *
+     * @throws \RuntimeException
      */
     public function cancel(WholesaleSale $wholesaleSale): void
     {
+        if ($wholesaleSale->status !== WholesaleSale::STATUS_COMPLETED) {
+            throw new \RuntimeException('Este pedido ya no está activo.');
+        }
+
         DB::transaction(function () use ($wholesaleSale) {
             $wholesaleSale->update(['status' => WholesaleSale::STATUS_CANCELLED]);
             $wholesaleSale->sale?->update(['status' => 'cancelled']);
