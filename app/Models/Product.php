@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -21,6 +23,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $image
  * @property string $image_url
  * @property bool $status
+ * @property bool $show_in_storefront
+ * @property string|null $slug
  * @property int $category_id
  * @property int $branch_id
  * @property \App\Models\Category|null $category
@@ -29,6 +33,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Product extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        // Only products opted into the storefront need a public, SEO-friendly
+        // slug — everything else keeps sale_price/stock private to the panel.
+        // Generated here (not left to the storefront API) so it exists the
+        // moment a product is toggled on, and stays stable afterwards even
+        // if the name later changes.
+        static::saving(function (self $product) {
+            if ($product->show_in_storefront && empty($product->slug)) {
+                $product->slug = $product->generateUniqueSlug();
+            }
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -51,6 +69,8 @@ class Product extends Model
         'status',
         'type',
         'variable_price',
+        'show_in_storefront',
+        'slug',
     ];
 
     /**
@@ -67,6 +87,7 @@ class Product extends Model
         'reserved_stock' => 'integer',
         'min_stock' => 'integer',
         'variable_price' => 'boolean',
+        'show_in_storefront' => 'boolean',
     ];
 
     /**
@@ -92,6 +113,76 @@ class Product extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Additional storefront gallery images, beyond the cover ($image).
+     */
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Slug is unique per tenant (matches the `products_tenant_id_slug_unique`
+     * index) — TenantScope already restricts this query to the current
+     * tenant, so a plain `where('slug', ...)` is enough, same pattern
+     * `code` generation would use elsewhere in this model.
+     */
+    private function generateUniqueSlug(): string
+    {
+        $base = Str::slug($this->name) ?: 'producto';
+        $slug = $base;
+        $attempt = 1;
+
+        while (true) {
+            $query = static::where('slug', $slug);
+            if ($this->exists) {
+                $query->where('id', '!=', $this->id);
+            }
+
+            if (! $query->exists()) {
+                return $slug;
+            }
+
+            $attempt++;
+            $slug = "{$base}-{$attempt}";
+        }
+    }
+
+    /**
+     * generateUniqueSlug()'s exists()-check-then-save is check-then-act, not
+     * atomic — two products with the same name saved at nearly the same
+     * moment can both pass the check before either has written, and the
+     * second insert/update would hit `products_tenant_id_slug_unique` with
+     * an uncaught exception. The unique index is the real arbiter, so on
+     * exactly that collision, recompute against the now-current DB state
+     * (which includes whichever save just won) and retry, instead of
+     * bubbling a 500 for what is really just a naming coincidence.
+     *
+     * Detects the collision via UniqueConstraintViolationException (a
+     * QueryException subclass Laravel added specifically so this doesn't
+     * need driver-specific error-message parsing) rather than matching the
+     * MySQL constraint name, which a different driver — e.g. SQLite in
+     * tests — never even includes in its message. `code` is unique too, so
+     * the message is still checked for "slug" to avoid retrying (and
+     * silently reassigning the slug) on an unrelated `code` collision.
+     */
+    public function save(array $options = [])
+    {
+        for ($attempts = 0; ; $attempts++) {
+            try {
+                return parent::save($options);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                $isSlugCollision = str_contains(strtolower($e->getMessage()), 'slug');
+
+                if (! $isSlugCollision || $attempts >= 3) {
+                    throw $e;
+                }
+
+                $this->slug = $this->generateUniqueSlug();
+            }
+        }
     }
 
     /**

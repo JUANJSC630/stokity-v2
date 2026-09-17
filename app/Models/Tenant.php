@@ -75,4 +75,9 @@ class Tenant extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(TenantApiKey::class);
+    }
 }
