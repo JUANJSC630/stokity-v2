@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\ImpersonationLogController;
 use App\Http\Controllers\Admin\SuperAdminController;
+use App\Http\Controllers\Admin\TenantApiKeyController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\TenantRoleController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,10 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
     Route::get('tenants/{tenant}/roles/{role}/edit', [TenantRoleController::class, 'edit'])->name('tenants.roles.edit');
     Route::put('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'update'])->name('tenants.roles.update');
     Route::delete('tenants/{tenant}/roles/{role}', [TenantRoleController::class, 'destroy'])->name('tenants.roles.destroy');
+
+    // Storefront API keys (LU_ACCESORIOS_STOREFRONT_PLAN.md / ECOMMERCE_API_PLAN.md).
+    Route::post('tenants/{tenant}/api-keys', [TenantApiKeyController::class, 'store'])->name('tenants.api-keys.store');
+    Route::delete('tenants/{tenant}/api-keys/{apiKey}', [TenantApiKeyController::class, 'destroy'])->name('tenants.api-keys.destroy');
 
     Route::get('impersonations', [ImpersonationLogController::class, 'index'])->name('impersonations.index');
 

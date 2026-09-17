@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Tenant;
+use App\Models\TenantApiKey;
 use App\Models\TenantImpersonation;
 use App\Models\User;
 use App\Tenancy\TenantProvisioner;
@@ -124,6 +125,7 @@ class TenantController extends Controller
     {
         $users = User::allTenants()->where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name', 'email', 'role', 'status', 'last_login_at']);
         $branches = Branch::allTenants()->where('tenant_id', $tenant->id)->orderBy('name')->get(['id', 'name', 'status']);
+        $apiKeys = TenantApiKey::allTenants()->where('tenant_id', $tenant->id)->orderByDesc('id')->get();
 
         return Inertia::render('admin/tenants/show', [
             'tenant' => [
@@ -146,6 +148,14 @@ class TenantController extends Controller
             ],
             'users' => $users,
             'branches' => $branches,
+            'apiKeys' => $apiKeys->map(fn (TenantApiKey $k) => [
+                'id' => $k->id,
+                'name' => $k->name,
+                'key_prefix' => $k->key_prefix,
+                'last_used_at' => $k->last_used_at?->toIso8601String(),
+                'revoked_at' => $k->revoked_at?->toIso8601String(),
+                'created_at' => $k->created_at?->toIso8601String(),
+            ]),
         ]);
     }
 

@@ -4,7 +4,7 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Building2, ChevronLeft, History, Key, LogIn, Pencil, ShieldCheck, Users, X } from 'lucide-react';
+import { Building2, ChevronLeft, Copy, History, Key, LogIn, Pencil, Plus, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -33,6 +33,15 @@ interface TenantBranch {
     status: boolean;
 }
 
+interface TenantApiKey {
+    id: number;
+    name: string;
+    key_prefix: string;
+    last_used_at: string | null;
+    revoked_at: string | null;
+    created_at: string | null;
+}
+
 interface Metrics {
     users_count: number;
     products_count: number;
@@ -44,10 +53,11 @@ interface Props {
     metrics: Metrics;
     users: TenantUser[];
     branches: TenantBranch[];
+    apiKeys: TenantApiKey[];
 }
 
 interface FlashProps {
-    flash: { success?: string; temporaryPassword?: string };
+    flash: { success?: string; temporaryPassword?: string; plainApiKey?: string };
     [key: string]: unknown;
 }
 
@@ -57,13 +67,17 @@ const ROLE_LABELS: Record<string, string> = {
     vendedor: 'Vendedor',
 };
 
-export default function TenantShow({ tenant, metrics, users, branches }: Props) {
+export default function TenantShow({ tenant, metrics, users, branches, apiKeys }: Props) {
     const { props } = usePage<FlashProps>();
     const [editing, setEditing] = useState(false);
     const [revealedPassword, setRevealedPassword] = useState<{ userName: string; password: string } | null>(null);
     const [pendingResetUserId, setPendingResetUserId] = useState<number | null>(null);
     const [confirmAction, setConfirmAction] = useState<{ type: 'reset' | 'impersonate'; user: TenantUser } | null>(null);
     const impersonateForm = useForm({ password: '' });
+    const [creatingKey, setCreatingKey] = useState(false);
+    const [revealedApiKey, setRevealedApiKey] = useState<string | null>(null);
+    const [revokingKey, setRevokingKey] = useState<TenantApiKey | null>(null);
+    const apiKeyForm = useForm({ name: '' });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -88,6 +102,14 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.flash?.temporaryPassword]);
+
+    useEffect(() => {
+        if (props.flash?.plainApiKey) {
+            setRevealedApiKey(props.flash.plainApiKey);
+            setCreatingKey(false);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [props.flash?.plainApiKey]);
 
     const submitEdit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -128,6 +150,58 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
         impersonateForm.post(`/admin/tenants/${tenant.id}/users/${confirmAction.user.id}/impersonate`, {
             onSuccess: () => setConfirmAction(null),
         });
+    };
+
+    const submitCreateKey = (e: React.FormEvent) => {
+        e.preventDefault();
+        apiKeyForm.post(`/admin/tenants/${tenant.id}/api-keys`, {
+            preserveScroll: true,
+            onSuccess: () => apiKeyForm.reset(),
+        });
+    };
+
+    const revokeKey = () => {
+        if (!revokingKey) return;
+        router.delete(`/admin/tenants/${tenant.id}/api-keys/${revokingKey.id}`, {
+            preserveScroll: true,
+            onFinish: () => setRevokingKey(null),
+        });
+    };
+
+    const copyApiKey = () => {
+        if (!revealedApiKey) return;
+
+        // navigator.clipboard is undefined outside a secure context (plain
+        // HTTP, or an older/locked-down browser) — calling .writeText on it
+        // throws synchronously, before the promise chain (and its .catch)
+        // even starts, so that check has to happen first.
+        if (!navigator.clipboard) {
+            legacyCopyApiKey(revealedApiKey);
+            return;
+        }
+
+        navigator.clipboard
+            .writeText(revealedApiKey)
+            .then(() => toast.success('Copiada al portapapeles'))
+            .catch(() => legacyCopyApiKey(revealedApiKey));
+    };
+
+    // Fallback for a non-secure context: a temporary offscreen textarea plus
+    // the older execCommand API, which doesn't require navigator.clipboard.
+    const legacyCopyApiKey = (value: string) => {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = value;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const copied = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            copied ? toast.success('Copiada al portapapeles') : toast.error('No se pudo copiar');
+        } catch {
+            toast.error('No se pudo copiar');
+        }
     };
 
     return (
@@ -280,6 +354,63 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                         {branches.length === 0 && <p className="px-6 py-8 text-center text-sm text-muted-foreground">Sin sucursales todavía.</p>}
                     </div>
                 </div>
+
+                {/* Storefront API keys */}
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                    <div className="flex items-center justify-between gap-2 border-b border-border/60 px-6 py-4">
+                        <div className="flex items-center gap-2">
+                            <Key className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                                {apiKeys.length} API key(s) — tienda pública
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                apiKeyForm.reset();
+                                apiKeyForm.clearErrors();
+                                setCreatingKey(true);
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            Generar key
+                        </button>
+                    </div>
+                    <div className="divide-y divide-border/40">
+                        {apiKeys.map((k) => (
+                            <div key={k.id} className="flex items-center justify-between gap-3 px-6 py-3">
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{k.name}</p>
+                                    <p className="truncate font-mono text-xs text-muted-foreground">{k.key_prefix}…</p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        {k.last_used_at ? `Usada por última vez: ${formatDateTime(k.last_used_at)}` : 'Nunca usada'}
+                                    </p>
+                                </div>
+                                <div className="flex flex-shrink-0 items-center gap-2">
+                                    {k.revoked_at ? (
+                                        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                                            Revocada {formatDate(k.revoked_at)}
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => setRevokingKey(k)}
+                                            title={`Revocar «${k.name}»`}
+                                            className="flex items-center gap-1 rounded-lg border border-red-200 bg-card px-2.5 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                            Revocar
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {apiKeys.length === 0 && (
+                            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
+                                Sin API keys todavía — genera una para conectar la tienda pública de este negocio.
+                            </p>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Edit modal */}
@@ -370,6 +501,107 @@ export default function TenantShow({ tenant, metrics, users, branches }: Props) 
                     </div>
                 </div>
             )}
+
+            {/* Revealed API key — shown once */}
+            {revealedApiKey && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6">
+                        <h2 className="mb-1 text-base font-bold">API key generada</h2>
+                        <p className="mb-4 text-xs text-muted-foreground">
+                            Cópiala ahora y entrégala de forma segura a quien construya la tienda — no se mostrará de nuevo.
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <code className="block flex-1 overflow-x-auto rounded-lg border border-border/60 bg-muted px-3 py-2 text-xs font-semibold whitespace-nowrap">
+                                {revealedApiKey}
+                            </code>
+                            <button
+                                onClick={copyApiKey}
+                                title="Copiar"
+                                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                                <Copy className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setRevealedApiKey(null)}
+                            className="mt-4 w-full rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        >
+                            Listo
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <Dialog open={creatingKey} onOpenChange={(open) => !open && setCreatingKey(false)}>
+                <DialogContent>
+                    <form onSubmit={submitCreateKey}>
+                        <DialogHeader>
+                            <DialogTitle>Generar API key</DialogTitle>
+                            <DialogDescription>
+                                Para «{tenant.name}». Úsala para conectar su tienda pública a la API de solo lectura del catálogo.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4 space-y-1.5">
+                            <label htmlFor="api-key-name" className="text-xs font-medium">
+                                Nombre (para identificarla después)
+                            </label>
+                            <input
+                                id="api-key-name"
+                                autoFocus
+                                placeholder="Storefront producción"
+                                value={apiKeyForm.data.name}
+                                onChange={(e) => apiKeyForm.setData('name', e.target.value)}
+                                className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                            />
+                            {apiKeyForm.errors.name && <p className="text-xs text-red-500">{apiKeyForm.errors.name}</p>}
+                        </div>
+                        <DialogFooter className="mt-4">
+                            <button
+                                type="button"
+                                onClick={() => setCreatingKey(false)}
+                                className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={apiKeyForm.processing}
+                                className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+                            >
+                                Generar
+                            </button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={revokingKey !== null} onOpenChange={(open) => !open && setRevokingKey(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Revocar API key</DialogTitle>
+                        <DialogDescription>
+                            ¿Revocar «{revokingKey?.name}»? La tienda pública dejará de poder leer el catálogo de inmediato — esto no se puede
+                            deshacer, habría que generar una key nueva.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4">
+                        <button
+                            type="button"
+                            onClick={() => setRevokingKey(null)}
+                            className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={revokeKey}
+                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                        >
+                            Revocar
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
                 <DialogContent>

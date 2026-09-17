@@ -67,6 +67,7 @@ class HandleInertiaRequests extends Middleware
                 'last_sale_id' => fn () => $request->session()->get('last_sale_id'),
                 'last_sale_code' => fn () => $request->session()->get('last_sale_code'),
                 'temporaryPassword' => fn () => $request->session()->get('temporaryPassword'),
+                'plainApiKey' => fn () => $request->session()->get('plainApiKey'),
             ],
             'impersonating' => fn () => $this->impersonationInfo($request),
         ];
