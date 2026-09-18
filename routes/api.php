@@ -32,8 +32,8 @@ use Illuminate\Support\Facades\Route;
 | "create order" endpoint is a deliberately separate, much more carefully
 | guarded addition (Fase 2), not an extension of this file's surface.
 |
-| The products/{slug}/images pair and the visibility PATCH below are a
-| narrow, deliberate exception: they only let the storefront attach/detach
+| The products/{identifier}/images pair and the visibility PATCH below are
+| a narrow, deliberate exception: they only let the storefront attach/detach
 | an image URL it already uploaded to its OWN Vercel Blob store, or flip a
 | product's storefront curation flag — see StoreProductImageController's and
 | StoreProductController::updateVisibility()'s docblocks. None of them touch
@@ -43,6 +43,13 @@ use Illuminate\Support\Facades\Route;
 | `can_manage_media = true` (EnsureStoreApiKeyCanManageMedia) — an explicit,
 | opt-in scope that no key gets retroactively, see that middleware's
 | docblock.
+|
+| `{identifier}` (not `{slug}`, unlike the read-only routes above) because
+| a product only gets a slug the first time it's curated for the
+| storefront — see Product::findActiveForStoreApi()'s docblock. These three
+| routes resolve by slug OR code so a storefront can curate (activate,
+| photograph) a product that has never been public before, which is their
+| main use case, not an edge case.
 */
 Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->name('api.store.')->group(function () {
     Route::get('info', [StoreInfoController::class, 'show'])->name('info');
@@ -53,8 +60,8 @@ Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->
     Route::get('products/{slug}', [StoreProductController::class, 'show'])->name('products.show');
 
     Route::middleware('store.api.manage_media')->group(function () {
-        Route::post('products/{slug}/images', [StoreProductImageController::class, 'store'])->name('products.images.store');
-        Route::delete('products/{slug}/images/{imageId}', [StoreProductImageController::class, 'destroy'])->name('products.images.destroy');
-        Route::patch('products/{slug}', [StoreProductController::class, 'updateVisibility'])->name('products.update-visibility');
+        Route::post('products/{identifier}/images', [StoreProductImageController::class, 'store'])->name('products.images.store');
+        Route::delete('products/{identifier}/images/{imageId}', [StoreProductImageController::class, 'destroy'])->name('products.images.destroy');
+        Route::patch('products/{identifier}', [StoreProductController::class, 'updateVisibility'])->name('products.update-visibility');
     });
 });

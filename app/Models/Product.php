@@ -124,6 +124,42 @@ class Product extends Model
     }
 
     /**
+     * Resolves a storefront write-endpoint's {identifier} route segment
+     * (PATCH .../products/{identifier}, POST/DELETE .../images) to an
+     * active product — by slug first, falling back to code.
+     *
+     * Why code as a fallback at all: a product only ever gets a slug the
+     * first time it's saved with show_in_storefront=true (see booted()'s
+     * saving() hook below) — a product that has never been curated has no
+     * slug whatsoever. Code is assigned at creation and never null, so
+     * it's the only identifier that can address a product THE FIRST TIME
+     * a storefront curates it (activate it, attach its first photo) —
+     * exactly the main use case of this write surface, not an edge case.
+     *
+     * TenantScope already restricts this to the current tenant. Slug and
+     * code each carry their own per-tenant unique index (see
+     * 2026_06_18_000004_make_unique_constraints_per_tenant.php), but
+     * nothing stops one product's slug from coincidentally equalling
+     * another's code within the same tenant — astronomically unlikely in
+     * practice (slugs are kebab-cased names, codes are numeric/manual
+     * SKUs), and first() resolving to whichever row matches rather than
+     * throwing is an acceptable, deliberate tradeoff here, not a bug.
+     *
+     * GET /products/{slug} (the public read endpoints) deliberately does
+     * NOT use this — those are slug-only by design (public/SEO URLs), and
+     * a product that's actually public always has a slug already.
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public static function findActiveForStoreApi(string $identifier): self
+    {
+        return static::query()
+            ->where('status', true)
+            ->where(fn ($q) => $q->where('slug', $identifier)->orWhere('code', $identifier))
+            ->firstOrFail();
+    }
+
+    /**
      * Slug is unique per tenant (matches the `products_tenant_id_slug_unique`
      * index) — TenantScope already restricts this query to the current
      * tenant, so a plain `where('slug', ...)` is enough, same pattern

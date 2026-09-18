@@ -24,9 +24,9 @@ use Illuminate\Validation\ValidationException;
  */
 class StoreProductImageController extends Controller
 {
-    public function store(Request $request, string $slug): JsonResponse
+    public function store(Request $request, string $identifier): JsonResponse
     {
-        $product = $this->findProduct($slug);
+        $product = Product::findActiveForStoreApi($identifier);
 
         $validated = $request->validate([
             'image_url' => [
@@ -60,23 +60,12 @@ class StoreProductImageController extends Controller
             ->setStatusCode(201);
     }
 
-    public function destroy(string $slug, int $imageId): JsonResponse
+    public function destroy(string $identifier, int $imageId): JsonResponse
     {
-        $product = $this->findProduct($slug);
+        $product = Product::findActiveForStoreApi($identifier);
 
         $product->images()->findOrFail($imageId)->delete();
 
         return response()->json(null, 204);
-    }
-
-    /**
-     * Tenant scoping comes from ProductImage/Product's own BelongsToTenant
-     * global scope (set by ResolveTenantFromApiKey) — a slug belonging to
-     * another tenant simply doesn't match this query, same 404-not-403
-     * behavior as StoreProductController::show().
-     */
-    private function findProduct(string $slug): Product
-    {
-        return Product::where('slug', $slug)->firstOrFail();
     }
 }

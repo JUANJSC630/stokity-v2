@@ -85,28 +85,26 @@ class StoreProductController extends Controller
     }
 
     /**
-     * Toggles storefront curation for a product that already has a slug
-     * (i.e. has been curated at least once — see Product::booted()'s
-     * saving() hook, which only ever mints a slug the first time
-     * show_in_storefront turns true). Gated by `can_manage_media` at the
+     * Toggles storefront curation for a product, addressed by slug OR code
+     * (Product::findActiveForStoreApi()) — a product only gets a slug the
+     * first time it's curated, so code is what makes it possible to
+     * activate one for the very first time, the main use case of this
+     * write surface, not an edge case. Gated by `can_manage_media` at the
      * route level (routes/api.php), not here.
      *
      * Deliberately does NOT filter by show_in_storefront when looking the
      * product up — unlike show()/index(), which exist to show only what's
      * already public. This endpoint's entire purpose is to flip that flag,
-     * so requiring it to already be true would make un-hiding a product
-     * impossible.
+     * so requiring it to already be true would make un-hiding (or first
+     * curating) a product impossible.
      */
-    public function updateVisibility(Request $request, string $slug): StoreProductResource
+    public function updateVisibility(Request $request, string $identifier): StoreProductResource
     {
         $validated = $request->validate([
             'show_in_storefront' => 'required|boolean',
         ]);
 
-        $product = Product::query()
-            ->where('status', true)
-            ->where('slug', $slug)
-            ->firstOrFail();
+        $product = Product::findActiveForStoreApi($identifier);
 
         $product->update(['show_in_storefront' => $validated['show_in_storefront']]);
 

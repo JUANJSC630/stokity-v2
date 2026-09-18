@@ -451,3 +451,53 @@ it('404s PATCHing visibility on another tenant\'s product', function () {
         ->patchJson('/api/v1/store/products/'.$b['visibleProduct']->slug, ['show_in_storefront' => false])
         ->assertNotFound();
 });
+
+it('activates by code a product that was never curated before (no slug yet), and mints its slug in the same call', function () {
+    $world = makeStoreWorld('patch-activate-by-code', canManageMedia: true);
+
+    $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
+        'branch_id' => $world['visibleProduct']->branch_id,
+        'category_id' => $world['visibleProduct']->category_id,
+        'code' => 'NEVER-CURATED-CODE',
+        'show_in_storefront' => false,
+        'status' => true,
+    ]));
+
+    expect($neverCurated->slug)->toBeNull();
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$neverCurated->code, ['show_in_storefront' => true])
+        ->assertOk()
+        ->assertJsonPath('data.show_in_storefront', true);
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($neverCurated) {
+        $fresh = $neverCurated->fresh();
+        expect($fresh->show_in_storefront)->toBeTrue();
+        expect($fresh->slug)->not->toBeNull();
+    });
+});
+
+it('attaches an image by code to a product that was never activated', function () {
+    $world = makeStoreWorld('image-upload-by-code', canManageMedia: true);
+
+    $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
+        'branch_id' => $world['visibleProduct']->branch_id,
+        'category_id' => $world['visibleProduct']->category_id,
+        'code' => 'NEVER-CURATED-IMAGE-CODE',
+        'show_in_storefront' => false,
+        'status' => true,
+    ]));
+
+    expect($neverCurated->slug)->toBeNull();
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$neverCurated->code.'/images', [
+            'image_url' => 'https://example.com/pre-curation.webp',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.url', 'https://example.com/pre-curation.webp');
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($neverCurated) {
+        expect(ProductImage::where('product_id', $neverCurated->id)->count())->toBe(1);
+    });
+});
