@@ -403,6 +403,58 @@ it('exposes show_in_storefront on GET /products/{slug} only for a can_manage_med
         ->assertJsonMissingPath('data.show_in_storefront');
 });
 
+it('shows a never-curated product (no slug) by code when visibility=all and the key can manage media', function () {
+    $world = makeStoreWorld('show-by-code-visibility-all', canManageMedia: true);
+
+    $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
+        'branch_id' => $world['visibleProduct']->branch_id,
+        'category_id' => $world['visibleProduct']->category_id,
+        'code' => 'NEVER-CURATED-SHOW-CODE',
+        'show_in_storefront' => false,
+        'status' => true,
+    ]));
+
+    expect($neverCurated->slug)->toBeNull();
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->getJson('/api/v1/store/products/'.$neverCurated->code.'?visibility=all')
+        ->assertOk()
+        ->assertJsonPath('data.code', 'NEVER-CURATED-SHOW-CODE')
+        ->assertJsonPath('data.show_in_storefront', false);
+});
+
+it('404s showing a never-curated product by code without visibility=all, even with a can_manage_media key', function () {
+    $world = makeStoreWorld('show-by-code-no-visibility', canManageMedia: true);
+
+    $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
+        'branch_id' => $world['visibleProduct']->branch_id,
+        'category_id' => $world['visibleProduct']->category_id,
+        'code' => 'NEVER-CURATED-NO-VIS-PARAM',
+        'show_in_storefront' => false,
+        'status' => true,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->getJson('/api/v1/store/products/'.$neverCurated->code)
+        ->assertNotFound();
+});
+
+it('404s showing a never-curated product by code with visibility=all when the key lacks can_manage_media', function () {
+    $world = makeStoreWorld('show-by-code-unscoped');
+
+    $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
+        'branch_id' => $world['visibleProduct']->branch_id,
+        'category_id' => $world['visibleProduct']->category_id,
+        'code' => 'NEVER-CURATED-UNSCOPED-KEY',
+        'show_in_storefront' => false,
+        'status' => true,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->getJson('/api/v1/store/products/'.$neverCurated->code.'?visibility=all')
+        ->assertNotFound();
+});
+
 it('activates a hidden product via PATCH when the key can manage media', function () {
     $world = makeStoreWorld('patch-activate', canManageMedia: true);
 

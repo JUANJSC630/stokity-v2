@@ -70,6 +70,17 @@ class StoreProductController extends Controller
         return StoreProductResource::collection($products);
     }
 
+    /**
+     * `$slug` is also matched against `code` when `$showAll` — a storefront
+     * admin screen calls this to preview a product (name, category, branch,
+     * current gallery) BEFORE deciding to curate it, and a never-curated
+     * product has no slug yet (same reason as
+     * Product::findActiveForStoreApi(), which the write endpoints use).
+     * Without this, the write endpoints could already address such a
+     * product by code while this read endpoint 404'd on the exact same
+     * value. The public path (no `?visibility=all`, or a key without
+     * `can_manage_media`) is untouched — slug-only, as before.
+     */
     public function show(Request $request, string $slug): StoreProductResource
     {
         $showAll = $request->query('visibility') === 'all' && $this->canManageMedia($request);
@@ -77,7 +88,13 @@ class StoreProductController extends Controller
         $product = Product::query()
             ->where('status', true)
             ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
-            ->where('slug', $slug)
+            ->where(function ($query) use ($slug, $showAll) {
+                $query->where('slug', $slug);
+
+                if ($showAll) {
+                    $query->orWhere('code', $slug);
+                }
+            })
             ->with(['category', 'images', 'branch'])
             ->firstOrFail();
 
