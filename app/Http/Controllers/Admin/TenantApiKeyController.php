@@ -24,13 +24,15 @@ class TenantApiKeyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'can_manage_media' => 'nullable|boolean',
+            'can_generate_order_references' => 'nullable|boolean',
         ]);
 
         $result = TenantApiKey::generate(
             $tenant,
             $validated['name'],
             $request->user(),
-            $validated['can_manage_media'] ?? false,
+            canManageMedia: $validated['can_manage_media'] ?? false,
+            canGenerateOrderReferences: $validated['can_generate_order_references'] ?? false,
         );
 
         // Allowed even for a suspended/trial-expired tenant — an admin may

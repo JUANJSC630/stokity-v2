@@ -4,6 +4,7 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\StorefrontOrderCounter;
 use App\Models\Tenant;
 use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
@@ -17,17 +18,18 @@ uses(RefreshDatabase::class);
  * curated for the storefront (show_in_storefront=true, so it gets a slug)
  * and one that deliberately isn't, plus a live API key for that tenant.
  *
- * $canManageMedia defaults to false to match a real freshly-issued key's
- * default — tests exercising the images/visibility write surface must opt
- * in explicitly, same as a SuperAdmin checking the box in the panel.
+ * $canManageMedia and $canGenerateOrderReferences default to false to
+ * match a real freshly-issued key's defaults — tests exercising either
+ * write surface must opt in explicitly, same as a SuperAdmin checking the
+ * corresponding box in the panel.
  *
  * @return array{tenant: Tenant, apiKey: TenantApiKey, plainKey: string, visibleProduct: Product, hiddenProduct: Product}
  */
-function makeStoreWorld(string $slug, bool $canManageMedia = false): array
+function makeStoreWorld(string $slug, bool $canManageMedia = false, bool $canGenerateOrderReferences = false): array
 {
     $tenant = Tenant::create(['name' => $slug, 'slug' => $slug, 'status' => 'active']);
 
-    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $slug, $canManageMedia) {
+    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $slug, $canManageMedia, $canGenerateOrderReferences) {
         $branch = Branch::factory()->create();
         $category = Category::factory()->create();
 
@@ -49,7 +51,7 @@ function makeStoreWorld(string $slug, bool $canManageMedia = false): array
             'status' => true,
         ]);
 
-        $generated = TenantApiKey::generate($tenant, 'test key', null, $canManageMedia);
+        $generated = TenantApiKey::generate($tenant, 'test key', null, $canManageMedia, $canGenerateOrderReferences);
 
         return [
             'tenant' => $tenant,
@@ -552,4 +554,66 @@ it('attaches an image by code to a product that was never activated', function (
     app(TenantManager::class)->runAs($world['tenant'], function () use ($neverCurated) {
         expect(ProductImage::where('product_id', $neverCurated->id)->count())->toBe(1);
     });
+});
+
+it('rejects generating an order reference from a key without the can_generate_order_references scope', function () {
+    $world = makeStoreWorld('order-ref-scope');
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/order-reference')
+        ->assertForbidden();
+});
+
+it('generates consecutive order reference numbers, prefixed by the tenant slug', function () {
+    $world = makeStoreWorld('order-ref-sequence', canGenerateOrderReferences: true);
+
+    $first = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/order-reference')
+        ->assertCreated()
+        ->json('order_number');
+
+    $second = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/order-reference')
+        ->assertCreated()
+        ->json('order_number');
+
+    expect($first)->toBe('ORDER-REF-SEQUENCE-000001');
+    expect($second)->toBe('ORDER-REF-SEQUENCE-000002');
+});
+
+it('keeps independent order reference counters per tenant', function () {
+    $a = makeStoreWorld('order-ref-tenant-a', canGenerateOrderReferences: true);
+    $b = makeStoreWorld('order-ref-tenant-b', canGenerateOrderReferences: true);
+
+    // Two calls for A, then one for B — B must still start at 1, not 3:
+    // proves the counter row is scoped per tenant, not a single global
+    // sequence a busier tenant could push another tenant's numbers ahead on.
+    $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])->postJson('/api/v1/store/order-reference');
+    $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])->postJson('/api/v1/store/order-reference');
+
+    $bFirst = $this->withHeader('Authorization', 'Bearer '.$b['plainKey'])
+        ->postJson('/api/v1/store/order-reference')
+        ->assertCreated()
+        ->json('order_number');
+
+    expect($bFirst)->toBe('ORDER-REF-TENANT-B-000001');
+});
+
+it('never repeats or skips a number across many rapid claims (concurrency-safety proxy)', function () {
+    // A real two-connection race isn't reproducible under the test suite's
+    // SQLite :memory: connection (no true concurrent transactions to
+    // interleave — see StoreApiTest's other "simulated race" test for the
+    // same constraint on Product::generateUniqueSlug()). This instead
+    // stresses StorefrontOrderCounter::claimNext() itself with many rapid
+    // sequential claims and asserts the numbers form a gapless, duplicate-free
+    // run — which is exactly what would break first if the lockForUpdate +
+    // insertOrIgnore sequence in claimNext() were not atomic.
+    $world = makeStoreWorld('order-ref-rapid', canGenerateOrderReferences: true);
+
+    $numbers = app(TenantManager::class)->runAs($world['tenant'], fn () => collect(range(1, 25))
+        ->map(fn () => StorefrontOrderCounter::claimNext($world['tenant']->id))
+        ->all());
+
+    expect($numbers)->toBe(range(1, 25));
+    expect(array_unique($numbers))->toHaveCount(25);
 });

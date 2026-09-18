@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Store\StoreBranchController;
 use App\Http\Controllers\Api\Store\StoreCategoryController;
 use App\Http\Controllers\Api\Store\StoreInfoController;
+use App\Http\Controllers\Api\Store\StoreOrderReferenceController;
 use App\Http\Controllers\Api\Store\StorePaymentMethodController;
 use App\Http\Controllers\Api\Store\StoreProductController;
 use App\Http\Controllers\Api\Store\StoreProductImageController;
@@ -50,6 +51,13 @@ use Illuminate\Support\Facades\Route;
 | routes resolve by slug OR code so a storefront can curate (activate,
 | photograph) a product that has never been public before, which is their
 | main use case, not an edge case.
+|
+| order-reference is a separate, unrelated write endpoint gated by its own
+| independent scope (`can_generate_order_references`, checked by
+| EnsureStoreApiKeyCanGenerateOrderReferences) — a key that can manage
+| media does not automatically get this too. It creates nothing beyond a
+| counter row: see StoreOrderReferenceController's docblock for why this
+| repo still has no orders table for the storefront to write to.
 */
 Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->name('api.store.')->group(function () {
     Route::get('info', [StoreInfoController::class, 'show'])->name('info');
@@ -64,4 +72,8 @@ Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->
         Route::delete('products/{identifier}/images/{imageId}', [StoreProductImageController::class, 'destroy'])->name('products.images.destroy');
         Route::patch('products/{identifier}', [StoreProductController::class, 'updateVisibility'])->name('products.update-visibility');
     });
+
+    Route::post('order-reference', [StoreOrderReferenceController::class, 'store'])
+        ->middleware('store.api.generate_order_references')
+        ->name('order-reference.store');
 });

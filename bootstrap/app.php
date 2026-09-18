@@ -40,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
             'store.api.key' => \App\Http\Middleware\ResolveTenantFromApiKey::class,
             'store.api.manage_media' => \App\Http\Middleware\EnsureStoreApiKeyCanManageMedia::class,
+            'store.api.generate_order_references' => \App\Http\Middleware\EnsureStoreApiKeyCanGenerateOrderReferences::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

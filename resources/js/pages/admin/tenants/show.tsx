@@ -38,6 +38,7 @@ interface TenantApiKey {
     name: string;
     key_prefix: string;
     can_manage_media: boolean;
+    can_generate_order_references: boolean;
     last_used_at: string | null;
     revoked_at: string | null;
     created_at: string | null;
@@ -78,7 +79,11 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
     const [creatingKey, setCreatingKey] = useState(false);
     const [revealedApiKey, setRevealedApiKey] = useState<string | null>(null);
     const [revokingKey, setRevokingKey] = useState<TenantApiKey | null>(null);
-    const apiKeyForm = useForm<{ name: string; can_manage_media: boolean }>({ name: '', can_manage_media: false });
+    const apiKeyForm = useForm<{ name: string; can_manage_media: boolean; can_generate_order_references: boolean }>({
+        name: '',
+        can_manage_media: false,
+        can_generate_order_references: false,
+    });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -388,6 +393,11 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                                 Gestiona fotos/visibilidad
                                             </span>
                                         )}
+                                        {k.can_generate_order_references && (
+                                            <span className="flex-shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
+                                                Genera referencias de pedido
+                                            </span>
+                                        )}
                                     </div>
                                     <p className="truncate font-mono text-xs text-muted-foreground">{k.key_prefix}…</p>
                                     <p className="truncate text-xs text-muted-foreground">
@@ -576,6 +586,22 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                 <span className="text-muted-foreground">
                                     Permite subir/borrar fotos de la galería y activar/ocultar productos vía API. Las keys ya generadas no
                                     obtienen este permiso automáticamente.
+                                </span>
+                            </span>
+                        </label>
+                        <label className="mt-3 flex items-start gap-2 text-xs">
+                            <input
+                                type="checkbox"
+                                checked={apiKeyForm.data.can_generate_order_references}
+                                onChange={(e) => apiKeyForm.setData('can_generate_order_references', e.target.checked)}
+                                className="mt-0.5"
+                            />
+                            <span>
+                                <span className="font-medium">Permitir generar números de referencia de pedido</span>
+                                <br />
+                                <span className="text-muted-foreground">
+                                    Permite pedir un número de referencia (ej. LUACCESORIOS-000123) para su mensaje de WhatsApp de checkout.
+                                    No crea ninguna venta ni pedido en Stokity. Independiente del permiso de fotos.
                                 </span>
                             </span>
                         </label>

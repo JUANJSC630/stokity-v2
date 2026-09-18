@@ -153,6 +153,7 @@ class TenantController extends Controller
                 'name' => $k->name,
                 'key_prefix' => $k->key_prefix,
                 'can_manage_media' => $k->can_manage_media,
+                'can_generate_order_references' => $k->can_generate_order_references,
                 'last_used_at' => $k->last_used_at?->toIso8601String(),
                 'revoked_at' => $k->revoked_at?->toIso8601String(),
                 'created_at' => $k->created_at?->toIso8601String(),

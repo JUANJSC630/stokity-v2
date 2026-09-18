@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
  * @property string $key_prefix
  * @property string $hashed_key
  * @property bool $can_manage_media
+ * @property bool $can_generate_order_references
  * @property int|null $created_by
  * @property \Illuminate\Support\Carbon|null $last_used_at
  * @property \Illuminate\Support\Carbon|null $revoked_at
@@ -41,10 +42,12 @@ class TenantApiKey extends Model
         'hashed_key',
         'created_by',
         'can_manage_media',
+        'can_generate_order_references',
     ];
 
     protected $casts = [
         'can_manage_media' => 'boolean',
+        'can_generate_order_references' => 'boolean',
         'last_used_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
@@ -91,15 +94,21 @@ class TenantApiKey extends Model
      * Create a new key for a tenant. Returns the model AND the one-time
      * plaintext key — the only place in the app this plaintext ever exists.
      *
-     * $canManageMedia defaults to false — only this explicit param sets it
-     * (never a raw request array), so write access is always an opt-in
-     * choice a SuperAdmin makes when issuing THIS key, never something an
-     * older key gains retroactively.
+     * $canManageMedia and $canGenerateOrderReferences default to false and
+     * are independent of each other — only these explicit params set them
+     * (never a raw request array), so each write capability is an opt-in
+     * choice a SuperAdmin makes per key, never something an older key (or a
+     * key granted the OTHER scope) gains retroactively.
      *
      * @return array{key: self, plainTextKey: string}
      */
-    public static function generate(Tenant $tenant, string $name, ?User $creator = null, bool $canManageMedia = false): array
-    {
+    public static function generate(
+        Tenant $tenant,
+        string $name,
+        ?User $creator = null,
+        bool $canManageMedia = false,
+        bool $canGenerateOrderReferences = false,
+    ): array {
         // 40 random chars of entropy is plenty for a bearer token looked up
         // by exact hash match (not brute-forceable at network-request
         // speed); the "sk_store_" prefix makes a leaked key recognizable as
@@ -119,6 +128,7 @@ class TenantApiKey extends Model
             'hashed_key' => static::hash($plainTextKey),
             'created_by' => $creator?->id,
             'can_manage_media' => $canManageMedia,
+            'can_generate_order_references' => $canGenerateOrderReferences,
         ]);
 
         return ['key' => $key, 'plainTextKey' => $plainTextKey];

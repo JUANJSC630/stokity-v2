@@ -108,6 +108,41 @@ it('grants can_manage_media when the checkbox is checked at generation time', fu
     expect($key->can_manage_media)->toBeTrue();
 });
 
+it('defaults a new key to can_generate_order_references=false when the checkbox is not checked', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Lu Accesorios Order Scope',
+        'branch_name' => 'Principal',
+        'admin_name' => 'Lu Admin',
+        'admin_email' => 'lu-order-scope@accesorios.test',
+        'admin_password' => 'password123',
+    ]);
+
+    $this->actingAs(apiKeySuperAdmin())
+        ->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Read-only key'])
+        ->assertRedirect();
+
+    $key = TenantApiKey::where('tenant_id', $tenant->id)->first();
+    expect($key->can_generate_order_references)->toBeFalse();
+});
+
+it('grants can_generate_order_references when the checkbox is checked, independently of can_manage_media', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Lu Accesorios Order Grant',
+        'branch_name' => 'Principal',
+        'admin_name' => 'Lu Admin',
+        'admin_email' => 'lu-order-grant@accesorios.test',
+        'admin_password' => 'password123',
+    ]);
+
+    $this->actingAs(apiKeySuperAdmin())
+        ->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Order ref key', 'can_generate_order_references' => true])
+        ->assertRedirect();
+
+    $key = TenantApiKey::where('tenant_id', $tenant->id)->first();
+    expect($key->can_generate_order_references)->toBeTrue();
+    expect($key->can_manage_media)->toBeFalse();
+});
+
 it('revokes a key so it stops authenticating, and lists it as revoked', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Lu Accesorios 2',
