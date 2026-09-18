@@ -102,28 +102,59 @@ class StoreProductController extends Controller
     }
 
     /**
-     * Toggles storefront curation for a product, addressed by slug OR code
-     * (Product::findActiveForStoreApi()) — a product only gets a slug the
-     * first time it's curated, so code is what makes it possible to
-     * activate one for the very first time, the main use case of this
-     * write surface, not an edge case. Gated by `can_manage_media` at the
-     * route level (routes/api.php), not here.
+     * Updates storefront curation and/or the cover photo for a product,
+     * addressed by slug OR code (Product::findActiveForStoreApi()) — a
+     * product only gets a slug the first time it's curated, so code is what
+     * makes it possible to activate one for the very first time, the main
+     * use case of this write surface, not an edge case. Gated by
+     * `can_manage_media` at the route level (routes/api.php), not here.
+     *
+     * Both fields are optional but at least one is required
+     * (`required_without` on each) — an empty PATCH is a client bug, not a
+     * meaningful no-op worth silently accepting.
+     *
+     * `image_url` replaces Product::$image directly, the same "just point
+     * at a URL the storefront already uploaded to its own Blob" idea as
+     * POST .../images — never BlobStorageService, never a file upload.
+     * Deliberately NOT required to already be one of the product's gallery
+     * images: a storefront may want a cover shot that never goes in the
+     * gallery at all.
      *
      * Deliberately does NOT filter by show_in_storefront when looking the
      * product up — unlike show()/index(), which exist to show only what's
-     * already public. This endpoint's entire purpose is to flip that flag,
-     * so requiring it to already be true would make un-hiding (or first
+     * already public. Toggling that flag (this endpoint's original purpose)
+     * requires being able to reach a product that isn't public yet, so
+     * requiring it to already be true would make un-hiding (or first
      * curating) a product impossible.
      */
-    public function updateVisibility(Request $request, string $identifier): StoreProductResource
+    public function update(Request $request, string $identifier): StoreProductResource
     {
         $validated = $request->validate([
-            'show_in_storefront' => 'required|boolean',
+            'show_in_storefront' => 'required_without:image_url|boolean',
+            'image_url' => [
+                'required_without:show_in_storefront',
+                'string',
+                'max:2048',
+                'url',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! str_starts_with($value, 'https://')) {
+                        $fail('image_url debe ser una URL https.');
+                    }
+                },
+            ],
         ]);
 
         $product = Product::findActiveForStoreApi($identifier);
 
-        $product->update(['show_in_storefront' => $validated['show_in_storefront']]);
+        if (array_key_exists('show_in_storefront', $validated)) {
+            $product->show_in_storefront = $validated['show_in_storefront'];
+        }
+
+        if (array_key_exists('image_url', $validated)) {
+            $product->image = $validated['image_url'];
+        }
+
+        $product->save();
 
         return new StoreProductResource($product->load(['category', 'images', 'branch']));
     }

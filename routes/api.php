@@ -33,21 +33,21 @@ use Illuminate\Support\Facades\Route;
 | "create order" endpoint is a deliberately separate, much more carefully
 | guarded addition (Fase 2), not an extension of this file's surface.
 |
-| The products/{identifier}/images pair and the visibility PATCH below are
-| a narrow, deliberate exception: they only let the storefront attach/detach
-| an image URL it already uploaded to its OWN Vercel Blob store, or flip a
-| product's storefront curation flag — see StoreProductImageController's and
-| StoreProductController::updateVisibility()'s docblocks. None of them touch
-| this app's BlobStorageService, stock, price, or any other product field,
-| so they don't reopen the Fase-1 read-only boundary the way a real write
-| endpoint would. All three require the resolved key to have
-| `can_manage_media = true` (EnsureStoreApiKeyCanManageMedia) — an explicit,
-| opt-in scope that no key gets retroactively, see that middleware's
-| docblock.
+| The products/{identifier}/images routes and the PATCH below are a narrow,
+| deliberate exception: they only let the storefront attach/detach/reorder
+| image URLs it already uploaded to its OWN Vercel Blob store, or flip a
+| product's storefront curation flag/cover photo — see
+| StoreProductImageController's and StoreProductController::update()'s
+| docblocks. None of them touch this app's BlobStorageService, stock,
+| price, or any other product field, so they don't reopen the Fase-1
+| read-only boundary the way a real write endpoint would. All of them
+| require the resolved key to have `can_manage_media = true`
+| (EnsureStoreApiKeyCanManageMedia) — an explicit, opt-in scope that no key
+| gets retroactively, see that middleware's docblock.
 |
 | `{identifier}` (not `{slug}`, unlike the read-only routes above) because
 | a product only gets a slug the first time it's curated for the
-| storefront — see Product::findActiveForStoreApi()'s docblock. These three
+| storefront — see Product::findActiveForStoreApi()'s docblock. These
 | routes resolve by slug OR code so a storefront can curate (activate,
 | photograph) a product that has never been public before, which is their
 | main use case, not an edge case.
@@ -69,8 +69,9 @@ Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->
 
     Route::middleware('store.api.manage_media')->group(function () {
         Route::post('products/{identifier}/images', [StoreProductImageController::class, 'store'])->name('products.images.store');
+        Route::put('products/{identifier}/images/order', [StoreProductImageController::class, 'updateOrder'])->name('products.images.update-order');
         Route::delete('products/{identifier}/images/{imageId}', [StoreProductImageController::class, 'destroy'])->name('products.images.destroy');
-        Route::patch('products/{identifier}', [StoreProductController::class, 'updateVisibility'])->name('products.update-visibility');
+        Route::patch('products/{identifier}', [StoreProductController::class, 'update'])->name('products.update');
     });
 
     Route::post('order-reference', [StoreOrderReferenceController::class, 'store'])

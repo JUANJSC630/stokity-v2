@@ -617,3 +617,123 @@ it('never repeats or skips a number across many rapid claims (concurrency-safety
     expect($numbers)->toBe(range(1, 25));
     expect(array_unique($numbers))->toHaveCount(25);
 });
+
+it('updates the cover photo via PATCH image_url without touching show_in_storefront', function () {
+    $world = makeStoreWorld('patch-cover-photo', canManageMedia: true);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, [
+            'image_url' => 'https://example.com/new-cover.webp',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.image_url', 'https://example.com/new-cover.webp')
+        // show_in_storefront wasn't sent, so it must be untouched — the
+        // product started curated (show_in_storefront=true).
+        ->assertJsonPath('data.show_in_storefront', true);
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        $fresh = $world['visibleProduct']->fresh();
+        expect($fresh->image)->toBe('https://example.com/new-cover.webp');
+        expect($fresh->show_in_storefront)->toBeTrue();
+    });
+});
+
+it('rejects a non-https image_url on PATCH', function () {
+    $world = makeStoreWorld('patch-cover-non-https', canManageMedia: true);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, [
+            'image_url' => 'http://example.com/cover.webp',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+});
+
+it('rejects an empty PATCH body (neither show_in_storefront nor image_url)', function () {
+    $world = makeStoreWorld('patch-empty-body', canManageMedia: true);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, [])
+        ->assertUnprocessable();
+});
+
+it('reorders the gallery via PUT .../images/order and returns it in the new order', function () {
+    $world = makeStoreWorld('reorder-gallery', canManageMedia: true);
+
+    [$img1, $img2, $img3] = app(TenantManager::class)->runAs($world['tenant'], fn () => [
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 0]),
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 1]),
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 2]),
+    ]);
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->putJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/order', [
+            'image_ids' => [$img3->id, $img1->id, $img2->id],
+        ])
+        ->assertOk();
+
+    $ids = collect($response->json('data.gallery'))->pluck('id');
+    expect($ids->all())->toBe([$img3->id, $img1->id, $img2->id]);
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($img1, $img2, $img3) {
+        expect($img3->fresh()->sort_order)->toBe(0);
+        expect($img1->fresh()->sort_order)->toBe(1);
+        expect($img2->fresh()->sort_order)->toBe(2);
+    });
+});
+
+it('422s reordering the gallery with an image id that does not belong to the product', function () {
+    $world = makeStoreWorld('reorder-foreign-id', canManageMedia: true);
+
+    [$img1, $img2] = app(TenantManager::class)->runAs($world['tenant'], fn () => [
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 0]),
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 1]),
+    ]);
+
+    $foreignImage = app(TenantManager::class)->runAs($world['tenant'], fn () => ProductImage::factory()->create([
+        'product_id' => $world['hiddenProduct']->id,
+        'sort_order' => 0,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->putJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/order', [
+            'image_ids' => [$img1->id, $foreignImage->id],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_ids.1');
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($img1, $img2) {
+        expect($img1->fresh()->sort_order)->toBe(0);
+        expect($img2->fresh()->sort_order)->toBe(1);
+    });
+});
+
+it('422s reordering the gallery with a missing image id (partial list)', function () {
+    $world = makeStoreWorld('reorder-missing-id', canManageMedia: true);
+
+    [$img1, $img2] = app(TenantManager::class)->runAs($world['tenant'], fn () => [
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 0]),
+        ProductImage::factory()->create(['product_id' => $world['visibleProduct']->id, 'sort_order' => 1]),
+    ]);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->putJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/order', [
+            'image_ids' => [$img1->id],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_ids');
+});
+
+it('rejects reordering the gallery from a key without the can_manage_media scope', function () {
+    $world = makeStoreWorld('reorder-scope');
+
+    $image = app(TenantManager::class)->runAs($world['tenant'], fn () => ProductImage::factory()->create([
+        'product_id' => $world['visibleProduct']->id,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->putJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/order', [
+            'image_ids' => [$image->id],
+        ])
+        ->assertForbidden();
+});
