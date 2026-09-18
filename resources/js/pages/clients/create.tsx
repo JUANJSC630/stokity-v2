@@ -20,9 +20,28 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => void; onCancel?: () => void }) {
+export function CardCreateClient({
+    onSuccess,
+    onCancel,
+    variant = 'default',
+}: {
+    onSuccess?: () => void;
+    onCancel?: () => void;
+    /**
+     * 'wholesale' is used from WholesaleOrderForm's "crear cliente" dialog —
+     * a lighter version of this same shared form: no email (mayoristas de Lu
+     * Accesorios lo piden por ciudad, no por correo), "Dirección" relabeled
+     * "Ciudad" (reuses the same `address` column — no separate city field
+     * exists), and no "Cliente mayorista" toggle (this dialog just attaches
+     * a client to a wholesale order; it doesn't mean the client itself
+     * should get the wholesale pricing flag). The plain Clientes page and
+     * the POS "crear cliente" modal keep the full 'default' form.
+     */
+    variant?: 'default' | 'wholesale';
+}) {
     const { can } = usePermissions();
-    const canManageWholesale = can('clients.wholesale.manage');
+    const isWholesaleVariant = variant === 'wholesale';
+    const canManageWholesale = !isWholesaleVariant && can('clients.wholesale.manage');
 
     const form = useForm<{
         name: string;
@@ -116,19 +135,21 @@ export function CardCreateClient({ onSuccess, onCancel }: { onSuccess?: () => vo
                             />
                             {form.errors.phone && <p className="text-sm text-red-500">{form.errors.phone}</p>}
                         </div>
+                        {!isWholesaleVariant && (
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Correo Electrónico</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
+                                    value={form.data.email}
+                                    onChange={(e) => form.setData('email', e.target.value)}
+                                />
+                                {form.errors.email && <p className="text-sm text-red-500">{form.errors.email}</p>}
+                            </div>
+                        )}
                         <div className="space-y-2">
-                            <Label htmlFor="email">Correo Electrónico</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.email}
-                                onChange={(e) => form.setData('email', e.target.value)}
-                            />
-                            {form.errors.email && <p className="text-sm text-red-500">{form.errors.email}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Dirección</Label>
+                            <Label htmlFor="address">{isWholesaleVariant ? 'Ciudad' : 'Dirección'}</Label>
                             <Input
                                 id="address"
                                 type="text"

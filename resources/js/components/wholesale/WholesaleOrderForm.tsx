@@ -103,6 +103,7 @@ export default function WholesaleOrderForm({ clients, branches, initialValues, s
                         <DialogTitle>Crear Nuevo Cliente</DialogTitle>
                     </DialogHeader>
                     <CardCreateClient
+                        variant="wholesale"
                         onSuccess={() => {
                             setShowCreateClient(false);
                             toast.success('Cliente creado correctamente');
