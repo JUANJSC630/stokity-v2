@@ -54,6 +54,13 @@ class ResolveTenantFromApiKey
 
         app(TenantManager::class)->set($tenant);
 
+        // Stashed on the request (not just used locally here) so downstream
+        // middleware (EnsureStoreApiKeyCanManageMedia) and controllers/
+        // resources (StoreProductController's `visibility=all`,
+        // StoreProductResource's conditional `show_in_storefront`) can read
+        // which key made the request without re-parsing the bearer token.
+        $request->attributes->set('storeApiKey', $apiKey);
+
         // Throttled to avoid a write on every single storefront request —
         // "last used" only needs minute-level precision for the admin UI.
         if (! $apiKey->last_used_at || $apiKey->last_used_at->lt(now()->subMinutes(5))) {

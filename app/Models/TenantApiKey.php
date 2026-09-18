@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property string $key_prefix
  * @property string $hashed_key
+ * @property bool $can_manage_media
  * @property int|null $created_by
  * @property \Illuminate\Support\Carbon|null $last_used_at
  * @property \Illuminate\Support\Carbon|null $revoked_at
@@ -39,9 +40,11 @@ class TenantApiKey extends Model
         'key_prefix',
         'hashed_key',
         'created_by',
+        'can_manage_media',
     ];
 
     protected $casts = [
+        'can_manage_media' => 'boolean',
         'last_used_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
@@ -88,9 +91,14 @@ class TenantApiKey extends Model
      * Create a new key for a tenant. Returns the model AND the one-time
      * plaintext key — the only place in the app this plaintext ever exists.
      *
+     * $canManageMedia defaults to false — only this explicit param sets it
+     * (never a raw request array), so write access is always an opt-in
+     * choice a SuperAdmin makes when issuing THIS key, never something an
+     * older key gains retroactively.
+     *
      * @return array{key: self, plainTextKey: string}
      */
-    public static function generate(Tenant $tenant, string $name, ?User $creator = null): array
+    public static function generate(Tenant $tenant, string $name, ?User $creator = null, bool $canManageMedia = false): array
     {
         // 40 random chars of entropy is plenty for a bearer token looked up
         // by exact hash match (not brute-forceable at network-request
@@ -110,6 +118,7 @@ class TenantApiKey extends Model
             'key_prefix' => substr($plainTextKey, 0, 16),
             'hashed_key' => static::hash($plainTextKey),
             'created_by' => $creator?->id,
+            'can_manage_media' => $canManageMedia,
         ]);
 
         return ['key' => $key, 'plainTextKey' => $plainTextKey];

@@ -74,6 +74,40 @@ it('flashes the plaintext key to the Inertia props on generate', function () {
     expect($key->key_prefix)->toStartWith('sk_store_');
 });
 
+it('defaults a new key to can_manage_media=false when the checkbox is not checked', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Lu Accesorios Scope',
+        'branch_name' => 'Principal',
+        'admin_name' => 'Lu Admin',
+        'admin_email' => 'lu-scope@accesorios.test',
+        'admin_password' => 'password123',
+    ]);
+
+    $this->actingAs(apiKeySuperAdmin())
+        ->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Read-only key'])
+        ->assertRedirect();
+
+    $key = TenantApiKey::where('tenant_id', $tenant->id)->first();
+    expect($key->can_manage_media)->toBeFalse();
+});
+
+it('grants can_manage_media when the checkbox is checked at generation time', function () {
+    $tenant = app(TenantProvisioner::class)->create([
+        'business_name' => 'Lu Accesorios Scoped Grant',
+        'branch_name' => 'Principal',
+        'admin_name' => 'Lu Admin',
+        'admin_email' => 'lu-scoped-grant@accesorios.test',
+        'admin_password' => 'password123',
+    ]);
+
+    $this->actingAs(apiKeySuperAdmin())
+        ->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Media key', 'can_manage_media' => true])
+        ->assertRedirect();
+
+    $key = TenantApiKey::where('tenant_id', $tenant->id)->first();
+    expect($key->can_manage_media)->toBeTrue();
+});
+
 it('revokes a key so it stops authenticating, and lists it as revoked', function () {
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Lu Accesorios 2',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
+use App\Models\TenantApiKey;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -15,6 +16,13 @@ class StoreProductController extends Controller
      * and `show_in_storefront` (public-visibility curation) are required —
      * a product can be active in the POS but deliberately kept off the
      * public site (raw materials, wholesale-only items, long-out-of-stock).
+     *
+     * `?visibility=all` lifts the `show_in_storefront` requirement — but
+     * only for a key with `can_manage_media` — so a storefront's admin tool
+     * can list not-yet-curated products to decide what to publish. A plain
+     * read-only key passing this param gets silently ignored, never a 403:
+     * it's an additive capability, not something worth failing a normal
+     * catalog request over.
      *
      * Products are per-branch rows throughout this app (see
      * ProductController — every panel query scopes by branch_id), not a
@@ -34,11 +42,14 @@ class StoreProductController extends Controller
             'category_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
             'per_page' => 'nullable|integer|min:1|max:50',
+            'visibility' => 'nullable|string|in:all',
         ]);
+
+        $showAll = $request->query('visibility') === 'all' && $this->canManageMedia($request);
 
         $query = Product::query()
             ->where('status', true)
-            ->where('show_in_storefront', true)
+            ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
             ->with(['category', 'images', 'branch'])
             ->orderBy('name');
 
@@ -59,16 +70,55 @@ class StoreProductController extends Controller
         return StoreProductResource::collection($products);
     }
 
-    public function show(string $slug): StoreProductResource
+    public function show(Request $request, string $slug): StoreProductResource
     {
+        $showAll = $request->query('visibility') === 'all' && $this->canManageMedia($request);
+
         $product = Product::query()
             ->where('status', true)
-            ->where('show_in_storefront', true)
+            ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
             ->where('slug', $slug)
             ->with(['category', 'images', 'branch'])
             ->firstOrFail();
 
         return new StoreProductResource($product);
+    }
+
+    /**
+     * Toggles storefront curation for a product that already has a slug
+     * (i.e. has been curated at least once — see Product::booted()'s
+     * saving() hook, which only ever mints a slug the first time
+     * show_in_storefront turns true). Gated by `can_manage_media` at the
+     * route level (routes/api.php), not here.
+     *
+     * Deliberately does NOT filter by show_in_storefront when looking the
+     * product up — unlike show()/index(), which exist to show only what's
+     * already public. This endpoint's entire purpose is to flip that flag,
+     * so requiring it to already be true would make un-hiding a product
+     * impossible.
+     */
+    public function updateVisibility(Request $request, string $slug): StoreProductResource
+    {
+        $validated = $request->validate([
+            'show_in_storefront' => 'required|boolean',
+        ]);
+
+        $product = Product::query()
+            ->where('status', true)
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $product->update(['show_in_storefront' => $validated['show_in_storefront']]);
+
+        return new StoreProductResource($product->load(['category', 'images', 'branch']));
+    }
+
+    private function canManageMedia(Request $request): bool
+    {
+        /** @var TenantApiKey|null $apiKey */
+        $apiKey = $request->attributes->get('storeApiKey');
+
+        return (bool) $apiKey?->can_manage_media;
     }
 
     /**

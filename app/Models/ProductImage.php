@@ -20,6 +20,13 @@ class ProductImage extends Model
 {
     use BelongsToTenant, HasFactory;
 
+    /**
+     * Enforced by StoreProductImageController::store() — a hard ceiling so
+     * an external storefront can't balloon a product's gallery (and this
+     * app's storage bill) through a scripted/looping integration bug.
+     */
+    public const MAX_PER_PRODUCT = 8;
+
     protected $fillable = [
         'product_id',
         'image',

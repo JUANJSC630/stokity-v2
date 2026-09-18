@@ -39,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
             'store.api.key' => \App\Http\Middleware\ResolveTenantFromApiKey::class,
+            'store.api.manage_media' => \App\Http\Middleware\EnsureStoreApiKeyCanManageMedia::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

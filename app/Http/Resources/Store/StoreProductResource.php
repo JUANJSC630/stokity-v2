@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Models\TenantApiKey;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -41,6 +42,24 @@ class StoreProductResource extends JsonResource
             'gallery' => StoreProductImageResource::collection($this->whenLoaded('images')),
             'category' => $this->whenLoaded('category', fn () => new StoreCategoryResource($this->category)),
             'branch' => $this->whenLoaded('branch', fn () => new StoreBranchResource($this->branch)),
+            // Curation state is panel-internal, not something a plain
+            // read-only storefront integration needs — only a key allowed
+            // to manage media/visibility (StoreProductController's
+            // `?visibility=all` and PATCH endpoint) gets to see it, so it
+            // can tell which of the products it just fetched are already
+            // public versus still hidden.
+            'show_in_storefront' => $this->when(
+                $this->requestCanManageMedia($request),
+                fn () => $this->show_in_storefront,
+            ),
         ];
+    }
+
+    private function requestCanManageMedia($request): bool
+    {
+        /** @var TenantApiKey|null $apiKey */
+        $apiKey = $request->attributes->get('storeApiKey');
+
+        return (bool) $apiKey?->can_manage_media;
     }
 }

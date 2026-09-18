@@ -3,6 +3,7 @@
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Tenant;
 use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
@@ -16,13 +17,17 @@ uses(RefreshDatabase::class);
  * curated for the storefront (show_in_storefront=true, so it gets a slug)
  * and one that deliberately isn't, plus a live API key for that tenant.
  *
+ * $canManageMedia defaults to false to match a real freshly-issued key's
+ * default — tests exercising the images/visibility write surface must opt
+ * in explicitly, same as a SuperAdmin checking the box in the panel.
+ *
  * @return array{tenant: Tenant, apiKey: TenantApiKey, plainKey: string, visibleProduct: Product, hiddenProduct: Product}
  */
-function makeStoreWorld(string $slug): array
+function makeStoreWorld(string $slug, bool $canManageMedia = false): array
 {
     $tenant = Tenant::create(['name' => $slug, 'slug' => $slug, 'status' => 'active']);
 
-    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $slug) {
+    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $slug, $canManageMedia) {
         $branch = Branch::factory()->create();
         $category = Category::factory()->create();
 
@@ -44,7 +49,7 @@ function makeStoreWorld(string $slug): array
             'status' => true,
         ]);
 
-        $generated = TenantApiKey::generate($tenant, 'test key');
+        $generated = TenantApiKey::generate($tenant, 'test key', null, $canManageMedia);
 
         return [
             'tenant' => $tenant,
@@ -234,4 +239,215 @@ it('404s on another tenant product slug and on a non-curated product slug', func
         ->getJson('/api/v1/store/products/'.$a['visibleProduct']->slug)
         ->assertOk()
         ->assertJsonPath('data.code', 'PUB-TENANT-X-STORE');
+});
+
+it('rejects an image upload from a key without the can_manage_media scope', function () {
+    $world = makeStoreWorld('image-scope-upload');
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example.com/img.webp',
+        ])
+        ->assertForbidden();
+});
+
+it('rejects an image delete from a key without the can_manage_media scope', function () {
+    $world = makeStoreWorld('image-scope-delete');
+
+    $image = app(TenantManager::class)->runAs($world['tenant'], fn () => ProductImage::factory()->create([
+        'product_id' => $world['visibleProduct']->id,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->deleteJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/'.$image->id)
+        ->assertForbidden();
+});
+
+it('attaches an image the storefront already uploaded to its own blob store', function () {
+    $world = makeStoreWorld('image-attach', canManageMedia: true);
+
+    $response = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example-storefront.public.blob.vercel-storage.com/img-1.webp',
+        ])
+        ->assertCreated();
+
+    $response->assertJsonPath('data.url', 'https://example-storefront.public.blob.vercel-storage.com/img-1.webp')
+        ->assertJsonPath('data.sort_order', 0);
+
+    expect($response->json('data.id'))->not->toBeNull();
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        expect(ProductImage::where('product_id', $world['visibleProduct']->id)->count())->toBe(1);
+    });
+});
+
+it('rejects a non-https image_url', function () {
+    $world = makeStoreWorld('image-non-https', canManageMedia: true);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'http://example.com/img.webp',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+});
+
+it('rejects a malformed image_url', function () {
+    $world = makeStoreWorld('image-malformed', canManageMedia: true);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'not-a-url',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+});
+
+it('404s attaching an image to another tenant\'s product slug', function () {
+    $a = makeStoreWorld('image-tenant-x', canManageMedia: true);
+    $b = makeStoreWorld('image-tenant-y');
+
+    $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])
+        ->postJson('/api/v1/store/products/'.$b['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example.com/img.webp',
+        ])
+        ->assertNotFound();
+});
+
+it('enforces the 8-image-per-product ceiling', function () {
+    $world = makeStoreWorld('image-ceiling', canManageMedia: true);
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        ProductImage::factory()->count(ProductImage::MAX_PER_PRODUCT)->create([
+            'product_id' => $world['visibleProduct']->id,
+        ]);
+    });
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example.com/one-too-many.webp',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+});
+
+it('deletes a product image', function () {
+    $world = makeStoreWorld('image-delete', canManageMedia: true);
+
+    $image = app(TenantManager::class)->runAs($world['tenant'], fn () => ProductImage::factory()->create([
+        'product_id' => $world['visibleProduct']->id,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->deleteJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/'.$image->id)
+        ->assertNoContent();
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($image) {
+        expect(ProductImage::find($image->id))->toBeNull();
+    });
+});
+
+it('404s deleting an image that belongs to another tenant\'s product', function () {
+    $a = makeStoreWorld('image-del-tenant-x', canManageMedia: true);
+    $b = makeStoreWorld('image-del-tenant-y');
+
+    $bImage = app(TenantManager::class)->runAs($b['tenant'], fn () => ProductImage::factory()->create([
+        'product_id' => $b['visibleProduct']->id,
+    ]));
+
+    $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])
+        ->deleteJson('/api/v1/store/products/'.$a['visibleProduct']->slug.'/images/'.$bImage->id)
+        ->assertNotFound();
+});
+
+it('lists hidden products too when visibility=all and the key can manage media', function () {
+    $world = makeStoreWorld('visibility-all-scoped', canManageMedia: true);
+
+    $codes = collect(
+        $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+            ->getJson('/api/v1/store/products?visibility=all')
+            ->assertOk()
+            ->json('data')
+    )->pluck('code');
+
+    expect($codes)->toContain('PUB-VISIBILITY-ALL-SCOPED', 'PRIV-VISIBILITY-ALL-SCOPED');
+});
+
+it('ignores visibility=all from a key without the can_manage_media scope', function () {
+    $world = makeStoreWorld('visibility-all-unscoped');
+
+    $codes = collect(
+        $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+            ->getJson('/api/v1/store/products?visibility=all')
+            ->assertOk()
+            ->json('data')
+    )->pluck('code');
+
+    expect($codes)->toContain('PUB-VISIBILITY-ALL-UNSCOPED')
+        ->not->toContain('PRIV-VISIBILITY-ALL-UNSCOPED');
+});
+
+it('exposes show_in_storefront on GET /products/{slug} only for a can_manage_media key', function () {
+    $scoped = makeStoreWorld('show-in-storefront-scoped', canManageMedia: true);
+    $unscoped = makeStoreWorld('show-in-storefront-unscoped');
+
+    $this->withHeader('Authorization', 'Bearer '.$scoped['plainKey'])
+        ->getJson('/api/v1/store/products/'.$scoped['visibleProduct']->slug)
+        ->assertOk()
+        ->assertJsonPath('data.show_in_storefront', true);
+
+    $this->withHeader('Authorization', 'Bearer '.$unscoped['plainKey'])
+        ->getJson('/api/v1/store/products/'.$unscoped['visibleProduct']->slug)
+        ->assertOk()
+        ->assertJsonMissingPath('data.show_in_storefront');
+});
+
+it('activates a hidden product via PATCH when the key can manage media', function () {
+    $world = makeStoreWorld('patch-activate', canManageMedia: true);
+
+    // A product that was curated once (so it has a slug) and later hidden
+    // again — the realistic shape of "not currently public", since a
+    // product that never had show_in_storefront=true never gets a slug at
+    // all (Product::booted()'s saving() hook).
+    $toggled = app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        $product = Product::factory()->create([
+            'branch_id' => $world['visibleProduct']->branch_id,
+            'category_id' => $world['visibleProduct']->category_id,
+            'code' => 'TOGGLED-PATCH-ACTIVATE',
+            'show_in_storefront' => true,
+            'status' => true,
+        ]);
+        $product->update(['show_in_storefront' => false]);
+
+        return $product;
+    });
+
+    expect($toggled->slug)->not->toBeNull();
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$toggled->slug, ['show_in_storefront' => true])
+        ->assertOk()
+        ->assertJsonPath('data.show_in_storefront', true);
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($toggled) {
+        expect($toggled->fresh()->show_in_storefront)->toBeTrue();
+    });
+});
+
+it('rejects PATCH visibility from a key without the can_manage_media scope', function () {
+    $world = makeStoreWorld('patch-scope');
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, ['show_in_storefront' => false])
+        ->assertForbidden();
+});
+
+it('404s PATCHing visibility on another tenant\'s product', function () {
+    $a = makeStoreWorld('patch-tenant-x', canManageMedia: true);
+    $b = makeStoreWorld('patch-tenant-y');
+
+    $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])
+        ->patchJson('/api/v1/store/products/'.$b['visibleProduct']->slug, ['show_in_storefront' => false])
+        ->assertNotFound();
 });

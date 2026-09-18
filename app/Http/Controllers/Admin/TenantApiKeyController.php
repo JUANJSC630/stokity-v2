@@ -23,9 +23,15 @@ class TenantApiKeyController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'can_manage_media' => 'nullable|boolean',
         ]);
 
-        $result = TenantApiKey::generate($tenant, $validated['name'], $request->user());
+        $result = TenantApiKey::generate(
+            $tenant,
+            $validated['name'],
+            $request->user(),
+            $validated['can_manage_media'] ?? false,
+        );
 
         // Allowed even for a suspended/trial-expired tenant — an admin may
         // legitimately want to pre-provision a key before activating a new

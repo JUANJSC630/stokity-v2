@@ -37,6 +37,7 @@ interface TenantApiKey {
     id: number;
     name: string;
     key_prefix: string;
+    can_manage_media: boolean;
     last_used_at: string | null;
     revoked_at: string | null;
     created_at: string | null;
@@ -77,7 +78,7 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
     const [creatingKey, setCreatingKey] = useState(false);
     const [revealedApiKey, setRevealedApiKey] = useState<string | null>(null);
     const [revokingKey, setRevokingKey] = useState<TenantApiKey | null>(null);
-    const apiKeyForm = useForm({ name: '' });
+    const apiKeyForm = useForm<{ name: string; can_manage_media: boolean }>({ name: '', can_manage_media: false });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
@@ -380,7 +381,14 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                         {apiKeys.map((k) => (
                             <div key={k.id} className="flex items-center justify-between gap-3 px-6 py-3">
                                 <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium">{k.name}</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="truncate text-sm font-medium">{k.name}</p>
+                                        {k.can_manage_media && (
+                                            <span className="flex-shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
+                                                Gestiona fotos/visibilidad
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className="truncate font-mono text-xs text-muted-foreground">{k.key_prefix}…</p>
                                     <p className="truncate text-xs text-muted-foreground">
                                         {k.last_used_at ? `Usada por última vez: ${formatDateTime(k.last_used_at)}` : 'Nunca usada'}
@@ -555,6 +563,22 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                             />
                             {apiKeyForm.errors.name && <p className="text-xs text-red-500">{apiKeyForm.errors.name}</p>}
                         </div>
+                        <label className="mt-4 flex items-start gap-2 text-xs">
+                            <input
+                                type="checkbox"
+                                checked={apiKeyForm.data.can_manage_media}
+                                onChange={(e) => apiKeyForm.setData('can_manage_media', e.target.checked)}
+                                className="mt-0.5"
+                            />
+                            <span>
+                                <span className="font-medium">Gestionar fotos y visibilidad de productos</span>
+                                <br />
+                                <span className="text-muted-foreground">
+                                    Permite subir/borrar fotos de la galería y activar/ocultar productos vía API. Las keys ya generadas no
+                                    obtienen este permiso automáticamente.
+                                </span>
+                            </span>
+                        </label>
                         <DialogFooter className="mt-4">
                             <button
                                 type="button"
