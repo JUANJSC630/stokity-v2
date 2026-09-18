@@ -7,6 +7,7 @@ use App\Http\Resources\Store\StoreProductImageResource;
 use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Rules\ExistingHttpsBlobUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,11 +40,7 @@ class StoreProductImageController extends Controller
                 'string',
                 'max:2048',
                 'url',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (! str_starts_with($value, 'https://')) {
-                        $fail('image_url debe ser una URL https.');
-                    }
-                },
+                new ExistingHttpsBlobUrl,
             ],
         ]);
 

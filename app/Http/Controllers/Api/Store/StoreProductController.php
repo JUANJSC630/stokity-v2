@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\TenantApiKey;
+use App\Rules\ExistingHttpsBlobUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -136,11 +137,7 @@ class StoreProductController extends Controller
                 'string',
                 'max:2048',
                 'url',
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    if (! str_starts_with($value, 'https://')) {
-                        $fail('image_url debe ser una URL https.');
-                    }
-                },
+                new ExistingHttpsBlobUrl,
             ],
         ]);
 
