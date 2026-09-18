@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +29,8 @@ class StoreProductImageController extends Controller
 {
     public function store(Request $request, string $identifier): JsonResponse
     {
+        // Resolved once, outside the transaction, so a bad identifier 404s
+        // immediately rather than opening a transaction for nothing.
         $product = Product::findActiveForStoreApi($identifier);
 
         $validated = $request->validate([
@@ -44,18 +47,27 @@ class StoreProductImageController extends Controller
             ],
         ]);
 
-        $currentCount = $product->images()->count();
+        // lockForUpdate() on the product row serializes two concurrent
+        // uploads for the SAME product — without it, both requests could
+        // read the same images()->count() before either commits its
+        // create(), letting the gallery exceed MAX_PER_PRODUCT or land two
+        // images on the same sort_order.
+        $image = DB::transaction(function () use ($product, $validated) {
+            $lockedProduct = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
 
-        if ($currentCount >= ProductImage::MAX_PER_PRODUCT) {
-            throw ValidationException::withMessages([
-                'image_url' => 'Este producto ya alcanzó el máximo de '.ProductImage::MAX_PER_PRODUCT.' imágenes.',
+            $currentCount = $lockedProduct->images()->count();
+
+            if ($currentCount >= ProductImage::MAX_PER_PRODUCT) {
+                throw ValidationException::withMessages([
+                    'image_url' => 'Este producto ya alcanzó el máximo de '.ProductImage::MAX_PER_PRODUCT.' imágenes.',
+                ]);
+            }
+
+            return $lockedProduct->images()->create([
+                'image' => $validated['image_url'],
+                'sort_order' => $currentCount,
             ]);
-        }
-
-        $image = $product->images()->create([
-            'image' => $validated['image_url'],
-            'sort_order' => $currentCount,
-        ]);
+        });
 
         return (new StoreProductImageResource($image))
             ->response()
@@ -91,9 +103,14 @@ class StoreProductImageController extends Controller
             'image_ids.*' => ['integer', 'distinct', Rule::in($imageIds)],
         ]);
 
-        foreach ($validated['image_ids'] as $position => $imageId) {
-            ProductImage::whereKey($imageId)->update(['sort_order' => $position]);
-        }
+        // Transaction so a failure partway through (deadlock, lock timeout)
+        // rolls back every reassignment instead of leaving the gallery with
+        // some images already moved to their new position and others not.
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['image_ids'] as $position => $imageId) {
+                ProductImage::whereKey($imageId)->update(['sort_order' => $position]);
+            }
+        });
 
         return new StoreProductResource($product->load(['category', 'branch', 'images']));
     }

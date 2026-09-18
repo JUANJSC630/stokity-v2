@@ -51,6 +51,14 @@ class StorefrontOrderCounter extends Model
      * codebase for *codes* (Sale/CreditSale/WholesaleSale), which tolerates
      * occasional collisions by retrying; a counter must never collide at
      * all, so it needs the row lock instead.
+     *
+     * The 3-attempt retry is not about this method's own logic ever being
+     * wrong — it's because two concurrent first-ever claims for the same
+     * new tenant both run insertOrIgnore() at once, and InnoDB's gap-lock
+     * handling for concurrent inserts against the same unique key is a
+     * well-known deadlock trigger. DB::transaction()'s built-in retry
+     * catches exactly that (a real MySQL deadlock, error 1213), rolls the
+     * whole closure back, and reruns it — never a partial counter update.
      */
     public static function claimNext(int $tenantId): int
     {
@@ -75,6 +83,6 @@ class StorefrontOrderCounter extends Model
                 ]);
 
             return (int) $row->next_number;
-        });
+        }, 3);
     }
 }
