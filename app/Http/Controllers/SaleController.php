@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleAuditLog;
 use App\Models\User;
+use App\Rules\TenantExists;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -119,9 +120,9 @@ class SaleController extends Controller
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'client_id' => 'required|exists:clients,id',
-            'seller_id' => 'required|exists:users,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
+            'client_id' => ['required', TenantExists::in('clients')],
+            'seller_id' => ['required', TenantExists::in('users')],
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
             'amount_paid' => $isPending ? 'nullable|numeric|min:0' : 'required|numeric|min:0',
@@ -133,7 +134,7 @@ class SaleController extends Controller
             'discount_value' => 'required|numeric|min:0',
             'notes' => 'nullable|string|max:500',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|distinct|exists:products,id',
+            'products.*.id' => ['required', 'distinct', TenantExists::in('products')],
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -320,7 +321,7 @@ class SaleController extends Controller
             'discount_type' => 'nullable|string|in:none,percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|distinct|exists:products,id',
+            'products.*.id' => ['required', 'distinct', TenantExists::in('products')],
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -450,7 +451,7 @@ class SaleController extends Controller
             'discount_type' => 'nullable|string|in:none,percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
             'products' => 'required|array|min:1',
-            'products.*.id' => 'required|distinct|exists:products,id',
+            'products.*.id' => ['required', 'distinct', TenantExists::in('products')],
             'products.*.quantity' => 'required|integer|min:1',
             'products.*.price' => 'required|numeric|min:0',
             'products.*.subtotal' => 'required|numeric|min:0',
@@ -754,9 +755,9 @@ class SaleController extends Controller
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'client_id' => 'required|exists:clients,id',
-            'seller_id' => 'required|exists:users,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
+            'client_id' => ['required', TenantExists::in('clients')],
+            'seller_id' => ['required', TenantExists::in('users')],
             'tax' => 'required|numeric|min:0',
             'net' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',

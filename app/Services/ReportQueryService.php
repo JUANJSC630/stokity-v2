@@ -175,6 +175,7 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('branches.tenant_id', $tid))
                 ->select([
                     'branches.id',
                     'branches.name',
@@ -201,6 +202,7 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('users', 'sales.seller_id', '=', 'users.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('users.tenant_id', $tid))
                 ->select([
                     'users.id',
                     'users.name',
@@ -495,6 +497,7 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('users', 'sales.seller_id', '=', 'users.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('users.tenant_id', $tid))
                 ->select([
                     'users.id',
                     'users.name',
@@ -569,7 +572,9 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('users', 'sales.seller_id', '=', 'users.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('users.tenant_id', $tid))
                 ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('branches.tenant_id', $tid))
                 ->select([
                     'users.id',
                     'users.name',
@@ -597,6 +602,7 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('branches.tenant_id', $tid))
                 ->select([
                     'branches.id',
                     'branches.name',
@@ -625,6 +631,7 @@ class ReportQueryService
             $this->applyDbFilters($query, $filters);
 
             return $query->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->when($this->tenantId(), fn ($q, $tid) => $q->where('branches.tenant_id', $tid))
                 ->select([
                     'branches.id',
                     'branches.name',
