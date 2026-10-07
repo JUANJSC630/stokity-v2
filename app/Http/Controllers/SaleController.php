@@ -355,7 +355,13 @@ class SaleController extends Controller
         $serverTotal = max(0, $gross - $discountAmount);
 
         try {
-            DB::transaction(function () use ($sale, $validated, $products, $purchasePrices, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal) {
+            $wasCompleted = DB::transaction(function () use ($sale, $validated, $products, $purchasePrices, $openSession, $totalTax, $discountType, $discountValue, $discountAmount, $serverTotal): bool {
+                $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+
+                if ($sale->status !== 'pending') {
+                    return false;
+                }
+
                 $sale->update([
                     'payment_method' => $validated['payment_method'],
                     'amount_paid' => $validated['amount_paid'],
@@ -407,9 +413,15 @@ class SaleController extends Controller
                         );
                     }
                 }
+
+                return true;
             });
         } catch (\RuntimeException $e) {
             return back()->withErrors(['stock' => $e->getMessage()]);
+        }
+
+        if (! $wasCompleted) {
+            return back()->withErrors(['sale' => 'Esta venta ya fue procesada.']);
         }
 
         return redirect()->route('pos.index')
