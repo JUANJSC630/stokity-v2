@@ -98,7 +98,7 @@ routes/                 # 13 archivos de rutas
 
 ## Documentación adicional
 
-Ver [`PLAN.md`](PLAN.md) para el review completo del sistema, bugs conocidos y plan de mejoras.
+Toda la documentación (planes, auditorías, investigación, manuales) vive fuera del repo. Ver [`DOCUMENTACION.md`](DOCUMENTACION.md).
 
 ---
 
