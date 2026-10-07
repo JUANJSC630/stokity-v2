@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseTemplate;
+use App\Rules\TenantExists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -57,8 +58,8 @@ class ExpenseTemplateController extends Controller
         abort_unless($user->can('expense_templates.manage'), 403, 'No tienes permisos para gestionar plantillas de gastos.');
 
         $data = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
+            'expense_category_id' => ['nullable', TenantExists::in('expense_categories')],
             'name' => 'required|string|max:255',
             'reference_amount' => 'required|numeric|min:1',
             'due_day' => 'nullable|integer|min:1|max:31',
@@ -83,7 +84,7 @@ class ExpenseTemplateController extends Controller
         }
 
         $data = $request->validate([
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
+            'expense_category_id' => ['nullable', TenantExists::in('expense_categories')],
             'name' => 'required|string|max:255',
             'reference_amount' => 'required|numeric|min:1',
             'due_day' => 'nullable|integer|min:1|max:31',

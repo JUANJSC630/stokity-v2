@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TenantExists;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BranchRequest extends FormRequest
@@ -30,7 +31,7 @@ class BranchRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['boolean'],
-            'manager_id' => ['nullable', 'exists:users,id'],
+            'manager_id' => ['nullable', TenantExists::in('users')],
         ];
     }
 

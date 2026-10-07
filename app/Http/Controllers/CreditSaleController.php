@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\CreditSale;
 use App\Models\PaymentMethod;
 use App\Models\Product;
+use App\Rules\TenantExists;
 use App\Services\Credit\CreditPaymentService;
 use App\Services\Credit\CreditService;
 use Illuminate\Http\Request;
@@ -129,15 +130,15 @@ class CreditSaleController extends Controller
 
         $validated = $request->validate([
             'type' => 'required|string|in:layaway,installments,due_date,hold',
-            'client_id' => 'required|exists:clients,id',
-            'branch_id' => 'required|exists:branches,id',
+            'client_id' => ['required', TenantExists::in('clients')],
+            'branch_id' => ['required', TenantExists::in('branches')],
             'due_date' => 'nullable|date|after_or_equal:today',
             'installments_count' => 'nullable|integer|min:1|max:60',
             'initial_payment' => 'nullable|numeric|min:0',
             'initial_payment_method' => 'nullable|string',
             'notes' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => ['required', TenantExists::in('products')],
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.subtotal' => 'required|numeric|min:0',

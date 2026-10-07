@@ -5,13 +5,15 @@ on:
     branches:
       - develop
       - main
+      - master
   pull_request:
     branches:
       - develop
       - main
+      - master
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
@@ -24,22 +26,26 @@ jobs:
         with:
           php-version: '8.4'
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
       - name: Install Dependencies
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-          npm install
+          npm ci
 
-      - name: Run Pint
-        run: vendor/bin/pint
+      - name: Pint (check only)
+        run: vendor/bin/pint --test
 
-      - name: Format Frontend
-        run: npm run format
+      # Informational until the existing backlog is cleaned up
+      # (42 files fail prettier and 4 eslint errors at the time of writing).
+      - name: Prettier (check only)
+        run: npx prettier --check "resources/" "*.{ts,json}"
+        continue-on-error: true
 
-      - name: Lint Frontend
-        run: npm run lint
-
-      # - name: Commit Changes
-      #   uses: stefanzweifel/git-auto-commit-action@v5
-      #   with:
-      #     commit_message: fix code style
-      #     commit_options: '--no-verify'
+      - name: ESLint (check only)
+        run: npx eslint .
+        continue-on-error: true

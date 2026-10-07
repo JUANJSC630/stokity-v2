@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\TenantExists;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -71,8 +72,8 @@ class ProductRequest extends FormRequest
                 ? 'sometimes|nullable|integer|min:0'
                 : 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'category_id' => 'required|exists:categories,id',
-            'branch_id' => 'required|exists:branches,id',
+            'category_id' => ['required', TenantExists::in('categories')],
+            'branch_id' => ['required', TenantExists::in('branches')],
             'status' => 'boolean',
         ];
     }
