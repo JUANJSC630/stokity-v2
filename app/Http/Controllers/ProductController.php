@@ -398,27 +398,28 @@ class ProductController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
-        $previousStock = $product->stock;
+        DB::transaction(function () use ($product, $request) {
+            $locked = Product::query()->lockForUpdate()->findOrFail($product->id);
+            $previousStock = $locked->stock;
 
-        $newStock = match ($request->operation) {
-            'set' => $request->stock,
-            'add' => $previousStock + $request->stock,
-            'subtract' => max(0, $previousStock - $request->stock),
-            default => $previousStock,
-        };
+            $newStock = match ($request->operation) {
+                'set' => $request->stock,
+                'add' => $previousStock + $request->stock,
+                'subtract' => max(0, $previousStock - $request->stock),
+                default => $previousStock,
+            };
 
-        $quantity = match ($request->operation) {
-            'add' => $request->stock,
-            'subtract' => $previousStock - $newStock,
-            default => abs($newStock - $previousStock),
-        };
+            $quantity = match ($request->operation) {
+                'add' => $request->stock,
+                'subtract' => $previousStock - $newStock,
+                default => abs($newStock - $previousStock),
+            };
 
-        DB::transaction(function () use ($product, $previousStock, $newStock, $quantity, $request) {
-            $product->stock = $newStock;
-            $product->save();
+            $locked->stock = $newStock;
+            $locked->save();
 
             $this->stockMovements->record(
-                product: $product,
+                product: $locked,
                 type: match ($request->operation) {
                     'add' => 'ingreso',
                     'subtract' => 'out',
@@ -427,7 +428,7 @@ class ProductController extends Controller
                 quantity: $quantity,
                 previousStock: $previousStock,
                 newStock: $newStock,
-                branchId: $product->branch_id,
+                branchId: $locked->branch_id,
                 userId: Auth::id(),
                 notes: $request->notes,
             );
