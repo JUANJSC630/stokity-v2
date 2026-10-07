@@ -7,6 +7,7 @@ use App\Models\BusinessSetting;
 use App\Services\BlobStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,8 +50,14 @@ class BusinessSettingController extends Controller
             }
             $validated['logo'] = $this->blob->upload($request->file('logo'), 'settings');
         } elseif (! empty($validated['logo_url'])) {
-            // URL provided directly (e.g. an existing blob URL) — save as-is,
-            // no new upload needed.
+            // The form sends the saved logo back unchanged on every save; any
+            // other URL must be a blob this tenant uploaded, never a foreign one.
+            if ($validated['logo_url'] !== $settings->logo && ! $this->blob->ownsUrl($validated['logo_url'])) {
+                throw ValidationException::withMessages([
+                    'logo_url' => 'La URL del logo debe ser una imagen subida desde Stokity.',
+                ]);
+            }
+
             $validated['logo'] = $validated['logo_url'];
         } else {
             // Neither file nor URL — keep the existing logo unchanged.

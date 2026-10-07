@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Tenancy\TenantManager;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -11,6 +12,8 @@ use RuntimeException;
 class BlobStorageService
 {
     private const BASE_URL = 'https://blob.vercel-storage.com';
+
+    private const HOST_SUFFIX = '.blob.vercel-storage.com';
 
     private string $token;
 
@@ -28,6 +31,9 @@ class BlobStorageService
     /**
      * Upload an image to Vercel Blob, converting it to WebP first.
      *
+     * The blob is stored under the current tenant's prefix so that delete()
+     * can later prove ownership from the URL alone.
+     *
      * @param  string  $folder  e.g. "products" or "settings"
      * @return string The public URL of the uploaded blob
      */
@@ -35,7 +41,7 @@ class BlobStorageService
     {
         $webp = $this->toWebP($file);
         $filename = uniqid((string) time(), true).'.webp';
-        $pathname = "stokity/{$folder}/{$filename}";
+        $pathname = $this->tenantPrefix()."/{$folder}/{$filename}";
 
         $response = Http::withToken($this->token)
             ->timeout(30)
@@ -60,14 +66,16 @@ class BlobStorageService
     /**
      * Delete one or more blobs by their public URL.
      *
+     * The Blob store and its token are shared by every tenant, so only URLs the
+     * current tenant owns are sent to Vercel; anything else is silently
+     * skipped. Legacy blobs uploaded before tenant prefixes existed are
+     * skipped too (left orphaned rather than risk deleting another tenant's).
+     *
      * @param  string|string[]  $urls
      */
     public function delete(string|array $urls): void
     {
-        $urls = (array) $urls;
-
-        // Only pass valid Blob URLs (skip local legacy paths)
-        $blobUrls = array_values(array_filter($urls, fn ($u) => str_contains($u, 'vercel-storage.com')));
+        $blobUrls = array_values(array_filter((array) $urls, fn (string $url) => $this->ownsUrl($url)));
 
         if (empty($blobUrls)) {
             return;
@@ -80,6 +88,50 @@ class BlobStorageService
         } catch (RequestException $e) {
             Log::warning('Vercel Blob delete failed', ['urls' => $blobUrls, 'error' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Whether the URL is an https blob under the current tenant's prefix.
+     */
+    public function ownsUrl(string $url): bool
+    {
+        $tenantId = app(TenantManager::class)->id();
+
+        if ($tenantId === null) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        $host = strtolower($parts['host'] ?? '');
+        $path = $parts['path'] ?? '';
+
+        $isCleanBlobUrl = ($parts['scheme'] ?? null) === 'https'
+            && ! isset($parts['user'], $parts['port'])
+            && str_ends_with($host, self::HOST_SUFFIX)
+            && ! str_contains($path, '..')
+            && ! str_contains($path, '//')
+            && ! str_contains($path, '%');
+
+        if (! $isCleanBlobUrl) {
+            return false;
+        }
+
+        if (str_starts_with($path, "/stokity/t{$tenantId}/")) {
+            return true;
+        }
+
+        if (preg_match('#^/stokity/t\d+/#', $path)) {
+            Log::warning('Blocked cross-tenant Vercel Blob delete', ['tenant_id' => $tenantId, 'url' => $url]);
+        }
+
+        return false;
+    }
+
+    private function tenantPrefix(): string
+    {
+        $tenantId = app(TenantManager::class)->id();
+
+        return $tenantId === null ? 'stokity/platform' : "stokity/t{$tenantId}";
     }
 
     /**
