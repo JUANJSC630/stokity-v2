@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PaymentMethod;
+use App\Rules\TenantExists;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -122,7 +123,7 @@ class PaymentMethodController extends Controller
 
         $validated = $request->validate([
             'order' => 'required|array',
-            'order.*.id' => 'required|integer|exists:payment_methods,id',
+            'order.*.id' => ['required', 'integer', TenantExists::in('payment_methods')],
             'order.*.sort_order' => 'required|integer|min:0',
         ]);
 

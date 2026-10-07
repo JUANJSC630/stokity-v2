@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Client;
 use App\Models\PaymentMethod;
 use App\Models\WholesaleSale;
+use App\Rules\TenantExists;
 use App\Services\WholesaleSaleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -235,8 +236,8 @@ class WholesaleSaleController extends Controller
         $activePaymentMethods = PaymentMethod::where('is_active', true)->pluck('code')->toArray();
 
         return $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'client_id' => 'required|exists:clients,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
+            'client_id' => ['required', TenantExists::in('clients')],
             'payment_method' => 'required|string|in:'.implode(',', $activePaymentMethods),
             'date' => 'required|date',
             'notes' => 'nullable|string|max:500',

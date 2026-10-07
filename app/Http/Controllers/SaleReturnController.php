@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnProduct;
+use App\Rules\TenantExists;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class SaleReturnController extends Controller
     {
         $request->validate([
             'products' => 'required|array',
-            'products.*.product_id' => 'required|exists:products,id',
+            'products.*.product_id' => ['required', TenantExists::in('products')],
             'products.*.quantity' => 'required|integer|min:1',
             'reason' => 'nullable|string',
         ]);

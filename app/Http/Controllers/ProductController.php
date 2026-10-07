@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Rules\TenantExists;
 use App\Services\BlobStorageService;
 use App\Services\StockMovementService;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -243,7 +243,7 @@ class ProductController extends Controller
             'suppliers' => 'array',
             'suppliers.*.supplier_id' => [
                 'required',
-                Rule::exists('suppliers', 'id')->where('branch_id', $product->branch_id),
+                TenantExists::in('suppliers')->where('branch_id', $product->branch_id),
             ],
             'suppliers.*.purchase_price' => 'nullable|numeric|min:0',
             'suppliers.*.supplier_code' => 'nullable|string|max:100',
@@ -444,7 +444,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'q' => 'nullable|string|max:100',
-            'category_id' => 'nullable|integer|exists:categories,id',
+            'category_id' => ['nullable', 'integer', TenantExists::in('categories')],
             'type' => 'nullable|string|in:producto,servicio',
         ]);
 
