@@ -7,6 +7,7 @@ use App\Models\ArchivedUser;
 use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
+use App\Rules\TenantExists;
 use App\Services\BlobStorageService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -77,11 +78,11 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'role_id' => ['required', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id()))],
+            'role_id' => ['required', TenantExists::in('roles')],
             'branch_id' => [
                 Rule::requiredIf(fn () => Role::where('tenant_id', app(TenantManager::class)->id())->find($request->role_id)?->data_scope !== 'all'),
                 'nullable',
-                'exists:branches,id',
+                TenantExists::in('branches'),
             ],
             'password' => 'required|string|min:8|confirmed',
             'status' => 'sometimes|boolean',
@@ -172,10 +173,10 @@ class UserController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
-            'role_id' => ['required', Rule::exists('roles', 'id')->where(fn ($q) => $q->where('tenant_id', app(TenantManager::class)->id()))],
+            'role_id' => ['required', TenantExists::in('roles')],
             'branch_id' => [
                 'nullable',
-                'exists:branches,id',
+                TenantExists::in('branches'),
             ],
             'password' => 'nullable|string|min:8|confirmed',
             'status' => 'sometimes|boolean',

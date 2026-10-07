@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Supplier;
+use App\Rules\TenantExists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,7 +90,7 @@ class SupplierController extends Controller
         abort_unless($user->can('suppliers.create'), 403, 'No tienes permisos para crear proveedores.');
 
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
             'name' => 'required|string|max:255',
             'nit' => 'nullable|string|max:20',
             'contact_name' => 'nullable|string|max:255',
@@ -180,7 +181,7 @@ class SupplierController extends Controller
         abort_if($user->isRestrictedToOwnBranch() && $supplier->branch_id !== $user->branch_id, 403);
 
         $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
             'name' => 'required|string|max:255',
             'nit' => 'nullable|string|max:20',
             'contact_name' => 'nullable|string|max:255',

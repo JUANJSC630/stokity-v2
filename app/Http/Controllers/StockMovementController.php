@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\Supplier;
+use App\Rules\TenantExists;
 use App\Services\StockMovementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,14 +118,14 @@ class StockMovementController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => ['required', TenantExists::in('products')],
             'type' => 'required|in:ingreso,out,adjustment,write_off,supplier_return',
             'quantity' => [
                 'required', 'integer',
                 $request->input('type') === 'adjustment' ? 'min:0' : 'min:1',
             ],
             'unit_cost' => 'nullable|numeric|min:0',
-            'supplier_id' => 'nullable|exists:suppliers,id',
+            'supplier_id' => ['nullable', TenantExists::in('suppliers')],
             'reference' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
             'movement_date' => 'required|date',

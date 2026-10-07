@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\ExpenseTemplate;
+use App\Rules\TenantExists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -61,9 +62,9 @@ class ExpenseController extends Controller
             // Bulk: confirmación de múltiples plantillas
             $request->validate([
                 'expenses' => 'required|array|min:1',
-                'expenses.*.branch_id' => 'required|exists:branches,id',
-                'expenses.*.expense_category_id' => 'nullable|exists:expense_categories,id',
-                'expenses.*.expense_template_id' => 'nullable|exists:expense_templates,id',
+                'expenses.*.branch_id' => ['required', TenantExists::in('branches')],
+                'expenses.*.expense_category_id' => ['nullable', TenantExists::in('expense_categories')],
+                'expenses.*.expense_template_id' => ['nullable', TenantExists::in('expense_templates')],
                 'expenses.*.amount' => 'required|numeric|min:1',
                 'expenses.*.description' => 'nullable|string|max:255',
                 'expenses.*.expense_date' => 'required|date',
@@ -81,9 +82,9 @@ class ExpenseController extends Controller
 
         // Single expense
         $data = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
-            'expense_template_id' => 'nullable|exists:expense_templates,id',
+            'branch_id' => ['required', TenantExists::in('branches')],
+            'expense_category_id' => ['nullable', TenantExists::in('expense_categories')],
+            'expense_template_id' => ['nullable', TenantExists::in('expense_templates')],
             'amount' => 'required|numeric|min:1',
             'description' => 'nullable|string|max:255',
             'expense_date' => 'required|date',
@@ -108,7 +109,7 @@ class ExpenseController extends Controller
         }
 
         $data = $request->validate([
-            'expense_category_id' => 'nullable|exists:expense_categories,id',
+            'expense_category_id' => ['nullable', TenantExists::in('expense_categories')],
             'amount' => 'required|numeric|min:1',
             'description' => 'nullable|string|max:255',
             'expense_date' => 'required|date',
