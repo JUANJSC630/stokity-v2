@@ -23,3 +23,5 @@ yarn.lock
 /.nova
 /.vscode
 /.zed
+/.cursor
+/.serena

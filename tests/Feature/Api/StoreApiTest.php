@@ -9,8 +9,22 @@ use App\Models\Tenant;
 use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
+
+/**
+ * Every image_url the tests below expect to be ACCEPTED must have a
+ * matching Http::fake() entry returning 200 to a HEAD request —
+ * ExistingHttpsBlobUrl (app/Rules/ExistingHttpsBlobUrl.php) verifies the
+ * URL is actually reachable before saving it. Http::fake() with no
+ * matching URL pattern 404s by default, which is also exactly what a test
+ * asserting rejection wants — no explicit fake needed for those.
+ */
+function fakeReachableImageUrl(string $url): void
+{
+    Http::fake([$url => Http::response('', 200)]);
+}
 
 /**
  * Mirrors tests/Feature/Tenancy/TenantIsolationTest.php's makeTenantWorld(),
@@ -267,6 +281,7 @@ it('rejects an image delete from a key without the can_manage_media scope', func
 
 it('attaches an image the storefront already uploaded to its own blob store', function () {
     $world = makeStoreWorld('image-attach', canManageMedia: true);
+    fakeReachableImageUrl('https://example-storefront.public.blob.vercel-storage.com/img-1.webp');
 
     $response = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
         ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
@@ -306,6 +321,36 @@ it('rejects a malformed image_url', function () {
         ->assertJsonValidationErrors('image_url');
 });
 
+it('rejects an image_url that is well-formed https but the blob doesn\'t actually exist', function () {
+    $world = makeStoreWorld('image-dead-blob', canManageMedia: true);
+    Http::fake(['https://example.com/dead-blob.webp' => Http::response('Blob not found', 404)]);
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example.com/dead-blob.webp',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        expect(ProductImage::where('product_id', $world['visibleProduct']->id)->count())->toBe(0);
+    });
+});
+
+it('rejects an image_url pointing at a private/loopback IP (SSRF guard), without ever making the request', function () {
+    $world = makeStoreWorld('image-ssrf-guard', canManageMedia: true);
+    Http::fake(); // any actual request here would be the guard failing to short-circuit
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://169.254.169.254/latest/meta-data/',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image_url');
+
+    Http::assertNothingSent();
+});
+
 it('404s attaching an image to another tenant\'s product slug', function () {
     $a = makeStoreWorld('image-tenant-x', canManageMedia: true);
     $b = makeStoreWorld('image-tenant-y');
@@ -319,6 +364,7 @@ it('404s attaching an image to another tenant\'s product slug', function () {
 
 it('enforces the 8-image-per-product ceiling', function () {
     $world = makeStoreWorld('image-ceiling', canManageMedia: true);
+    fakeReachableImageUrl('https://example.com/one-too-many.webp');
 
     app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
         ProductImage::factory()->count(ProductImage::MAX_PER_PRODUCT)->create([
@@ -533,6 +579,7 @@ it('activates by code a product that was never curated before (no slug yet), and
 
 it('attaches an image by code to a product that was never activated', function () {
     $world = makeStoreWorld('image-upload-by-code', canManageMedia: true);
+    fakeReachableImageUrl('https://example.com/pre-curation.webp');
 
     $neverCurated = app(TenantManager::class)->runAs($world['tenant'], fn () => Product::factory()->create([
         'branch_id' => $world['visibleProduct']->branch_id,
@@ -620,6 +667,7 @@ it('never repeats or skips a number across many rapid claims (concurrency-safety
 
 it('updates the cover photo via PATCH image_url without touching show_in_storefront', function () {
     $world = makeStoreWorld('patch-cover-photo', canManageMedia: true);
+    fakeReachableImageUrl('https://example.com/new-cover.webp');
 
     $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
         ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, [
