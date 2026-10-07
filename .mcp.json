@@ -1,0 +1,74 @@
+{
+  "mcpServers": {
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "shadcn": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "claude-code",
+        "--project-from-cwd"
+      ]
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin/npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "env": {
+        "PATH": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin"
+      }
+    },
+    "laravel-boost": {
+      "command": "php",
+      "args": [
+        "artisan",
+        "boost:mcp"
+      ]
+    },
+    "obsidian-vault": {
+      "type": "stdio",
+      "command": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin/npx",
+      "args": [
+        "-y",
+        "@bitbonsai/mcpvault@latest",
+        "/Users/juanjsc/Documents/Obsidian Vault"
+      ],
+      "env": {
+        "PATH": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}
