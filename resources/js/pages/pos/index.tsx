@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useModules } from '@/hooks/use-modules';
 import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
+import { useSubmitGuard } from '@/hooks/use-submit-guard';
 import AppLayout from '@/layouts/app-layout';
 import { isSessionOpenTooLong } from '@/lib/cash-session';
 import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
@@ -335,7 +336,7 @@ export default function PosIndex({
     );
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
     const [amountPaid, setAmountPaid] = useState(0);
-    const [submitting, setSubmitting] = useState(false);
+    const { submitting, start: startSubmit, finish: finishSubmit } = useSubmitGuard();
     const [formKey, setFormKey] = useState(0);
 
     // F1: switching clients always recalculates the default discount for
@@ -702,7 +703,7 @@ export default function PosIndex({
             playSound('error');
         };
 
-        setSubmitting(true);
+        if (!startSubmit()) return;
 
         // Completing a previously saved pending sale
         if (activePendingId) {
@@ -723,7 +724,7 @@ export default function PosIndex({
                         subtotal: i.subtotal,
                     })),
                 },
-                { onSuccess, onError, onFinish: () => setSubmitting(false) },
+                { onSuccess, onError, onFinish: finishSubmit },
             );
             return;
         }
@@ -753,7 +754,7 @@ export default function PosIndex({
                     subtotal: i.subtotal,
                 })),
             },
-            { onSuccess, onError, onFinish: () => setSubmitting(false) },
+            { onSuccess, onError, onFinish: finishSubmit },
         );
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -965,7 +966,7 @@ export default function PosIndex({
             setTimeout(() => searchRef.current?.focus(), 0);
         };
 
-        setSubmitting(true);
+        if (!startSubmit()) return;
 
         // Update existing pending sale if one is loaded
         if (activePendingId) {
@@ -991,7 +992,7 @@ export default function PosIndex({
                     onError: (errors) => {
                         Object.values(errors).forEach((msg) => toast.error(String(msg)));
                     },
-                    onFinish: () => setSubmitting(false),
+                    onFinish: finishSubmit,
                 },
             );
             return;
@@ -1031,7 +1032,7 @@ export default function PosIndex({
                 onError: (errors) => {
                     Object.values(errors).forEach((msg) => toast.error(String(msg)));
                 },
-                onFinish: () => setSubmitting(false),
+                onFinish: finishSubmit,
             },
         );
     }
@@ -1043,7 +1044,7 @@ export default function PosIndex({
             return;
         }
 
-        setSubmitting(true);
+        if (!startSubmit()) return;
         router.post(
             '/credits',
             {
@@ -1078,7 +1079,7 @@ export default function PosIndex({
                 onError: (errors) => {
                     Object.values(errors).forEach((e) => toast.error(String(e)));
                 },
-                onFinish: () => setSubmitting(false),
+                onFinish: finishSubmit,
             },
         );
     }
