@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import TenantsIndex from '../index';
 
 vi.mock('@inertiajs/react', () => ({
@@ -13,18 +13,27 @@ vi.mock('@inertiajs/react', () => ({
 
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 
-const summary = { tenants_active: 2, tenants_suspended: 1, tenants_trial: 1, users_total: 12, sales_total: 18452, sales_volume: 184520000 };
+const NOW = new Date('2026-10-08T12:00:00Z');
 
-const tenants = [
+interface TenantFixture {
+    id: number;
+    name: string;
+    slug: string;
+    status: string;
+    created_at: string;
+    trial_ends_at: string | null;
+    last_activity_at: string | null;
+}
+
+const tenants: TenantFixture[] = [
     {
         id: 1,
         name: 'Lu Accesorios',
         slug: 'lu-accesorios',
         status: 'active',
         created_at: '2026-03-02T10:00:00Z',
-        users_count: 4,
-        products_count: 312,
-        sales_count: 1840,
+        trial_ends_at: null,
+        last_activity_at: '2026-10-08T09:00:00Z',
     },
     {
         id: 2,
@@ -32,9 +41,8 @@ const tenants = [
         slug: 'panaderia-la-espiga',
         status: 'trial',
         created_at: '2026-09-20T10:00:00Z',
-        users_count: 2,
-        products_count: 48,
-        sales_count: 63,
+        trial_ends_at: '2026-10-20T12:00:00Z',
+        last_activity_at: null,
     },
     {
         id: 3,
@@ -42,14 +50,13 @@ const tenants = [
         slug: 'ferreteria-el-tornillo',
         status: 'suspended',
         created_at: '2026-01-11T10:00:00Z',
-        users_count: 3,
-        products_count: 1204,
-        sales_count: 5120,
+        trial_ends_at: null,
+        last_activity_at: '2026-08-01T10:00:00Z',
     },
 ];
 
-function renderPage(overrides: Partial<{ tenants: typeof tenants; search: string }> = {}) {
-    return render(<TenantsIndex tenants={overrides.tenants ?? tenants} summary={summary} search={overrides.search ?? ''} userMatches={[]} />);
+function renderPage(overrides: Partial<{ tenants: TenantFixture[]; search: string }> = {}) {
+    return render(<TenantsIndex tenants={overrides.tenants ?? tenants} search={overrides.search ?? ''} userMatches={[]} />);
 }
 
 beforeAll(() => {
@@ -75,9 +82,25 @@ beforeAll(() => {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+});
+
+afterEach(() => {
+    vi.useRealTimers();
 });
 
 describe('Admin tenants index', () => {
+    it('no longer shows platform-wide summary cards or per-tenant product and sales columns', () => {
+        renderPage();
+
+        expect(screen.queryByText('Volumen procesado')).not.toBeInTheDocument();
+        expect(screen.queryByText('En prueba')).not.toBeInTheDocument();
+        expect(screen.queryByRole('columnheader', { name: 'Productos' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('columnheader', { name: 'Ventas' })).not.toBeInTheDocument();
+        expect(screen.getByRole('columnheader', { name: 'Última actividad' })).toBeInTheDocument();
+    });
+
     it('lists every tenant in the phone list and shows counts on the filter chips', () => {
         renderPage();
 
@@ -86,6 +109,40 @@ describe('Admin tenants index', () => {
         expect(within(list).getByText('Ferretería El Tornillo')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Todos 3' })).toHaveAttribute('aria-pressed', 'true');
         expect(screen.getByRole('button', { name: 'Suspendidos 1' })).toBeInTheDocument();
+    });
+
+    it('shows the last activity of each tenant, or that there is none', () => {
+        renderPage();
+
+        const table = screen.getByRole('table');
+        expect(within(table).getByText('Activo hace 3 h')).toBeInTheDocument();
+        expect(within(table).getByText('Sin actividad')).toBeInTheDocument();
+    });
+
+    it('shows how many trial days are left', () => {
+        renderPage();
+
+        expect(within(screen.getByRole('table')).getByText('12 días restantes')).toBeInTheDocument();
+    });
+
+    it('flags an expired trial', () => {
+        renderPage({ tenants: [{ ...tenants[1], trial_ends_at: '2026-10-01T12:00:00Z' }] });
+
+        expect(within(screen.getByRole('table')).getByText('Prueba vencida')).toBeInTheDocument();
+    });
+
+    it('hides the status chips when every tenant has the same status', () => {
+        renderPage({ tenants: [tenants[0]] });
+
+        expect(screen.queryByRole('button', { name: /Todos/ })).not.toBeInTheDocument();
+    });
+
+    it('only offers chips for statuses that exist', () => {
+        renderPage({ tenants: [tenants[0], tenants[2]] });
+
+        expect(screen.getByRole('button', { name: 'Activos 1' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Suspendidos 1' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Prueba/ })).not.toBeInTheDocument();
     });
 
     it('narrows the tenants when a status chip is selected', () => {
@@ -99,14 +156,6 @@ describe('Admin tenants index', () => {
         expect(within(table).getByText('Ferretería El Tornillo')).toBeInTheDocument();
         expect(within(table).queryByText('Lu Accesorios')).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Suspendidos 1' })).toHaveAttribute('aria-pressed', 'true');
-    });
-
-    it('shows an empty message when no tenant has the selected status', () => {
-        renderPage({ tenants: tenants.filter((t) => t.status !== 'suspended') });
-
-        fireEvent.click(screen.getByRole('button', { name: 'Suspendidos 0' }));
-
-        expect(screen.getAllByText('Ningún negocio con este estado.').length).toBeGreaterThan(0);
     });
 
     it('shows the search empty message when the search matches nothing', () => {

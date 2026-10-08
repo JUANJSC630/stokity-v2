@@ -1,13 +1,12 @@
-import { AnimatedCounter } from '@/components/ui/arc/animated-counter';
 import { HoldToConfirm } from '@/components/ui/arc/hold-to-confirm';
 import { SwipeActions, SwipeActionsRow } from '@/components/ui/arc/swipe-actions';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDate } from '@/lib/format';
-import { TENANT_STATUS_DOT_CLASS, TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
+import { formatDate, formatRelativeTime } from '@/lib/format';
+import { getTrialInfo, TENANT_STATUS_DOT_CLASS, TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Archive, Building2, Package, Pause, Play, Plus, Receipt, Search, Trash2, UserRound, Users } from 'lucide-react';
+import { Archive, Building2, Clock, Pause, Play, Plus, Search, Trash2, UserRound, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface TenantRow {
@@ -16,18 +15,8 @@ interface TenantRow {
     slug: string;
     status: string;
     created_at: string | null;
-    users_count: number;
-    products_count: number;
-    sales_count: number;
-}
-
-interface Summary {
-    tenants_active: number;
-    tenants_suspended: number;
-    tenants_trial: number;
-    users_total: number;
-    sales_total: number;
-    sales_volume: number;
+    trial_ends_at: string | null;
+    last_activity_at: string | null;
 }
 
 interface UserMatch {
@@ -69,23 +58,28 @@ function StatusPill({ status }: { status: string }) {
     );
 }
 
-function Metric({ label, children }: { label: string; children: React.ReactNode }) {
+function TrialNote({ trialEndsAt }: { trialEndsAt: string | null }) {
+    const trial = getTrialInfo(trialEndsAt);
+    if (!trial) return null;
+
+    return <span className={`text-xs ${trial.urgent ? 'font-medium text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>{trial.label}</span>;
+}
+
+function LastActivity({ at }: { at: string | null }) {
     return (
-        <div className="min-w-[8.75rem] shrink-0 snap-start rounded-2xl border border-border/60 bg-card px-4 py-3.5 md:min-w-0">
-            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
-            <div className="mt-1 text-xl font-bold tabular-nums">{children}</div>
-        </div>
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Última actividad">
+            <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {at ? <>Activo {formatRelativeTime(at)}</> : 'Sin actividad'}
+        </span>
     );
 }
 
 export default function TenantsIndex({
     tenants,
-    summary,
     search: initialSearch,
     userMatches,
 }: {
     tenants: TenantRow[];
-    summary: Summary;
     search: string;
     userMatches: UserMatch[];
 }) {
@@ -132,15 +126,18 @@ export default function TenantsIndex({
         });
     };
 
-    const visibleTenants = statusFilter === 'all' ? tenants : tenants.filter((t) => t.status === statusFilter);
     const countFor = (value: StatusFilter) => (value === 'all' ? tenants.length : tenants.filter((t) => t.status === value).length);
+    const availableFilters = STATUS_FILTERS.filter(({ value }) => value === 'all' || countFor(value) > 0);
+    const showFilters = availableFilters.length > 2;
+    const activeFilter: StatusFilter = showFilters && countFor(statusFilter) > 0 ? statusFilter : 'all';
+    const visibleTenants = activeFilter === 'all' ? tenants : tenants.filter((t) => t.status === activeFilter);
 
     const emptyMessage = search ? (
         <>
             <Users className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
             Sin negocios que coincidan con «{search}».
         </>
-    ) : statusFilter !== 'all' ? (
+    ) : activeFilter !== 'all' ? (
         'Ningún negocio con este estado.'
     ) : (
         'Aún no hay negocios. Crea el primero.'
@@ -172,32 +169,6 @@ export default function TenantsIndex({
                             Nuevo negocio
                         </Link>
                     </div>
-                </div>
-
-                {/* Platform summary: swipeable strip on phones, grid from md */}
-                <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-6">
-                    <Metric label="Activos">
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                            <AnimatedCounter value={summary.tenants_active} locale="es-CO" animateOnView />
-                        </span>
-                    </Metric>
-                    <Metric label="Suspendidos">
-                        <span className="text-red-600 dark:text-red-400">
-                            <AnimatedCounter value={summary.tenants_suspended} locale="es-CO" animateOnView />
-                        </span>
-                    </Metric>
-                    <Metric label="En prueba">
-                        <span className="text-amber-600 dark:text-amber-400">
-                            <AnimatedCounter value={summary.tenants_trial} locale="es-CO" animateOnView />
-                        </span>
-                    </Metric>
-                    <Metric label="Usuarios">
-                        <AnimatedCounter value={summary.users_total} locale="es-CO" animateOnView />
-                    </Metric>
-                    <Metric label="Ventas">
-                        <AnimatedCounter value={summary.sales_total} locale="es-CO" animateOnView />
-                    </Metric>
-                    <Metric label="Volumen procesado">{formatCurrency(summary.sales_volume)}</Metric>
                 </div>
 
                 {/* Search */}
@@ -250,25 +221,31 @@ export default function TenantsIndex({
                     </div>
                 )}
 
-                {/* Status filter */}
-                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0" role="group" aria-label="Filtrar por estado">
-                    {STATUS_FILTERS.map(({ value, label }) => (
-                        <button
-                            key={value}
-                            type="button"
-                            aria-pressed={statusFilter === value}
-                            onClick={() => setStatusFilter(value)}
-                            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors md:h-9 md:text-xs ${
-                                statusFilter === value
-                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white'
-                                    : 'border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`}
-                        >
-                            {label}
-                            <span className="text-[11px] tabular-nums opacity-80">{countFor(value)}</span>
-                        </button>
-                    ))}
-                </div>
+                {/* Status filter: only when there is more than one status to tell apart */}
+                {showFilters && (
+                    <div
+                        className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0"
+                        role="group"
+                        aria-label="Filtrar por estado"
+                    >
+                        {availableFilters.map(({ value, label }) => (
+                            <button
+                                key={value}
+                                type="button"
+                                aria-pressed={activeFilter === value}
+                                onClick={() => setStatusFilter(value)}
+                                className={`flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors md:h-9 md:text-xs ${
+                                    activeFilter === value
+                                        ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white'
+                                        : 'border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
+                            >
+                                {label}
+                                <span className="text-[11px] tabular-nums opacity-80">{countFor(value)}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Phones: swipeable list */}
                 <div className="md:hidden">
@@ -308,22 +285,9 @@ export default function TenantsIndex({
                                                 </span>
                                                 <StatusPill status={t.status} />
                                             </span>
-                                            <span className="flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
-                                                <span className="flex items-center gap-1" title="Usuarios">
-                                                    <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                                                    <span className="sr-only">Usuarios</span>
-                                                    {t.users_count}
-                                                </span>
-                                                <span className="flex items-center gap-1" title="Productos">
-                                                    <Package className="h-3.5 w-3.5" aria-hidden="true" />
-                                                    <span className="sr-only">Productos</span>
-                                                    {t.products_count}
-                                                </span>
-                                                <span className="flex items-center gap-1" title="Ventas">
-                                                    <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
-                                                    <span className="sr-only">Ventas</span>
-                                                    {t.sales_count}
-                                                </span>
+                                            <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                                <LastActivity at={t.last_activity_at} />
+                                                <TrialNote trialEndsAt={t.trial_ends_at} />
                                             </span>
                                         </span>
                                     </Link>
@@ -345,9 +309,7 @@ export default function TenantsIndex({
                                 <tr className="border-b border-border/60 text-left text-[11px] text-muted-foreground uppercase">
                                     <th className="px-6 py-2.5 font-medium">Negocio</th>
                                     <th className="px-3 py-2.5 font-medium">Estado</th>
-                                    <th className="px-3 py-2.5 font-medium">Usuarios</th>
-                                    <th className="px-3 py-2.5 font-medium">Productos</th>
-                                    <th className="px-3 py-2.5 font-medium">Ventas</th>
+                                    <th className="px-3 py-2.5 font-medium">Última actividad</th>
                                     <th className="px-3 py-2.5 font-medium">Creado</th>
                                     <th className="px-6 py-2.5 text-right font-medium">Acciones</th>
                                 </tr>
@@ -362,11 +324,14 @@ export default function TenantsIndex({
                                             <div className="text-xs text-muted-foreground">{t.slug}</div>
                                         </td>
                                         <td className="px-3 py-3">
-                                            <StatusPill status={t.status} />
+                                            <div className="flex flex-col items-start gap-1">
+                                                <StatusPill status={t.status} />
+                                                <TrialNote trialEndsAt={t.trial_ends_at} />
+                                            </div>
                                         </td>
-                                        <td className="px-3 py-3 tabular-nums">{t.users_count}</td>
-                                        <td className="px-3 py-3 tabular-nums">{t.products_count}</td>
-                                        <td className="px-3 py-3 tabular-nums">{t.sales_count}</td>
+                                        <td className="px-3 py-3">
+                                            <LastActivity at={t.last_activity_at} />
+                                        </td>
                                         <td className="px-3 py-3 text-xs text-muted-foreground">{formatDate(t.created_at)}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex justify-end gap-2">
@@ -398,7 +363,7 @@ export default function TenantsIndex({
                                 ))}
                                 {visibleTenants.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                                        <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
                                             {emptyMessage}
                                         </td>
                                     </tr>

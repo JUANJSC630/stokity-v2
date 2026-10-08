@@ -47,3 +47,25 @@ export function formatCurrency(amount: number | null | undefined): string {
         maximumFractionDigits: 0,
     }).format(amount);
 }
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** "hace 5 min", "hace 2 h", "hace 3 días", "hace 2 meses"; a year or older falls back to the date. */
+export function formatRelativeTime(date: string | Date | null | undefined, now: Date = new Date()): string {
+    if (!date) return '—';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '—';
+
+    const elapsed = now.getTime() - d.getTime();
+    if (elapsed < MINUTE) return 'justo ahora';
+    if (elapsed < HOUR) return `hace ${Math.floor(elapsed / MINUTE)} min`;
+    if (elapsed < DAY) return `hace ${Math.floor(elapsed / HOUR)} h`;
+    const days = Math.floor(elapsed / DAY);
+    if (days < 30) return days === 1 ? 'ayer' : `hace ${days} días`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return months === 1 ? 'hace 1 mes' : `hace ${months} meses`;
+
+    return formatDate(d);
+}
