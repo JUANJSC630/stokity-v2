@@ -18,6 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(\App\Models\BusinessSetting::MEMO_BINDING, fn () => new \ArrayObject);
+
         //
     }
 
