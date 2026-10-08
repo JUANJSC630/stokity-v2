@@ -1,0 +1,260 @@
+import { type NavGroup } from '@/types';
+import {
+    Activity,
+    Banknote,
+    BarChart3,
+    BookOpen,
+    Building,
+    Building2,
+    CreditCard,
+    Gem,
+    HandCoins,
+    History,
+    LayoutGrid,
+    Package,
+    Package2,
+    Receipt,
+    RotateCcw,
+    ScanLine,
+    ShieldCheck,
+    Tags,
+    TrendingUp,
+    Truck,
+    UserRound,
+    Users,
+    Users2,
+    Vault,
+} from 'lucide-react';
+
+// Tenant navigation, grouped by task. Permissions and modules still gate every
+// item; a group (or an accordion) with nothing visible is not rendered.
+export const tenantNavGroups: NavGroup[] = [
+    {
+        items: [
+            {
+                title: 'POS',
+                href: '/pos',
+                icon: ScanLine,
+                permission: 'pos.access',
+                highlight: true,
+            },
+            {
+                title: 'Inicio',
+                href: '/dashboard',
+                icon: LayoutGrid,
+                permission: 'dashboard.view',
+            },
+        ],
+    },
+    {
+        label: 'Vender',
+        items: [
+            {
+                title: 'Ventas',
+                href: '/sales',
+                icon: Banknote,
+                permission: 'sales.view',
+            },
+            {
+                title: 'Clientes',
+                href: '/clients',
+                icon: UserRound,
+                permission: 'clients.view',
+            },
+            {
+                title: 'Créditos',
+                href: '/credits',
+                icon: HandCoins,
+                permission: 'credits.view',
+                module: 'credits',
+            },
+            {
+                title: 'Mayorista',
+                href: '/wholesale',
+                icon: Gem,
+                permission: 'wholesale.view',
+                module: 'wholesale',
+            },
+        ],
+    },
+    {
+        label: 'Inventario',
+        items: [
+            {
+                title: 'Catálogo',
+                href: '/products',
+                icon: Package,
+                // products.view is also held by Vendedor (needed for POS lookups) —
+                // products.create is what actually separates admin/encargado from
+                // vendedor for this catalog-management page, and matches the group
+                // this item's routes fall under (routes/products.php).
+                permission: 'products.create',
+            },
+            {
+                title: 'Categorías',
+                href: '/categories',
+                icon: Tags,
+                permission: 'categories.view',
+            },
+            {
+                title: 'Movimientos de Stock',
+                href: '/stock-movements',
+                icon: Activity,
+                permission: 'stock_movements.view',
+            },
+            {
+                title: 'Proveedores',
+                href: '/suppliers',
+                icon: Truck,
+                permission: 'suppliers.view',
+                module: 'suppliers',
+            },
+        ],
+    },
+    {
+        label: 'Dinero',
+        items: [
+            {
+                title: 'Historial de Caja',
+                shortTitle: 'Caja',
+                href: '/cash-sessions',
+                icon: BookOpen,
+                permission: 'cash_sessions.view',
+            },
+            {
+                title: 'Finanzas',
+                href: '/finances',
+                icon: TrendingUp,
+                permission: 'finances.view',
+                module: 'finances',
+            },
+            {
+                title: 'Gastos',
+                href: '/expenses',
+                icon: Receipt,
+                permission: 'expenses.view',
+                module: 'finances',
+                children: [
+                    {
+                        title: 'Historial de gastos',
+                        href: '/expenses',
+                        icon: Receipt,
+                    },
+                    {
+                        title: 'Gastos fijos',
+                        href: '/expense-templates',
+                        icon: RotateCcw,
+                    },
+                    {
+                        title: 'Categorías',
+                        href: '/expense-categories',
+                        icon: Tags,
+                    },
+                ],
+            },
+            {
+                title: 'Métodos de Pago',
+                href: '/payment-methods',
+                icon: CreditCard,
+                // payment_methods.view is held by every role (POS needs it) —
+                // .create is what actually gates routes/payment-methods.php.
+                permission: 'payment_methods.create',
+            },
+            {
+                title: 'Reportes',
+                href: '',
+                icon: BarChart3,
+                permission: 'reports.view',
+                children: [
+                    {
+                        title: 'Principal',
+                        href: '/reports',
+                        icon: BarChart3,
+                    },
+                    {
+                        title: 'Detalle de Ventas',
+                        href: '/reports/sales-detail',
+                        icon: TrendingUp,
+                    },
+                    {
+                        title: 'Productos',
+                        href: '/reports/products',
+                        icon: Package2,
+                    },
+                    {
+                        title: 'Vendedores',
+                        href: '/reports/sellers',
+                        icon: Users2,
+                    },
+                    {
+                        title: 'Sucursales',
+                        href: '/reports/branches',
+                        icon: Building,
+                        permission: 'reports.branches.view',
+                    },
+                    {
+                        title: 'Balance de Caja',
+                        href: '/reports/cash-balance',
+                        icon: Vault,
+                    },
+                    {
+                        title: 'Devoluciones',
+                        href: '/reports/returns',
+                        icon: RotateCcw,
+                    },
+                ],
+            },
+        ],
+    },
+    {
+        label: 'Negocio',
+        items: [
+            {
+                title: 'Usuarios',
+                href: '/users',
+                icon: Users,
+                permission: 'users.view',
+            },
+            {
+                title: 'Sucursales',
+                href: '/branches',
+                icon: Building2,
+                permission: 'branches.view',
+            },
+        ],
+    },
+];
+
+// Navigation for the platform owner (super_admin) — manages tenants, not a store.
+export const adminNavGroups: NavGroup[] = [
+    {
+        label: 'Plataforma',
+        items: [
+            {
+                title: 'Negocios',
+                href: '/admin/tenants',
+                icon: Building2,
+            },
+            {
+                title: 'Auditoría',
+                href: '/admin/impersonations',
+                icon: History,
+            },
+            {
+                title: 'Super Admins',
+                href: '/admin/super-admins',
+                icon: ShieldCheck,
+            },
+        ],
+    },
+    {
+        label: 'Cuenta',
+        items: [
+            {
+                title: 'Mi cuenta',
+                href: '/admin/account',
+                icon: UserRound,
+            },
+        ],
+    },
+];

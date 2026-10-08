@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import BrandColors from '@/components/brand-colors';
 import ImpersonationBanner from '@/components/impersonation-banner';
+import { MobileBottomNav } from '@/components/mobile-bottom-nav';
 import { type BreadcrumbItem } from '@/types';
 import { type PropsWithChildren, type ReactNode } from 'react';
 
@@ -24,6 +25,7 @@ export default function AppSidebarLayout({
                 <ImpersonationBanner />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} actions={headerActions} />
                 {children}
+                <MobileBottomNav />
             </AppContent>
         </AppShell>
     );
