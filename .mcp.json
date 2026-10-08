@@ -59,13 +59,6 @@
         "PATH": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin"
       }
     },
-    "laravel-boost": {
-      "command": "php",
-      "args": [
-        "artisan",
-        "boost:mcp"
-      ]
-    },
     "obsidian-vault": {
       "type": "stdio",
       "command": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin/npx",
