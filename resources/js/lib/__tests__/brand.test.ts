@@ -10,6 +10,10 @@ describe('getReadableTextColor', () => {
         expect(getReadableTextColor('#0F766E').hex).toBe('#ffffff');
     });
 
+    it('keeps white text on mid-tone brand colors such as a dusty rose', () => {
+        expect(getReadableTextColor('#C4686F').hex).toBe('#ffffff');
+    });
+
     it('uses dark text on a light amber', () => {
         expect(getReadableTextColor('#F59E0B').hex).toBe('#0a0a0a');
     });
