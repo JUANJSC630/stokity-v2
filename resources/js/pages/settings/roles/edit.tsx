@@ -71,9 +71,7 @@ export default function EditRole({ role, permissionsByModule }: { role: RoleData
                                     disabled={form.processing || role.is_system}
                                 />
                                 {role.is_system && (
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        El nombre de un rol del sistema no se puede cambiar.
-                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">El nombre de un rol del sistema no se puede cambiar.</p>
                                 )}
                                 <InputError message={form.errors.name} />
                             </div>

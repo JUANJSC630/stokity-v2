@@ -29,20 +29,12 @@ export default function SuperAdminsIndex({ superAdmins }: { superAdmins: SuperAd
     const [toggleTarget, setToggleTarget] = useState<SuperAdminRow | null>(null);
 
     useEffect(() => {
-        if (props.flash?.success) toast.success(props.flash.success);
-    }, [props.flash?.success]);
-
-    useEffect(() => {
         if (props.errors?.status) toast.error(props.errors.status);
     }, [props.errors?.status]);
 
     const confirmToggle = () => {
         if (!toggleTarget) return;
-        router.post(
-            `/admin/super-admins/${toggleTarget.id}/toggle-status`,
-            {},
-            { preserveScroll: true, onFinish: () => setToggleTarget(null) },
-        );
+        router.post(`/admin/super-admins/${toggleTarget.id}/toggle-status`, {}, { preserveScroll: true, onFinish: () => setToggleTarget(null) });
     };
 
     return (
