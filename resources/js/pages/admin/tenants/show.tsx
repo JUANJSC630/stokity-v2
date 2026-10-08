@@ -1,6 +1,8 @@
 import { initialsOf, LastActivity, latestTimestamp, StatusPill, TrialNote } from '@/components/admin/tenant-badges';
 import { SwipeActions, SwipeActionsRow, type SwipeAction } from '@/components/ui/arc/swipe-actions';
+import { SlideConfirm } from '@/components/ui/bencho/slide-confirm';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime, formatRelativeTime } from '@/lib/format';
 import { getRoleLabel } from '@/lib/roles';
@@ -109,6 +111,7 @@ const MANAGEMENT_LINK =
 
 export default function TenantShow({ tenant, metrics, users, branches, apiKeys }: Props) {
     const { props } = usePage<FlashProps>();
+    const onBrand = useOnBrandColor();
     const [editing, setEditing] = useState(false);
     const [revealedPassword, setRevealedPassword] = useState<{ userName: string; password: string } | null>(null);
     const [pendingResetUserId, setPendingResetUserId] = useState<number | null>(null);
@@ -176,8 +179,8 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
         setConfirmAction({ type, user });
     };
 
-    const submitConfirm = (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitConfirm = (e?: React.FormEvent) => {
+        e?.preventDefault();
         if (!confirmAction) return;
 
         if (confirmAction.type === 'reset') {
@@ -731,17 +734,25 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                 {impersonateForm.errors.password && <p className="text-xs text-red-500">{impersonateForm.errors.password}</p>}
                             </div>
                         )}
-                        <DialogFooter>
+                        <DialogFooter className="sm:items-center">
                             <button type="button" onClick={() => setConfirmAction(null)} className={SECONDARY_BUTTON}>
                                 Cancelar
                             </button>
-                            <button
-                                type="submit"
-                                disabled={confirmAction?.type === 'impersonate' && impersonateForm.processing}
-                                className={PRIMARY_BUTTON}
-                            >
-                                Confirmar
-                            </button>
+                            {confirmAction?.type === 'impersonate' ? (
+                                <SlideConfirm
+                                    className="sm:w-72"
+                                    label="Desliza para entrar"
+                                    confirmedLabel="Entrando…"
+                                    disabled={impersonateForm.data.password === '' || impersonateForm.processing}
+                                    ink="var(--brand-primary)"
+                                    onInk={onBrand.hex}
+                                    onConfirm={() => submitConfirm()}
+                                />
+                            ) : (
+                                <button type="submit" className={PRIMARY_BUTTON}>
+                                    Confirmar
+                                </button>
+                            )}
                         </DialogFooter>
                     </form>
                 </DialogContent>
