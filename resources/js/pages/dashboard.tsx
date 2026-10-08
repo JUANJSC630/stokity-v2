@@ -2,6 +2,7 @@ import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, SalesByBr
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { DollarSign, Package, ShoppingCart, UserRound } from 'lucide-react';
@@ -111,14 +112,6 @@ export default function Dashboard({
     const canViewBranchSales = can('dashboard.branch_sales.view');
 
     const [currentGreeting, setCurrentGreeting] = useState('');
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/format';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { TrendingUp } from 'lucide-react';
@@ -14,14 +15,6 @@ interface SalesChartProps {
 }
 
 export function SalesChart({ sales }: SalesChartProps) {
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
-
     // Calcular el total de ventas del período para porcentajes reales
     const totalAmount = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
 

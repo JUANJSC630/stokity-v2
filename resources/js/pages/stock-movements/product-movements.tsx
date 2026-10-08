@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -195,7 +196,7 @@ export default function ProductMovements({ product, movements }: Props) {
         {
             key: 'unit_cost',
             title: 'Costo Unit.',
-            render: (value) => (value ? `$${(value as number).toLocaleString()}` : '-') as React.ReactNode,
+            render: (value) => (value ? formatCurrency(Number(value)) : '-') as React.ReactNode,
         },
         {
             key: 'reference',
@@ -342,7 +343,7 @@ export default function ProductMovements({ product, movements }: Props) {
                                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                     Costo unitario:{' '}
                                                     <span className="font-medium text-neutral-700 dark:text-neutral-200">
-                                                        ${movement.unit_cost.toLocaleString()}
+                                                        {formatCurrency(Number(movement.unit_cost))}
                                                     </span>
                                                 </div>
                                             )}

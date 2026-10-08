@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Building2, RotateCcw, TrendingUp, Vault } from 'lucide-react';
@@ -56,7 +57,7 @@ function paymentLabel(code: string) {
 }
 
 function formatCOP(value: number) {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+    return formatCurrency(value);
 }
 
 export default function CashBalance({ data, filters, availableBranches, isAdmin }: Props) {

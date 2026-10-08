@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -211,7 +212,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
         {
             key: 'unit_cost',
             title: 'Costo Unit.',
-            render: (value) => (value ? `$${Number(value).toLocaleString('es-CO')}` : '-') as React.ReactNode,
+            render: (value) => (value ? formatCurrency(Number(value)) : '-') as React.ReactNode,
         },
         {
             key: 'reference',
@@ -427,7 +428,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                     Costo unitario:{' '}
                                                     <span className="font-medium text-neutral-700 dark:text-neutral-200">
-                                                        ${Number(movement.unit_cost).toLocaleString('es-CO')}
+                                                        {formatCurrency(Number(movement.unit_cost))}
                                                     </span>
                                                 </div>
                                             )}

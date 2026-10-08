@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { CalendarDays, ChevronLeft, Mail, MapPin, Pencil, Phone, Receipt, ShoppingBag, User } from 'lucide-react';
@@ -55,11 +56,7 @@ interface Props {
 }
 
 function formatCOP(value: number) {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0,
-    }).format(value);
+    return formatCurrency(value);
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {

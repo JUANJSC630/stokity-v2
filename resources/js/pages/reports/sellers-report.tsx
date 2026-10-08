@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Award, Calendar, Download, TrendingUp, Users2 } from 'lucide-react';
@@ -134,18 +135,6 @@ export default function SellersReport({
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
         }
-    };
-
-    const formatCurrency = (amount: number | null | undefined) => {
-        if (amount === null || amount === undefined || isNaN(amount)) {
-            return '$ 0';
-        }
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
     };
 
     const formatNumber = (num: number | null | undefined) => {

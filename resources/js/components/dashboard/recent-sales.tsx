@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/format';
 import { Link } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -34,9 +35,6 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
         className: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
     },
 };
-
-const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
 export function RecentSales({ sales }: RecentSalesProps) {
     return (
