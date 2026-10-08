@@ -82,7 +82,9 @@ export default function AdminTenantRoleEdit({
                                 disabled={form.processing || role.is_system}
                                 className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none disabled:opacity-50"
                             />
-                            {role.is_system && <p className="mt-1 text-xs text-muted-foreground">El nombre de un rol del sistema no se puede cambiar.</p>}
+                            {role.is_system && (
+                                <p className="mt-1 text-xs text-muted-foreground">El nombre de un rol del sistema no se puede cambiar.</p>
+                            )}
                             {form.errors.name && <p className="text-xs text-red-500">{form.errors.name}</p>}
                         </div>
                         <div className="space-y-1.5">

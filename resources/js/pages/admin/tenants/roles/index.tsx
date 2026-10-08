@@ -1,9 +1,9 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ChevronLeft, Pencil, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface RoleRow {
@@ -17,11 +17,6 @@ interface RoleRow {
     users_count: number;
 }
 
-interface FlashProps {
-    flash: { success?: string };
-    [key: string]: unknown;
-}
-
 const DATA_SCOPE_LABELS: Record<RoleRow['data_scope'], string> = {
     all: 'Todas las sucursales',
     branch: 'Su sucursal',
@@ -29,12 +24,7 @@ const DATA_SCOPE_LABELS: Record<RoleRow['data_scope'], string> = {
 };
 
 export default function AdminTenantRolesIndex({ tenant, roles }: { tenant: { id: number; name: string }; roles: RoleRow[] }) {
-    const { props } = usePage<FlashProps>();
     const [roleToDelete, setRoleToDelete] = useState<RoleRow | null>(null);
-
-    useEffect(() => {
-        if (props.flash?.success) toast.success(props.flash.success);
-    }, [props.flash?.success]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Negocios', href: '/admin/tenants' },
