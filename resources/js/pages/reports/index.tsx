@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { Activity, ArrowDownRight, ArrowUpRight, Calendar, DollarSign, Download, Package, ShoppingCart, TrendingUp } from 'lucide-react';
@@ -184,18 +185,6 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
 
         setDateRange({ from: fromDate, to: toDate });
         applyFilters();
-    };
-
-    const formatCurrency = (amount: number | null | undefined) => {
-        if (amount === null || amount === undefined || isNaN(amount)) {
-            return '$ 0';
-        }
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
     };
 
     const formatNumber = (num: number | null | undefined) => {

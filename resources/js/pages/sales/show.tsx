@@ -7,7 +7,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, Di
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { CheckCircle2, ChevronLeft, Clock, CreditCard, Edit, Eye, Printer, RotateCcw, XCircle } from 'lucide-react';
@@ -169,13 +169,6 @@ export default function Show({
               { title: 'Ventas', href: '/sales' },
               { title: sale.code, href: `/sales/${sale.id}` },
           ];
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-        }).format(value);
-    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate, type PaginatedData } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
@@ -40,7 +41,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function cop(value: number): string {
-    return `$ ${Number(value).toLocaleString('es-CO')}`;
+    return formatCurrency(Number(value));
 }
 
 function todayStr(): string {

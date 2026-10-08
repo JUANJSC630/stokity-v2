@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Save, Trash2 } from 'lucide-react';
@@ -52,11 +53,7 @@ interface Props {
 function formatCOP(value: string | number) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '';
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 2,
-    }).format(num);
+    return formatCurrency(num);
 }
 
 // Utilidad para limpiar formato COP a número string

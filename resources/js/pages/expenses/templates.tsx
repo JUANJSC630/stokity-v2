@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem, type ExpenseCategory, type ExpenseTemplate } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { CheckCircle2, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
@@ -29,7 +30,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function cop(value: number): string {
-    return `$ ${Number(value).toLocaleString('es-CO')}`;
+    return formatCurrency(Number(value));
 }
 
 // ─── ConfirmDialog ─────────────────────────────────────────────────────────────

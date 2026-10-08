@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -23,7 +23,7 @@ interface Props {
 function formatCOP(value: number | string | null | undefined) {
     const num = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
     if (isNaN(num as number)) return '$0';
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(num as number);
+    return formatCurrency(num as number);
 }
 
 function formatDuration(from: string, to: string | null) {

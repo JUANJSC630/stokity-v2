@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { downloadFile } from '@/lib/download';
+import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { AlertTriangle, Calendar, Download, RotateCcw, TrendingUp } from 'lucide-react';
@@ -183,15 +184,6 @@ export default function ReturnsReport({
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
         }
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount);
     };
 
     const formatNumber = (num: number) => {

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
 import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -26,11 +27,7 @@ interface Props {
 function formatCOP(value: string | number) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '';
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0,
-    }).format(num);
+    return formatCurrency(num);
 }
 
 // Utilidad para formatear números sin símbolo de moneda

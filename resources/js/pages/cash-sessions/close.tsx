@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import AppLayout from '@/layouts/app-layout';
-import { formatTime } from '@/lib/format';
+import { formatCurrency, formatTime } from '@/lib/format';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { FormEventHandler, useCallback, useState } from 'react';
@@ -29,7 +29,7 @@ interface Props {
 function formatCOP(value: number | string) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '$0';
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(num);
+    return formatCurrency(num);
 }
 
 const breadcrumbs: BreadcrumbItem[] = [

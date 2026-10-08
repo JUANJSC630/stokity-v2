@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/format';
 import { TrendingUp } from 'lucide-react';
 
 interface TopProduct {
@@ -14,9 +15,6 @@ interface TopProduct {
 interface TopProductsProps {
     products: TopProduct[];
 }
-
-const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
 const RANK_COLORS = [
     'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',

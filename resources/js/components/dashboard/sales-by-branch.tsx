@@ -1,3 +1,4 @@
+import { formatCurrency } from '@/lib/format';
 import { Building2 } from 'lucide-react';
 
 interface SalesByBranch {
@@ -12,9 +13,6 @@ interface SalesByBranch {
 interface SalesByBranchProps {
     branches: SalesByBranch[];
 }
-
-const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 
 export function SalesByBranch({ branches }: SalesByBranchProps) {
     return (

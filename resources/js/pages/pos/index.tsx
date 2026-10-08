@@ -12,6 +12,7 @@ import { useSound } from '@/hooks/use-sound';
 import { useSubmitGuard } from '@/hooks/use-submit-guard';
 import AppLayout from '@/layouts/app-layout';
 import { isSessionOpenTooLong } from '@/lib/cash-session';
+import { formatCurrency } from '@/lib/format';
 import { isModalOpen } from '@/lib/modal';
 import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
@@ -87,7 +88,7 @@ interface CartItem {
 function formatCOP(value: number | string) {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (isNaN(num)) return '$0';
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(num);
+    return formatCurrency(num);
 }
 
 function formatNumber(value: number) {

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
 import { type BreadcrumbItem, type StockMovement, type Supplier, type SupplierProduct } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
@@ -108,8 +108,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
         {
             key: 'sale_price',
             title: 'P. compra (proveedor)',
-            render: (_: unknown, row: SupplierProduct) =>
-                row.pivot.purchase_price != null ? `$ ${Number(row.pivot.purchase_price).toLocaleString('es-CO')}` : '-',
+            render: (_: unknown, row: SupplierProduct) => (row.pivot.purchase_price != null ? formatCurrency(Number(row.pivot.purchase_price)) : '-'),
         },
         { key: 'stock', title: 'Stock' },
         {
@@ -155,7 +154,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
         {
             key: 'unit_cost',
             title: 'Costo unit.',
-            render: (_: unknown, row: StockMovement) => (row.unit_cost != null ? `$ ${Number(row.unit_cost).toLocaleString('es-CO')}` : '-'),
+            render: (_: unknown, row: StockMovement) => (row.unit_cost != null ? formatCurrency(Number(row.unit_cost)) : '-'),
         },
         {
             key: 'reference',
@@ -282,7 +281,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                                 <p className="text-xs text-muted-foreground">{p.code}</p>
                                                 {p.pivot.purchase_price != null && (
                                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                                        Compra: ${Number(p.pivot.purchase_price).toLocaleString('es-CO')}
+                                                        Compra: {formatCurrency(Number(p.pivot.purchase_price))}
                                                     </p>
                                                 )}
                                             </div>
@@ -315,9 +314,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                 <CardDescription>
                                     Movimientos de stock vinculados a este proveedor
                                     {totalCost > 0 && (
-                                        <span className="ml-2 font-medium text-foreground">
-                                            — Total compras: $ {totalCost.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
-                                        </span>
+                                        <span className="ml-2 font-medium text-foreground">— Total compras: {formatCurrency(totalCost)}</span>
                                     )}
                                 </CardDescription>
                             </div>
@@ -370,7 +367,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                                             </p>
                                             <p className="mt-0.5 text-xs text-muted-foreground">
                                                 Cant: {m.quantity}
-                                                {m.unit_cost != null && <> · Costo: ${Number(m.unit_cost).toLocaleString('es-CO')}</>}
+                                                {m.unit_cost != null && <> · Costo: {formatCurrency(Number(m.unit_cost))}</>}
                                                 {m.reference && <> · {m.reference}</>}
                                             </p>
                                         </div>
