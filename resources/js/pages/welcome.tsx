@@ -24,7 +24,7 @@ export default function Welcome() {
 
             {/* Full-bleed canvas */}
             <div
-                className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16"
+                className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-16 pb-24"
                 style={{
                     background: `
                         radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(var(--brand-primary-rgb), 0.10) 0%, transparent 60%),
@@ -51,10 +51,10 @@ export default function Welcome() {
                 </div>
 
                 {/* ── Content ──────────────────────────────────────────────── */}
-                <div className="relative z-10 flex max-w-lg flex-col items-center text-center">
+                <div className="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
                     {/* Badge */}
                     <div
-                        className="welcome-animate welcome-d1 mb-10 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
+                        className="welcome-animate welcome-d1 mb-14 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
                         style={{
                             background: 'rgba(var(--brand-primary-rgb), 0.09)',
                             color: 'var(--brand-primary)',
@@ -100,18 +100,8 @@ export default function Welcome() {
                         Tu punto de venta profesional, listo para crecer con tu negocio
                     </p>
 
-                    {/* Feature chips */}
-                    <div className="welcome-animate welcome-d5 mb-10 flex flex-wrap justify-center gap-2">
-                        {FEATURES.map(({ icon: Icon, label }) => (
-                            <div key={label} className="welcome-chip flex items-center gap-1.5">
-                                <Icon style={{ width: 12, height: 12 }} />
-                                {label}
-                            </div>
-                        ))}
-                    </div>
-
                     {/* CTA */}
-                    <div className="welcome-animate welcome-d6">
+                    <div className="welcome-animate welcome-d5">
                         <Link
                             href={auth.user ? route('dashboard') : route('login')}
                             className="btn-auth group"
@@ -121,6 +111,30 @@ export default function Welcome() {
                             <ArrowRight className="btn-arrow h-4 w-4" />
                         </Link>
                     </div>
+
+                    {/* Modules */}
+                    <ul className="welcome-animate welcome-d6 mt-12 grid w-full grid-cols-2 gap-3 sm:grid-cols-4">
+                        {FEATURES.map(({ icon: Icon, label }) => (
+                            <li
+                                key={label}
+                                className="flex flex-col items-center gap-3 rounded-2xl p-5"
+                                style={{
+                                    background: 'rgba(var(--brand-primary-rgb), 0.06)',
+                                    border: '1px solid rgba(var(--brand-primary-rgb), 0.14)',
+                                }}
+                            >
+                                <span
+                                    className="flex h-11 w-11 items-center justify-center rounded-xl"
+                                    style={{ background: 'rgba(var(--brand-primary-rgb), 0.1)', color: 'var(--brand-primary)' }}
+                                >
+                                    <Icon className="h-5 w-5" aria-hidden="true" />
+                                </span>
+                                <span className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                                    {label}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
 
                 {/* Copyright */}
