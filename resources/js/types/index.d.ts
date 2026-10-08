@@ -13,11 +13,6 @@ export interface BreadcrumbItem {
     href: string;
 }
 
-export interface NavGroup {
-    title: string;
-    items: NavItem[];
-}
-
 export interface NavItem {
     title: string;
     href: string;
@@ -28,6 +23,11 @@ export interface NavItem {
     children?: NavItem[]; // Sub-items for nested navigation
     disabled?: boolean; // Show as disabled (no access)
     highlight?: boolean; // Visual emphasis (e.g., POS button)
+}
+
+export interface NavGroup {
+    label?: string; // Section heading — omit for an unlabeled top group
+    items: NavItem[];
 }
 
 export interface BusinessSetting {

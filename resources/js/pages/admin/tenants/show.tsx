@@ -3,6 +3,7 @@ import { SwipeActions, SwipeActionsRow, type SwipeAction } from '@/components/ui
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime, formatRelativeTime } from '@/lib/format';
+import { getRoleLabel } from '@/lib/roles';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Building2, ChevronLeft, ChevronRight, Copy, History, Key, LogIn, Pencil, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
@@ -64,12 +65,6 @@ interface FlashProps {
     flash: { success?: string; temporaryPassword?: string; plainApiKey?: string };
     [key: string]: unknown;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-    administrador: 'Administrador',
-    encargado: 'Encargado',
-    vendedor: 'Vendedor',
-};
 
 const SECONDARY_BUTTON =
     'h-11 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:h-9 sm:px-3 sm:text-xs';
@@ -359,7 +354,7 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                                     <p className="truncate text-[15px] leading-tight font-semibold">{u.name}</p>
                                                     <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                                                     <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                        <span className={PILL}>{ROLE_LABELS[u.role] ?? u.role}</span>
+                                                        <span className={PILL}>{getRoleLabel(u.role)}</span>
                                                         {!u.status && <span className={PILL}>Inactivo</span>}
                                                         <span className="text-xs text-muted-foreground">
                                                             {u.last_login_at
@@ -386,7 +381,7 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                         </div>
                                         <div className="flex flex-shrink-0 items-center gap-2">
                                             {!u.status && <span className={PILL}>Inactivo</span>}
-                                            <span className={PILL}>{ROLE_LABELS[u.role] ?? u.role}</span>
+                                            <span className={PILL}>{getRoleLabel(u.role)}</span>
                                             <button
                                                 onClick={() => openConfirm('reset', u)}
                                                 title={`Restablecer contraseña de ${u.name}`}
