@@ -395,12 +395,12 @@ class CashSessionController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, CashMovement>  $movements
+     * @param  \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>  $movements
      * @return list<array<string, mixed>>
      */
     private function withoutAmounts(\Illuminate\Support\Collection $movements): array
     {
-        return $movements->map(fn (CashMovement $movement) => collect($movement->toArray())->except('amount')->all())->values()->all();
+        return $movements->map(fn ($movement) => collect($movement->toArray())->except('amount')->all())->values()->all();
     }
 
     private function buildSalesDetail(int $sessionId, array $paymentMethodNames = []): array
