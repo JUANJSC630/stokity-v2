@@ -1,10 +1,13 @@
+import { AnimatedCounter } from '@/components/ui/arc/animated-counter';
+import { HoldToConfirm } from '@/components/ui/arc/hold-to-confirm';
+import { SwipeActions, SwipeActionsRow } from '@/components/ui/arc/swipe-actions';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { TENANT_STATUS_DOT_CLASS, TENANT_STATUS_LABELS, TENANT_STATUS_PILL_CLASS } from '@/lib/tenant-status';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Archive, Building2, Pause, Play, Plus, Search, Trash2, UserRound, Users } from 'lucide-react';
+import { Archive, Building2, Package, Pause, Play, Plus, Receipt, Search, Trash2, UserRound, Users } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface TenantRow {
@@ -37,6 +40,44 @@ interface UserMatch {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocios', href: '/admin/tenants' }];
 
+type StatusFilter = 'all' | 'active' | 'trial' | 'suspended';
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+    { value: 'all', label: 'Todos' },
+    { value: 'active', label: 'Activos' },
+    { value: 'trial', label: 'Prueba' },
+    { value: 'suspended', label: 'Suspendidos' },
+];
+
+const initialsOf = (name: string): string =>
+    name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase();
+
+function StatusPill({ status }: { status: string }) {
+    return (
+        <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${TENANT_STATUS_PILL_CLASS[status] ?? 'bg-muted text-muted-foreground'}`}
+        >
+            <span className={`h-1.5 w-1.5 rounded-full ${TENANT_STATUS_DOT_CLASS[status] ?? 'bg-muted-foreground'}`} />
+            {TENANT_STATUS_LABELS[status] ?? status}
+        </span>
+    );
+}
+
+function Metric({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="min-w-[8.75rem] shrink-0 snap-start rounded-2xl border border-border/60 bg-card px-4 py-3.5 md:min-w-0">
+            <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+            <div className="mt-1 text-xl font-bold tabular-nums">{children}</div>
+        </div>
+    );
+}
+
 export default function TenantsIndex({
     tenants,
     summary,
@@ -50,6 +91,7 @@ export default function TenantsIndex({
 }) {
     const [deleteTarget, setDeleteTarget] = useState<TenantRow | null>(null);
     const [search, setSearch] = useState(initialSearch);
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isFirstRender = useRef(true);
 
@@ -90,10 +132,24 @@ export default function TenantsIndex({
         });
     };
 
+    const visibleTenants = statusFilter === 'all' ? tenants : tenants.filter((t) => t.status === statusFilter);
+    const countFor = (value: StatusFilter) => (value === 'all' ? tenants.length : tenants.filter((t) => t.status === value).length);
+
+    const emptyMessage = search ? (
+        <>
+            <Users className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
+            Sin negocios que coincidan con «{search}».
+        </>
+    ) : statusFilter !== 'all' ? (
+        'Ningún negocio con este estado.'
+    ) : (
+        'Aún no hay negocios. Crea el primero.'
+    );
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Negocios" />
-            <div className="flex flex-col gap-5 p-6">
+            <div className="flex flex-col gap-5 p-4 sm:p-6">
                 {/* Header */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -103,47 +159,45 @@ export default function TenantsIndex({
                     <div className="flex gap-2">
                         <Link
                             href="/admin/tenants/archived"
-                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-9 sm:flex-none sm:px-3 sm:text-xs"
                         >
-                            <Archive className="h-3.5 w-3.5" />
+                            <Archive className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                             Archivados
                         </Link>
                         <Link
                             href="/admin/tenants/create"
-                            className="flex items-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-3 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 sm:h-9 sm:flex-none sm:px-3 sm:text-xs"
                         >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                             Nuevo negocio
                         </Link>
                     </div>
                 </div>
 
-                {/* Platform summary */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Activos</p>
-                        <p className="mt-1 text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">{summary.tenants_active}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Suspendidos</p>
-                        <p className="mt-1 text-xl font-bold text-red-600 tabular-nums dark:text-red-400">{summary.tenants_suspended}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">En prueba</p>
-                        <p className="mt-1 text-xl font-bold text-amber-600 tabular-nums dark:text-amber-400">{summary.tenants_trial}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Usuarios</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums">{summary.users_total}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Ventas</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums">{summary.sales_total}</p>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
-                        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Volumen procesado</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums">{formatCurrency(summary.sales_volume)}</p>
-                    </div>
+                {/* Platform summary: swipeable strip on phones, grid from md */}
+                <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-6">
+                    <Metric label="Activos">
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                            <AnimatedCounter value={summary.tenants_active} locale="es-CO" animateOnView />
+                        </span>
+                    </Metric>
+                    <Metric label="Suspendidos">
+                        <span className="text-red-600 dark:text-red-400">
+                            <AnimatedCounter value={summary.tenants_suspended} locale="es-CO" animateOnView />
+                        </span>
+                    </Metric>
+                    <Metric label="En prueba">
+                        <span className="text-amber-600 dark:text-amber-400">
+                            <AnimatedCounter value={summary.tenants_trial} locale="es-CO" animateOnView />
+                        </span>
+                    </Metric>
+                    <Metric label="Usuarios">
+                        <AnimatedCounter value={summary.users_total} locale="es-CO" animateOnView />
+                    </Metric>
+                    <Metric label="Ventas">
+                        <AnimatedCounter value={summary.sales_total} locale="es-CO" animateOnView />
+                    </Metric>
+                    <Metric label="Volumen procesado">{formatCurrency(summary.sales_volume)}</Metric>
                 </div>
 
                 {/* Search */}
@@ -152,15 +206,16 @@ export default function TenantsIndex({
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar negocio por nombre/slug, o usuario por nombre/email..."
-                        className="w-full rounded-lg border border-border/60 bg-card py-2 pr-3 pl-9 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
+                        placeholder="Buscar negocio o usuario…"
+                        aria-label="Buscar negocio por nombre o slug, o usuario por nombre o correo"
+                        className="h-11 w-full rounded-lg border border-border/60 bg-card pr-3 pl-9 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none"
                     />
                 </div>
 
                 {/* Cross-tenant user matches */}
                 {userMatches.length > 0 && (
                     <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-                        <div className="flex items-center gap-2 border-b border-border/60 px-6 py-4">
+                        <div className="flex items-center gap-2 border-b border-border/60 px-4 py-4 sm:px-6">
                             <UserRound className="h-4 w-4 text-muted-foreground" />
                             <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                                 {userMatches.length} usuario(s) encontrado(s)
@@ -171,20 +226,20 @@ export default function TenantsIndex({
                                 <Link
                                     key={u.id}
                                     href={u.tenant ? `/admin/tenants/${u.tenant.id}` : '#'}
-                                    className="flex items-center justify-between gap-3 px-6 py-3 transition-colors hover:bg-muted/30"
+                                    className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:px-6"
                                 >
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium">{u.name}</p>
                                         <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                                     </div>
-                                    <div className="flex flex-shrink-0 items-center gap-2">
+                                    <div className="flex max-w-[45%] flex-shrink-0 flex-col items-end gap-1 sm:max-w-none sm:flex-row sm:items-center sm:gap-2">
                                         {!u.status && (
                                             <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                                                 Inactivo
                                             </span>
                                         )}
                                         {u.tenant && (
-                                            <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                                            <span className="max-w-full truncate rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                                                 {u.tenant.name}
                                             </span>
                                         )}
@@ -195,11 +250,94 @@ export default function TenantsIndex({
                     </div>
                 )}
 
-                {/* Table card */}
-                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                {/* Status filter */}
+                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0" role="group" aria-label="Filtrar por estado">
+                    {STATUS_FILTERS.map(({ value, label }) => (
+                        <button
+                            key={value}
+                            type="button"
+                            aria-pressed={statusFilter === value}
+                            onClick={() => setStatusFilter(value)}
+                            className={`flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors md:h-9 md:text-xs ${
+                                statusFilter === value
+                                    ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white'
+                                    : 'border-border/60 bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
+                        >
+                            {label}
+                            <span className="text-[11px] tabular-nums opacity-80">{countFor(value)}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Phones: swipeable list */}
+                <div className="md:hidden">
+                    {visibleTenants.length === 0 ? (
+                        <div className="rounded-2xl border border-border/60 bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+                            {emptyMessage}
+                        </div>
+                    ) : (
+                        <SwipeActions label={`${visibleTenants.length} negocio(s)`}>
+                            {visibleTenants.map((t) => (
+                                <SwipeActionsRow
+                                    key={t.id}
+                                    label={t.name}
+                                    trailing={[
+                                        {
+                                            label: t.status === 'suspended' ? 'Activar' : 'Suspender',
+                                            icon: t.status === 'suspended' ? <Play /> : <Pause />,
+                                            tone: t.status === 'suspended' ? 'accent' : 'neutral',
+                                            onSelect: () => toggle(t),
+                                            keepRow: true,
+                                        },
+                                        { label: 'Eliminar', icon: <Trash2 />, tone: 'danger', onSelect: () => setDeleteTarget(t), keepRow: true },
+                                    ]}
+                                >
+                                    <Link href={`/admin/tenants/${t.id}`} className="flex min-w-0 items-center gap-3">
+                                        <span
+                                            aria-hidden="true"
+                                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary-soft)] text-sm font-semibold text-[var(--brand-primary)]"
+                                        >
+                                            {initialsOf(t.name)}
+                                        </span>
+                                        <span className="flex min-w-0 flex-1 flex-col gap-1">
+                                            <span className="flex items-start justify-between gap-2">
+                                                <span className="min-w-0">
+                                                    <span className="block truncate text-[15px] leading-tight font-semibold">{t.name}</span>
+                                                    <span className="block truncate text-xs text-muted-foreground">{t.slug}</span>
+                                                </span>
+                                                <StatusPill status={t.status} />
+                                            </span>
+                                            <span className="flex items-center gap-4 text-xs text-muted-foreground tabular-nums">
+                                                <span className="flex items-center gap-1" title="Usuarios">
+                                                    <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    <span className="sr-only">Usuarios</span>
+                                                    {t.users_count}
+                                                </span>
+                                                <span className="flex items-center gap-1" title="Productos">
+                                                    <Package className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    <span className="sr-only">Productos</span>
+                                                    {t.products_count}
+                                                </span>
+                                                <span className="flex items-center gap-1" title="Ventas">
+                                                    <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+                                                    <span className="sr-only">Ventas</span>
+                                                    {t.sales_count}
+                                                </span>
+                                            </span>
+                                        </span>
+                                    </Link>
+                                </SwipeActionsRow>
+                            ))}
+                        </SwipeActions>
+                    )}
+                </div>
+
+                {/* Tablets and up: table */}
+                <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-card md:block">
                     <div className="flex items-center gap-2 border-b border-border/60 px-6 py-4">
                         <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{tenants.length} negocio(s)</p>
+                        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{visibleTenants.length} negocio(s)</p>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -215,7 +353,7 @@ export default function TenantsIndex({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/40">
-                                {tenants.map((t) => (
+                                {visibleTenants.map((t) => (
                                     <tr key={t.id} className="transition-colors hover:bg-muted/30">
                                         <td className="px-6 py-3">
                                             <Link href={`/admin/tenants/${t.id}`} className="font-medium hover:underline">
@@ -224,14 +362,7 @@ export default function TenantsIndex({
                                             <div className="text-xs text-muted-foreground">{t.slug}</div>
                                         </td>
                                         <td className="px-3 py-3">
-                                            <span
-                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${TENANT_STATUS_PILL_CLASS[t.status] ?? 'bg-muted text-muted-foreground'}`}
-                                            >
-                                                <span
-                                                    className={`h-1.5 w-1.5 rounded-full ${TENANT_STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`}
-                                                />
-                                                {TENANT_STATUS_LABELS[t.status] ?? t.status}
-                                            </span>
+                                            <StatusPill status={t.status} />
                                         </td>
                                         <td className="px-3 py-3 tabular-nums">{t.users_count}</td>
                                         <td className="px-3 py-3 tabular-nums">{t.products_count}</td>
@@ -265,17 +396,10 @@ export default function TenantsIndex({
                                         </td>
                                     </tr>
                                 ))}
-                                {tenants.length === 0 && (
+                                {visibleTenants.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                                            {search ? (
-                                                <>
-                                                    <Users className="mx-auto mb-2 h-5 w-5 text-muted-foreground" />
-                                                    Sin negocios que coincidan con «{search}».
-                                                </>
-                                            ) : (
-                                                'Aún no hay negocios. Crea el primero.'
-                                            )}
+                                            {emptyMessage}
                                         </td>
                                     </tr>
                                 )}
@@ -294,19 +418,20 @@ export default function TenantsIndex({
                             reversible).
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
+                    <DialogFooter className="gap-2">
                         <button
                             onClick={() => setDeleteTarget(null)}
-                            className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted"
+                            className="h-11 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:h-9 sm:px-3 sm:text-xs"
                         >
                             Cancelar
                         </button>
-                        <button
-                            onClick={confirmDelete}
-                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700"
-                        >
-                            Eliminar
-                        </button>
+                        <HoldToConfirm
+                            label="Mantén para eliminar"
+                            confirmedLabel="Eliminando…"
+                            tone="danger"
+                            onConfirm={confirmDelete}
+                            className="w-full sm:w-auto"
+                        />
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
