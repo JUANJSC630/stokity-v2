@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserIsActive::class,
             \App\Http\Middleware\IdentifyTenant::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
