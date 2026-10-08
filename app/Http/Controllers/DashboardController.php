@@ -259,6 +259,7 @@ class DashboardController extends Controller
             ->join('branches', 'sales.branch_id', '=', 'branches.id')
             ->whereBetween('sales.date', [$startDate, $endDate])
             ->where('sales.status', 'completed')
+            ->whereNull('sales.deleted_at')
             ->when($this->currentTenantId(), fn ($q, $tid) => $q
                 ->where('sales.tenant_id', $tid)
                 ->where('branches.tenant_id', $tid))
@@ -358,6 +359,7 @@ class DashboardController extends Controller
         $salesQuery = DB::table('sales')
             ->whereBetween('date', [$startDate, $endDate])
             ->where('status', 'completed')
+            ->whereNull('deleted_at')
             ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
             ->select(
                 DB::raw('DATE(date) as date'),

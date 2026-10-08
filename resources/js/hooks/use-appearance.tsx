@@ -65,8 +65,8 @@ export function useAppearance() {
     useEffect(() => {
         const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
         updateAppearance(savedAppearance || 'system');
-
-        return () => mediaQuery()?.removeEventListener('change', handleSystemThemeChange);
+        // The system-theme listener belongs to initializeTheme() and lives for the whole
+        // session; removing it here stopped "system" mode from following the OS.
     }, [updateAppearance]);
 
     return { appearance, updateAppearance } as const;
