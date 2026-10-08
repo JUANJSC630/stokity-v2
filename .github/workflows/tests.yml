@@ -14,7 +14,14 @@ on:
 
 jobs:
   ci:
+    name: ci (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+
+    # Production runs PHP 8.3 (Railway); 8.4 is kept to see upgrade problems early.
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
 
     steps:
       - name: Checkout
@@ -23,7 +30,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: ${{ matrix.php }}
           tools: composer:v2
           coverage: xdebug
 
@@ -89,7 +96,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: 8.3
           tools: composer:v2
           extensions: pdo_mysql
 
