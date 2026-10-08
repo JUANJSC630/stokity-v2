@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -34,6 +36,26 @@ class User extends Authenticatable
     // so the override below can call the real Spatie check before falling back.
     use HasRoles {
         hasPermissionTo as private spatieHasPermissionTo;
+    }
+
+    /**
+     * Deactivating an account must end its access everywhere: the remember-me
+     * token is rotated and, when sessions are stored in the database, its
+     * sessions are deleted (EnsureUserIsActive covers the file/cookie drivers).
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $user) {
+            if ($user->isDirty('status') && ! $user->status) {
+                $user->remember_token = Str::random(60);
+            }
+        });
+
+        static::updated(function (self $user) {
+            if ($user->wasChanged('status') && ! $user->status && config('session.driver') === 'database') {
+                DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+            }
+        });
     }
 
     /** Platform owner role: tenant_id is NULL and access is the /admin panel. */
