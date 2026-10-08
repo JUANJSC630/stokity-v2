@@ -37,15 +37,15 @@ export default function Welcome() {
                 {/* ── Animated atmosphere orbs ─────────────────────────────── */}
                 <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     <div
-                        className="absolute -top-16 -right-16 h-[460px] w-[460px] rounded-full blur-[90px]"
+                        className="auth-orb absolute -top-16 -right-16 h-[460px] w-[460px] rounded-full blur-[90px]"
                         style={{ background: 'rgba(var(--brand-primary-rgb), 0.13)', animation: 'orb-drift-1 14s ease-in-out infinite' }}
                     />
                     <div
-                        className="absolute -bottom-20 -left-20 h-[520px] w-[520px] rounded-full blur-[110px]"
+                        className="auth-orb absolute -bottom-20 -left-20 h-[520px] w-[520px] rounded-full blur-[110px]"
                         style={{ background: 'rgba(var(--brand-secondary-rgb), 0.13)', animation: 'orb-drift-2 18s ease-in-out infinite' }}
                     />
                     <div
-                        className="absolute top-1/3 right-1/4 h-64 w-64 rounded-full blur-[70px]"
+                        className="auth-orb absolute top-1/3 right-1/4 h-64 w-64 rounded-full blur-[70px]"
                         style={{ background: 'rgba(var(--brand-primary-rgb), 0.06)', animation: 'orb-drift-1 10s ease-in-out infinite reverse' }}
                     />
                 </div>
