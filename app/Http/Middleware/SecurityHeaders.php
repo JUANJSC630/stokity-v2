@@ -28,7 +28,7 @@ class SecurityHeaders
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
         ];
 
-        if ($request->isSecure()) {
+        if ($this->arrivedOverHttps($request)) {
             $headers['Strict-Transport-Security'] = 'max-age='.self::HSTS_MAX_AGE;
         }
 
@@ -39,5 +39,16 @@ class SecurityHeaders
         }
 
         return $response;
+    }
+
+    /**
+     * Behind Railway's proxy the app itself speaks plain http, and Laravel resets
+     * its trusted proxies, so isSecure() is false. The forwarded scheme is enough
+     * to decide this header: spoofing it over plain http only yields an HSTS header
+     * that browsers ignore on http responses.
+     */
+    private function arrivedOverHttps(Request $request): bool
+    {
+        return $request->isSecure() || strtolower((string) $request->headers->get('X-Forwarded-Proto')) === 'https';
     }
 }
