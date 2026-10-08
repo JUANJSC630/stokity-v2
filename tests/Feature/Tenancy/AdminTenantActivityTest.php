@@ -85,3 +85,16 @@ it('exposes when the trial ends, and null for tenants without a trial end', func
         ->and(now()->parse($row['trial_ends_at'])->isFuture())->toBeTrue()
         ->and(activityListRow('tienda-plena')['trial_ends_at'])->toBeNull();
 });
+
+it('exposes the trial end in the tenant detail, and null when there is none', function () {
+    $trial = activityListTenant('Tienda Prueba Detalle', 'pdetalle@a.test');
+    $trial->update(['status' => Tenant::STATUS_TRIAL, 'trial_ends_at' => now()->addDays(5)]);
+    $plain = activityListTenant('Tienda Plena Detalle', 'ddetalle@a.test');
+
+    $superAdmin = activityListSuperAdmin();
+    $withTrial = $this->actingAs($superAdmin)->get("/admin/tenants/{$trial->id}")->viewData('page')['props']['tenant'];
+    $withoutTrial = $this->actingAs($superAdmin)->get("/admin/tenants/{$plain->id}")->viewData('page')['props']['tenant'];
+
+    expect(now()->parse($withTrial['trial_ends_at'])->isFuture())->toBeTrue()
+        ->and($withoutTrial['trial_ends_at'])->toBeNull();
+});
