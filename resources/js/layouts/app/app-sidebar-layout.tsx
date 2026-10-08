@@ -21,7 +21,7 @@ export default function AppSidebarLayout({
                 sidebar rail is `position: fixed` to the viewport, so a banner
                 mounted above this whole layout would render underneath it
                 instead of pushing it down. */}
-            <AppContent variant="sidebar" className="overflow-x-hidden">
+            <AppContent variant="sidebar" className="overflow-x-clip">
                 <ImpersonationBanner />
                 <AppSidebarHeader breadcrumbs={breadcrumbs} actions={headerActions} />
                 {children}
