@@ -14,18 +14,26 @@
     },
     "shadcn": {
       "type": "stdio",
-      "command": "npx",
+      "command": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin/npx",
       "args": [
+        "-y",
         "shadcn@latest",
         "mcp"
-      ]
+      ],
+      "env": {
+        "PATH": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin"
+      }
     },
     "playwright": {
       "type": "stdio",
-      "command": "npx",
+      "command": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin/npx",
       "args": [
+        "-y",
         "@playwright/mcp@latest"
-      ]
+      ],
+      "env": {
+        "PATH": "/Users/juanjsc/.nvm/versions/node/v22.21.1/bin:/usr/bin:/bin"
+      }
     },
     "serena": {
       "type": "stdio",
