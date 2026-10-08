@@ -1,4 +1,4 @@
-import { usePolling } from '@/hooks/use-polling';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -354,6 +355,7 @@ export default function FinancesIndex({
     receivables,
     activeCreditsCount,
 }: Props) {
+    const { confirm, dialog } = useConfirm();
     usePolling(['revenue', 'netRevenue', 'grossProfit', 'netProfit', 'totalExpenses', 'expensesByCategory', 'receivables'], 120_000);
 
     const [localPeriod, setLocalPeriod] = useState<PeriodOption>(period);
@@ -390,8 +392,13 @@ export default function FinancesIndex({
         applyFilters(localPeriod, val);
     };
 
-    const handleDeleteExpense = (id: number) => {
-        if (!window.confirm('¿Eliminar este gasto? Esta acción no se puede deshacer.')) return;
+    const handleDeleteExpense = async (id: number) => {
+        const accepted = await confirm({
+            title: '¿Eliminar este gasto?',
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+        });
+        if (!accepted) return;
         router.delete(`/expenses/${id}`, { preserveScroll: true });
     };
 
@@ -799,6 +806,7 @@ export default function FinancesIndex({
                     </Card>
                 </div>
             </div>
+            {dialog}
         </AppLayout>
     );
 }

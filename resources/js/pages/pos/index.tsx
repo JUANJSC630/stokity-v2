@@ -1,3 +1,4 @@
+import { useConfirm } from '@/components/confirm-dialog';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { Badge } from '@/components/ui/badge';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -5,15 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useModules } from '@/hooks/use-modules';
+import { usePolling } from '@/hooks/use-polling';
 import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
 import { useSubmitGuard } from '@/hooks/use-submit-guard';
 import AppLayout from '@/layouts/app-layout';
 import { isSessionOpenTooLong } from '@/lib/cash-session';
+import { isModalOpen } from '@/lib/modal';
 import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
-import { usePolling } from '@/hooks/use-polling';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
@@ -309,6 +311,7 @@ export default function PosIndex({
     currentSession: initialSession,
     requireCashSession,
 }: Props) {
+    const { confirm, dialog } = useConfirm();
     const { auth } = usePage<SharedData>().props;
     const { moduleEnabled } = useModules();
 
@@ -776,6 +779,8 @@ export default function PosIndex({
     // --- Keyboard shortcuts ---
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
+            if (isModalOpen()) return;
+
             const tag = (e.target as HTMLElement).tagName;
             const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 
@@ -923,7 +928,7 @@ export default function PosIndex({
                 setLoadingPending(false);
             }
         })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function cancelActivePending() {
@@ -1305,9 +1310,7 @@ export default function PosIndex({
                     <div className="flex items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 shrink-0" />
-                            <span className="text-xs font-medium sm:text-sm">
-                                La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno?
-                            </span>
+                            <span className="text-xs font-medium sm:text-sm">La caja lleva más de 10 horas abierta. ¿Olvidaste cerrar el turno?</span>
                         </div>
                         <button
                             type="button"
@@ -1552,8 +1555,9 @@ export default function PosIndex({
                             {cart.length > 0 && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (confirm('¿Vaciar el carrito?')) {
+                                    onClick={async () => {
+                                        const accepted = await confirm({ title: '¿Vaciar el carrito?', confirmLabel: 'Vaciar' });
+                                        if (accepted) {
                                             setCart([]);
                                             setAmountPaid(0);
                                             setAmountPaidDisplay('');
@@ -1616,7 +1620,8 @@ export default function PosIndex({
                                                         onChange={(e) => {
                                                             const val = parseInt(e.target.value, 10);
                                                             if (!isNaN(val) && val >= 1) {
-                                                                const newVal = item.product.type === 'servicio' ? val : Math.min(val, item.product.stock);
+                                                                const newVal =
+                                                                    item.product.type === 'servicio' ? val : Math.min(val, item.product.stock);
                                                                 updateQty(item.product.id, newVal);
                                                             }
                                                         }}
@@ -1626,7 +1631,14 @@ export default function PosIndex({
                                                     />
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateQty(item.product.id, item.product.type === 'servicio' ? item.quantity + 1 : Math.min(item.quantity + 1, item.product.stock))}
+                                                        onClick={() =>
+                                                            updateQty(
+                                                                item.product.id,
+                                                                item.product.type === 'servicio'
+                                                                    ? item.quantity + 1
+                                                                    : Math.min(item.quantity + 1, item.product.stock),
+                                                            )
+                                                        }
                                                         disabled={item.product.type !== 'servicio' && item.quantity >= item.product.stock}
                                                         aria-label={`Aumentar cantidad de ${item.product.name}`}
                                                         className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
@@ -1937,8 +1949,9 @@ export default function PosIndex({
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    if (confirm('¿Eliminar esta cotización?')) deletePendingSale(sale.id);
+                                                onClick={async () => {
+                                                    const accepted = await confirm({ title: '¿Eliminar esta cotización?', confirmLabel: 'Eliminar' });
+                                                    if (accepted) deletePendingSale(sale.id);
                                                 }}
                                                 className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
                                             >
@@ -2091,6 +2104,7 @@ export default function PosIndex({
                     </div>
                 </div>
             )}
+            {dialog}
         </AppLayout>
     );
 }
