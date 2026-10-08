@@ -1,3 +1,4 @@
+import FlashToaster from '@/components/flash-toaster';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
@@ -13,5 +14,6 @@ export default ({ children, breadcrumbs, headerActions, ...props }: AppLayoutPro
     <AppLayoutTemplate breadcrumbs={breadcrumbs} headerActions={headerActions} {...props}>
         {children}
         <Toaster position="top-right" />
+        <FlashToaster />
     </AppLayoutTemplate>
 );

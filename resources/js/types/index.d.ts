@@ -95,6 +95,9 @@ export interface SharedData {
     sidebarOpen: boolean;
     flash: {
         success?: string | null;
+        error?: string | null;
+        warning?: string | null;
+        info?: string | null;
         last_sale_id?: number | null;
         last_sale_code?: string | null;
         temporaryPassword?: string | null;
