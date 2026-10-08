@@ -46,7 +46,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                         color: onPrimary.hex,
                         background: `
                         radial-gradient(ellipse 620px 520px at 92% 6%, rgba(var(--brand-secondary-rgb), 0.45) 0%, transparent 65%),
-                        radial-gradient(ellipse 520px 520px at 4% 100%, rgba(0, 0, 0, 0.2) 0%, transparent 60%),
+                        linear-gradient(to top, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.1) 45%, transparent 70%),
                         var(--brand-primary)
                     `,
                     }}
