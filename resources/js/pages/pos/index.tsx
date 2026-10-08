@@ -928,7 +928,6 @@ export default function PosIndex({
                 setLoadingPending(false);
             }
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     function cancelActivePending() {
