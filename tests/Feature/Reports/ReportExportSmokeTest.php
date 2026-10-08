@@ -73,6 +73,22 @@ it('exports every report with the right content type', function (string $route, 
     expect($response->headers->get('Content-Type'))->toContain($contentType);
 })->with('report exports');
 
+it('renders the PDF exports as real, non-trivial PDF documents', function (string $route) {
+    $response = $this->actingAs($this->admin)->get(route($route));
+
+    $pdf = $response->getContent();
+    expect(str_starts_with($pdf, '%PDF-'))->toBeTrue();
+    expect(strlen($pdf))->toBeGreaterThan(2000);
+    expect(str_contains($pdf, '%%EOF'))->toBeTrue();
+})->with([
+    'reports.export.pdf',
+    'reports.sales-detail.export.pdf',
+    'reports.products.export.pdf',
+    'reports.sellers.export.pdf',
+    'reports.branches.export.pdf',
+    'reports.returns.export.pdf',
+]);
+
 it('exports a CSV that has a header row and the sale', function () {
     $response = $this->actingAs($this->admin)->get(route('reports.sales-detail.export.excel'));
 
