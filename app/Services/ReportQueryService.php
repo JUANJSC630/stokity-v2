@@ -132,6 +132,7 @@ class ReportQueryService
                 ->join('sale_products', 'sales.id', '=', 'sale_products.sale_id')
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->where('sales.status', 'completed')
+                ->whereNull('sales.deleted_at')
                 ->when($this->tenantId(), fn ($q, $tid) => $q
                     ->where('sales.tenant_id', $tid)
                     ->where('sale_products.tenant_id', $tid)
@@ -387,6 +388,7 @@ class ReportQueryService
                 ->join('products', 'sale_products.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
                 ->where('sales.status', 'completed')
+                ->whereNull('sales.deleted_at')
                 ->when($this->tenantId(), fn ($q, $tid) => $q
                     ->where('sales.tenant_id', $tid)
                     ->where('sale_products.tenant_id', $tid)
