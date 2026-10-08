@@ -1,10 +1,6 @@
+import { DEFAULT_BRAND_PRIMARY as DEFAULT_PRIMARY, DEFAULT_BRAND_SECONDARY as DEFAULT_SECONDARY } from '@/lib/brand';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-
-// Neutral graphite/silver default — matches resources/css/app.css's :root
-// fallback, so a fresh tenant starts unbranded until they pick their own colors.
-const DEFAULT_PRIMARY = '#3F3F46';
-const DEFAULT_SECONDARY = '#A1A1AA';
 
 function hexToRgb(hex: string): string {
     const h = hex.replace('#', '');

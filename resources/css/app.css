@@ -496,3 +496,27 @@ input:-webkit-autofill:active {
     white-space: nowrap;
     letter-spacing: 0.01em;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .welcome-animate {
+        opacity: 1;
+        animation: none;
+    }
+
+    .logo-ring {
+        display: none;
+    }
+
+    .auth-orb {
+        animation: none !important;
+    }
+
+    .btn-auth,
+    .btn-auth .btn-arrow {
+        transition: none;
+    }
+
+    .btn-auth:hover:not(:disabled) {
+        transform: none;
+    }
+}
