@@ -286,7 +286,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                             value={form.data.code}
                                             onChange={(e) => form.setData('code', e.target.value)}
                                         />
-                                        <Button type="button" variant="secondary" size="icon" title="Generar código" onClick={handleGenerateCode}>
+                                        <Button aria-label="Generar código" type="button" variant="secondary" size="icon" title="Generar código" onClick={handleGenerateCode}>
                                             <Sparkles className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -613,7 +613,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                         Predeterminado
                                                     </Label>
                                                 </div>
-                                                <Button
+                                                <Button aria-label="Eliminar"
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"

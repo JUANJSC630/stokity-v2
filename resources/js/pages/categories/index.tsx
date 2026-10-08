@@ -148,12 +148,12 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
             render: (_: unknown, row: Category) => (
                 <div className="flex items-center justify-end gap-2">
                     {can('categories.update') && (
-                        <Button variant="ghost" size="icon" onClick={() => openEditModal(row)}>
+                        <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => openEditModal(row)}>
                             <Edit2 className="size-4" />
                         </Button>
                     )}
                     {can('categories.delete') && (
-                        <Button
+                        <Button aria-label="Eliminar"
                             variant="ghost"
                             size="icon"
                             className="text-red-500"
@@ -254,7 +254,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                             <div className="text-base font-semibold">{category.name}</div>
                                             <div className="flex items-center gap-1">
                                                 {can('categories.update') && (
-                                                    <Button
+                                                    <Button aria-label="Editar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 p-0"
@@ -264,7 +264,7 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                                     </Button>
                                                 )}
                                                 {can('categories.delete') && (
-                                                    <Button
+                                                    <Button aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 p-0 text-red-500"

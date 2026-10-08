@@ -43,7 +43,7 @@ export default function BranchDetail({ branch }: Props) {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
                         <Link href="/branches">
-                            <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Button aria-label="Volver" variant="outline" size="icon" className="h-8 w-8">
                                 <ArrowLeft className="size-4" />
                             </Button>
                         </Link>

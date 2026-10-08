@@ -368,7 +368,7 @@ export default function TrashedProducts({
                                             </Button>
                                         )}
                                         {can('products.force_delete') && (
-                                            <Button
+                                            <Button aria-label="Eliminar permanentemente"
                                                 onClick={() => {
                                                     setProductToForceDelete(product);
                                                     setForceDeleteModalOpen(true);

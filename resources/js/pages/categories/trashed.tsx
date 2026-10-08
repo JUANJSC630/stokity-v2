@@ -123,7 +123,7 @@ export default function TrashedCategories({ categories, filters = { search: '' }
             render: (_: unknown, category: Category) => (
                 <div className="flex items-center gap-2">
                     {can('categories.restore') && (
-                        <Button
+                        <Button aria-label="Restaurar"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 p-0"
@@ -136,7 +136,7 @@ export default function TrashedCategories({ categories, filters = { search: '' }
                         </Button>
                     )}
                     {can('categories.delete') && (
-                        <Button
+                        <Button aria-label="Eliminar permanentemente"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 p-0 text-red-500"

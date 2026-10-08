@@ -251,7 +251,7 @@ export default function Branches({ branches, filters = { search: '', status: 'al
                                         <div className="mb-2 flex items-center justify-between">
                                             <div className="text-base font-semibold">{branch.name}</div>
                                             <Link href={`/branches/${branch.id}`}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                <Button aria-label="Ver detalle" variant="ghost" size="icon" className="h-8 w-8 p-0">
                                                     <Eye className="size-4" />
                                                 </Button>
                                             </Link>

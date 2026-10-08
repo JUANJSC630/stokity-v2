@@ -162,7 +162,7 @@ export default function WholesaleOrderForm({ clients, branches, initialValues, s
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <Button type="button" size="icon" variant="outline" onClick={() => setShowCreateClient(true)} title="Crear cliente">
+                                    <Button aria-label="Crear cliente" type="button" size="icon" variant="outline" onClick={() => setShowCreateClient(true)} title="Crear cliente">
                                         <Plus className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -255,7 +255,7 @@ export default function WholesaleOrderForm({ clients, branches, initialValues, s
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-end sm:pt-1">
-                                            <Button
+                                            <Button aria-label="Quitar este artículo"
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"

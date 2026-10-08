@@ -93,13 +93,13 @@ export default function RolesIndex({ roles }: { roles: RoleRow[] }) {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
-                                                <Button variant="ghost" size="icon" asChild>
+                                                <Button aria-label="Editar" variant="ghost" size="icon" asChild>
                                                     <Link href={route('settings.roles.edit', role.id)}>
                                                         <Edit2 className="size-4" />
                                                     </Link>
                                                 </Button>
                                                 {!role.is_system && (
-                                                    <Button
+                                                    <Button aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="text-red-500"

@@ -52,7 +52,7 @@ export default function CreateBranch({ managers = [] }: CreateBranchProps) {
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex items-center gap-4">
                     <Link href="/branches">
-                        <Button variant="ghost" size="icon">
+                        <Button aria-label="Volver" variant="ghost" size="icon">
                             <ChevronLeft className="size-5" />
                         </Button>
                     </Link>
