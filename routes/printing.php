@@ -9,7 +9,7 @@ Route::get('qz/certificate/download', [PrintController::class, 'certificateDownl
 
 // Auth-protected — only logged-in users can sign or generate receipts
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('qz/sign', [PrintController::class, 'sign'])->name('qz.sign');
+    Route::middleware('throttle:120,1')->get('qz/sign', [PrintController::class, 'sign'])->name('qz.sign');
     Route::get('print/receipt/{sale}', [PrintController::class, 'receipt'])->name('print.receipt');
     Route::get('print/return-receipt/{saleReturn}', [PrintController::class, 'returnReceipt'])->name('print.return-receipt');
     Route::get('print/cash-session/{session}', [PrintController::class, 'cashSessionReport'])->name('print.cash-session');

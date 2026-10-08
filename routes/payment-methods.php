@@ -4,7 +4,7 @@ use App\Http\Controllers\PaymentMethodController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:payment_methods.create'])->group(function () {
-    Route::resource('payment-methods', PaymentMethodController::class);
+    Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);
     Route::patch('payment-methods/{paymentMethod}/toggle', [PaymentMethodController::class, 'toggleActive'])->name('payment-methods.toggle');
     Route::post('payment-methods/reorder', [PaymentMethodController::class, 'reorder'])->name('payment-methods.reorder');
 });
