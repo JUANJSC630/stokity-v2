@@ -167,9 +167,13 @@ return [
     | to the server if the browser has a HTTPS connection. This will keep
     | the cookie from being sent to you when it can't be done securely.
     |
+    | Behind Railway's proxy the request looks like plain http to Laravel, so
+    | the automatic value would omit the attribute; in production it is
+    | therefore on by default (the edge already redirects http to https).
+    |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------
