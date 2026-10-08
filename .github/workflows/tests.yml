@@ -66,8 +66,10 @@ jobs:
         env:
           LARAVEL_BYPASS_ENV_CHECK: 1
 
+      # Coverage only on the PHP 8.3 leg (production's version): Xdebug slows the run down.
+      # It prints the percentage so a minimum can be enforced later; no threshold yet.
       - name: Tests (Pest)
-        run: ./vendor/bin/pest
+        run: ./vendor/bin/pest ${{ matrix.php == '8.3' && '--coverage' || '' }}
 
   mysql:
     name: mysql
