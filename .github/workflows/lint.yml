@@ -40,11 +40,9 @@ jobs:
       - name: Pint (check only)
         run: vendor/bin/pint --test
 
-      # Informational until the existing prettier backlog (42 files) is cleaned up.
       - name: Prettier (check only)
         run: npx prettier --check "resources/" "*.{ts,json}"
-        continue-on-error: true
 
-      # Clean since the eslint backlog was fixed: any new problem fails the build.
+      # Prettier and ESLint are clean: any new problem fails the build.
       - name: ESLint (check only)
         run: npx eslint .

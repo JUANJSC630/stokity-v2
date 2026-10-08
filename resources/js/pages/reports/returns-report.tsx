@@ -77,15 +77,14 @@ function SaleLinkCell({ ret }: { ret: ReturnDetail }) {
                     #{ret.sale_code}
                 </Link>
             ) : (
-                <Link
-                    href={route('sales.show', ret.sale_id)}
-                    className="font-medium text-primary underline underline-offset-2 hover:opacity-80"
-                >
+                <Link href={route('sales.show', ret.sale_id)} className="font-medium text-primary underline underline-offset-2 hover:opacity-80">
                     #{ret.sale_code}
                 </Link>
             )}
             {ret.sale_deleted && (
-                <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">Eliminada</Badge>
+                <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
+                    Eliminada
+                </Badge>
             )}
         </div>
     );
@@ -515,7 +514,7 @@ export default function ReturnsReport({
                                                 <p className="mt-0.5 text-xs text-muted-foreground">
                                                     {ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}
                                                 </p>
-                                                {ret.reason && <p className="mt-0.5 text-xs italic text-muted-foreground">"{ret.reason}"</p>}
+                                                {ret.reason && <p className="mt-0.5 text-xs text-muted-foreground italic">"{ret.reason}"</p>}
                                             </div>
                                             <p className="flex-shrink-0 font-semibold">{formatCurrency(ret.total)}</p>
                                         </div>
@@ -544,12 +543,8 @@ export default function ReturnsReport({
                                                     <td className="p-2">
                                                         <SaleLinkCell ret={ret} />
                                                     </td>
-                                                    <td className="p-2 text-sm">
-                                                        {ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}
-                                                    </td>
-                                                    <td className="p-2 text-sm italic text-muted-foreground">
-                                                        {ret.reason || '—'}
-                                                    </td>
+                                                    <td className="p-2 text-sm">{ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}</td>
+                                                    <td className="p-2 text-sm text-muted-foreground italic">{ret.reason || '—'}</td>
                                                     <td className="p-2 text-sm text-muted-foreground">{ret.user || '—'}</td>
                                                     <td className="p-2 text-right font-medium">{formatCurrency(ret.total)}</td>
                                                 </tr>

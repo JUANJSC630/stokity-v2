@@ -99,8 +99,8 @@ function DeleteModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
                         Eliminar pedido mayorista
                     </DialogTitle>
                     <DialogDescription>
-                        El pedido <strong>{wholesaleSale.code}</strong> desaparecerá de la lista de Mayorista. Queda guardado en "Pedidos
-                        eliminados" por si necesitas consultarlo después.
+                        El pedido <strong>{wholesaleSale.code}</strong> desaparecerá de la lista de Mayorista. Queda guardado en "Pedidos eliminados"
+                        por si necesitas consultarlo después.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -153,8 +153,8 @@ export default function WholesaleShow({ wholesaleSale, canUpdate, canDelete, del
                         <Archive className="h-4 w-4 shrink-0" />
                         <span>
                             Este pedido fue eliminado
-                            {wholesaleSale.deleted_at ? ` el ${format(new Date(wholesaleSale.deleted_at), 'd MMM yyyy', { locale: es })}` : ''}. Es
-                            de solo lectura.
+                            {wholesaleSale.deleted_at ? ` el ${format(new Date(wholesaleSale.deleted_at), 'd MMM yyyy', { locale: es })}` : ''}. Es de
+                            solo lectura.
                         </span>
                     </div>
                 )}
@@ -250,7 +250,9 @@ export default function WholesaleShow({ wholesaleSale, canUpdate, canDelete, del
                         </div>
 
                         {wholesaleSale.estimated_cost !== null && (
-                            <p className="text-sm text-muted-foreground">Costo de materiales (interno): {formatCurrency(wholesaleSale.estimated_cost)}</p>
+                            <p className="text-sm text-muted-foreground">
+                                Costo de materiales (interno): {formatCurrency(wholesaleSale.estimated_cost)}
+                            </p>
                         )}
 
                         {wholesaleSale.notes && (

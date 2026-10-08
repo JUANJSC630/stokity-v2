@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
+import type { ReactNode } from 'react';
 
 interface CanProps {
     /** A single permission name (checked with `can`). */

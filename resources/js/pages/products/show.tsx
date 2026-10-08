@@ -8,8 +8,8 @@ import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Download, Edit2, Printer, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import QRCode from 'react-qr-code';
 import toast from 'react-hot-toast';
+import QRCode from 'react-qr-code';
 
 interface ProductShowProps {
     product: Product;

@@ -96,7 +96,6 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
         plan: tenant.plan ?? '',
     });
 
-
     useEffect(() => {
         if (props.flash?.temporaryPassword && pendingResetUserId !== null) {
             const user = users.find((u) => u.id === pendingResetUserId);
@@ -504,8 +503,8 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                     <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6">
                         <h2 className="mb-1 text-base font-bold">Contraseña temporal</h2>
                         <p className="mb-4 text-xs text-muted-foreground">
-                            Nueva contraseña para <span className="font-medium">{revealedPassword.userName}</span>. Cópiala ahora — no se mostrará
-                            de nuevo.
+                            Nueva contraseña para <span className="font-medium">{revealedPassword.userName}</span>. Cópiala ahora — no se mostrará de
+                            nuevo.
                         </p>
                         <code className="block rounded-lg border border-border/60 bg-muted px-3 py-2 text-center text-sm font-semibold tracking-wider">
                             {revealedPassword.password}
@@ -584,8 +583,8 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                 <span className="font-medium">Gestionar fotos y visibilidad de productos</span>
                                 <br />
                                 <span className="text-muted-foreground">
-                                    Permite subir/borrar fotos de la galería y activar/ocultar productos vía API. Las keys ya generadas no
-                                    obtienen este permiso automáticamente.
+                                    Permite subir/borrar fotos de la galería y activar/ocultar productos vía API. Las keys ya generadas no obtienen
+                                    este permiso automáticamente.
                                 </span>
                             </span>
                         </label>
@@ -600,8 +599,8 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                                 <span className="font-medium">Permitir generar números de referencia de pedido</span>
                                 <br />
                                 <span className="text-muted-foreground">
-                                    Permite pedir un número de referencia (ej. LUACCESORIOS-000123) para su mensaje de WhatsApp de checkout.
-                                    No crea ninguna venta ni pedido en Stokity. Independiente del permiso de fotos.
+                                    Permite pedir un número de referencia (ej. LUACCESORIOS-000123) para su mensaje de WhatsApp de checkout. No crea
+                                    ninguna venta ni pedido en Stokity. Independiente del permiso de fotos.
                                 </span>
                             </span>
                         </label>

@@ -1,7 +1,7 @@
-import { usePolling } from '@/hooks/use-polling';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type PaymentMethod } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';

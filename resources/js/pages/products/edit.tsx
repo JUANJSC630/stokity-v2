@@ -286,7 +286,14 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                             value={form.data.code}
                                             onChange={(e) => form.setData('code', e.target.value)}
                                         />
-                                        <Button aria-label="Generar código" type="button" variant="secondary" size="icon" title="Generar código" onClick={handleGenerateCode}>
+                                        <Button
+                                            aria-label="Generar código"
+                                            type="button"
+                                            variant="secondary"
+                                            size="icon"
+                                            title="Generar código"
+                                            onClick={handleGenerateCode}
+                                        >
                                             <Sparkles className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -613,7 +620,8 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                                         Predeterminado
                                                     </Label>
                                                 </div>
-                                                <Button aria-label="Eliminar"
+                                                <Button
+                                                    aria-label="Eliminar"
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
@@ -667,7 +675,12 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     </Card>
                 )}
 
-                <Dialog open={showDeleteModal} onOpenChange={(open) => { if (!open) handleCloseDeleteModal(); }}>
+                <Dialog
+                    open={showDeleteModal}
+                    onOpenChange={(open) => {
+                        if (!open) handleCloseDeleteModal();
+                    }}
+                >
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar {isService ? 'servicio' : 'producto'}?</DialogTitle>
@@ -684,7 +697,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         ) : (
                             <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
                                 <AlertTriangle className="h-5 w-5" />
-                                <p className="text-sm">El {isService ? 'servicio' : 'producto'} será enviado a la papelera. Puedes restaurarlo más tarde.</p>
+                                <p className="text-sm">
+                                    El {isService ? 'servicio' : 'producto'} será enviado a la papelera. Puedes restaurarlo más tarde.
+                                </p>
                             </div>
                         )}
 

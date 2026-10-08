@@ -1,6 +1,6 @@
+import type { Client } from '@/types';
 import { describe, expect, it } from 'vitest';
 import { resolveWholesaleDiscount } from '../wholesale-discount';
-import type { Client } from '@/types';
 
 function makeClient(overrides: Partial<Client> = {}): Client {
     return { id: 1, name: 'Test', ...overrides };

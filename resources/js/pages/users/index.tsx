@@ -1,11 +1,11 @@
 import EyeButton from '@/components/common/EyeButton';
-import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';

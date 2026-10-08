@@ -1,6 +1,6 @@
+import type { NavItem } from '@/types';
 import { describe, expect, it } from 'vitest';
 import { filterNavItemsByPermission } from '../nav-permissions';
-import type { NavItem } from '@/types';
 
 const items: NavItem[] = [
     { title: 'Inicio', href: '/dashboard', permission: 'dashboard.view' },

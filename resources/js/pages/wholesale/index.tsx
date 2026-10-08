@@ -1,9 +1,9 @@
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { usePermissions } from '@/hooks/use-permissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem, type PaginatedData, type WholesaleSale } from '@/types';

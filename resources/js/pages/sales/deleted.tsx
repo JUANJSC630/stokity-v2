@@ -45,7 +45,7 @@ export default function Deleted({ sales, filters }: PageProps) {
     };
 
     const columns: Column<Sale & { deleted_at: string; actions: null }>[] = [
-        { key: 'code', title: 'Código', render: (_: unknown, row: Sale) => <span className="line-through text-muted-foreground">{row.code}</span> },
+        { key: 'code', title: 'Código', render: (_: unknown, row: Sale) => <span className="text-muted-foreground line-through">{row.code}</span> },
         { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'Consumidor Final' },
         { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
         { key: 'date', title: 'Fecha venta', render: (_: unknown, row: Sale) => formatDateTime(row.date) },
@@ -113,7 +113,10 @@ export default function Deleted({ sales, filters }: PageProps) {
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
                             </div>
-                            <button type="submit" className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                            <button
+                                type="submit"
+                                className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                            >
                                 Buscar
                             </button>
                             {search && (

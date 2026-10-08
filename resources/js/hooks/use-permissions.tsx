@@ -1,6 +1,6 @@
+import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
-import type { SharedData } from '@/types';
 
 /**
  * Reads the current user's permission list (shared via HandleInertiaRequests

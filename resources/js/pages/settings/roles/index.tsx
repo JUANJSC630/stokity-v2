@@ -99,7 +99,8 @@ export default function RolesIndex({ roles }: { roles: RoleRow[] }) {
                                                     </Link>
                                                 </Button>
                                                 {!role.is_system && (
-                                                    <Button aria-label="Eliminar"
+                                                    <Button
+                                                        aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="text-red-500"

@@ -1,10 +1,10 @@
 import SaleReturnTicket from '@/components/SaleReturnTicket';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
-import { usePermissions } from '@/hooks/use-permissions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { usePermissions } from '@/hooks/use-permissions';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
@@ -260,7 +260,9 @@ export default function Show({
                                 <h1 className="max-w-[260px] truncate text-lg leading-tight font-bold sm:max-w-none">{sale.code}</h1>
                                 {getStatusBadge(sale.status)}
                                 {deleted && (
-                                    <Badge variant="destructive" className="text-xs">Eliminada</Badge>
+                                    <Badge variant="destructive" className="text-xs">
+                                        Eliminada
+                                    </Badge>
                                 )}
                             </div>
                             <p className="text-xs text-muted-foreground">{formatDateTime(sale.date)}</p>
@@ -269,49 +271,49 @@ export default function Show({
 
                     {/* Action buttons — hidden for deleted sales */}
                     {!deleted && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            onClick={handleThermalPrint}
-                            disabled={printer.status !== 'connected'}
-                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-                        >
-                            <Printer className="h-3.5 w-3.5" />
-                            Imprimir
-                        </button>
-                        <button
-                            onClick={() => setShowTicketPreview(true)}
-                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                            <Eye className="h-3.5 w-3.5" />
-                            Ver factura
-                        </button>
-                        <button
-                            onClick={() => setShowReturnForm(true)}
-                            disabled={remainingSaleProducts.length === 0}
-                            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-                        >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            Devolución
-                        </button>
-                        {sale.id &&
-                            (can('sales.update') ? (
-                                <Link href={route('sales.edit', sale.id)}>
-                                    <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={handleThermalPrint}
+                                disabled={printer.status !== 'connected'}
+                                className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                            >
+                                <Printer className="h-3.5 w-3.5" />
+                                Imprimir
+                            </button>
+                            <button
+                                onClick={() => setShowTicketPreview(true)}
+                                className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                                <Eye className="h-3.5 w-3.5" />
+                                Ver factura
+                            </button>
+                            <button
+                                onClick={() => setShowReturnForm(true)}
+                                disabled={remainingSaleProducts.length === 0}
+                                className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+                            >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Devolución
+                            </button>
+                            {sale.id &&
+                                (can('sales.update') ? (
+                                    <Link href={route('sales.edit', sale.id)}>
+                                        <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                                            <Edit className="h-3.5 w-3.5" />
+                                            Editar
+                                        </button>
+                                    </Link>
+                                ) : (
+                                    <button
+                                        disabled
+                                        title="No tienes permisos para editar ventas"
+                                        className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground opacity-40"
+                                    >
                                         <Edit className="h-3.5 w-3.5" />
                                         Editar
                                     </button>
-                                </Link>
-                            ) : (
-                                <button
-                                    disabled
-                                    title="No tienes permisos para editar ventas"
-                                    className="flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground opacity-40"
-                                >
-                                    <Edit className="h-3.5 w-3.5" />
-                                    Editar
-                                </button>
-                            ))}
-                    </div>
+                                ))}
+                        </div>
                     )}
                 </div>
 
@@ -709,7 +711,9 @@ export default function Show({
                                         ) : (
                                             <>
                                                 <span className="font-medium">{log.user?.name ?? 'Usuario eliminado'}</span> cambió{' '}
-                                                <span className="font-medium">{AUDIT_FIELD_LABELS[log.field_changed ?? ''] ?? log.field_changed}</span>{' '}
+                                                <span className="font-medium">
+                                                    {AUDIT_FIELD_LABELS[log.field_changed ?? ''] ?? log.field_changed}
+                                                </span>{' '}
                                                 de &quot;{log.old_value}&quot; a &quot;{log.new_value}&quot;
                                             </>
                                         )}
