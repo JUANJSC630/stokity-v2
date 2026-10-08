@@ -780,7 +780,7 @@ export default function FinancesIndex({
                                                 </div>
                                                 <div className="flex flex-shrink-0 items-center gap-1">
                                                     <span className="text-sm font-semibold">{cop(expense.amount)}</span>
-                                                    <Button
+                                                    <Button aria-label="Editar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-7 w-7 text-muted-foreground hover:text-foreground"
@@ -788,7 +788,7 @@ export default function FinancesIndex({
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
                                                     </Button>
-                                                    <Button
+                                                    <Button aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-7 w-7 text-muted-foreground hover:text-red-600"

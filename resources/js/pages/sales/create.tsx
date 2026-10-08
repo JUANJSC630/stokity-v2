@@ -416,7 +416,7 @@ export default function Create({ branches, clients }: Props) {
                                                         </span>
                                                     </td>
                                                     <td className="text-center">
-                                                        <Button
+                                                        <Button aria-label="Agregar"
                                                             type="button"
                                                             size="icon"
                                                             variant="ghost"
@@ -506,7 +506,7 @@ export default function Create({ branches, clients }: Props) {
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <Button
+                                            <Button aria-label="Crear cliente"
                                                 type="button"
                                                 size="icon"
                                                 variant="outline"
@@ -634,7 +634,7 @@ export default function Create({ branches, clients }: Props) {
                                                                     {formatCOP(sp.subtotal)}
                                                                 </td>
                                                                 <td className="px-2 py-1 text-center">
-                                                                    <Button
+                                                                    <Button aria-label="Quitar producto"
                                                                         type="button"
                                                                         variant="ghost"
                                                                         size="icon"
@@ -661,7 +661,7 @@ export default function Create({ branches, clients }: Props) {
                                                             <span className="font-semibold text-neutral-800 dark:text-neutral-100">
                                                                 {sp.product.name}
                                                             </span>
-                                                            <Button
+                                                            <Button aria-label="Quitar producto"
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon"

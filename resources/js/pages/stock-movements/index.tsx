@@ -461,7 +461,7 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                         <div className="mt-2 flex justify-end gap-2">
                                             {movement.product && !movement.product.deleted_at && (
                                                 <Link href={`/products/${movement.product.id}`}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
+                                                    <Button aria-label="Ver producto" variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
                                                         <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
                                                     </Button>
                                                 </Link>

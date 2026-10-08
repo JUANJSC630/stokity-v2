@@ -169,7 +169,7 @@ export default function Index({ clients, filters }: PageProps) {
                                             <div className="text-base font-semibold">{client.name}</div>
                                             <div className="flex items-center gap-1">
                                                 <Link href={route('clients.show', client.id)}>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                                    <Button aria-label="Ver detalle" variant="ghost" size="icon" className="h-8 w-8 p-0">
                                                         <Eye className="size-4" />
                                                     </Button>
                                                 </Link>

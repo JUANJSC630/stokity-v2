@@ -55,7 +55,7 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
             {/* Pagination buttons */}
             <div className="flex items-center gap-1">
                 {/* Prev */}
-                <Button variant="ghost" size="icon" disabled={!prevUrl} className="size-8" onClick={() => navigate(prevUrl)}>
+                <Button aria-label="Anterior" variant="ghost" size="icon" disabled={!prevUrl} className="size-8" onClick={() => navigate(prevUrl)}>
                     <ChevronLeft className="size-4" />
                 </Button>
 
@@ -133,7 +133,7 @@ export default function PaginationFooter({ data }: PaginationFooterProps) {
                 </div>
 
                 {/* Next */}
-                <Button variant="ghost" size="icon" disabled={!nextUrl} className="size-8" onClick={() => navigate(nextUrl)}>
+                <Button aria-label="Siguiente" variant="ghost" size="icon" disabled={!nextUrl} className="size-8" onClick={() => navigate(nextUrl)}>
                     <ChevronRight className="size-4" />
                 </Button>
             </div>
