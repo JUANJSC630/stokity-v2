@@ -23,6 +23,7 @@ export interface NavItem {
     children?: NavItem[]; // Sub-items for nested navigation
     disabled?: boolean; // Show as disabled (no access)
     highlight?: boolean; // Visual emphasis (e.g., POS button)
+    shortTitle?: string; // Compact label for tight spaces such as the phone bottom bar
 }
 
 export interface NavGroup {

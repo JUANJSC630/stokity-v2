@@ -20,6 +20,7 @@ import {
 import { useModules } from '@/hooks/use-modules';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
+import { activeChildOf, matchesPath, pathOf } from '@/lib/nav-active';
 import { filterNavGroups } from '@/lib/nav-permissions';
 import { cn } from '@/lib/utils';
 import { type NavGroup, type NavItem, type SharedData } from '@/types';
@@ -40,14 +41,6 @@ const SUB_ITEM_CLASS = cn(
     'h-10 text-sidebar-foreground/80 hover:bg-[rgba(var(--brand-primary-rgb),0.08)] hover:text-sidebar-foreground md:h-8',
     'data-[active=true]:bg-[rgba(var(--brand-primary-rgb),0.12)] data-[active=true]:font-semibold data-[active=true]:text-sidebar-foreground',
 );
-
-const matchesPath = (currentPath: string, href: string) => Boolean(href) && (currentPath === href || currentPath.startsWith(href + '/'));
-
-/** The child whose href is the most specific match, so /reports does not light up on /reports/products. */
-const activeChildOf = (currentPath: string, item: NavItem): NavItem | undefined =>
-    (item.children ?? []).filter((child) => matchesPath(currentPath, child.href)).sort((a, b) => b.href.length - a.href.length)[0];
-
-const isBranchActive = (currentPath: string, item: NavItem) => activeChildOf(currentPath, item) !== undefined;
 
 function PrimaryAction({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
     const onBrand = useOnBrandColor();
@@ -172,13 +165,13 @@ export function NavMain({ groups = [] }: { groups: NavGroup[] }) {
     const collapsed = !isMobile && state === 'collapsed';
     const { can } = usePermissions();
     const { moduleEnabled } = useModules();
-    const currentPath = page.url.split('?')[0];
+    const currentPath = pathOf(page.url);
     const visibleGroups = filterNavGroups(groups, can, moduleEnabled);
 
     const [expanded, setExpanded] = useState<string[]>(() =>
         visibleGroups
             .flatMap((group) => group.items)
-            .filter((item) => isBranchActive(currentPath, item))
+            .filter((item) => activeChildOf(currentPath, item) !== undefined)
             .map((item) => item.title),
     );
 
