@@ -34,11 +34,12 @@ beforeEach(() => {
 });
 
 describe('New super admin form', () => {
-    it('uses the right keyboard and autofill hints for each field', () => {
+    it("uses the right keyboard hints and keeps the browser from filling in the creator's own details", () => {
         render(<SuperAdminCreate />);
 
         expect(screen.getByLabelText('Correo')).toHaveAttribute('inputmode', 'email');
-        expect(screen.getByLabelText('Correo')).toHaveAttribute('autocomplete', 'email');
+        expect(screen.getByLabelText('Correo')).toHaveAttribute('autocomplete', 'off');
+        expect(screen.getByLabelText('Nombre')).toHaveAttribute('autocomplete', 'off');
         expect(screen.getByLabelText('Contraseña')).toHaveAttribute('autocomplete', 'new-password');
         expect(screen.getByLabelText('Confirmar contraseña')).toHaveAttribute('autocomplete', 'new-password');
     });

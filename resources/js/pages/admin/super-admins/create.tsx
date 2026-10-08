@@ -43,7 +43,7 @@ export default function SuperAdminCreate() {
                         </label>
                         <input
                             id="name"
-                            autoComplete="name"
+                            autoComplete="off"
                             value={form.data.name}
                             onChange={(e) => form.setData('name', e.target.value)}
                             className={INPUT}
@@ -58,7 +58,7 @@ export default function SuperAdminCreate() {
                             id="email"
                             type="email"
                             inputMode="email"
-                            autoComplete="email"
+                            autoComplete="off"
                             autoCapitalize="none"
                             value={form.data.email}
                             onChange={(e) => form.setData('email', e.target.value)}
