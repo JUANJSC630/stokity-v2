@@ -1,0 +1,61 @@
+/*
+ * Tokens for the Arc components (https://uiarc.dev, MIT), scoped to `.arc-scope`
+ * so they never leak into the shadcn tokens used by the rest of the app.
+ * Colors come from Stokity's own tokens, so light/dark and the tenant brand
+ * (--brand-primary) carry through. Names that shadcn also defines (--accent,
+ * --accent-foreground, --border) are redefined only inside this scope.
+ */
+.arc-scope {
+    --surface: var(--card);
+    --surface-raised: var(--card);
+    --surface-muted: var(--muted);
+    --text-secondary: var(--muted-foreground);
+    --text-muted: var(--muted-foreground);
+    --border: color-mix(in oklab, var(--foreground) 11%, transparent);
+    --border-subtle: color-mix(in oklab, var(--foreground) 6%, transparent);
+    --border-strong: color-mix(in oklab, var(--foreground) 22%, transparent);
+    --accent: var(--brand-primary);
+    --accent-strong: color-mix(in oklab, var(--brand-primary) 85%, black);
+    --accent-subtle: color-mix(in oklab, var(--brand-primary) 12%, transparent);
+    --accent-foreground: #fff;
+    --danger: var(--destructive);
+    --success: oklch(49% 0.19 150);
+    --warning: oklch(58% 0.18 75);
+    --focus-ring: transparent;
+    --shadow-resting: 0 1px 2px oklch(0% 0 0 / 0.035);
+    --shadow-raised: 0 6px 18px oklch(0% 0 0 / 0.065), 0 1px 3px oklch(0% 0 0 / 0.035);
+    --shadow-floating: 0 20px 48px oklch(0% 0 0 / 0.105), 0 3px 10px oklch(0% 0 0 / 0.045);
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --control-height-sm: 2.25rem;
+    --control-height-md: 2.75rem;
+    --control-height-lg: 3.125rem;
+    --radius-control: 0.875rem;
+    --radius-panel: 1rem;
+    --radius-surface: 1.5rem;
+    --radius-pill: 9999px;
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-3xl: 1em;
+    --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --tracking-display: -0.02em;
+    --tracking-body: -0.01em;
+    --leading-body: 1.4;
+    --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-exit: cubic-bezier(0.7, 0, 0.84, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring: linear(0, 0.0258, 0.09, 0.1763, 0.2732, 0.3724, 0.4683, 0.5573, 0.6376, 0.7082, 0.7689, 0.8202, 0.8628, 0.8976, 0.9256, 0.9476, 0.9648, 0.9778, 0.9875, 0.9945, 0.9994, 1.0026, 1.0047, 1.0058, 1.0062, 1.0062, 1.0059, 1.0055, 1.0049, 1.0043, 1.0036, 1.0031, 1.0025, 1.002, 1.0016, 1.0013, 1);
+    --duration-instant: 120ms;
+    --duration-fast: 160ms;
+    --duration-standard: 240ms;
+    --duration-considered: 480ms;
+    --duration-spring: 580ms;
+}
