@@ -27,7 +27,7 @@ describe('useScrollToError', () => {
         // Create an error element in the DOM
         const el = document.createElement('span');
         el.className = 'text-destructive';
-        el.scrollIntoView = scrollIntoViewMock;
+        el.scrollIntoView = scrollIntoViewMock as unknown as typeof el.scrollIntoView;
         document.body.appendChild(el);
 
         renderHook(() => useScrollToError({ name: 'El nombre es requerido' }));
@@ -40,7 +40,7 @@ describe('useScrollToError', () => {
     it('also finds elements with text-red-500 class', () => {
         const el = document.createElement('span');
         el.className = 'text-red-500';
-        el.scrollIntoView = scrollIntoViewMock;
+        el.scrollIntoView = scrollIntoViewMock as unknown as typeof el.scrollIntoView;
         document.body.appendChild(el);
 
         renderHook(() => useScrollToError({ email: 'Email inválido' }));
