@@ -1,3 +1,4 @@
+import { DANGER_BUTTON, INPUT, PILL, PRIMARY_BUTTON, SECONDARY_BUTTON } from '@/components/admin/styles';
 import { initialsOf, LastActivity, latestTimestamp, StatusPill, TrialNote } from '@/components/admin/tenant-badges';
 import { SwipeActions, SwipeActionsRow, type SwipeAction } from '@/components/ui/arc/swipe-actions';
 import { SlideConfirm } from '@/components/ui/bencho/slide-confirm';
@@ -67,15 +68,6 @@ interface FlashProps {
     flash: { success?: string; temporaryPassword?: string; plainApiKey?: string };
     [key: string]: unknown;
 }
-
-const SECONDARY_BUTTON =
-    'h-11 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:h-9 sm:px-3 sm:text-xs';
-const PRIMARY_BUTTON =
-    'h-11 rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 sm:h-9 sm:px-3 sm:text-xs';
-const DANGER_BUTTON = 'h-11 rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 sm:h-9 sm:px-3 sm:text-xs';
-const INPUT =
-    'h-11 w-full rounded-lg border border-border/60 bg-background px-3 text-base focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:h-9 sm:text-sm';
-const PILL = 'rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground';
 
 function Section({
     icon: Icon,
