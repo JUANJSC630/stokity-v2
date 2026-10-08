@@ -1,5 +1,6 @@
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
+import { useConfirm } from '@/components/confirm-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +47,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function Show({ supplier, movements, totalCost, filters }: PageProps) {
+    const { confirm, dialog } = useConfirm();
     const [startDate, setStartDate] = useState(filters.start_date ?? '');
     const [endDate, setEndDate] = useState(filters.end_date ?? '');
 
@@ -54,8 +56,14 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
         { title: supplier.name, href: `/suppliers/${supplier.id}` },
     ];
 
-    const handleDelete = () => {
-        if (confirm(`¿Eliminar al proveedor "${supplier.name}"? Esta acción no se puede deshacer.`)) {
+    const handleDelete = async () => {
+        const accepted = await confirm({
+            title: `¿Eliminar al proveedor "${supplier.name}"?`,
+            description: 'Esta acción no se puede deshacer.',
+            confirmLabel: 'Eliminar',
+        });
+
+        if (accepted) {
             router.delete(route('suppliers.destroy', supplier.id));
         }
     };
@@ -378,6 +386,7 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
                     </CardContent>
                 </Card>
             </div>
+            {dialog}
         </AppLayout>
     );
 }
