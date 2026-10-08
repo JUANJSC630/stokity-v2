@@ -211,11 +211,11 @@ it('refuses to deactivate your own account', function () {
     expect($actor->fresh()->status)->toBeTrue();
 });
 
-it('refuses to deactivate the only remaining active super admin', function () {
-    // The guard counts active super admins system-wide, excluding the
-    // target — not whether the acting session itself is active (actingAs()
-    // bypasses that check anyway) — so it's exercised here with the actor's
-    // own row already inactive and the target as the system's last active one.
+it('cannot deactivate the only remaining active super admin from a stale inactive session', function () {
+    // The "only active super admin" guard in SuperAdminController counts the
+    // active ones excluding the target, so it could only be reached by an actor
+    // whose own row is already inactive. EnsureUserIsActive now signs that
+    // stale session out before the controller runs, so the target is untouched.
     $actor = User::create([
         'name' => 'Stale Session', 'email' => 'stale@platform.test', 'password' => Hash::make('x'),
         'role' => User::ROLE_SUPER_ADMIN, 'status' => false, 'email_verified_at' => now(),
@@ -227,7 +227,7 @@ it('refuses to deactivate the only remaining active super admin', function () {
 
     $this->actingAs($actor)
         ->post("/admin/super-admins/{$lastActive->id}/toggle-status")
-        ->assertSessionHasErrors('status');
+        ->assertRedirect(route('login'));
 
     expect($lastActive->fresh()->status)->toBeTrue();
 });
