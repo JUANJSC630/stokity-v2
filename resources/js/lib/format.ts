@@ -69,3 +69,13 @@ export function formatRelativeTime(date: string | Date | null | undefined, now: 
 
     return formatDate(d);
 }
+
+/** "8 oct 2026" for a plain Y-m-d date, read as that calendar day (no timezone shift). */
+export function formatDateOnly(date: string | null | undefined): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(date ?? '');
+    if (!match) return '—';
+
+    const local = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+
+    return local.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+}
