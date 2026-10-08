@@ -5,9 +5,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Edit2, Plus, Trash2, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface RoleRow {
@@ -30,12 +30,6 @@ const DATA_SCOPE_LABELS: Record<RoleRow['data_scope'], string> = {
 };
 
 export default function RolesIndex({ roles }: { roles: RoleRow[] }) {
-    const { props } = usePage<{ flash: { success?: string } }>();
-
-    useEffect(() => {
-        if (props.flash?.success) toast.success(props.flash.success);
-    }, [props.flash?.success]);
-
     const [roleToDelete, setRoleToDelete] = useState<RoleRow | null>(null);
 
     const handleDelete = () => {

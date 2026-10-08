@@ -5,9 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { Head, useForm } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Módulos', href: '/settings/modules' }];
 
@@ -20,11 +18,6 @@ const MODULES: { key: string; label: string; description: string }[] = [
 
 export default function ModuleSettings({ moduleConfig }: { moduleConfig: Record<string, boolean> }) {
     const form = useForm({ modules: moduleConfig });
-    const { props } = usePage<{ flash: { success?: string } }>();
-
-    useEffect(() => {
-        if (props.flash?.success) toast.success(props.flash.success);
-    }, [props.flash?.success]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();

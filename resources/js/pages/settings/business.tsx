@@ -6,10 +6,9 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem, type BusinessSetting } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Camera, Link } from 'lucide-react';
-import { FormEventHandler, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { FormEventHandler, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocio', href: '/settings/business' }];
 
@@ -30,14 +29,6 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
         logo_url: currentLogoUrl,
         _method: 'POST',
     });
-
-    const { props } = usePage<{ flash: { success?: string } }>();
-
-    useEffect(() => {
-        if (props.flash?.success) {
-            toast.success(props.flash.success);
-        }
-    }, [props.flash?.success]);
 
     const [logoPreview, setLogoPreview] = useState<string>(business.logo_url);
     const [showUrlInput, setShowUrlInput] = useState(false);

@@ -96,9 +96,6 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
         plan: tenant.plan ?? '',
     });
 
-    useEffect(() => {
-        if (props.flash?.success) toast.success(props.flash.success);
-    }, [props.flash?.success]);
 
     useEffect(() => {
         if (props.flash?.temporaryPassword && pendingResetUserId !== null) {
