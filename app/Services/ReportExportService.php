@@ -35,8 +35,23 @@ class ReportExportService
      */
     private function writeRow($handle, array $row): void
     {
-        $cleanRow = array_map(fn ($v) => is_null($v) ? '' : (string) $v, $row);
+        $cleanRow = array_map(fn ($v) => $this->neutralizeFormula(is_null($v) ? '' : (string) $v), $row);
         fputcsv($handle, $cleanRow, ';');
+    }
+
+    /**
+     * A cell that starts with = + - @ (or a tab / carriage return) is run as a
+     * formula by Excel and LibreOffice, and exports carry user-typed text such
+     * as product, client and branch names. Prefixing a quote makes it plain
+     * text; real numbers (including negative amounts) are left untouched.
+     */
+    private function neutralizeFormula(string $value): string
+    {
+        if ($value === '' || is_numeric($value)) {
+            return $value;
+        }
+
+        return in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
     }
 
     // ────────────────────────────────────────────────────────────────────

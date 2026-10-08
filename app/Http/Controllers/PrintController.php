@@ -9,6 +9,7 @@ use App\Models\CreditSale;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Services\RemoteImageFetcher;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -1307,54 +1308,34 @@ class PrintController extends Controller
     }
 
     /**
-     * Download a remote URL to a temp file and return its path, or null on failure.
+     * Download a remote image to a temp file and return its path, or null on
+     * failure. Goes through RemoteImageFetcher, which refuses anything that is not
+     * a public http(s) address, and only keeps content that really is an image.
      */
     private function downloadToTempFile(string $url): ?string
     {
-        $tmpFile = null;
-        try {
-            if (function_exists('curl_init')) {
-                $ch = curl_init($url);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_TIMEOUT => 10,
-                    CURLOPT_SSL_VERIFYPEER => true,
-                ]);
-                $imgData = curl_exec($ch);
-                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-                curl_close($ch);
+        $download = app(RemoteImageFetcher::class)->fetch($url);
 
-                if ($imgData === false || $httpCode !== 200) {
-                    return null;
-                }
-
-                $ext = match (true) {
-                    str_contains((string) $contentType, 'webp') => 'webp',
-                    str_contains((string) $contentType, 'png') => 'png',
-                    str_contains((string) $contentType, 'gif') => 'gif',
-                    default => 'jpg',
-                };
-            } else {
-                $imgData = @file_get_contents($url);
-                if ($imgData === false) {
-                    return null;
-                }
-                $ext = strtolower(pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
-            }
-
-            $tmpFile = sys_get_temp_dir().'/stokity_logo_'.uniqid().'.'.$ext;
-            file_put_contents($tmpFile, $imgData);
-
-            return $tmpFile;
-        } catch (\Throwable) {
-            if ($tmpFile && file_exists($tmpFile)) {
-                @unlink($tmpFile);
-            }
-
+        if ($download === null) {
             return null;
         }
+
+        $imageInfo = @getimagesizefromstring($download['body']);
+
+        if ($imageInfo === false) {
+            return null;
+        }
+
+        $ext = match ($imageInfo[2]) {
+            IMAGETYPE_PNG => 'png',
+            IMAGETYPE_GIF => 'gif',
+            IMAGETYPE_WEBP => 'webp',
+            default => 'jpg',
+        };
+
+        $tmpFile = sys_get_temp_dir().'/stokity_logo_'.uniqid().'.'.$ext;
+
+        return file_put_contents($tmpFile, $download['body']) === false ? null : $tmpFile;
     }
 
     /**
