@@ -12,6 +12,7 @@ use App\Models\Sale;
 use App\Models\SaleAuditLog;
 use App\Models\User;
 use App\Rules\TenantExists;
+use App\Services\SalePricingService;
 use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,10 @@ use Inertia\Inertia;
 
 class SaleController extends Controller
 {
-    public function __construct(private StockMovementService $stockMovements) {}
+    public function __construct(
+        private StockMovementService $stockMovements,
+        private SalePricingService $pricing,
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -142,8 +146,18 @@ class SaleController extends Controller
             'payment_method.in' => 'El método de pago seleccionado no es válido. Por favor, selecciona un método de pago válido.',
         ]);
 
+        $user = Auth::user();
+        $priced = $this->pricing->priceLines($user, $validated['products']);
+        $this->pricing->throwIfAny([
+            ...$priced['errors'],
+            ...$this->pricing->discountErrors($user, $validated['discount_type'], (float) $validated['discount_value']),
+            ...array_filter(['date' => $this->pricing->dateError($user, $validated['date'])]),
+        ]);
+        $validated['products'] = $priced['lines'];
+        $validated['net'] = $priced['net'];
+
         // Verificar stock disponible y calcular impuesto por producto
-        $stockCheck = $this->validateStockAndTax($request->products);
+        $stockCheck = $this->validateStockAndTax($validated['products']);
         if (! empty($stockCheck['errors'])) {
             return back()->withErrors($stockCheck['errors'])->withInput();
         }
@@ -329,7 +343,17 @@ class SaleController extends Controller
             'payment_method.in' => 'El método de pago seleccionado no es válido.',
         ]);
 
-        $products = $validated['products'];
+        $priced = $this->pricing->priceLines(
+            $user,
+            $validated['products'],
+            $sale->saleProducts()->pluck('price', 'product_id')->map(fn ($price) => (float) $price)->all(),
+        );
+        $this->pricing->throwIfAny([
+            ...$priced['errors'],
+            ...$this->pricing->discountErrors($user, $validated['discount_type'] ?? 'none', (float) ($validated['discount_value'] ?? 0), $sale),
+        ]);
+        $products = $priced['lines'];
+        $validated['net'] = $priced['net'];
 
         $purchasePrices = Product::whereIn('id', collect($products)->pluck('id'))
             ->pluck('purchase_price', 'id');
@@ -457,20 +481,39 @@ class SaleController extends Controller
             'products.*.subtotal' => 'required|numeric|min:0',
         ]);
 
-        $purchasePrices = Product::whereIn('id', collect($validated['products'])->pluck('id'))
+        $discountType = $validated['discount_type'] ?? 'none';
+        $discountValue = (float) ($validated['discount_value'] ?? 0);
+
+        $priced = $this->pricing->priceLines(
+            $user,
+            $validated['products'],
+            $sale->saleProducts()->pluck('price', 'product_id')->map(fn ($price) => (float) $price)->all(),
+        );
+        $this->pricing->throwIfAny([
+            ...$priced['errors'],
+            ...$this->pricing->discountErrors($user, $discountType, $discountValue, $sale),
+        ]);
+
+        $totalTax = $this->pricing->totalTax($priced['lines']);
+        $gross = $priced['net'] + $totalTax;
+        $discountAmount = $this->calculateDiscount($discountType, $discountValue, $gross);
+
+        $purchasePrices = Product::whereIn('id', collect($priced['lines'])->pluck('id'))
             ->pluck('purchase_price', 'id');
 
-        DB::transaction(function () use ($sale, $validated, $purchasePrices) {
+        DB::transaction(function () use ($sale, $priced, $purchasePrices, $discountType, $discountValue, $totalTax, $discountAmount, $gross) {
             $sale->update([
-                'net' => $validated['net'],
-                'total' => $validated['total'],
-                'discount_type' => $validated['discount_type'] ?? 'none',
-                'discount_value' => $validated['discount_value'] ?? 0,
+                'net' => $priced['net'],
+                'tax' => $totalTax,
+                'total' => max(0, $gross - $discountAmount),
+                'discount_type' => $discountType,
+                'discount_value' => $discountValue,
+                'discount_amount' => $discountAmount,
             ]);
 
             // Replace products
             $sale->saleProducts()->delete();
-            foreach ($validated['products'] as $prod) {
+            foreach ($priced['lines'] as $prod) {
                 $sale->saleProducts()->create([
                     'product_id' => $prod['id'],
                     'quantity' => $prod['quantity'],

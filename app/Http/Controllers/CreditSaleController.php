@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Rules\TenantExists;
 use App\Services\Credit\CreditPaymentService;
 use App\Services\Credit\CreditService;
+use App\Services\SalePricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,6 +21,7 @@ class CreditSaleController extends Controller
     public function __construct(
         private CreditService $creditService,
         private CreditPaymentService $paymentService,
+        private SalePricingService $pricing,
     ) {}
 
     /**
@@ -143,6 +145,19 @@ class CreditSaleController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.subtotal' => 'required|numeric|min:0',
         ]);
+
+        $priced = $this->pricing->priceLines(
+            $user,
+            array_map(fn ($item) => ['id' => $item['product_id'], 'quantity' => $item['quantity'], 'price' => $item['unit_price']], $validated['items']),
+            errorKeyTemplate: 'items.%d.unit_price',
+        );
+        $this->pricing->throwIfAny($priced['errors']);
+        $validated['items'] = array_map(fn ($line) => [
+            'product_id' => $line['id'],
+            'quantity' => $line['quantity'],
+            'unit_price' => $line['price'],
+            'subtotal' => $line['subtotal'],
+        ], $priced['lines']);
 
         try {
             $credit = $this->creditService->create($validated, $validated['items'], $user);

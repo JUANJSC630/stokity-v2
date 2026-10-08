@@ -42,20 +42,22 @@ function tenantWithSaleData(string $slug): array
 
 function salePayloadFor(array $world, array $overrides = []): array
 {
+    $price = (float) $world['product']->sale_price;
+
     return array_merge([
         'branch_id' => $world['branch']->id,
         'client_id' => $world['client']->id,
         'seller_id' => $world['admin']->id,
-        'net' => 100,
-        'total' => 100,
-        'amount_paid' => 100,
+        'net' => $price,
+        'total' => $price,
+        'amount_paid' => $price,
         'change_amount' => 0,
         'payment_method' => 'efectivo',
         'date' => now()->toDateTimeString(),
         'status' => 'completed',
         'discount_type' => 'none',
         'discount_value' => 0,
-        'products' => [['id' => $world['product']->id, 'quantity' => 1, 'price' => 100, 'subtotal' => 100]],
+        'products' => [['id' => $world['product']->id, 'quantity' => 1, 'price' => $price, 'subtotal' => $price]],
     ], $overrides);
 }
 
