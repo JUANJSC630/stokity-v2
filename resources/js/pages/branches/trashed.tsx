@@ -200,7 +200,8 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
                                             <td className="px-6 py-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</td>
                                             <td className="px-6 py-2 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button aria-label="Restaurar"
+                                                    <Button
+                                                        aria-label="Restaurar"
                                                         variant="outline"
                                                         size="icon"
                                                         onClick={() => {
@@ -211,7 +212,8 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
                                                     >
                                                         <RefreshCcw className="size-4" />
                                                     </Button>
-                                                    <Button aria-label="Eliminar permanentemente"
+                                                    <Button
+                                                        aria-label="Eliminar permanentemente"
                                                         variant="destructive"
                                                         size="icon"
                                                         onClick={() => {
@@ -246,7 +248,8 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
                                         <div className="mb-2 flex items-center justify-between">
                                             <div className="text-base font-semibold">{branch.name}</div>
                                             <div className="flex gap-2">
-                                                <Button aria-label="Restaurar"
+                                                <Button
+                                                    aria-label="Restaurar"
                                                     variant="outline"
                                                     size="icon"
                                                     className="h-8 w-8 p-0"
@@ -258,7 +261,8 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
                                                 >
                                                     <RefreshCcw className="size-4" />
                                                 </Button>
-                                                <Button aria-label="Eliminar permanentemente"
+                                                <Button
+                                                    aria-label="Eliminar permanentemente"
                                                     variant="destructive"
                                                     size="icon"
                                                     className="h-8 w-8 p-0"

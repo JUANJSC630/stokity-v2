@@ -1,7 +1,4 @@
 import EyeButton from '@/components/common/EyeButton';
-import { usePermissions } from '@/hooks/use-permissions';
-import { usePolling } from '@/hooks/use-polling';
-import { usePrinter } from '@/hooks/use-printer';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePermissions } from '@/hooks/use-permissions';
+import { usePolling } from '@/hooks/use-polling';
+import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -568,7 +568,12 @@ export default function Products({
                 </div>
 
                 {/* Delete confirmation modal */}
-                <Dialog open={deleteModalOpen} onOpenChange={(open) => { if (!open) handleCloseDeleteModal(); }}>
+                <Dialog
+                    open={deleteModalOpen}
+                    onOpenChange={(open) => {
+                        if (!open) handleCloseDeleteModal();
+                    }}
+                >
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>¿Eliminar producto?</DialogTitle>

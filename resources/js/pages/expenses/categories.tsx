@@ -220,7 +220,8 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                                             <span className="text-sm font-medium">{cat.name}</span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Button aria-label="Editar"
+                                            <Button
+                                                aria-label="Editar"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8"
@@ -229,7 +230,8 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                            <Button aria-label="Eliminar"
+                                            <Button
+                                                aria-label="Eliminar"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="h-8 w-8 text-red-600 hover:text-red-700"

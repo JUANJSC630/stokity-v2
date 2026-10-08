@@ -1,5 +1,4 @@
 import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
-import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate, type PaginatedData } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -644,7 +644,8 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                 </td>
                                                 <td className="py-2">
                                                     <div className="flex items-center gap-1">
-                                                        <Button aria-label="Editar"
+                                                        <Button
+                                                            aria-label="Editar"
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8"
@@ -653,7 +654,8 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                         >
                                                             <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                        <Button aria-label="Eliminar"
+                                                        <Button
+                                                            aria-label="Eliminar"
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-red-600 hover:text-red-700"
@@ -730,10 +732,17 @@ export default function ExpensesIndex({ expenses, pendingTemplates, categories, 
                                                 )}
                                             </div>
                                             <div className="flex gap-1">
-                                                <Button aria-label="Editar" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditExpense(expense)}>
+                                                <Button
+                                                    aria-label="Editar"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => setEditExpense(expense)}
+                                                >
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                <Button aria-label="Eliminar"
+                                                <Button
+                                                    aria-label="Eliminar"
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-red-600 hover:text-red-700"

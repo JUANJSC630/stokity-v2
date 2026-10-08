@@ -43,7 +43,9 @@ export default function AdminAccount() {
             <div className="flex flex-col gap-5 p-6">
                 <div>
                     <h1 className="text-xl leading-tight font-bold">Mi cuenta</h1>
-                    <p className="text-xs text-muted-foreground">Usa una contraseña larga y aleatoria para mantener tu cuenta de plataforma segura.</p>
+                    <p className="text-xs text-muted-foreground">
+                        Usa una contraseña larga y aleatoria para mantener tu cuenta de plataforma segura.
+                    </p>
                 </div>
 
                 <div className="max-w-xl rounded-2xl border border-border/60 bg-card px-6 py-5">

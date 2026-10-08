@@ -55,9 +55,7 @@ export default function CreateUser({ branches, roles }: Props) {
     });
 
     // El campo de sucursal solo aplica a roles que no ven todas las sucursales.
-    const [showBranchField, setShowBranchField] = useState(
-        () => roles.find((r) => r.id === defaultRoleId)?.data_scope !== 'all',
-    );
+    const [showBranchField, setShowBranchField] = useState(() => roles.find((r) => r.id === defaultRoleId)?.data_scope !== 'all');
 
     const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newRoleId = Number(e.target.value);

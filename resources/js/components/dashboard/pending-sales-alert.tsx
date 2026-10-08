@@ -73,18 +73,14 @@ export function PendingSalesAlert({ sales, total }: PendingSalesAlertProps) {
                             >
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-xs font-semibold text-blue-900 dark:text-blue-100">#{sale.code}</p>
-                                    {sale.seller && (
-                                        <p className="truncate text-xs text-blue-600/70 dark:text-blue-400/60">{sale.seller.name}</p>
-                                    )}
+                                    {sale.seller && <p className="truncate text-xs text-blue-600/70 dark:text-blue-400/60">{sale.seller.name}</p>}
                                     <ul className="mt-1 space-y-0.5">
                                         {sale.products.slice(0, 3).map((p, i) => (
                                             <li key={`${p.product_id}-${i}`} className="truncate text-[11px] text-blue-700 dark:text-blue-300">
                                                 {p.quantity}× {p.name}
                                             </li>
                                         ))}
-                                        {sale.products.length > 3 && (
-                                            <li className="text-[11px] text-blue-500">+{sale.products.length - 3} más</li>
-                                        )}
+                                        {sale.products.length > 3 && <li className="text-[11px] text-blue-500">+{sale.products.length - 3} más</li>}
                                     </ul>
                                 </div>
                                 <div className="ml-3 flex flex-shrink-0 flex-col items-end gap-1">

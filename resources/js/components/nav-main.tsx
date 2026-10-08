@@ -93,20 +93,19 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     <DropdownMenuContent side="right" align="start" className="min-w-44">
                                         <DropdownMenuLabel className="text-xs text-muted-foreground">{item.title}</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
-                                        {filterNavItemsByPermission(item.children, can, moduleEnabled)
-                                            .map((child) => (
-                                                <DropdownMenuItem key={child.title} asChild>
-                                                    <Link
-                                                        href={child.href}
-                                                        className={`flex w-full items-center gap-2 ${
-                                                            isChildActive(child) ? 'font-semibold text-[var(--brand-primary)]' : ''
-                                                        }`}
-                                                    >
-                                                        {child.icon && <child.icon className="size-4 shrink-0 text-[var(--brand-primary)]" />}
-                                                        <span>{child.title}</span>
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            ))}
+                                        {filterNavItemsByPermission(item.children, can, moduleEnabled).map((child) => (
+                                            <DropdownMenuItem key={child.title} asChild>
+                                                <Link
+                                                    href={child.href}
+                                                    className={`flex w-full items-center gap-2 ${
+                                                        isChildActive(child) ? 'font-semibold text-[var(--brand-primary)]' : ''
+                                                    }`}
+                                                >
+                                                    {child.icon && <child.icon className="size-4 shrink-0 text-[var(--brand-primary)]" />}
+                                                    <span>{child.title}</span>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        ))}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : (
@@ -138,30 +137,29 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     </SidebarMenuButton>
                                     {expandedItems.includes(item.title) && (
                                         <SidebarMenuSub>
-                                            {filterNavItemsByPermission(item.children, can, moduleEnabled)
-                                                .map((child) => {
-                                                    const active = isChildActive(child);
-                                                    return (
-                                                        <SidebarMenuItem key={child.title}>
-                                                            <SidebarMenuSubButton asChild isActive={active} className="ml-2 w-full rounded-lg">
-                                                                <Link href={child.href} prefetch>
-                                                                    {child.icon && (
-                                                                        <span
-                                                                            className={`${active ? 'text-white' : 'text-[var(--brand-primary)]'} flex-shrink-0`}
-                                                                        >
-                                                                            <child.icon className="size-4" />
-                                                                        </span>
-                                                                    )}
+                                            {filterNavItemsByPermission(item.children, can, moduleEnabled).map((child) => {
+                                                const active = isChildActive(child);
+                                                return (
+                                                    <SidebarMenuItem key={child.title}>
+                                                        <SidebarMenuSubButton asChild isActive={active} className="ml-2 w-full rounded-lg">
+                                                            <Link href={child.href} prefetch>
+                                                                {child.icon && (
                                                                     <span
-                                                                        className={`${active ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}
+                                                                        className={`${active ? 'text-white' : 'text-[var(--brand-primary)]'} flex-shrink-0`}
                                                                     >
-                                                                        {child.title}
+                                                                        <child.icon className="size-4" />
                                                                     </span>
-                                                                </Link>
-                                                            </SidebarMenuSubButton>
-                                                        </SidebarMenuItem>
-                                                    );
-                                                })}
+                                                                )}
+                                                                <span
+                                                                    className={`${active ? 'text-white' : 'text-gray-900 dark:text-gray-100'} min-w-0 flex-1 truncate`}
+                                                                >
+                                                                    {child.title}
+                                                                </span>
+                                                            </Link>
+                                                        </SidebarMenuSubButton>
+                                                    </SidebarMenuItem>
+                                                );
+                                            })}
                                         </SidebarMenuSub>
                                     )}
                                 </>

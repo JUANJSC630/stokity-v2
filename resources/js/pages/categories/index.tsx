@@ -1,11 +1,11 @@
-import { usePermissions } from '@/hooks/use-permissions';
-import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { usePermissions } from '@/hooks/use-permissions';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -153,7 +153,8 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                         </Button>
                     )}
                     {can('categories.delete') && (
-                        <Button aria-label="Eliminar"
+                        <Button
+                            aria-label="Eliminar"
                             variant="ghost"
                             size="icon"
                             className="text-red-500"
@@ -254,7 +255,8 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                             <div className="text-base font-semibold">{category.name}</div>
                                             <div className="flex items-center gap-1">
                                                 {can('categories.update') && (
-                                                    <Button aria-label="Editar"
+                                                    <Button
+                                                        aria-label="Editar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 p-0"
@@ -264,7 +266,8 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
                                                     </Button>
                                                 )}
                                                 {can('categories.delete') && (
-                                                    <Button aria-label="Eliminar"
+                                                    <Button
+                                                        aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 p-0 text-red-500"

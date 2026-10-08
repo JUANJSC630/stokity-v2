@@ -122,15 +122,15 @@ export default function TenantsIndex({
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                     <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
                         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Activos</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{summary.tenants_active}</p>
+                        <p className="mt-1 text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">{summary.tenants_active}</p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
                         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Suspendidos</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums text-red-600 dark:text-red-400">{summary.tenants_suspended}</p>
+                        <p className="mt-1 text-xl font-bold text-red-600 tabular-nums dark:text-red-400">{summary.tenants_suspended}</p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
                         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">En prueba</p>
-                        <p className="mt-1 text-xl font-bold tabular-nums text-amber-600 dark:text-amber-400">{summary.tenants_trial}</p>
+                        <p className="mt-1 text-xl font-bold text-amber-600 tabular-nums dark:text-amber-400">{summary.tenants_trial}</p>
                     </div>
                     <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5">
                         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Usuarios</p>
@@ -227,7 +227,9 @@ export default function TenantsIndex({
                                             <span
                                                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${TENANT_STATUS_PILL_CLASS[t.status] ?? 'bg-muted text-muted-foreground'}`}
                                             >
-                                                <span className={`h-1.5 w-1.5 rounded-full ${TENANT_STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`} />
+                                                <span
+                                                    className={`h-1.5 w-1.5 rounded-full ${TENANT_STATUS_DOT_CLASS[t.status] ?? 'bg-muted-foreground'}`}
+                                                />
                                                 {TENANT_STATUS_LABELS[t.status] ?? t.status}
                                             </span>
                                         </td>

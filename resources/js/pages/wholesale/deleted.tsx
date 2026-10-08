@@ -50,10 +50,7 @@ export default function WholesaleDeleted({ wholesaleSales, filters }: Props) {
             key: 'id',
             title: 'Acciones',
             render: (_, row) => (
-                <Link
-                    href={route('wholesale.deleted.show', row.id)}
-                    className="text-primary text-xs underline underline-offset-2 hover:opacity-80"
-                >
+                <Link href={route('wholesale.deleted.show', row.id)} className="text-xs text-primary underline underline-offset-2 hover:opacity-80">
                     Ver detalle
                 </Link>
             ),
@@ -67,7 +64,7 @@ export default function WholesaleDeleted({ wholesaleSales, filters }: Props) {
                 <div className="flex items-center gap-3">
                     <Link
                         href={route('wholesale.index')}
-                        className="border-border/60 bg-card text-muted-foreground hover:bg-muted flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Link>
@@ -94,7 +91,7 @@ export default function WholesaleDeleted({ wholesaleSales, filters }: Props) {
                             className="flex gap-2"
                         >
                             <div className="relative flex-1">
-                                <Search className="text-muted-foreground absolute top-2 left-2.5 h-3.5 w-3.5" />
+                                <Search className="absolute top-2 left-2.5 h-3.5 w-3.5 text-muted-foreground" />
                                 <Input
                                     type="search"
                                     placeholder="Buscar por código o cliente"
@@ -103,7 +100,10 @@ export default function WholesaleDeleted({ wholesaleSales, filters }: Props) {
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
                             </div>
-                            <button type="submit" className="border-border/60 bg-card hover:bg-muted rounded-lg border px-3 py-1.5 text-xs font-medium">
+                            <button
+                                type="submit"
+                                className="rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                            >
                                 Buscar
                             </button>
                         </form>

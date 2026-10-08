@@ -123,7 +123,8 @@ export default function TrashedCategories({ categories, filters = { search: '' }
             render: (_: unknown, category: Category) => (
                 <div className="flex items-center gap-2">
                     {can('categories.restore') && (
-                        <Button aria-label="Restaurar"
+                        <Button
+                            aria-label="Restaurar"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 p-0"
@@ -136,7 +137,8 @@ export default function TrashedCategories({ categories, filters = { search: '' }
                         </Button>
                     )}
                     {can('categories.delete') && (
-                        <Button aria-label="Eliminar permanentemente"
+                        <Button
+                            aria-label="Eliminar permanentemente"
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 p-0 text-red-500"
@@ -251,21 +253,20 @@ export default function TrashedCategories({ categories, filters = { search: '' }
                             </DialogTitle>
                         </DialogHeader>
                         <DialogDescription className="py-4 text-neutral-600 dark:text-neutral-300">
-                            {categoryToForceDelete && (
-                                (categoryToForceDelete.products_count ?? 0) > 0 ? (
+                            {categoryToForceDelete &&
+                                ((categoryToForceDelete.products_count ?? 0) > 0 ? (
                                     <p>
-                                        La categoría <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong> tiene{' '}
-                                        <strong className="text-red-600">{categoryToForceDelete.products_count} producto(s) asociado(s)</strong> (incluyendo eliminados).
-                                        Debes cambiar la categoría de esos productos o eliminarlos permanentemente primero.
+                                        La categoría <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>{' '}
+                                        tiene <strong className="text-red-600">{categoryToForceDelete.products_count} producto(s) asociado(s)</strong>{' '}
+                                        (incluyendo eliminados). Debes cambiar la categoría de esos productos o eliminarlos permanentemente primero.
                                     </p>
                                 ) : (
                                     <p>
                                         ¿Está seguro de eliminar permanentemente la categoría{' '}
-                                        <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción no
-                                        se puede deshacer.
+                                        <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción
+                                        no se puede deshacer.
                                     </p>
-                                )
-                            )}
+                                ))}
                         </DialogDescription>
                         <DialogFooter className="flex gap-3 pt-2">
                             <Button

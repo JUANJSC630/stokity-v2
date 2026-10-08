@@ -1,4 +1,3 @@
-import { usePolling } from '@/hooks/use-polling';
 import PaginationFooter from '@/components/common/PaginationFooter';
 import { Table, type Column } from '@/components/common/Table';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -171,7 +171,9 @@ export default function StockMovementsIndex({ movements, branches, products, fil
             render: (value, row) =>
                 row.product ? (
                     row.product.deleted_at ? (
-                        <span className="text-neutral-400 italic">{row.product.code} - {row.product.name} (eliminado)</span>
+                        <span className="text-neutral-400 italic">
+                            {row.product.code} - {row.product.name} (eliminado)
+                        </span>
                     ) : (
                         <Link href={`/products/${row.product.id}`} className="text-blue-600 hover:text-blue-800">
                             {row.product.code} - {row.product.name}
@@ -385,7 +387,9 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                                     </span>
                                                 </div>
                                                 <div>
-                                                    <div className={`font-medium ${movement.product?.deleted_at ? 'text-neutral-400 italic' : 'text-neutral-900 dark:text-neutral-100'}`}>
+                                                    <div
+                                                        className={`font-medium ${movement.product?.deleted_at ? 'text-neutral-400 italic' : 'text-neutral-900 dark:text-neutral-100'}`}
+                                                    >
                                                         {movement.product?.name ?? 'Producto eliminado'}
                                                         {movement.product?.deleted_at && ' (eliminado)'}
                                                     </div>
@@ -461,7 +465,13 @@ export default function StockMovementsIndex({ movements, branches, products, fil
                                         <div className="mt-2 flex justify-end gap-2">
                                             {movement.product && !movement.product.deleted_at && (
                                                 <Link href={`/products/${movement.product.id}`}>
-                                                    <Button aria-label="Ver producto" variant="ghost" size="icon" className="h-8 w-8" title="Ver producto">
+                                                    <Button
+                                                        aria-label="Ver producto"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        title="Ver producto"
+                                                    >
                                                         <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
                                                     </Button>
                                                 </Link>

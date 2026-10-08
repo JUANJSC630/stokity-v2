@@ -507,7 +507,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                     <td className="py-2">
                                                         <div className="flex items-center gap-1">
                                                             {t.due_status === 'registered' ? (
-                                                                <Button aria-label="Des-registrar pago de este mes"
+                                                                <Button
+                                                                    aria-label="Des-registrar pago de este mes"
                                                                     variant="ghost"
                                                                     size="icon"
                                                                     className="h-8 w-8 text-amber-600 hover:text-amber-700"
@@ -518,7 +519,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                                 </Button>
                                                             ) : (
                                                                 t.due_status !== 'inactive' && (
-                                                                    <Button aria-label="Registrar pago"
+                                                                    <Button
+                                                                        aria-label="Registrar pago"
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="h-8 w-8 text-green-600 hover:text-green-700"
@@ -529,7 +531,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                                     </Button>
                                                                 )
                                                             )}
-                                                            <Button aria-label="Editar"
+                                                            <Button
+                                                                aria-label="Editar"
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8"
@@ -538,7 +541,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                             >
                                                                 <Pencil className="h-4 w-4" />
                                                             </Button>
-                                                            <Button aria-label="Eliminar"
+                                                            <Button
+                                                                aria-label="Eliminar"
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 text-red-600 hover:text-red-700"
@@ -584,7 +588,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                 </div>
                                                 <div className="flex gap-1">
                                                     {t.due_status === 'registered' ? (
-                                                        <Button aria-label="Des-registrar pago de este mes"
+                                                        <Button
+                                                            aria-label="Des-registrar pago de este mes"
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-8 w-8 text-amber-600 hover:text-amber-700"
@@ -595,7 +600,8 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                         </Button>
                                                     ) : (
                                                         t.due_status !== 'inactive' && (
-                                                            <Button aria-label="Registrar pago"
+                                                            <Button
+                                                                aria-label="Registrar pago"
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 text-green-600 hover:text-green-700"
@@ -606,10 +612,17 @@ export default function ExpenseTemplates({ templates, categories, branches, user
                                                             </Button>
                                                         )
                                                     )}
-                                                    <Button aria-label="Editar" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTemplate(t)}>
+                                                    <Button
+                                                        aria-label="Editar"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        onClick={() => setEditTemplate(t)}
+                                                    >
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
-                                                    <Button aria-label="Eliminar"
+                                                    <Button
+                                                        aria-label="Eliminar"
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-red-600 hover:text-red-700"
