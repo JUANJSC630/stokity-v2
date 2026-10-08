@@ -111,7 +111,6 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
             setRevealedApiKey(props.flash.plainApiKey);
             setCreatingKey(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.flash?.plainApiKey]);
 
     const submitEdit = (e: React.FormEvent) => {
@@ -201,7 +200,11 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
             textarea.select();
             const copied = document.execCommand('copy');
             document.body.removeChild(textarea);
-            copied ? toast.success('Copiada al portapapeles') : toast.error('No se pudo copiar');
+            if (copied) {
+                toast.success('Copiada al portapapeles');
+            } else {
+                toast.error('No se pudo copiar');
+            }
         } catch {
             toast.error('No se pudo copiar');
         }

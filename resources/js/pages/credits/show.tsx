@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type CreditSale, type PaymentMethod } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AlertCircle, ArrowLeft, Ban, DollarSign, FileText, HandCoins, Package, Pencil } from 'lucide-react';
@@ -301,11 +301,10 @@ function EditInstallmentsModal({ open, onClose, credit }: { open: boolean; onClo
 
 // ─── Main Page ──────────────────────────────────────────────────────────────────
 
-export default function CreditShow({ credit, paymentMethods, canCancel, canUpdateInstallments }: Props) {
+export default function CreditShow({ credit, canCancel, canUpdateInstallments }: Props) {
     const [paymentOpen, setPaymentOpen] = useState(false);
     const [cancelOpen, setCancelOpen] = useState(false);
     const [editInstallmentsOpen, setEditInstallmentsOpen] = useState(false);
-    const { flash } = usePage().props as unknown as { flash: { success?: string } };
 
     const statusCfg = STATUS_CONFIG[credit.status] ?? STATUS_CONFIG.active;
     const isActive = credit.status === 'active' || credit.status === 'overdue';
@@ -499,7 +498,7 @@ export default function CreditShow({ credit, paymentMethods, canCancel, canUpdat
                     <CardContent>
                         {credit.payments && credit.payments.length > 0 ? (
                             <div className="space-y-3">
-                                {credit.payments.map((payment, idx) => (
+                                {credit.payments.map((payment) => (
                                     <div key={payment.id} className="flex items-center justify-between rounded-lg border px-4 py-3">
                                         <div>
                                             <p className="font-medium">{cop(payment.amount)}</p>
