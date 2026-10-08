@@ -32,3 +32,13 @@ it('sends HSTS only over https', function () {
 
     $this->get('https://localhost/login')->assertHeader('Strict-Transport-Security', 'max-age=15552000');
 });
+
+it('sends HSTS when the proxy terminates TLS and forwards the scheme', function () {
+    $this->get('http://localhost/login', ['X-Forwarded-Proto' => 'https'])
+        ->assertHeader('Strict-Transport-Security', 'max-age=15552000');
+});
+
+it('does not send HSTS when the forwarded scheme is http', function () {
+    $this->get('http://localhost/login', ['X-Forwarded-Proto' => 'http'])
+        ->assertHeaderMissing('Strict-Transport-Security');
+});
