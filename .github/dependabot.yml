@@ -1,14 +1,18 @@
 version: 2
 
-# Patch and minor updates only: majors (Laravel, Inertia, Vitest...) need a deliberate
-# upgrade with the checks in Técnico/Runbook-verificar-un-despliegue, not an automatic PR.
+# Composer and npm: version-update PRs are OFF (open-pull-requests-limit: 0). The first batch
+# (10 Composer + 41 npm bumps, no advisory behind them) broke PHPStan/tsc and touched
+# Inertia and all of Radix, which cannot be validated visually from CI. Security updates
+# still arrive and audit.yml checks both lockfiles every week; bump a library by itself
+# with the checks in Técnico/Runbook-verificar-un-despliegue. GitHub Actions bumps stay on
+# because CI exercises them completely.
 updates:
   - package-ecosystem: composer
     directory: /
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: 'chore(deps)'
     groups:
@@ -23,7 +27,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     commit-message:
       prefix: 'chore(deps)'
     groups:
