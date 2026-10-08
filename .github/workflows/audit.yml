@@ -1,0 +1,41 @@
+name: dependency audit
+
+# Not a pull request check, so a newly published advisory never blocks unrelated
+# merges or deploys. It runs weekly, on demand and when the lockfiles change; a red
+# run (and GitHub's failure e-mail) means a dependency has a known vulnerability.
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - composer.lock
+      - package-lock.json
+      - .github/workflows/audit.yml
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Composer audit
+        run: composer audit --locked
+
+      - name: npm audit
+        run: npm audit
