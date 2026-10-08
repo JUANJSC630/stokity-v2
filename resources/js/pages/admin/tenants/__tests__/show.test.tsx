@@ -172,13 +172,30 @@ describe('Admin tenant detail', () => {
         expect(router.post).toHaveBeenCalledWith('/admin/tenants/7/users/1/reset-password', {}, expect.objectContaining({ preserveScroll: true }));
     });
 
-    it('asks for the password before entering as a user', () => {
+    it('needs the password before the slide can confirm entering as a user', () => {
+        renderPage();
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'Entrar' })[0]);
+        const dialog = screen.getByRole('dialog');
+        const slide = within(dialog).getByRole('button', { name: 'Desliza para entrar' });
+        expect(slide).toBeDisabled();
+
+        fireEvent.change(within(dialog).getByLabelText('Confirma tu contraseña'), { target: { value: 'secreto-123' } });
+        expect(slide).toBeEnabled();
+        expect(mocks.post).not.toHaveBeenCalled();
+
+        fireEvent.click(slide);
+
+        expect(mocks.post).toHaveBeenCalledWith('/admin/tenants/7/users/1/impersonate', expect.any(Object));
+    });
+
+    it('still lets the keyboard submit the form from the password field', () => {
         renderPage();
 
         fireEvent.click(screen.getAllByRole('button', { name: 'Entrar' })[0]);
         const dialog = screen.getByRole('dialog');
         fireEvent.change(within(dialog).getByLabelText('Confirma tu contraseña'), { target: { value: 'secreto-123' } });
-        fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar' }));
+        fireEvent.submit(dialog.querySelector('form') as HTMLFormElement);
 
         expect(mocks.post).toHaveBeenCalledWith('/admin/tenants/7/users/1/impersonate', expect.any(Object));
     });
