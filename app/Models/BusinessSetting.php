@@ -16,10 +16,29 @@ class BusinessSetting extends Model
 
     private const CACHE_TTL = 3600; // 1 hour
 
+    public const MEMO_BINDING = 'business_settings.memo';
+
+    private ?string $resolvedLegacyDefaultImage = null;
+
     protected static function booted(): void
     {
         // Invalidate the per-tenant cache entry for this settings row.
-        static::saved(fn (self $model) => Cache::forget(self::cacheKey($model->tenant_id)));
+        static::saved(function (self $model) {
+            Cache::forget(self::cacheKey($model->tenant_id));
+            self::memo()->exchangeArray([]);
+        });
+    }
+
+    /**
+     * Per-request memo of the resolved settings, keyed by tenant. It lives in the
+     * container (bound in AppServiceProvider) so it dies with the request and
+     * never leaks between requests, tenants or tests.
+     *
+     * @return \ArrayObject<int, self>
+     */
+    private static function memo(): \ArrayObject
+    {
+        return app(self::MEMO_BINDING);
     }
 
     /** Per-tenant cache key (falls back to a global key when no tenant context). */
@@ -143,7 +162,9 @@ class BusinessSetting extends Model
             return self::defaultSettings();
         }
 
-        return Cache::remember(self::cacheKey($tenantId), self::CACHE_TTL, function () {
+        $memo = self::memo();
+
+        return $memo[$tenantId] ??= Cache::remember(self::cacheKey($tenantId), self::CACHE_TTL, function () {
             // static::first() is tenant-scoped via BelongsToTenant; create()
             // auto-stamps tenant_id from the current tenant context.
             return static::first() ?? static::create([
@@ -186,13 +207,12 @@ class BusinessSetting extends Model
             return $this->default_product_image;
         }
 
-        // Legacy local file fallback
-        $path = public_path('uploads/default-product.png');
-        if (file_exists($path)) {
-            return asset('uploads/default-product.png');
-        }
+        // Legacy local file fallback (checked once per instance: it runs per product)
+        $this->resolvedLegacyDefaultImage ??= file_exists(public_path('uploads/default-product.png'))
+            ? asset('uploads/default-product.png')
+            : '';
 
-        return null;
+        return $this->resolvedLegacyDefaultImage ?: null;
     }
 
     /**
