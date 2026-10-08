@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCurrency, formatDate, formatDateTime, formatRelativeTime, formatTime } from '../format';
+import { formatCurrency, formatDate, formatDateOnly, formatDateTime, formatRelativeTime, formatTime } from '../format';
 
 describe('formatDate', () => {
     it('formats an ISO string', () => {
@@ -122,5 +122,23 @@ describe('formatRelativeTime', () => {
         expect(formatRelativeTime(null, now)).toBe('—');
         expect(formatRelativeTime(undefined, now)).toBe('—');
         expect(formatRelativeTime('nope', now)).toBe('—');
+    });
+});
+
+describe('formatDateOnly', () => {
+    it('shows the calendar day as written, without shifting it by timezone', () => {
+        expect(formatDateOnly('2026-10-08')).toContain('8');
+        expect(formatDateOnly('2026-10-08')).toContain('2026');
+        expect(formatDateOnly('2026-01-01')).toContain('1');
+    });
+
+    it('accepts a full timestamp but uses only its date part', () => {
+        expect(formatDateOnly('2026-10-08T23:59:59-05:00')).toBe(formatDateOnly('2026-10-08'));
+    });
+
+    it('returns a dash for missing or invalid input', () => {
+        expect(formatDateOnly(null)).toBe('—');
+        expect(formatDateOnly(undefined)).toBe('—');
+        expect(formatDateOnly('hoy')).toBe('—');
     });
 });
