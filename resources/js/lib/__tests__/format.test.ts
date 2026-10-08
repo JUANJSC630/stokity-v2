@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCurrency, formatDate, formatDateTime, formatTime } from '../format';
+import { formatCurrency, formatDate, formatDateTime, formatRelativeTime, formatTime } from '../format';
 
 describe('formatDate', () => {
     it('formats an ISO string', () => {
@@ -92,5 +92,35 @@ describe('formatCurrency', () => {
     it('formats large numbers with separators', () => {
         const result = formatCurrency(1500000);
         expect(result).toContain('1.500.000');
+    });
+});
+
+describe('formatRelativeTime', () => {
+    const now = new Date('2026-10-08T12:00:00Z');
+
+    it('says "justo ahora" under a minute', () => {
+        expect(formatRelativeTime('2026-10-08T11:59:40Z', now)).toBe('justo ahora');
+    });
+
+    it('formats minutes, hours, yesterday and days', () => {
+        expect(formatRelativeTime('2026-10-08T11:35:00Z', now)).toBe('hace 25 min');
+        expect(formatRelativeTime('2026-10-08T09:00:00Z', now)).toBe('hace 3 h');
+        expect(formatRelativeTime('2026-10-07T08:00:00Z', now)).toBe('ayer');
+        expect(formatRelativeTime('2026-10-01T12:00:00Z', now)).toBe('hace 7 días');
+    });
+
+    it('formats months after 30 days', () => {
+        expect(formatRelativeTime('2026-09-01T12:00:00Z', now)).toBe('hace 1 mes');
+        expect(formatRelativeTime('2026-08-01T12:00:00Z', now)).toBe('hace 2 meses');
+    });
+
+    it('falls back to the date after a year', () => {
+        expect(formatRelativeTime('2025-08-01T12:00:00Z', now)).toContain('2025');
+    });
+
+    it('returns a dash for missing or invalid dates', () => {
+        expect(formatRelativeTime(null, now)).toBe('—');
+        expect(formatRelativeTime(undefined, now)).toBe('—');
+        expect(formatRelativeTime('nope', now)).toBe('—');
     });
 });

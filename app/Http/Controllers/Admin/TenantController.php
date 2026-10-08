@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Tenancy\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -33,8 +34,15 @@ class TenantController extends Controller
             ->pluck('aggregate', 'tenant_id');
 
         $users = $countByTenant(User::class);
-        $products = $countByTenant(Product::class);
         $sales = $countByTenant(Sale::class);
+
+        // Latest sign-in among each tenant's users, to spot inactive customers.
+        // Super admins have no tenant_id, so they never count toward a tenant.
+        $lastActivity = User::allTenants()
+            ->whereNotNull('tenant_id')
+            ->selectRaw('tenant_id, MAX(last_login_at) as aggregate')
+            ->groupBy('tenant_id')
+            ->pluck('aggregate', 'tenant_id');
 
         // allTenants()'s per-tenant aggregates above have no idea a tenant
         // was later archived (soft-deleted) — their keys can include
@@ -78,9 +86,8 @@ class TenantController extends Controller
             'slug' => $t->slug,
             'status' => $t->status,
             'created_at' => $t->created_at?->toIso8601String(),
-            'users_count' => (int) ($users[$t->id] ?? 0),
-            'products_count' => (int) ($products[$t->id] ?? 0),
-            'sales_count' => (int) ($sales[$t->id] ?? 0),
+            'trial_ends_at' => $t->trial_ends_at?->toIso8601String(),
+            'last_activity_at' => ($lastActivity[$t->id] ?? null) ? Carbon::parse($lastActivity[$t->id])->toIso8601String() : null,
         ]);
 
         // Cross-tenant user search: answers "which business does this email
