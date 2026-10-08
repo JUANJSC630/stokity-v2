@@ -10,17 +10,20 @@ interface SalesSummary {
     method: string;
     name: string;
     count: number;
-    total: number;
+    total?: number;
 }
+
+type BlindableMovement = Omit<CashMovement, 'amount'> & { amount?: number };
 
 interface Props {
     session: CashSession;
     salesSummary: SalesSummary[];
-    movements: CashMovement[];
+    movements: BlindableMovement[];
     isBlind: boolean;
-    totalSales: number;
+    totalSales: number | null;
     expectedCash: number | null;
-    creditPaymentsTotal: number;
+    creditPaymentsTotal: number | null;
+    creditPaymentsCount: number;
 }
 
 function formatCOP(value: number | string) {
@@ -34,7 +37,16 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Cierre', href: '#' },
 ];
 
-export default function CashSessionClose({ session, salesSummary, movements, isBlind, totalSales, expectedCash, creditPaymentsTotal }: Props) {
+export default function CashSessionClose({
+    session,
+    salesSummary,
+    movements,
+    isBlind,
+    totalSales,
+    expectedCash,
+    creditPaymentsTotal,
+    creditPaymentsCount,
+}: Props) {
     const form = useForm({
         closing_amount_declared: '',
         closing_notes: '',
@@ -104,7 +116,7 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                 <tr className="border-b border-neutral-100 text-xs text-muted-foreground dark:border-neutral-800">
                                     <th className="px-4 py-2 text-left">Método</th>
                                     <th className="px-4 py-2 text-center"># Ventas</th>
-                                    <th className="px-4 py-2 text-right">Total</th>
+                                    {!isBlind && <th className="px-4 py-2 text-right">Total</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -112,14 +124,16 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                     <tr key={row.method}>
                                         <td className="px-4 py-2">{row.name}</td>
                                         <td className="px-4 py-2 text-center">{row.count}</td>
-                                        <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total)}</td>
+                                        {!isBlind && <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total ?? 0)}</td>}
                                     </tr>
                                 ))}
-                                <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
-                                    <td className="px-4 py-2">Total ventas</td>
-                                    <td />
-                                    <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales)}</td>
-                                </tr>
+                                {!isBlind && (
+                                    <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
+                                        <td className="px-4 py-2">Total ventas</td>
+                                        <td />
+                                        <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales ?? 0)}</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     )}
@@ -143,30 +157,40 @@ export default function CashSessionClose({ session, salesSummary, movements, isB
                                         {m.concept}
                                         {m.notes && <span className="text-xs text-muted-foreground"> · {m.notes}</span>}
                                     </div>
-                                    <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                        {m.type === 'cash_in' ? '+' : '-'}
-                                        {formatCOP(m.amount)}
-                                    </span>
+                                    {!isBlind && (
+                                        <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
+                                            {m.type === 'cash_in' ? '+' : '-'}
+                                            {formatCOP(m.amount ?? 0)}
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
-                        <div className="flex justify-between border-t border-neutral-200 px-4 py-2 text-sm dark:border-neutral-700">
-                            <span className="text-muted-foreground">Ingresos manuales</span>
-                            <span className="font-semibold text-green-700">+{formatCOP(cashMovementsIn)}</span>
-                        </div>
-                        <div className="flex justify-between px-4 py-2 text-sm">
-                            <span className="text-muted-foreground">Egresos manuales</span>
-                            <span className="font-semibold text-red-600">-{formatCOP(cashMovementsOut)}</span>
-                        </div>
+                        {!isBlind && (
+                            <>
+                                <div className="flex justify-between border-t border-neutral-200 px-4 py-2 text-sm dark:border-neutral-700">
+                                    <span className="text-muted-foreground">Ingresos manuales</span>
+                                    <span className="font-semibold text-green-700">+{formatCOP(cashMovementsIn)}</span>
+                                </div>
+                                <div className="flex justify-between px-4 py-2 text-sm">
+                                    <span className="text-muted-foreground">Egresos manuales</span>
+                                    <span className="font-semibold text-red-600">-{formatCOP(cashMovementsOut)}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
                 {/* Credit payments breakdown */}
-                {creditPaymentsTotal > 0 && (
+                {(isBlind ? creditPaymentsCount > 0 : (creditPaymentsTotal ?? 0) > 0) && (
                     <div className="rounded-xl border border-blue-200 bg-white dark:border-blue-800 dark:bg-neutral-900">
                         <div className="flex items-center justify-between border-b border-blue-200 px-4 py-3 dark:border-blue-800">
                             <h2 className="font-semibold">Abonos de crédito</h2>
-                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{formatCOP(creditPaymentsTotal)}</Badge>
+                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                                {isBlind
+                                    ? `${creditPaymentsCount} ${creditPaymentsCount === 1 ? 'abono' : 'abonos'}`
+                                    : formatCOP(creditPaymentsTotal ?? 0)}
+                            </Badge>
                         </div>
                         <div className="px-4 py-3 text-sm text-muted-foreground">
                             Los abonos de crédito ya están incluidos en los ingresos manuales de arriba.

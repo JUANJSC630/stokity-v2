@@ -150,6 +150,8 @@ class PrintController extends Controller
     {
         $user = Auth::user();
         abort_if($user->isRestrictedToOwnBranch() && $session->branch_id !== $user->branch_id, 403, 'No tienes acceso a este reporte de caja.');
+        abort_if(! $user->can('cash_sessions.view_all') && $session->opened_by_user_id !== $user->id, 403, 'No tienes acceso a este reporte de caja.');
+        abort_if($session->status === 'open' && ! $user->can('cash_sessions.view_expected'), 403, 'El arqueo de una caja abierta no está disponible en cierre ciego.');
 
         $session->load(['branch:id,name', 'openedBy:id,name', 'closedBy:id,name', 'movements']);
 

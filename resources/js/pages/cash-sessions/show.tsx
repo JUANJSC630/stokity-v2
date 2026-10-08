@@ -10,13 +10,14 @@ interface SalesDetail {
     method: string;
     name: string;
     count: number;
-    total: number;
+    total?: number;
 }
 
 interface Props {
     session: CashSession;
-    movements: (CashMovement & { user?: { id: number; name: string } })[];
+    movements: (Omit<CashMovement, 'amount'> & { amount?: number; user?: { id: number; name: string } })[];
     salesDetail: SalesDetail[];
+    isBlind: boolean;
 }
 
 function formatCOP(value: number | string | null | undefined) {
@@ -38,7 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Arqueo', href: '#' },
 ];
 
-export default function CashSessionShow({ session, movements, salesDetail }: Props) {
+export default function CashSessionShow({ session, movements, salesDetail, isBlind }: Props) {
     const printer = usePrinter();
     const [printing, setPrinting] = useState(false);
 
@@ -114,7 +115,7 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                                 <tr className="border-b border-neutral-100 text-xs text-muted-foreground dark:border-neutral-800">
                                     <th className="px-4 py-2 text-left">Método</th>
                                     <th className="px-4 py-2 text-center"># Ventas</th>
-                                    <th className="px-4 py-2 text-right">Total</th>
+                                    {!isBlind && <th className="px-4 py-2 text-right">Total</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -122,14 +123,16 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                                     <tr key={row.method}>
                                         <td className="px-4 py-2">{row.name}</td>
                                         <td className="px-4 py-2 text-center">{row.count}</td>
-                                        <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total)}</td>
+                                        {!isBlind && <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total ?? 0)}</td>}
                                     </tr>
                                 ))}
-                                <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
-                                    <td className="px-4 py-2">Total</td>
-                                    <td />
-                                    <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales)}</td>
-                                </tr>
+                                {!isBlind && (
+                                    <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
+                                        <td className="px-4 py-2">Total</td>
+                                        <td />
+                                        <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales)}</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     )}
@@ -153,10 +156,12 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                                         {m.concept}
                                         {m.user && <span className="text-xs text-muted-foreground"> · {m.user.name}</span>}
                                     </div>
-                                    <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                        {m.type === 'cash_in' ? '+' : '-'}
-                                        {formatCOP(m.amount)}
-                                    </span>
+                                    {!isBlind && (
+                                        <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
+                                            {m.type === 'cash_in' ? '+' : '-'}
+                                            {formatCOP(m.amount ?? 0)}
+                                        </span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -243,14 +248,16 @@ export default function CashSessionShow({ session, movements, salesDetail }: Pro
                     >
                         Historial
                     </button>
-                    <button
-                        type="button"
-                        onClick={handlePrint}
-                        disabled={printing}
-                        className="flex-1 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
-                    >
-                        {printing ? 'Imprimiendo...' : 'Imprimir'}
-                    </button>
+                    {!isBlind && (
+                        <button
+                            type="button"
+                            onClick={handlePrint}
+                            disabled={printing}
+                            className="flex-1 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+                        >
+                            {printing ? 'Imprimiendo...' : 'Imprimir'}
+                        </button>
+                    )}
                 </div>
             </div>
         </AppLayout>

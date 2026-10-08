@@ -153,10 +153,13 @@ class CashSessionController extends Controller
         $paymentMethodNames = PaymentMethod::pluck('name', 'code');
         $salesDetail = $this->buildSalesDetail($session->id, $paymentMethodNames->toArray());
 
+        $isBlind = $session->status === 'open' && ! $user->can('cash_sessions.view_expected');
+
         return Inertia::render('cash-sessions/show', [
             'session' => $session,
-            'movements' => $movements,
-            'salesDetail' => $salesDetail,
+            'movements' => $isBlind ? $this->withoutAmounts($movements) : $movements,
+            'salesDetail' => $isBlind ? $this->withoutSalesTotals($salesDetail) : $salesDetail,
+            'isBlind' => $isBlind,
         ]);
     }
 
@@ -193,14 +196,17 @@ class CashSessionController extends Controller
             ->where('reference_type', 'credit_payment')
             ->sum('amount');
 
+        $isBlind = ! $user->can('cash_sessions.view_expected');
+
         return Inertia::render('cash-sessions/close', [
             'session' => $session,
-            'movements' => $movements,
-            'salesSummary' => $salesSummary,
-            'totalSales' => $totalSales,
-            'expectedCash' => $user->can('cash_sessions.view_expected') ? $expectedCash : null,
-            'isBlind' => ! $user->can('cash_sessions.view_expected'),
-            'creditPaymentsTotal' => $creditPaymentsTotal,
+            'movements' => $isBlind ? $this->withoutAmounts($movements) : $movements,
+            'salesSummary' => $isBlind ? $this->withoutSalesTotals($salesSummary) : $salesSummary,
+            'totalSales' => $isBlind ? null : $totalSales,
+            'expectedCash' => $isBlind ? null : $expectedCash,
+            'isBlind' => $isBlind,
+            'creditPaymentsTotal' => $isBlind ? null : $creditPaymentsTotal,
+            'creditPaymentsCount' => $movements->where('reference_type', 'credit_payment')->count(),
         ]);
     }
 
@@ -372,6 +378,31 @@ class CashSessionController extends Controller
     /**
      * Build sales detail array grouped by payment method for a session.
      */
+    /**
+     * A blind close must not let the cashier derive the expected cash, so the
+     * per-method totals are dropped and only the number of sales is kept.
+     *
+     * @param  list<array{method: string, name: string, group: string, count: int, total: float}>  $salesDetail
+     * @return list<array{method: string, name: string, count: int}>
+     */
+    private function withoutSalesTotals(array $salesDetail): array
+    {
+        return array_map(fn (array $row) => [
+            'method' => $row['method'],
+            'name' => $row['name'],
+            'count' => $row['count'],
+        ], $salesDetail);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, CashMovement>  $movements
+     * @return list<array<string, mixed>>
+     */
+    private function withoutAmounts(\Illuminate\Support\Collection $movements): array
+    {
+        return $movements->map(fn (CashMovement $movement) => collect($movement->toArray())->except('amount')->all())->values()->all();
+    }
+
     private function buildSalesDetail(int $sessionId, array $paymentMethodNames = []): array
     {
         $rows = Sale::where('session_id', $sessionId)
