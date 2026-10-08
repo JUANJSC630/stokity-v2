@@ -22,9 +22,8 @@ export default function Welcome() {
             <BrandColors />
             <Head title={`Bienvenido — ${businessName}`} />
 
-            {/* Full-bleed canvas */}
             <div
-                className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pt-16 pb-24"
+                className="relative flex min-h-screen flex-col overflow-hidden"
                 style={{
                     background: `
                         radial-gradient(ellipse 900px 700px at 88% 5%,  rgba(var(--brand-primary-rgb), 0.10) 0%, transparent 60%),
@@ -50,11 +49,10 @@ export default function Welcome() {
                     />
                 </div>
 
-                {/* ── Content ──────────────────────────────────────────────── */}
-                <div className="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
-                    {/* Badge */}
+                {/* ── Hero ─────────────────────────────────────────────────── */}
+                <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pt-14 pb-12 text-center">
                     <div
-                        className="welcome-animate welcome-d1 mb-14 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
+                        className="welcome-animate welcome-d1 mb-12 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-widest uppercase"
                         style={{
                             background: 'rgba(var(--brand-primary-rgb), 0.09)',
                             color: 'var(--brand-primary)',
@@ -65,43 +63,34 @@ export default function Welcome() {
                         Sistema de Gestión POS
                     </div>
 
-                    {/* Logo with pulse rings */}
-                    <div className="welcome-animate welcome-d2 relative mb-7 flex items-center justify-center" style={{ width: 128, height: 128 }}>
-                        <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '0s' }} />
-                        <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '0.93s' }} />
-                        <div className="logo-ring" style={{ width: 134, height: 134, animationDelay: '1.86s' }} />
+                    <div className="welcome-animate welcome-d2 relative mb-8 flex items-center justify-center" style={{ width: 112, height: 112 }}>
+                        <div className="logo-ring" style={{ width: 118, height: 118, animationDelay: '0s' }} />
+                        <div className="logo-ring" style={{ width: 118, height: 118, animationDelay: '1.4s' }} />
                         <img
                             src={logoSrc}
                             alt={businessName}
                             className="relative z-10 rounded-2xl object-contain"
-                            style={{ width: 128, height: 128, boxShadow: '0 12px 40px rgba(var(--brand-primary-rgb), 0.18)' }}
+                            style={{ width: 112, height: 112, boxShadow: '0 12px 40px rgba(var(--brand-primary-rgb), 0.18)' }}
                             onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/stokity-icon.png';
                             }}
                         />
                     </div>
 
-                    {/* Business name */}
                     <h1
-                        className="welcome-animate welcome-d3 font-serif font-semibold tracking-tight"
-                        style={{ fontSize: 'clamp(36px, 7vw, 52px)', lineHeight: 1.15, color: 'oklch(0.22 0.02 30)', letterSpacing: '-0.02em' }}
+                        className="welcome-animate welcome-d3 max-w-5xl font-serif font-semibold text-balance"
+                        style={{ fontSize: 'clamp(44px, 8vw, 96px)', lineHeight: 1.02, color: 'oklch(0.22 0.02 30)', letterSpacing: '-0.03em' }}
                     >
                         {businessName}
                     </h1>
 
-                    {/* Accent line */}
-                    <div className="welcome-animate welcome-d4 my-5 h-0.5 w-12 rounded-full" style={{ background: 'var(--brand-primary)' }} />
+                    <div className="welcome-animate welcome-d4 my-7 h-0.5 w-14 rounded-full" style={{ background: 'var(--brand-primary)' }} />
 
-                    {/* Tagline */}
-                    <p
-                        className="welcome-animate welcome-d4 leading-relaxed text-balance"
-                        style={{ fontSize: 16, color: 'oklch(0.5 0.02 30)', maxWidth: 340, margin: '0 auto 36px' }}
-                    >
+                    <p className="welcome-animate welcome-d4 max-w-md text-lg leading-relaxed text-balance" style={{ color: 'oklch(0.5 0.02 30)' }}>
                         Tu punto de venta profesional, listo para crecer con tu negocio
                     </p>
 
-                    {/* CTA */}
-                    <div className="welcome-animate welcome-d5">
+                    <div className="welcome-animate welcome-d5 mt-9">
                         <Link
                             href={auth.user ? route('dashboard') : route('login')}
                             className="btn-auth group"
@@ -111,36 +100,34 @@ export default function Welcome() {
                             <ArrowRight className="btn-arrow h-4 w-4" />
                         </Link>
                     </div>
+                </main>
 
-                    {/* Modules */}
-                    <ul className="welcome-animate welcome-d6 mt-12 grid w-full grid-cols-2 gap-3 sm:grid-cols-4">
-                        {FEATURES.map(({ icon: Icon, label }) => (
-                            <li
-                                key={label}
-                                className="flex flex-col items-center gap-3 rounded-2xl p-5"
-                                style={{
-                                    background: 'rgba(var(--brand-primary-rgb), 0.06)',
-                                    border: '1px solid rgba(var(--brand-primary-rgb), 0.14)',
-                                }}
+                {/* ── Module strip ─────────────────────────────────────────── */}
+                <ul className="welcome-animate welcome-d6 relative z-10 grid grid-cols-2 border-t border-[rgba(var(--brand-primary-rgb),0.18)] bg-white/40 backdrop-blur-sm sm:grid-cols-4">
+                    {FEATURES.map(({ icon: Icon, label }, index) => (
+                        <li
+                            key={label}
+                            className="flex items-center justify-center gap-3 border-b border-[rgba(var(--brand-primary-rgb),0.18)] px-4 py-6 odd:border-r sm:border-r sm:border-b-0 sm:last:border-r-0"
+                        >
+                            <span className="text-xs font-medium tabular-nums" style={{ color: 'oklch(0.6 0.02 30)' }}>
+                                {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <span
+                                className="flex h-9 w-9 items-center justify-center rounded-lg"
+                                style={{ background: 'rgba(var(--brand-primary-rgb), 0.09)', color: 'var(--brand-primary)' }}
                             >
-                                <span
-                                    className="flex h-11 w-11 items-center justify-center rounded-xl"
-                                    style={{ background: 'rgba(var(--brand-primary-rgb), 0.1)', color: 'var(--brand-primary)' }}
-                                >
-                                    <Icon className="h-5 w-5" aria-hidden="true" />
-                                </span>
-                                <span className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
-                                    {label}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                                <Icon className="h-4 w-4" aria-hidden="true" />
+                            </span>
+                            <span className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                                {label}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
 
-                {/* Copyright */}
                 <p
-                    className="welcome-animate welcome-d7 absolute right-0 bottom-6 left-0 text-center text-xs"
-                    style={{ color: 'oklch(0.65 0.02 30)' }}
+                    className="welcome-animate welcome-d7 relative z-10 border-t border-[rgba(var(--brand-primary-rgb),0.12)] bg-white/40 py-5 text-center text-xs backdrop-blur-sm"
+                    style={{ color: 'oklch(0.6 0.02 30)' }}
                 >
                     <AllRightsReserved />
                 </p>
