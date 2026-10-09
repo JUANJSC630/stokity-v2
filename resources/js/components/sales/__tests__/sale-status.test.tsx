@@ -25,6 +25,8 @@ describe('sale status', () => {
         ['credit_card', 'Tarjeta de crédito'],
         ['debit_card', 'Tarjeta débito'],
         ['other', 'Otro'],
+        ['credito', 'Crédito'],
+        ['bank_transfer', 'Transferencia'],
         ['nequi', 'nequi'],
     ])('names payment method %s as %s', (method, label) => {
         expect(paymentMethodLabel(method)).toBe(label);
