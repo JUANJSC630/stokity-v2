@@ -324,7 +324,12 @@
     border: none;
     cursor: pointer;
     color: oklch(0.5 0.02 30);
-    padding: 0.25rem;
+    /* 44 px touch target; the icon keeps its 16 px size and the right edge stays put. */
+    width: 2.75rem;
+    height: 2.75rem;
+    right: 0;
+    justify-content: center;
+    padding: 0;
     display: flex;
     align-items: center;
 }
@@ -337,6 +342,7 @@
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    min-height: 2.75rem;
 }
 
 .auth-checkbox {

@@ -118,7 +118,7 @@ export default function AuthSimpleLayout({ children, description, backHref }: Pr
                         {backHref && (
                             <Link
                                 href={backHref}
-                                className="welcome-animate welcome-d1 mb-8 flex items-center gap-1.5 text-sm transition-colors duration-200 hover:text-[var(--brand-primary)]"
+                                className="welcome-animate welcome-d1 mb-4 flex min-h-11 items-center gap-1.5 text-sm transition-colors duration-200 hover:text-[var(--brand-primary)]"
                                 style={{ color: 'oklch(0.52 0.02 30)' }}
                             >
                                 <ArrowLeft className="h-4 w-4" />
