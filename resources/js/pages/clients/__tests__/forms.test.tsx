@@ -48,16 +48,14 @@ beforeAll(() => {
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
     vi.stubGlobal(
         'matchMedia',
-        vi
-            .fn()
-            .mockImplementation((query: string) => ({
-                matches: false,
-                media: query,
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-                addListener: vi.fn(),
-                removeListener: vi.fn(),
-            })),
+        vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
     );
 });
 
