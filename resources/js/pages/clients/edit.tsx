@@ -1,15 +1,14 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StickyActions } from '@/components/admin/sticky-actions';
+import { ClientFormFields } from '@/components/clients/client-form-fields';
+import { HoldToConfirm } from '@/components/ui/arc/hold-to-confirm';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ChevronLeft, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Client {
@@ -45,6 +44,7 @@ export default function Edit({ client }: Props) {
     ];
 
     const { can } = usePermissions();
+    const onBrand = useOnBrandColor();
     const canManageWholesale = can('clients.wholesale.manage');
 
     const form = useForm({
@@ -74,181 +74,75 @@ export default function Edit({ client }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Editar Cliente: ${client.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 p-2 sm:p-4">
-                {/* Header with back button */}
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0">
-                    <Link href={route('clients.index')}>
-                        <Button variant="ghost" size="sm" className="mr-0 flex items-center gap-1 sm:mr-4">
-                            <ArrowLeft className="h-4 w-4" />
-                            Volver
-                        </Button>
+            <Head title={`Editar cliente: ${client.name}`} />
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={route('clients.show', client.id)}
+                        aria-label="Volver al cliente"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:h-8 sm:w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
                     </Link>
-                    <h1 className="text-xl font-semibold sm:text-2xl">Editar Cliente</h1>
+                    <div className="min-w-0">
+                        <h1 className="truncate text-xl leading-tight font-bold sm:text-2xl">Editar cliente</h1>
+                        <p className="truncate text-sm text-muted-foreground">{client.name}</p>
+                    </div>
                 </div>
 
-                <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                    <CardHeader>
-                        <CardTitle>Información del Cliente</CardTitle>
-                        <CardDescription>
-                            Modifica los datos necesarios del cliente. Todos los campos marcados con * son obligatorios.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">
-                                        Nombre <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.name}
-                                        onChange={(e) => form.setData('name', e.target.value)}
-                                        required
-                                    />
-                                    {form.errors.name && <p className="text-sm text-red-500">{form.errors.name}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="document">
-                                        Documento <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="document"
-                                        type="text"
-                                        className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.document}
-                                        onChange={(e) => form.setData('document', e.target.value)}
-                                        placeholder="Cédula de Ciudadanía"
-                                        required
-                                    />
-                                    {form.errors.document && <p className="text-sm text-red-500">{form.errors.document}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Teléfono</Label>
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.phone}
-                                        onChange={(e) => form.setData('phone', e.target.value)}
-                                    />
-                                    {form.errors.phone && <p className="text-sm text-red-500">{form.errors.phone}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Correo Electrónico</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.email}
-                                        onChange={(e) => form.setData('email', e.target.value)}
-                                    />
-                                    {form.errors.email && <p className="text-sm text-red-500">{form.errors.email}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="address">Dirección</Label>
-                                    <Input
-                                        id="address"
-                                        type="text"
-                                        className="max-w-full truncate bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.address}
-                                        onChange={(e) => form.setData('address', e.target.value)}
-                                    />
-                                    {form.errors.address && <p className="text-sm text-red-500">{form.errors.address}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="birthdate">Fecha de Nacimiento</Label>
-                                    <Input
-                                        id="birthdate"
-                                        type="date"
-                                        className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.birthdate ? form.data.birthdate.slice(0, 10) : ''}
-                                        onChange={(e) => form.setData('birthdate', e.target.value)}
-                                    />
-                                    {form.errors.birthdate && <p className="text-sm text-red-500">{form.errors.birthdate}</p>}
-                                </div>
-                            </div>
-                            {canManageWholesale && (
-                                <div className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <Label htmlFor="is_wholesale">Cliente mayorista</Label>
-                                            <p className="text-xs text-muted-foreground">
-                                                Aplica su descuento automáticamente en el POS al seleccionarlo.
-                                            </p>
-                                        </div>
-                                        <Switch
-                                            id="is_wholesale"
-                                            checked={form.data.is_wholesale}
-                                            onCheckedChange={(checked) => {
-                                                form.setData('is_wholesale', checked);
-                                                if (!checked) form.setData('wholesale_discount_pct', '');
-                                            }}
-                                        />
-                                    </div>
-                                    {form.data.is_wholesale && (
-                                        <div className="space-y-2">
-                                            <Label htmlFor="wholesale_discount_pct">
-                                                Descuento (%) <span className="text-red-500">*</span>
-                                            </Label>
-                                            <Input
-                                                id="wholesale_discount_pct"
-                                                type="number"
-                                                min={0}
-                                                max={100}
-                                                step="0.01"
-                                                className="max-w-32 bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                                value={form.data.wholesale_discount_pct}
-                                                onChange={(e) => form.setData('wholesale_discount_pct', e.target.value)}
-                                            />
-                                            {form.errors.wholesale_discount_pct && (
-                                                <p className="text-sm text-red-500">{form.errors.wholesale_discount_pct}</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            <div className="mt-4 flex flex-col justify-end gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
-                                <Link href={route('clients.index')}>
-                                    <Button variant="outline" type="button" className="w-full sm:w-auto">
-                                        Cancelar
-                                    </Button>
-                                </Link>
-                                <Button type="submit" disabled={form.processing} className="w-full gap-1 sm:w-auto">
-                                    <Save className="size-4" />
-                                    <span>Actualizar Cliente</span>
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full gap-1 text-red-500 hover:text-red-600 sm:w-auto"
-                                    onClick={() => setIsDeleteDialogOpen(true)}
-                                >
-                                    <Trash2 className="size-4" />
-                                    <span>Eliminar</span>
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
+                <ClientFormFields data={form.data} errors={form.errors} setData={form.setData as never} canManageWholesale={canManageWholesale} />
+
+                <StickyActions>
+                    <button
+                        type="button"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        aria-label="Eliminar cliente"
+                        className="mr-auto flex h-11 items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:h-9 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                    >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">Eliminar</span>
+                    </button>
+                    <Link
+                        href={route('clients.show', client.id)}
+                        className="flex h-11 items-center justify-center rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:h-9"
+                    >
+                        Cancelar
+                    </Link>
+                    <button
+                        type="submit"
+                        disabled={form.processing}
+                        className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-5 text-sm font-medium transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 sm:h-9"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Save className="size-4" aria-hidden="true" />
+                        Actualizar cliente
+                    </button>
+                </StickyActions>
+            </form>
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Eliminar Cliente</DialogTitle>
-                        <DialogDescription>¿Estás seguro de que deseas eliminar a {client.name}? Esta acción no se puede deshacer.</DialogDescription>
+                        <DialogTitle>Eliminar cliente</DialogTitle>
+                        <DialogDescription>
+                            ¿Seguro que quieres eliminar a {client.name}? Esta acción no se puede deshacer. Mantén pulsado el botón para confirmar.
+                        </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            className="h-11 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground hover:bg-muted sm:h-9"
+                        >
                             Cancelar
-                        </Button>
-                        <Button variant="destructive" onClick={handleDelete}>
-                            Eliminar
-                        </Button>
+                        </button>
+                        <HoldToConfirm
+                            label="Mantén para eliminar"
+                            confirmedLabel="Eliminando…"
+                            tone="danger"
+                            onConfirm={handleDelete}
+                            className="w-full sm:w-auto"
+                        />
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
