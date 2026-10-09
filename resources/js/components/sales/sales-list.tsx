@@ -4,7 +4,7 @@ import { formatCurrency, formatDateTime, formatRelativeTime } from '@/lib/format
 import { type Sale } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { Eye, Pencil } from 'lucide-react';
-import { paymentMethodLabel, SaleStatusMarker, SaleStatusPill } from './sale-status';
+import { isCreditLinked, paymentMethodLabel, SaleStatusMarker, SaleStatusPill } from './sale-status';
 
 interface SalesListProps {
     sales: Sale[];
@@ -25,7 +25,7 @@ export function SalesCards({ sales, canEdit }: SalesListProps) {
                     label={`Venta ${sale.code}`}
                     fullSwipe={false}
                     trailing={[
-                        ...(canEdit
+                        ...(canEdit && !isCreditLinked(sale)
                             ? [
                                   {
                                       label: 'Editar',
@@ -140,7 +140,7 @@ export function SalesTable({ sales, canEdit }: SalesListProps) {
                         <td className="px-3 py-3 text-right font-semibold tabular-nums">{formatCurrency(sale.total)}</td>
                         <td className="px-6 py-3">
                             <div className="flex justify-end gap-1 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                                {canEdit && (
+                                {canEdit && !isCreditLinked(sale) && (
                                     <Link
                                         href={route('sales.edit', sale.id)}
                                         onClick={(event) => event.stopPropagation()}

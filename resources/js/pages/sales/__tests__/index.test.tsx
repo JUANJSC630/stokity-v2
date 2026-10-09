@@ -142,4 +142,12 @@ describe('Sales index', () => {
 
         expect(router.visit).toHaveBeenCalledWith('/sales.show/5');
     });
+
+    it('does not offer editing on a sale linked to a credit', () => {
+        renderPage([sale(4, { credit_sale_id: 9 }), sale(5)]);
+
+        expect(screen.queryByRole('link', { name: 'Editar venta V-1004' })).not.toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Ver venta V-1004' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Editar venta V-1005' })).toBeInTheDocument();
+    });
 });
