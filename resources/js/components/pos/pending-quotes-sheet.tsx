@@ -1,6 +1,7 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { formatCurrency } from '@/lib/format';
+import { Link } from '@inertiajs/react';
 import { ClipboardList, Trash2 } from 'lucide-react';
 
 export interface PendingQuote {
@@ -60,6 +61,11 @@ export function PendingQuotesSheet({ open, loading, quotes, onClose, onLoad, onD
                                         {' · '}
                                         {new Date(quote.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                                     </p>
+                                    {quote.has_audit_history && (
+                                        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                                            Esta venta tiene historial de auditoría y no se puede borrar desde aquí. Ábrela en Ventas para anularla.
+                                        </p>
+                                    )}
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
@@ -69,16 +75,23 @@ export function PendingQuotesSheet({ open, loading, quotes, onClose, onLoad, onD
                                         >
                                             Cargar
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onDelete(quote)}
-                                            disabled={quote.has_audit_history}
-                                            title={quote.has_audit_history ? 'Tiene historial de auditoría y no se puede eliminar' : undefined}
-                                            aria-label={`Eliminar cotización ${quote.code.slice(-8)}`}
-                                            className="flex size-11 items-center justify-center rounded-xl border border-red-200 text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-red-900 dark:hover:bg-red-950/30"
-                                        >
-                                            <Trash2 className="size-4" aria-hidden="true" />
-                                        </button>
+                                        {quote.has_audit_history ? (
+                                            <Link
+                                                href={route('sales.show', quote.id)}
+                                                className="flex h-11 items-center justify-center rounded-xl border border-border px-3 text-sm font-medium transition-colors hover:bg-muted"
+                                            >
+                                                Ver venta
+                                            </Link>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => onDelete(quote)}
+                                                aria-label={`Eliminar cotización ${quote.code.slice(-8)}`}
+                                                className="flex size-11 items-center justify-center rounded-xl border border-red-200 text-red-500 transition-colors hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30"
+                                            >
+                                                <Trash2 className="size-4" aria-hidden="true" />
+                                            </button>
+                                        )}
                                     </div>
                                 </li>
                             ))}

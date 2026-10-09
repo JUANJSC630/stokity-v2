@@ -550,7 +550,7 @@ class SaleController extends Controller
         // silently destroy, contradicting SaleAuditLog's immutability.
         if ($sale->auditLogs()->exists()) {
             throw ValidationException::withMessages([
-                'sale' => 'Esta cotización tiene historial de auditoría y no puede eliminarse.',
+                'sale' => 'Esta cotización tiene historial de auditoría y no se puede borrar del POS. Ábrela desde Ventas y anúlala ahí.',
             ]);
         }
 

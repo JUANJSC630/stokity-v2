@@ -3,7 +3,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreditSaleDialog } from '../credit-sale-dialog';
 import { PendingQuotesSheet, type PendingQuote } from '../pending-quotes-sheet';
 
-vi.mock('@inertiajs/react', () => ({ usePage: vi.fn(() => ({ props: { business: { brand_color: '#C4686F' } } })) }));
+vi.mock('@inertiajs/react', () => ({
+    usePage: vi.fn(() => ({ props: { business: { brand_color: '#C4686F' } } })),
+    Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+        <a href={href} {...rest}>
+            {children}
+        </a>
+    ),
+}));
 vi.mock('@/components/PaymentMethodSelect', () => ({ default: () => <div data-testid="abono-method" /> }));
 
 const quote = (id: number, overrides: Partial<PendingQuote> = {}): PendingQuote => ({
@@ -23,6 +30,7 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal('route', (name: string, id: number) => `/${name}/${id}`);
 });
 
 beforeEach(() => vi.clearAllMocks());
@@ -55,13 +63,14 @@ describe('PendingQuotesSheet', () => {
         expect(props.onDelete).toHaveBeenCalledWith(props.quotes[0]);
     });
 
-    it('disables deletion for quotes with audit history', () => {
+    it('explains and links to the sale instead of offering deletion when the quote has audit history', () => {
         const props = sheet({ quotes: [{ ...quote(1), has_audit_history: true }, quote(2)] });
 
-        const [locked, free] = screen.getAllByRole('button', { name: /Eliminar cotización/ });
-        expect(locked).toBeDisabled();
-        expect(free).toBeEnabled();
-        fireEvent.click(locked);
+        const [locked, free] = screen.getAllByRole('listitem');
+        expect(within(locked).getByText(/historial de auditoría/)).toBeInTheDocument();
+        expect(within(locked).getByRole('link', { name: 'Ver venta' })).toHaveAttribute('href', '/sales.show/1');
+        expect(within(locked).queryByRole('button', { name: /Eliminar cotización/ })).not.toBeInTheDocument();
+        expect(within(free).getByRole('button', { name: /Eliminar cotización/ })).toBeEnabled();
         expect(props.onDelete).not.toHaveBeenCalled();
     });
 
