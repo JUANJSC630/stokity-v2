@@ -1,11 +1,34 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import WholesaleOrderForm from '../WholesaleOrderForm';
 
-vi.mock('@inertiajs/react', () => ({ router: { post: vi.fn(), put: vi.fn(), reload: vi.fn() } }));
+vi.mock('@inertiajs/react', () => ({
+    router: { post: vi.fn(), put: vi.fn(), reload: vi.fn() },
+    usePage: vi.fn(() => ({ props: { business: { brand_color: '#C4686F' } } })),
+}));
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/components/PaymentMethodSelect', () => ({ default: () => null }));
 vi.mock('@/components/clients', () => ({ CardCreateClient: () => null }));
+
+beforeAll(() => {
+    class NoopObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
+});
 
 const initialValues = {
     branch_id: '1',

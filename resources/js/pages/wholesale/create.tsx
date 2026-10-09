@@ -31,9 +31,9 @@ export default function WholesaleCreate({ clients, branches, branchId }: Props) 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo pedido mayorista" />
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4 lg:p-6">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Nuevo pedido mayorista</h1>
+                    <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Nuevo pedido mayorista</h1>
                     <p className="text-sm text-muted-foreground">Registra un pedido custom, fuera del catálogo e inventario normal</p>
                 </div>
 
