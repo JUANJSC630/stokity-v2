@@ -141,6 +141,44 @@ describe('New credit: step 1 (client and products)', () => {
         expect(screen.getByRole('button', { name: /^Arreglo de joyería/ })).not.toHaveTextContent('Disp:');
     });
 
+    it('disables products without available stock', () => {
+        render(
+            <CreditCreate
+                clients={clients as never}
+                products={[{ ...products[0], id: 13, name: 'Anillo Sol', code: 'ANI-001', stock: 3, reserved_stock: 3, available_stock: 0 }] as never}
+                branchId={1}
+            />,
+        );
+
+        fireEvent.change(screen.getByPlaceholderText('Buscar producto por nombre o código...'), { target: { value: 'anillo' } });
+        const button = screen.getByRole('button', { name: /^Anillo Sol/ });
+
+        expect(button).toBeDisabled();
+        expect(button).toHaveTextContent('Sin stock');
+    });
+
+    it('caps the cart quantity at the available stock', () => {
+        renderWizard();
+        pickClient();
+        addProduct('collar', 'Collar Luna');
+
+        fireEvent.change(screen.getAllByLabelText('Cantidad de Collar Luna')[0], { target: { value: '50' } });
+
+        screen.getAllByLabelText('Cantidad de Collar Luna').forEach((input) => expect(input).toHaveValue(8));
+    });
+
+    it('does not add more units than the available stock when the product is picked again', () => {
+        renderWizard();
+        pickClient();
+        addProduct('collar', 'Collar Luna');
+        fireEvent.change(screen.getAllByLabelText('Cantidad de Collar Luna')[0], { target: { value: '8' } });
+
+        addProduct('collar', 'Collar Luna');
+
+        screen.getAllByLabelText('Cantidad de Collar Luna').forEach((input) => expect(input).toHaveValue(8));
+        expect(toast.error).toHaveBeenCalled();
+    });
+
     it('says when no product matches', () => {
         renderWizard();
 

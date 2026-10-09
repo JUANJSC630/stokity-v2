@@ -128,6 +128,8 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
     );
 }
 
+const hasStockLimit = (product: CreditProduct): boolean => product.type !== 'servicio';
+
 export default function CreditCreate({ clients, products, branchId }: Props) {
     const onBrand = useOnBrandColor();
     const [step, setStep] = useState(0);
@@ -169,9 +171,17 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
     );
 
     function addToCart(product: CreditProduct) {
+        if (hasStockLimit(product) && product.available_stock < 1) {
+            toast.error(`${product.name} no tiene stock disponible`);
+            return;
+        }
         setCart((prev) => {
             const existing = prev.find((item) => item.product.id === product.id);
             if (existing) {
+                if (hasStockLimit(product) && existing.quantity + 1 > product.available_stock) {
+                    toast.error(`Stock disponible de ${product.name}: ${product.available_stock}`);
+                    return prev;
+                }
                 return prev.map((item) =>
                     item.product.id === product.id ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.unit_price } : item,
                 );
@@ -186,7 +196,13 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
             setCart((prev) => prev.filter((item) => item.product.id !== productId));
         } else {
             setCart((prev) =>
-                prev.map((item) => (item.product.id === productId ? { ...item, quantity, subtotal: quantity * item.unit_price } : item)),
+                prev.map((item) => {
+                    if (item.product.id !== productId) {
+                        return item;
+                    }
+                    const capped = hasStockLimit(item.product) ? Math.min(quantity, item.product.available_stock) : quantity;
+                    return { ...item, quantity: capped, subtotal: capped * item.unit_price };
+                }),
             );
         }
     }
@@ -350,21 +366,24 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                             ) : (
                                                 filteredProducts.map((p) => {
                                                     const inCart = cart.find((item) => item.product.id === p.id);
+                                                    const outOfStock = hasStockLimit(p) && p.available_stock < 1;
                                                     return (
                                                         <button
                                                             key={p.id}
+                                                            type="button"
+                                                            disabled={outOfStock}
                                                             onClick={() => {
                                                                 addToCart(p);
                                                                 setProductSearch('');
                                                             }}
-                                                            className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                                            className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
                                                         >
                                                             <Package className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                                                             <span className="min-w-0 flex-1 truncate">{p.name}</span>
                                                             <span className="text-muted-foreground tabular-nums">{cop(p.sale_price)}</span>
                                                             {p.type !== 'servicio' && (
                                                                 <span className="rounded-full border border-border/60 px-2 py-0.5 text-xs">
-                                                                    Disp: {p.available_stock}
+                                                                    {outOfStock ? 'Sin stock' : `Disp: ${p.available_stock}`}
                                                                 </span>
                                                             )}
                                                             {inCart && (
