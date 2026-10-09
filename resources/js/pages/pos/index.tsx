@@ -1,15 +1,19 @@
 import { useConfirm } from '@/components/confirm-dialog';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
+import { CartLine } from '@/components/pos/cart-line';
 import { CashMovementDialog, OpenSessionDialog, VariablePriceDialog } from '@/components/pos/cash-dialogs';
 import { CashSessionWidget } from '@/components/pos/cash-session-widget';
+import { CashTender } from '@/components/pos/cash-tender';
 import { MobileTabs } from '@/components/pos/mobile-tabs';
 import { PrinterWidget } from '@/components/pos/printer-widget';
 import { ProductSearchPanel } from '@/components/pos/product-search-panel';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useModules } from '@/hooks/use-modules';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import { usePrinter } from '@/hooks/use-printer';
 import { useSound } from '@/hooks/use-sound';
@@ -22,7 +26,7 @@ import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, ClipboardList, HandCoins, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ClipboardList, HandCoins, ShoppingCart, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -110,6 +114,7 @@ export default function PosIndex({
     const { confirm, dialog } = useConfirm();
     const { auth } = usePage<SharedData>().props;
     const { moduleEnabled } = useModules();
+    const onBrand = useOnBrandColor();
 
     // Polling: refresh clients, session state and pending sales count every 60 seconds
     usePolling(['clients', 'currentSession', 'pendingSalesCount'], 60_000);
@@ -1003,10 +1008,10 @@ export default function PosIndex({
                     <div
                         className={`min-h-0 w-full flex-1 flex-col overflow-hidden md:w-[420px] md:flex-none ${mobileTab === 'search' ? 'hidden md:flex' : 'flex'}`}
                     >
-                        {/* Client + clear cart + printer status */}
-                        <div className="flex items-center gap-2 border-b border-neutral-200 p-3 dark:border-neutral-700">
+                        {/* Client, quotes and clear cart */}
+                        <div className="flex items-center gap-2 border-b border-border/60 p-3">
                             <Select value={clientId} onValueChange={handleClientChange} disabled={!!activePendingId}>
-                                <SelectTrigger className="h-9 flex-1 bg-white text-sm dark:bg-neutral-800">
+                                <SelectTrigger className="h-11 flex-1 bg-background text-base md:h-10 md:text-sm">
                                     <SelectValue placeholder="Cliente" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1018,16 +1023,16 @@ export default function PosIndex({
                                 </SelectContent>
                             </Select>
 
-                            {/* Cotizaciones button */}
                             <button
                                 type="button"
                                 onClick={openPendingPanel}
-                                className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                className="relative flex size-11 flex-shrink-0 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 text-amber-700 transition-colors hover:bg-amber-100 md:size-10 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
                                 title="Cotizaciones pendientes"
+                                aria-label="Cotizaciones pendientes"
                             >
-                                <ClipboardList className="h-4 w-4" />
+                                <ClipboardList className="size-4" aria-hidden="true" />
                                 {pendingCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white">
+                                    <span className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                                         {pendingCount}
                                     </span>
                                 )}
@@ -1045,118 +1050,75 @@ export default function PosIndex({
                                         }
                                     }}
                                     title="Vaciar carrito"
-                                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-red-200 text-red-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 dark:border-red-800 dark:hover:bg-red-900/20"
+                                    aria-label="Vaciar carrito"
+                                    className="flex size-11 flex-shrink-0 items-center justify-center rounded-xl border border-red-200 text-red-500 transition-colors hover:bg-red-50 md:size-10 dark:border-red-900 dark:hover:bg-red-950/30"
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="size-4" aria-hidden="true" />
                                 </button>
                             )}
                         </div>
 
-                        {/* Active pending sale banner */}
                         {activePendingId && (
-                            <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-1.5 dark:border-amber-800 dark:bg-amber-900/20">
-                                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Completando cotización</span>
+                            <div className="flex items-center justify-between border-b border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-900/20">
+                                <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Completando cotización</span>
                                 <button
                                     type="button"
                                     onClick={cancelActivePending}
-                                    className="flex items-center gap-1 text-xs text-amber-600 hover:text-red-500"
+                                    className="flex min-h-11 items-center gap-1 px-2 text-sm text-amber-700 hover:text-red-600 md:min-h-0 dark:text-amber-300"
                                 >
-                                    <X className="h-3 w-3" /> Cancelar
+                                    <X className="size-3.5" aria-hidden="true" /> Cancelar
                                 </button>
                             </div>
                         )}
 
                         {/* On mobile: cart list + bottom panel scroll together. On desktop: split layout (cart scrolls, bottom fixed when it fits; parent scrolls if bottom is too tall for the viewport). */}
                         <div className="min-h-0 flex-1 overflow-y-auto md:flex md:flex-col md:overflow-y-auto">
-                            {/* Cart list */}
                             <div className="md:min-h-0 md:flex-1 md:overflow-y-auto">
                                 {cart.length === 0 ? (
                                     <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 py-8 text-muted-foreground md:h-full md:py-0">
-                                        <ShoppingCart className="h-10 w-10 opacity-20" />
+                                        <ShoppingCart className="size-10 opacity-20" aria-hidden="true" />
                                         <p className="text-sm">Carrito vacío</p>
                                     </div>
                                 ) : (
-                                    <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                    <ul aria-label="Productos del carrito" className="divide-y divide-border/50">
                                         {cart.map((item) => (
-                                            <div key={item.product.id} className="flex items-center gap-2 px-3 py-2">
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium">{item.product.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{formatCOP(item.product.sale_price)} c/u</p>
-                                                </div>
-                                                {/* Quantity controls */}
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateQty(item.product.id, item.quantity - 1)}
-                                                        aria-label={`Disminuir cantidad de ${item.product.name}`}
-                                                        className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                    >
-                                                        <Minus className="h-3 w-3" />
-                                                    </button>
-                                                    <input
-                                                        type="number"
-                                                        min={1}
-                                                        max={item.product.type === 'servicio' ? undefined : item.product.stock}
-                                                        value={item.quantity}
-                                                        onChange={(e) => {
-                                                            const val = parseInt(e.target.value, 10);
-                                                            if (!isNaN(val) && val >= 1) {
-                                                                const newVal =
-                                                                    item.product.type === 'servicio' ? val : Math.min(val, item.product.stock);
-                                                                updateQty(item.product.id, newVal);
-                                                            }
-                                                        }}
-                                                        onFocus={(e) => e.target.select()}
-                                                        aria-label={`Cantidad de ${item.product.name}`}
-                                                        className="h-9 w-12 rounded border border-neutral-200 bg-transparent text-center text-sm font-semibold focus:border-orange-400 focus:ring-1 focus:ring-orange-400 focus:outline-none md:h-7 md:w-10 dark:border-neutral-700 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            updateQty(
-                                                                item.product.id,
-                                                                item.product.type === 'servicio'
-                                                                    ? item.quantity + 1
-                                                                    : Math.min(item.quantity + 1, item.product.stock),
-                                                            )
-                                                        }
-                                                        disabled={item.product.type !== 'servicio' && item.quantity >= item.product.stock}
-                                                        aria-label={`Aumentar cantidad de ${item.product.name}`}
-                                                        className="flex h-9 w-9 items-center justify-center rounded border border-neutral-200 hover:bg-neutral-100 disabled:opacity-40 md:h-7 md:w-7 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                    >
-                                                        <Plus className="h-3 w-3" />
-                                                    </button>
-                                                </div>
-                                                <span className="w-24 text-right text-sm font-semibold text-green-700 dark:text-green-300">
-                                                    {formatCOP(item.subtotal)}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFromCart(item.product.id)}
-                                                    aria-label={`Eliminar ${item.product.name} del carrito`}
-                                                    className="flex h-9 w-9 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600 md:h-7 md:w-7 dark:hover:bg-red-900/20"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
+                                            <CartLine
+                                                key={item.product.id}
+                                                item={item}
+                                                onDecrease={() => updateQty(item.product.id, item.quantity - 1)}
+                                                onIncrease={() =>
+                                                    updateQty(
+                                                        item.product.id,
+                                                        item.product.type === 'servicio'
+                                                            ? item.quantity + 1
+                                                            : Math.min(item.quantity + 1, item.product.stock),
+                                                    )
+                                                }
+                                                onTypeQuantity={(val) =>
+                                                    updateQty(
+                                                        item.product.id,
+                                                        item.product.type === 'servicio' ? val : Math.min(val, item.product.stock),
+                                                    )
+                                                }
+                                                onRemove={() => removeFromCart(item.product.id)}
+                                            />
                                         ))}
-                                    </div>
+                                    </ul>
                                 )}
                             </div>
 
                             {/* Bottom panel: discount + totals + payment + submit */}
-                            <div className="border-t border-neutral-200 bg-neutral-50 md:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900">
-                                {/* Discount — only when cart has items */}
+                            <div className="border-t border-border/60 bg-muted/30 md:flex-shrink-0">
                                 {cart.length > 0 && (
-                                    <div className="flex items-center gap-2 border-b border-neutral-200 px-3 py-2 dark:border-neutral-700">
-                                        <Label className="text-xs text-muted-foreground">Descuento:</Label>
+                                    <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2.5">
+                                        <Label className="text-sm text-muted-foreground">Descuento:</Label>
                                         {wholesaleDiscountActive && (
-                                            <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
                                                 Cliente mayorista · {wholesaleSuggestion?.value}% aplicado
                                             </span>
                                         )}
                                         <Select value={discountType} onValueChange={(v) => setDiscountType(v as typeof discountType)}>
-                                            <SelectTrigger className="h-7 w-32 text-xs">
+                                            <SelectTrigger className="h-11 w-36 bg-background text-base md:h-9 md:text-xs">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -1170,47 +1132,50 @@ export default function PosIndex({
                                                 <CurrencyInput
                                                     value={Number(discountValue) || 0}
                                                     onChange={(v) => setDiscountValue(v > 0 ? String(v) : '0')}
-                                                    className="h-7 w-24 text-xs"
+                                                    className="h-11 w-28 text-base md:h-9 md:text-xs"
                                                     placeholder="0"
                                                 />
                                             ) : (
                                                 <Input
                                                     type="number"
+                                                    inputMode="decimal"
                                                     min={0}
                                                     max={100}
                                                     value={discountValue === '0' ? '' : discountValue}
                                                     onChange={(e) => setDiscountValue(e.target.value || '0')}
-                                                    className="h-7 w-20 text-xs"
+                                                    className="h-11 w-24 text-base md:h-9 md:text-xs"
                                                     placeholder="0"
                                                 />
                                             ))}
                                         {discountAmount > 0 && (
-                                            <span className="ml-auto text-xs font-semibold text-red-600">− {formatCOP(discountAmount)}</span>
+                                            <span className="ml-auto text-sm font-semibold text-red-600 tabular-nums">
+                                                − {formatCOP(discountAmount)}
+                                            </span>
                                         )}
                                     </div>
                                 )}
 
-                                {/* Totals */}
-                                <div className="space-y-1 px-3 py-2 text-sm">
+                                <div className="space-y-1.5 px-3 py-3 text-sm">
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>Subtotal</span>
-                                        <span>{formatCOP(net)}</span>
+                                        <span className="tabular-nums">{formatCOP(net)}</span>
                                     </div>
                                     {tax > 0 && (
                                         <div className="flex justify-between text-muted-foreground">
                                             <span>Impuesto</span>
-                                            <span>{formatCOP(tax)}</span>
+                                            <span className="tabular-nums">{formatCOP(tax)}</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between border-t border-neutral-200 pt-1 text-lg font-bold dark:border-neutral-700">
-                                        <span>Total</span>
-                                        <span className="text-green-700 dark:text-green-300">{formatCOP(total)}</span>
+                                    <div className="flex items-baseline justify-between border-t border-border/60 pt-2">
+                                        <span className="text-base font-semibold">Total</span>
+                                        <span className="text-3xl font-bold tracking-tight tabular-nums">
+                                            <RollingNumber value={total} format={formatCOP} />
+                                        </span>
                                     </div>
                                 </div>
 
-                                {/* Payment method — only when cart has items */}
                                 {cart.length > 0 && (
-                                    <div className="px-3 pb-2">
+                                    <div className="px-3 pb-3">
                                         <PaymentMethodSelect
                                             key={formKey}
                                             value={paymentMethod || undefined}
@@ -1218,106 +1183,63 @@ export default function PosIndex({
                                             label=""
                                             placeholder="Método de pago *"
                                             required
+                                            triggerClassName="h-12 text-base md:h-10 md:text-sm"
                                         />
                                     </div>
                                 )}
 
-                                {/* Amount paid (cash only, only when cart has items) */}
                                 {paymentMethod === 'cash' && cart.length > 0 && (
-                                    <div className="border-t border-neutral-200 px-3 py-2 dark:border-neutral-700">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="shrink-0 text-xs">Recibido:</Label>
-                                            <Input
-                                                type="text"
-                                                placeholder="0"
-                                                value={amountPaidDisplay}
-                                                onChange={(e) => {
-                                                    const formatted = e.target.value.replace(/[^\d]/g, '');
-                                                    const num = parseInt(formatted, 10) || 0;
-                                                    setAmountPaid(num);
-                                                    setAmountPaidDisplay(num > 0 ? formatNumber(num) : '');
-                                                }}
-                                                className="h-8 flex-1 text-right text-sm"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setAmountPaid(total);
-                                                    setAmountPaidDisplay(formatNumber(total));
-                                                }}
-                                                aria-label={`Pago exacto de ${formatCOP(total)}`}
-                                                className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs text-blue-700 hover:bg-blue-200"
-                                            >
-                                                Exacto
-                                            </button>
-                                        </div>
-                                        <div className="mt-2 flex flex-wrap gap-1">
-                                            {(() => {
-                                                const denominations = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
-                                                const suggestions: number[] = [];
-                                                if (total > 0) {
-                                                    // Next round-up for each denomination >= total
-                                                    for (const d of denominations) {
-                                                        const rounded = Math.ceil(total / d) * d;
-                                                        if (rounded >= total && !suggestions.includes(rounded)) {
-                                                            suggestions.push(rounded);
-                                                        }
-                                                    }
-                                                    // Sort and take up to 6 unique values
-                                                    suggestions.sort((a, b) => a - b);
-                                                    suggestions.splice(6);
-                                                }
-                                                // Fallback: show standard denominations when cart is empty
-                                                const buttons = suggestions.length > 0 ? suggestions : [10000, 20000, 50000, 100000];
-                                                return buttons.map((bill) => (
-                                                    <button
-                                                        key={bill}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setAmountPaid(bill);
-                                                            setAmountPaidDisplay(formatNumber(bill));
-                                                        }}
-                                                        className="rounded border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium hover:bg-neutral-200 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700"
-                                                    >
-                                                        {formatNumber(bill)}
-                                                    </button>
-                                                ));
-                                            })()}
-                                        </div>
-                                        {amountPaid >= total && total > 0 && (
-                                            <div className="mt-1 flex justify-between text-sm font-semibold text-green-700 dark:text-green-300">
-                                                <span>Cambio:</span>
-                                                <span>{formatCOP(change)}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <CashTender
+                                        total={total}
+                                        amountPaid={amountPaid}
+                                        amountDisplay={amountPaidDisplay}
+                                        onAmountTyped={(raw) => {
+                                            const formatted = raw.replace(/[^\d]/g, '');
+                                            const num = parseInt(formatted, 10) || 0;
+                                            setAmountPaid(num);
+                                            setAmountPaidDisplay(num > 0 ? formatNumber(num) : '');
+                                        }}
+                                        onExact={() => {
+                                            setAmountPaid(total);
+                                            setAmountPaidDisplay(formatNumber(total));
+                                        }}
+                                        onBill={(bill) => {
+                                            setAmountPaid(bill);
+                                            setAmountPaidDisplay(formatNumber(bill));
+                                        }}
+                                        change={change}
+                                    />
                                 )}
 
-                                {/* Cobrar button */}
-                                <div className="flex flex-col gap-2 px-3 pb-3">
+                                <div className="sticky bottom-0 z-10 border-t border-border/60 bg-background/95 px-3 py-2 backdrop-blur md:static md:border-0 md:bg-transparent md:pt-0 md:pb-2 md:backdrop-blur-none">
                                     <button
                                         type="button"
                                         onClick={handleSubmit}
                                         disabled={submitting || cart.length === 0}
-                                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-base font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
+                                        className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] text-lg font-bold shadow-md transition-opacity hover:opacity-90 disabled:opacity-40 md:h-12 md:text-base"
+                                        style={{ color: onBrand.hex }}
                                     >
                                         {submitting ? (
                                             'Procesando...'
                                         ) : (
                                             <>
                                                 Cobrar {total > 0 && formatCOP(total)}
-                                                <kbd className="rounded border border-white/40 bg-white/20 px-1.5 py-0.5 text-xs font-normal">F9</kbd>
+                                                <kbd className="hidden rounded border border-current/40 bg-white/20 px-1.5 py-0.5 text-xs font-normal md:inline">
+                                                    F9
+                                                </kbd>
                                             </>
                                         )}
                                     </button>
+                                </div>
+                                <div className="flex flex-col gap-2 px-3 pb-3">
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
                                             onClick={handleSaveQuote}
                                             disabled={submitting || cart.length === 0}
-                                            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-40 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+                                            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-40 md:h-10 md:text-xs dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
                                         >
-                                            <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+                                            <ClipboardList className="size-4 shrink-0" aria-hidden="true" />
                                             <span className="truncate">{activePendingId ? 'Actualizar cotización' : 'Guardar cotización'}</span>
                                         </button>
                                         {moduleEnabled('credits') && (
@@ -1335,9 +1257,9 @@ export default function PosIndex({
                                                     setShowCreditModal(true);
                                                 }}
                                                 disabled={submitting || cart.length === 0}
-                                                className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                                                className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-blue-300 bg-blue-50 text-sm font-medium text-blue-800 transition-colors hover:bg-blue-100 disabled:opacity-40 md:h-10 md:text-xs dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
                                             >
-                                                <HandCoins className="h-3.5 w-3.5 shrink-0" />
+                                                <HandCoins className="size-4 shrink-0" aria-hidden="true" />
                                                 <span className="truncate">Vender a crédito</span>
                                             </button>
                                         )}
