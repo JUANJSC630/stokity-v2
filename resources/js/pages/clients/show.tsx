@@ -1,11 +1,15 @@
-import { Button } from '@/components/ui/button';
+import { initialsOf } from '@/components/admin/tenant-badges';
+import PaginationFooter from '@/components/common/PaginationFooter';
+import { SaleStatusPill } from '@/components/sales/sale-status';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { CalendarDays, ChevronLeft, Mail, MapPin, Pencil, Phone, Receipt, ShoppingBag, User } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, Mail, MapPin, Pencil, Phone, ShoppingBag, User } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 interface Client {
     id: number;
@@ -55,21 +59,24 @@ interface Props {
     stats: Stats;
 }
 
-function formatCOP(value: number) {
-    return formatCurrency(value);
-}
+const formatCount = (value: number): string => String(value);
 
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-    completed: {
-        label: 'Completada',
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800',
-    },
-    pending: {
-        label: 'Pendiente',
-        className: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
-    },
-    cancelled: { label: 'Cancelada', className: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800' },
-};
+const ACTION =
+    'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:h-9 sm:rounded-lg sm:text-xs';
+
+function Info({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+    return (
+        <div className="flex items-start gap-3">
+            <span className="mt-0.5 shrink-0 text-muted-foreground/60" aria-hidden="true">
+                {icon}
+            </span>
+            <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="text-sm font-medium break-words">{children}</dd>
+            </div>
+        </div>
+    );
+}
 
 export default function Show({ client, sales, stats }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -86,334 +93,232 @@ export default function Show({ client, sales, stats }: Props) {
         setIsDeleteDialogOpen(false);
     }
 
+    const backHref = fromSale ? route('sales.show', fromSale) : route('clients.index');
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Cliente: ${client.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-5 p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        {fromSale ? (
-                            <button
-                                onClick={() => (window.location.href = `/sales/${fromSale}`)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </button>
-                        ) : (
-                            <Link
-                                href={route('clients.index')}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Link>
-                        )}
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl leading-tight font-bold">{client.name}</h1>
-                                {client.is_wholesale && (
-                                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                        Mayorista · {Number(client.wholesale_discount_pct)}% dto.
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">Desde {new Date(client.created_at).toLocaleDateString('es-CO')}</p>
-                        </div>
-                    </div>
-                    <Link href={route('clients.edit', client.id)}>
-                        <button className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-                            <Pencil className="h-3 w-3" />
-                            Editar
-                        </button>
+            <div className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={backHref}
+                        aria-label={fromSale ? 'Volver a la venta' : 'Volver a clientes'}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:h-8 sm:w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
                     </Link>
-                </div>
-
-                {/* Info + Stats row */}
-                <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-                    {/* Client info card */}
-                    <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
-                        <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Información</p>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3">
-                            <div className="flex items-start gap-2">
-                                <User className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
-                                <div className="min-w-0">
-                                    <p className="text-[11px] text-muted-foreground">Documento</p>
-                                    <p className="truncate text-xs font-medium">{client.document}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <Phone className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
-                                <div className="min-w-0">
-                                    <p className="text-[11px] text-muted-foreground">Teléfono</p>
-                                    <p className="truncate text-xs font-medium">{client.phone || '—'}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
-                                <div className="min-w-0">
-                                    <p className="text-[11px] text-muted-foreground">Correo</p>
-                                    <p className="truncate text-xs font-medium">{client.email || '—'}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
-                                <div className="min-w-0">
-                                    <p className="text-[11px] text-muted-foreground">Dirección</p>
-                                    <p className="truncate text-xs font-medium">{client.address || '—'}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                                <CalendarDays className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/60" />
-                                <div className="min-w-0">
-                                    <p className="text-[11px] text-muted-foreground">Nacimiento</p>
-                                    <p className="truncate text-xs font-medium">
-                                        {client.birthdate ? new Date(client.birthdate).toLocaleDateString('es-CO') : '—'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Stats — row on mobile (grid), column on desktop */}
-                    <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-col lg:gap-3">
-                        <div className="rounded-xl border border-border/60 bg-card px-2 py-2.5 lg:min-w-[160px] lg:px-4 lg:py-3">
-                            <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase lg:text-[11px]">Compras</p>
-                            <p className="mt-1 text-xl leading-none font-bold tabular-nums lg:mt-1.5 lg:text-2xl">{stats.total_sales}</p>
-                        </div>
-                        <div className="rounded-xl border border-border/60 bg-card px-2 py-2.5 lg:px-4 lg:py-3">
-                            <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase lg:text-[11px]">Facturado</p>
-                            <p className="mt-1 truncate text-sm leading-none font-bold tabular-nums lg:mt-1.5 lg:text-lg">
-                                {formatCOP(stats.total_spent)}
-                            </p>
-                        </div>
-                        <div className="rounded-xl border border-border/60 bg-card px-2 py-2.5 lg:px-4 lg:py-3">
-                            <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase lg:text-[11px]">Última compra</p>
-                            <p className="mt-1 text-xs leading-none font-semibold lg:mt-1.5 lg:text-sm">
-                                {stats.last_purchase ? new Date(stats.last_purchase).toLocaleDateString('es-CO') : '—'}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Purchase history */}
-                <div className="rounded-xl border border-border/60 bg-card">
-                    <div className="flex items-center gap-1.5 px-5 py-4">
-                        <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground/50" />
-                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            Historial de compras
-                            {sales.total > 0 && <span className="ml-1.5 text-muted-foreground/60">({sales.total})</span>}
+                    <span
+                        aria-hidden="true"
+                        className="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary-soft)] text-sm font-semibold text-[var(--brand-primary)] sm:flex"
+                    >
+                        {initialsOf(client.name) || '?'}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-xl leading-tight font-bold break-words">{client.name}</h1>
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                            <span>Cliente desde {formatDate(client.created_at)}</span>
+                            {client.is_wholesale && (
+                                <span className="rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-300">
+                                    Mayorista · {Number(client.wholesale_discount_pct)}% dto.
+                                </span>
+                            )}
                         </p>
                     </div>
+                </div>
 
-                    {sales.data.length === 0 ? (
-                        <p className="px-5 pb-6 text-center text-sm text-muted-foreground">Sin ventas registradas</p>
-                    ) : (
-                        <>
-                            {/* Desktop table */}
-                            <div className="hidden border-t border-border/60 md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-border/40 bg-muted/20">
-                                            <th className="px-5 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Código
-                                            </th>
-                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Fecha
-                                            </th>
-                                            <th className="px-4 py-2.5 text-left text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Vendedor
-                                            </th>
-                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Dcto.
-                                            </th>
-                                            <th className="px-4 py-2.5 text-right text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Total
-                                            </th>
-                                            <th className="px-4 py-2.5 text-center text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                                                Estado
-                                            </th>
-                                            <th className="px-4 py-2.5"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sales.data.map((sale, idx) => {
-                                            const status = STATUS_MAP[sale.status] ?? {
-                                                label: sale.status,
-                                                className: 'bg-muted text-muted-foreground border-border',
-                                            };
-                                            return (
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
+                    <Link href={route('clients.edit', client.id)} className={ACTION}>
+                        <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+                        Editar
+                    </Link>
+                    {client.phone && (
+                        <a href={`tel:${client.phone}`} className={ACTION}>
+                            <Phone className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+                            Llamar
+                        </a>
+                    )}
+                    {client.email && (
+                        <a href={`mailto:${client.email}`} className={ACTION}>
+                            <Mail className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+                            Escribir
+                        </a>
+                    )}
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-[1fr_20rem] lg:items-start">
+                    <div className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+                        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                            <div className="flex items-center gap-1.5 px-5 pt-4 pb-3">
+                                <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground/60" aria-hidden="true" />
+                                <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                    Historial de compras
+                                    {sales.total > 0 && <span className="ml-1.5 text-muted-foreground/60">({sales.total})</span>}
+                                </h2>
+                            </div>
+
+                            {sales.data.length === 0 ? (
+                                <p className="px-5 pb-8 text-center text-sm text-muted-foreground">Sin ventas registradas</p>
+                            ) : (
+                                <>
+                                    <table className="hidden w-full text-sm md:table">
+                                        <caption className="sr-only">Historial de compras</caption>
+                                        <thead>
+                                            <tr className="border-y border-border/40 bg-muted/20 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                                <th scope="col" className="px-5 py-2.5 text-left font-medium">
+                                                    Venta
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                                                    Fecha
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                                                    Vendedor
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                                    Dcto.
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                                    Total
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-center font-medium">
+                                                    Estado
+                                                </th>
+                                                <th scope="col" className="w-12 px-5 py-2.5">
+                                                    <span className="sr-only">Ver</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {sales.data.map((sale) => (
                                                 <tr
                                                     key={sale.id}
-                                                    className={`transition-colors hover:bg-muted/30 ${idx !== 0 ? 'border-t border-border/40' : ''}`}
+                                                    onClick={() => router.visit(route('sales.show', sale.id))}
+                                                    className="cursor-pointer transition-colors hover:bg-muted/30"
                                                 >
-                                                    <td className="px-5 py-2.5 font-mono text-[11px] text-muted-foreground">{sale.code}</td>
-                                                    <td className="px-4 py-2.5 text-xs">{new Date(sale.created_at).toLocaleDateString('es-CO')}</td>
-                                                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{sale.seller?.name ?? '—'}</td>
-                                                    <td className="px-4 py-2.5 text-right text-xs text-red-500 dark:text-red-400">
-                                                        {sale.discount_amount > 0 ? `−${formatCOP(sale.discount_amount)}` : '—'}
+                                                    <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{sale.code}</td>
+                                                    <td className="px-3 py-3 whitespace-nowrap">{formatDate(sale.created_at)}</td>
+                                                    <td className="px-3 py-3 text-muted-foreground">{sale.seller?.name ?? '—'}</td>
+                                                    <td className="px-3 py-3 text-right text-red-500 tabular-nums dark:text-red-400">
+                                                        {sale.discount_amount > 0 ? `−${formatCurrency(sale.discount_amount)}` : '—'}
                                                     </td>
-                                                    <td className="px-4 py-2.5 text-right text-xs font-semibold tabular-nums">
-                                                        {formatCOP(sale.total)}
+                                                    <td className="px-3 py-3 text-right font-semibold tabular-nums">{formatCurrency(sale.total)}</td>
+                                                    <td className="px-3 py-3 text-center">
+                                                        <SaleStatusPill status={sale.status} />
                                                     </td>
-                                                    <td className="px-4 py-2.5 text-center">
-                                                        <span
-                                                            className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}
-                                                        >
-                                                            {status.label}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-2.5 text-right">
+                                                    <td className="px-5 py-3">
                                                         <Link
                                                             href={route('sales.show', sale.id)}
-                                                            className="flex items-center gap-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+                                                            onClick={(event) => event.stopPropagation()}
+                                                            aria-label={`Ver venta ${sale.code}`}
+                                                            className="flex size-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
                                                         >
-                                                            <Receipt className="h-3 w-3" />
-                                                            Ver
+                                                            <ChevronRight className="size-4" aria-hidden="true" />
                                                         </Link>
                                                     </td>
                                                 </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
 
-                            {/* Mobile cards */}
-                            <div className="divide-y divide-border/40 border-t border-border/60 md:hidden">
-                                {sales.data.map((sale) => {
-                                    const status = STATUS_MAP[sale.status] ?? {
-                                        label: sale.status,
-                                        className: 'bg-muted text-muted-foreground border-border',
-                                    };
-                                    return (
-                                        <div key={sale.id} className="flex items-center justify-between px-5 py-3">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="font-mono text-[11px] text-muted-foreground">{sale.code}</span>
-                                                <span className="text-xs font-semibold tabular-nums">{formatCOP(sale.total)}</span>
-                                                <span className="text-[11px] text-muted-foreground">
-                                                    {new Date(sale.created_at).toLocaleDateString('es-CO')}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1.5">
-                                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
-                                                    {status.label}
-                                                </span>
-                                                <Link
-                                                    href={route('sales.show', sale.id)}
-                                                    className="text-[11px] text-muted-foreground hover:text-foreground"
-                                                >
-                                                    Ver
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                    <ul className="divide-y divide-border/40 border-t border-border/60 md:hidden">
+                                        {sales.data.map((sale, index) => (
+                                            <li key={sale.id}>
+                                                <StaggerItem index={index}>
+                                                    <Link
+                                                        href={route('sales.show', sale.id)}
+                                                        className="flex min-h-16 items-center gap-3 px-5 py-3 active:bg-muted/40"
+                                                    >
+                                                        <span className="flex min-w-0 flex-1 flex-col gap-1">
+                                                            <span className="flex items-baseline justify-between gap-2">
+                                                                <span className="truncate font-mono text-xs text-muted-foreground">{sale.code}</span>
+                                                                <span className="shrink-0 text-base font-bold tabular-nums">
+                                                                    {formatCurrency(sale.total)}
+                                                                </span>
+                                                            </span>
+                                                            <span className="flex items-center justify-between gap-2">
+                                                                <SaleStatusPill status={sale.status} />
+                                                                <span className="text-xs text-muted-foreground">{formatDate(sale.created_at)}</span>
+                                                            </span>
+                                                        </span>
+                                                        <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+                                                    </Link>
+                                                </StaggerItem>
+                                            </li>
+                                        ))}
+                                    </ul>
 
-                            {/* Pagination */}
-                            {sales.last_page > 1 &&
-                                (() => {
-                                    const pageLinks = sales.links.filter((l) => {
-                                        const clean = l.label.replace(/&laquo;|&raquo;/g, '').trim();
-                                        return !isNaN(Number(clean));
-                                    });
-                                    const prevLink = sales.links.find((l) => l.label.includes('laquo') || l.label === '&laquo; Previous');
-                                    const nextLink = sales.links.find((l) => l.label.includes('raquo') || l.label === 'Next &raquo;');
-                                    const cur = sales.current_page;
-                                    const last = sales.last_page;
-                                    // Window of 5 centered on current page
-                                    const idx = cur - 1;
-                                    const start = Math.max(0, Math.min(idx - 2, pageLinks.length - 5));
-                                    const window5 = pageLinks.slice(start, start + 5);
-                                    return (
-                                        <div className="flex flex-col items-center gap-2 border-t border-border/40 px-5 py-3 sm:flex-row sm:justify-between">
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {sales.from}–{sales.to} de {sales.total}
-                                            </p>
-                                            <div className="flex items-center gap-1">
-                                                {prevLink?.url && (
-                                                    <Link href={prevLink.url} preserveScroll>
-                                                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
-                                                            «
-                                                        </Button>
-                                                    </Link>
-                                                )}
-                                                {start > 0 && (
-                                                    <>
-                                                        <Link href={pageLinks[0].url!} preserveScroll>
-                                                            <Button
-                                                                variant={cur === 1 ? 'default' : 'outline'}
-                                                                size="sm"
-                                                                className="h-7 min-w-7 px-2 text-xs"
-                                                            >
-                                                                1
-                                                            </Button>
-                                                        </Link>
-                                                        {start > 1 && <span className="px-1 text-xs text-muted-foreground">…</span>}
-                                                    </>
-                                                )}
-                                                {window5.map((link, i) =>
-                                                    link.url ? (
-                                                        <Link key={i} href={link.url} preserveScroll>
-                                                            <Button
-                                                                variant={link.active ? 'default' : 'outline'}
-                                                                size="sm"
-                                                                className="h-7 min-w-7 px-2 text-xs"
-                                                            >
-                                                                {link.label}
-                                                            </Button>
-                                                        </Link>
-                                                    ) : (
-                                                        <Button key={i} variant="default" size="sm" className="h-7 min-w-7 px-2 text-xs" disabled>
-                                                            {link.label}
-                                                        </Button>
-                                                    ),
-                                                )}
-                                                {start + 5 < pageLinks.length && (
-                                                    <>
-                                                        {start + 5 < pageLinks.length - 1 && (
-                                                            <span className="px-1 text-xs text-muted-foreground">…</span>
-                                                        )}
-                                                        <Link href={pageLinks[pageLinks.length - 1].url!} preserveScroll>
-                                                            <Button
-                                                                variant={cur === last ? 'default' : 'outline'}
-                                                                size="sm"
-                                                                className="h-7 min-w-7 px-2 text-xs"
-                                                            >
-                                                                {last}
-                                                            </Button>
-                                                        </Link>
-                                                    </>
-                                                )}
-                                                {nextLink?.url && (
-                                                    <Link href={nextLink.url} preserveScroll>
-                                                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
-                                                            »
-                                                        </Button>
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
-                        </>
-                    )}
+                                    <PaginationFooter data={{ ...sales, from: sales.from ?? 0, to: sales.to ?? 0, resourceLabel: 'ventas' }} />
+                                </>
+                            )}
+                        </section>
+                    </div>
+
+                    <div className="order-1 flex min-w-0 flex-col gap-5 lg:order-2">
+                        <div className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-3">
+                            <div className="rounded-2xl border border-border/60 bg-card px-3 py-3 lg:px-5 lg:py-4">
+                                <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Compras</p>
+                                <p className="mt-1.5 text-2xl leading-none font-bold tabular-nums">
+                                    <RollingNumber value={stats.total_sales} format={formatCount} intro />
+                                </p>
+                            </div>
+                            <div className="rounded-2xl border border-border/60 bg-card px-3 py-3 lg:px-5 lg:py-4">
+                                <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Facturado</p>
+                                <p className="mt-1.5 truncate text-base leading-none font-bold tabular-nums lg:text-2xl">
+                                    <RollingNumber value={stats.total_spent} format={formatCurrency} intro />
+                                </p>
+                            </div>
+                            <div className="rounded-2xl border border-border/60 bg-card px-3 py-3 lg:px-5 lg:py-4">
+                                <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Última compra</p>
+                                <p className="mt-1.5 text-sm leading-tight font-semibold lg:text-base">
+                                    {stats.last_purchase ? formatDate(stats.last_purchase) : '—'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <section className="rounded-2xl border border-border/60 bg-card">
+                            <h2 className="px-5 pt-4 pb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Información</h2>
+                            <dl className="flex flex-col gap-4 px-5 pb-5">
+                                <Info icon={<User className="size-4" />} label="Documento">
+                                    {client.document}
+                                </Info>
+                                <Info icon={<Phone className="size-4" />} label="Teléfono">
+                                    {client.phone || '—'}
+                                </Info>
+                                <Info icon={<Mail className="size-4" />} label="Correo">
+                                    {client.email || '—'}
+                                </Info>
+                                <Info icon={<MapPin className="size-4" />} label="Dirección">
+                                    {client.address || '—'}
+                                </Info>
+                                <Info icon={<CalendarDays className="size-4" />} label="Nacimiento">
+                                    {client.birthdate ? formatDate(client.birthdate) : '—'}
+                                </Info>
+                            </dl>
+                        </section>
+                    </div>
                 </div>
             </div>
 
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Eliminar Cliente</DialogTitle>
+                        <DialogTitle>Eliminar cliente</DialogTitle>
                         <DialogDescription>¿Estás seguro de que deseas eliminar a {client.name}? Esta acción no se puede deshacer.</DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                    <DialogFooter className="gap-2 sm:gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            className="h-11 rounded-lg border border-border/60 px-4 text-sm font-medium text-muted-foreground hover:bg-muted sm:h-9"
+                        >
                             Cancelar
-                        </Button>
-                        <Button variant="destructive" onClick={handleDelete}>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            className="h-11 rounded-lg bg-red-600 px-4 text-sm font-medium text-white hover:opacity-90 sm:h-9"
+                        >
                             Eliminar
-                        </Button>
+                        </button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
