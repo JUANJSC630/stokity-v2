@@ -1,3 +1,4 @@
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { TrendingUp } from 'lucide-react';
@@ -23,6 +24,8 @@ const RANK_COLORS = [
 ];
 
 export function TopProducts({ products }: TopProductsProps) {
+    const maxQuantity = Math.max(1, ...products.map((product) => product.total_quantity));
+
     return (
         <Card>
             <CardHeader className="pb-3">
@@ -54,11 +57,20 @@ export function TopProducts({ products }: TopProductsProps) {
                                     <p className="truncate text-xs text-muted-foreground">
                                         {product.code} · {product.sales_count} {product.sales_count === 1 ? 'venta' : 'ventas'}
                                     </p>
+                                    <div aria-hidden="true" className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="h-full rounded-full bg-[var(--brand-primary)] transition-[width] duration-700"
+                                            style={{ width: `${Math.max(4, Math.round((product.total_quantity / maxQuantity) * 100))}%` }}
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Stats */}
                                 <div className="flex-shrink-0 text-right">
-                                    <p className="text-sm font-semibold tabular-nums">{product.total_quantity} uds</p>
+                                    <p className="flex justify-end gap-1 text-sm font-semibold tabular-nums">
+                                        <RollingNumber value={product.total_quantity} format={(value) => String(value)} />
+                                        <span>uds</span>
+                                    </p>
                                     <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>
                                 </div>
                             </div>

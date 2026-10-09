@@ -56,7 +56,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
                                 <Link
                                     key={sale.id}
                                     href={route('sales.show', sale.id)}
-                                    className={`group flex items-center gap-2 px-3 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
+                                    className={`group flex min-h-16 items-center gap-2 px-3 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
                                 >
                                     {/* Client initial dot */}
                                     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-xs font-bold text-primary">
@@ -75,7 +75,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
                                     {/* Amount + status */}
                                     <div className="flex flex-shrink-0 flex-col items-end gap-1">
                                         <span className="text-sm font-semibold tabular-nums">{formatCurrency(sale.total)}</span>
-                                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.className}`}>
+                                        <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.className}`}>
                                             {status.label}
                                         </span>
                                     </div>
