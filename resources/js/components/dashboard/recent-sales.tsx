@@ -1,3 +1,4 @@
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { Link } from '@inertiajs/react';
@@ -53,35 +54,36 @@ export function RecentSales({ sales }: RecentSalesProps) {
                                 className: 'bg-muted text-muted-foreground border-border',
                             };
                             return (
-                                <Link
-                                    key={sale.id}
-                                    href={route('sales.show', sale.id)}
-                                    className={`group flex min-h-16 items-center gap-2 px-3 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
-                                >
-                                    {/* Client initial dot */}
-                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-xs font-bold text-primary">
-                                        {sale.client?.name ? sale.client.name.charAt(0).toUpperCase() : 'C'}
-                                    </div>
+                                <StaggerItem key={sale.id} index={idx}>
+                                    <Link
+                                        href={route('sales.show', sale.id)}
+                                        className={`group flex min-h-16 items-center gap-2 px-3 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
+                                    >
+                                        {/* Client initial dot */}
+                                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-xs font-bold text-primary">
+                                            {sale.client?.name ? sale.client.name.charAt(0).toUpperCase() : 'C'}
+                                        </div>
 
-                                    {/* Main info */}
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm leading-tight font-medium">{sale.client?.name || 'Consumidor Final'}</p>
-                                        <p className="truncate text-xs text-muted-foreground">
-                                            {format(new Date(sale.date), 'd MMM, HH:mm', { locale: es })}
-                                            {sale.seller && <> · {sale.seller.name}</>}
-                                        </p>
-                                    </div>
+                                        {/* Main info */}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm leading-tight font-medium">{sale.client?.name || 'Consumidor Final'}</p>
+                                            <p className="truncate text-xs text-muted-foreground">
+                                                {format(new Date(sale.date), 'd MMM, HH:mm', { locale: es })}
+                                                {sale.seller && <> · {sale.seller.name}</>}
+                                            </p>
+                                        </div>
 
-                                    {/* Amount + status */}
-                                    <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                                        <span className="text-sm font-semibold tabular-nums">{formatCurrency(sale.total)}</span>
-                                        <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.className}`}>
-                                            {status.label}
-                                        </span>
-                                    </div>
+                                        {/* Amount + status */}
+                                        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                                            <span className="text-sm font-semibold tabular-nums">{formatCurrency(sale.total)}</span>
+                                            <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${status.className}`}>
+                                                {status.label}
+                                            </span>
+                                        </div>
 
-                                    <ArrowRight className="ml-1 h-3 w-3 flex-shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
-                                </Link>
+                                        <ArrowRight className="ml-1 h-3 w-3 flex-shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
+                                    </Link>
+                                </StaggerItem>
                             );
                         })}
                     </div>

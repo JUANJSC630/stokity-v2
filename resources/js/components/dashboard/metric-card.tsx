@@ -1,9 +1,12 @@
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { cn } from '@/lib/utils';
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 interface MetricCardProps {
     title: string;
     value: string | number;
+    /** When the value is a number, formats it and rolls the digits as it changes. */
+    format?: (value: number) => string;
     description?: React.ReactNode;
     icon?: React.ReactNode;
     trend?: {
@@ -13,7 +16,7 @@ interface MetricCardProps {
     className?: string;
 }
 
-export function MetricCard({ title, value, description, icon, trend, className }: MetricCardProps) {
+export function MetricCard({ title, value, format, description, icon, trend, className }: MetricCardProps) {
     return (
         <div className={cn('relative rounded-xl border border-border/60 bg-card px-3 py-3 md:px-5 md:py-4', className)}>
             {/* Trend bubble — floats in top-right corner */}
@@ -47,7 +50,9 @@ export function MetricCard({ title, value, description, icon, trend, className }
             </div>
 
             {/* Value */}
-            <p className="mt-3 truncate text-xl leading-none font-bold tracking-tight md:text-2xl">{value}</p>
+            <p className="mt-3 truncate text-xl leading-none font-bold tracking-tight md:text-2xl">
+                {typeof value === 'number' && format ? <RollingNumber value={value} format={format} /> : value}
+            </p>
 
             {/* Description */}
             {description && <p className="mt-2 text-xs text-muted-foreground">{description}</p>}

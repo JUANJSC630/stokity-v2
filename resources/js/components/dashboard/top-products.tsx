@@ -1,4 +1,6 @@
+import { GrowBar } from '@/components/ui/bencho/grow-bar';
 import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
 import { TrendingUp } from 'lucide-react';
@@ -40,8 +42,9 @@ export function TopProducts({ products }: TopProductsProps) {
                 ) : (
                     <div>
                         {products.map((product, index) => (
-                            <div
+                            <StaggerItem
                                 key={product.id}
+                                index={index}
                                 className={`flex items-center gap-3 px-3 py-3 md:px-5 ${index !== 0 ? 'border-t border-border/60' : ''}`}
                             >
                                 {/* Rank */}
@@ -58,9 +61,10 @@ export function TopProducts({ products }: TopProductsProps) {
                                         {product.code} · {product.sales_count} {product.sales_count === 1 ? 'venta' : 'ventas'}
                                     </p>
                                     <div aria-hidden="true" className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
-                                        <div
-                                            className="h-full rounded-full bg-[var(--brand-primary)] transition-[width] duration-700"
-                                            style={{ width: `${Math.max(4, Math.round((product.total_quantity / maxQuantity) * 100))}%` }}
+                                        <GrowBar
+                                            className="bg-[var(--brand-primary)]"
+                                            percent={Math.max(4, Math.round((product.total_quantity / maxQuantity) * 100))}
+                                            delay={index * 50}
                                         />
                                     </div>
                                 </div>
@@ -73,7 +77,7 @@ export function TopProducts({ products }: TopProductsProps) {
                                     </p>
                                     <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>
                                 </div>
-                            </div>
+                            </StaggerItem>
                         ))}
                     </div>
                 )}
