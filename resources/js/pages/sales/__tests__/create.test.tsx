@@ -85,7 +85,7 @@ const totalOf = () => screen.getAllByText(/^\$\s[\d.]+$/, { selector: '.sr-only'
 
 describe('Sales create', () => {
     it('starts empty with a hint to search', () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Nueva venta');
         expect(screen.getByText('Escribe al menos 2 letras para buscar.')).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe('Sales create', () => {
     });
 
     it('searches products and shows price and stock, disabling those without stock', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
 
         fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'co' } });
 
@@ -103,7 +103,7 @@ describe('Sales create', () => {
     });
 
     it('adds a product to the sale and updates the total with its tax', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
 
         await addFromSearch('ar', 'Aretes dorados');
 
@@ -112,7 +112,7 @@ describe('Sales create', () => {
     });
 
     it('keeps the quantity inside the stock and shows when the maximum is reached', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
         await addFromSearch('ar', 'Aretes dorados');
 
         const more = screen.getAllByRole('button', { name: 'Más Aretes dorados' })[0];
@@ -125,7 +125,7 @@ describe('Sales create', () => {
     });
 
     it('applies a percentage discount to the gross amount', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
         await addFromSearch('co', 'Collar de perlas Luna');
 
         fireEvent.click(screen.getByRole('button', { name: 'Porcentaje %' }));
@@ -136,7 +136,7 @@ describe('Sales create', () => {
     });
 
     it('refuses to register a sale without products', () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
 
         fireEvent.submit(screen.getByRole('button', { name: 'Registrar venta' }).closest('form') as HTMLFormElement);
 
@@ -145,7 +145,7 @@ describe('Sales create', () => {
     });
 
     it('asks for enough cash and fills the amount with the quick buttons', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
         await addFromSearch('co', 'Collar de perlas Luna');
         fireEvent.click(screen.getByRole('button', { name: 'pago-efectivo' }));
 
@@ -159,7 +159,7 @@ describe('Sales create', () => {
     });
 
     it('posts the sale with the products, totals and payment method', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
         await addFromSearch('co', 'Collar de perlas Luna');
         fireEvent.click(screen.getByRole('button', { name: 'pago-transferencia' }));
 
@@ -178,7 +178,7 @@ describe('Sales create', () => {
     });
 
     it('removes a product from the sale', async () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
         await addFromSearch('co', 'Collar de perlas Luna');
 
         fireEvent.click(screen.getByRole('button', { name: 'Quitar Collar de perlas Luna' }));
@@ -187,7 +187,7 @@ describe('Sales create', () => {
     });
 
     it('opens the new client dialog', () => {
-        render(<Create {...props} />);
+        render(<Create {...(props as never)} />);
 
         fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }));
 
