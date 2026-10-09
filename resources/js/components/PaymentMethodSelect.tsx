@@ -1,5 +1,6 @@
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 interface PaymentMethod {
@@ -18,6 +19,8 @@ interface PaymentMethodSelectProps {
     required?: boolean;
     label?: string;
     placeholder?: string;
+    /** Extra classes for the trigger, e.g. a taller touch target. */
+    triggerClassName?: string;
 }
 
 export default function PaymentMethodSelect({
@@ -27,6 +30,7 @@ export default function PaymentMethodSelect({
     required = false,
     label = 'Método de Pago',
     placeholder = 'Seleccione método de pago',
+    triggerClassName,
 }: PaymentMethodSelectProps) {
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [loading, setLoading] = useState(true);
@@ -68,7 +72,10 @@ export default function PaymentMethodSelect({
                     </Label>
                 )}
                 <Select disabled>
-                    <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                    <SelectTrigger
+                        id="payment_method"
+                        className={cn('w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100', triggerClassName)}
+                    >
                         <SelectValue placeholder="Cargando métodos de pago..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -90,7 +97,10 @@ export default function PaymentMethodSelect({
                 </Label>
             )}
             <Select value={safeValue} onValueChange={onValueChange}>
-                <SelectTrigger id="payment_method" className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
+                <SelectTrigger
+                    id="payment_method"
+                    className={cn('w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100', triggerClassName)}
+                >
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
