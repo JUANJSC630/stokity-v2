@@ -62,6 +62,13 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
     other: 'Otro',
 };
 
+/** Sales created from a credit are administered from Créditos: the server refuses to edit them and sends the user back. */
+export function isCreditLinked(sale: { credit_sale_id?: number | null }): boolean {
+    return Boolean(sale.credit_sale_id);
+}
+
+export const CREDIT_LINKED_MESSAGE = 'Esta venta está vinculada a un crédito. Adminístrala desde el módulo de créditos.';
+
 export function paymentMethodLabel(method: string): string {
     return PAYMENT_METHOD_LABELS[method] ?? method;
 }

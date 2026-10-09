@@ -1,5 +1,5 @@
 import SaleReturnTicket from '@/components/SaleReturnTicket';
-import { paymentMethodLabel, SaleStatusMarker, SaleStatusPill } from '@/components/sales/sale-status';
+import { CREDIT_LINKED_MESSAGE, isCreditLinked, paymentMethodLabel, SaleStatusMarker, SaleStatusPill } from '@/components/sales/sale-status';
 import SaleReturnForm from '@/components/sales/SaleReturnForm';
 import SaleTicket from '@/components/SaleTicket';
 import { RollingNumber } from '@/components/ui/bencho/rolling-number';
@@ -12,9 +12,9 @@ import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Product as ProductType, type Sale, type SaleProduct, type SaleReturn } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronLeft, Edit, Eye, Printer, RotateCcw } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
 
@@ -121,6 +121,12 @@ export default function Show({
     const [showReturnReceipt, setShowReturnReceipt] = useState<{ open: boolean; returnId?: number }>({ open: false });
     const printer = usePrinter();
     const { can } = usePermissions();
+    const { errors } = usePage<{ errors: Record<string, string> }>().props;
+    const creditLinked = isCreditLinked(sale);
+
+    useEffect(() => {
+        if (errors?.credit) toast.error(errors.credit);
+    }, [errors?.credit]);
 
     const handleThermalPrint = async () => {
         if (printer.status !== 'connected' || !printer.selectedPrinter) {
@@ -299,18 +305,33 @@ export default function Show({
                             Devolución
                         </button>
                         {sale.id &&
-                            (can('sales.update') ? (
+                            (can('sales.update') && !creditLinked ? (
                                 <Link href={route('sales.edit', sale.id)} className={ACTION}>
                                     <Edit className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
                                     Editar
                                 </Link>
                             ) : (
-                                <button disabled title="No tienes permisos para editar ventas" className={ACTION}>
+                                <button
+                                    disabled
+                                    title={creditLinked ? CREDIT_LINKED_MESSAGE : 'No tienes permisos para editar ventas'}
+                                    className={ACTION}
+                                >
                                     <Edit className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
                                     Editar
                                 </button>
                             ))}
                     </div>
+                )}
+
+                {!deleted && creditLinked && (
+                    <p className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
+                        {CREDIT_LINKED_MESSAGE}{' '}
+                        {can('credits.view') && (
+                            <Link href={route('credits.index')} className="font-medium underline underline-offset-2">
+                                Ir a créditos
+                            </Link>
+                        )}
+                    </p>
                 )}
 
                 {/* Dialogs */}

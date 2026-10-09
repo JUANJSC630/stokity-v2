@@ -8,7 +8,7 @@ vi.mock('@inertiajs/react', () => ({
     router: { reload: vi.fn(), visit: vi.fn() },
     Head: () => null,
     Link: 'a',
-    usePage: vi.fn(() => ({ props: { business: { brand_color: '#C4686F' } } })),
+    usePage: vi.fn(() => ({ props: { business: { brand_color: '#C4686F' }, errors: page.errors } })),
 }));
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/components/SaleTicket', () => ({ default: () => <div>ticket</div> }));
@@ -21,6 +21,7 @@ vi.mock('@/hooks/use-printer', () => ({
 }));
 
 const permissions = vi.hoisted(() => ({ granted: [] as string[] }));
+const page = vi.hoisted(() => ({ errors: {} as Record<string, string> }));
 vi.mock('@/hooks/use-permissions', () => ({ usePermissions: () => ({ can: (permission: string) => permissions.granted.includes(permission) }) }));
 
 const products = [
@@ -77,6 +78,7 @@ beforeAll(() => {
 beforeEach(() => {
     vi.clearAllMocks();
     permissions.granted = ['sales.update'];
+    page.errors = {};
 });
 
 describe('Sales show', () => {
@@ -209,5 +211,28 @@ describe('Sales show', () => {
 
         expect(screen.getAllByText('Sin productos registrados').length).toBeGreaterThan(0);
         expect(screen.getByText('Cliente')).toBeInTheDocument();
+    });
+
+    it('disables editing for a sale linked to a credit and says why', () => {
+        permissions.granted = ['sales.update', 'credits.view'];
+        renderShow({ credit_sale_id: 9 });
+
+        expect(screen.getByRole('button', { name: 'Editar' })).toBeDisabled();
+        expect(screen.queryByRole('link', { name: 'Editar' })).not.toBeInTheDocument();
+        expect(screen.getByText(/vinculada a un crédito/)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Ir a créditos' })).toHaveAttribute('href', '/credits.index');
+    });
+
+    it('does not offer the credits link without permission', () => {
+        renderShow({ credit_sale_id: 9 });
+
+        expect(screen.queryByRole('link', { name: 'Ir a créditos' })).not.toBeInTheDocument();
+    });
+
+    it('shows the server message when editing was refused', () => {
+        page.errors = { credit: 'Esta venta está vinculada a un crédito. Adminístrala desde el módulo de créditos.' };
+        renderShow();
+
+        expect(toast.error).toHaveBeenCalledWith('Esta venta está vinculada a un crédito. Adminístrala desde el módulo de créditos.');
     });
 });
