@@ -12,7 +12,7 @@ import { formatCurrency } from '@/lib/format';
 import { type Branch, type Client } from '@/types';
 import { router } from '@inertiajs/react';
 import { Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export interface WholesaleItemInput {
@@ -39,6 +39,48 @@ interface Props {
     submitMethod: 'post' | 'put';
     submitLabel: string;
     errors?: Record<string, string>;
+}
+
+interface QuantityInputProps {
+    value: number;
+    onChange: (value: number) => void;
+}
+
+/**
+ * Cantidad editable: mantiene el texto mientras se escribe (permite borrar el campo)
+ * y solo normaliza a un entero >= 1 al salir del campo.
+ */
+function QuantityInput({ value, onChange }: QuantityInputProps) {
+    const [draft, setDraft] = useState(String(value));
+
+    useEffect(() => {
+        setDraft((current) => (Number(current) === value ? current : String(value)));
+    }, [value]);
+
+    return (
+        <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            placeholder="1"
+            value={draft}
+            onChange={(e) => {
+                const text = e.target.value;
+                setDraft(text);
+                const parsed = Math.floor(Number(text));
+                if (text !== '' && parsed >= 1) {
+                    onChange(parsed);
+                }
+            }}
+            onBlur={() => {
+                const parsed = Math.floor(Number(draft));
+                const normalized = draft !== '' && parsed >= 1 ? parsed : 1;
+                setDraft(String(normalized));
+                onChange(normalized);
+            }}
+        />
+    );
 }
 
 const emptyItem: WholesaleItemInput = { description: '', quantity: 1, unit_price: 0 };
@@ -239,13 +281,7 @@ export default function WholesaleOrderForm({ clients, branches, initialValues, s
                                         </div>
                                         <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground sm:hidden">Cantidad</Label>
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                placeholder="1"
-                                                value={item.quantity}
-                                                onChange={(e) => updateItem(index, { quantity: Math.max(1, Number(e.target.value)) })}
-                                            />
+                                            <QuantityInput value={item.quantity} onChange={(v) => updateItem(index, { quantity: v })} />
                                         </div>
                                         <div className="space-y-1">
                                             <Label className="text-xs text-muted-foreground sm:hidden">Precio unitario</Label>
