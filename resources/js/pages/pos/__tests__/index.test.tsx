@@ -632,6 +632,43 @@ describe('POS: credit sales', () => {
     });
 });
 
+describe('POS: phone views', () => {
+    it('starts on the search view and shows the running total on the cart tab as products are added', async () => {
+        renderPos();
+
+        expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
+        await addProduct('co', 'Collar de perlas Luna');
+
+        const cart = screen.getByRole('tab', { name: /Ver carrito/ });
+        expect(normalize(cart.textContent)).toContain('$ 45.000');
+    });
+
+    it('switches to the cart view and back', async () => {
+        renderPos();
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Carrito' }));
+        expect(screen.getByRole('tab', { name: 'Carrito' })).toHaveAttribute('aria-selected', 'true');
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Buscar' }));
+        expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('returns to the search view after a successful sale', async () => {
+        renderPos();
+        await addProduct('co', 'Collar de perlas Luna');
+        fireEvent.click(screen.getByRole('tab', { name: /Ver carrito/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'método-transferencia' }));
+        fireEvent.click(submitButton());
+
+        await act(async () => {
+            lastPost().options.onSuccess?.({ props: { flash: { last_sale_id: 77, last_sale_code: 'V-77' } } });
+            lastPost().options.onFinish?.();
+        });
+
+        expect(screen.getByRole('tab', { name: 'Buscar' })).toHaveAttribute('aria-selected', 'true');
+    });
+});
+
 describe('POS: cash register', () => {
     it('does not charge with F9 while the cash movement dialog is open', async () => {
         renderPos();

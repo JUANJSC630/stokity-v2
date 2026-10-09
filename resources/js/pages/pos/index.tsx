@@ -2,8 +2,9 @@ import { useConfirm } from '@/components/confirm-dialog';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
 import { CashMovementDialog, OpenSessionDialog, VariablePriceDialog } from '@/components/pos/cash-dialogs';
 import { CashSessionWidget } from '@/components/pos/cash-session-widget';
+import { MobileTabs } from '@/components/pos/mobile-tabs';
 import { PrinterWidget } from '@/components/pos/printer-widget';
-import { Badge } from '@/components/ui/badge';
+import { ProductSearchPanel } from '@/components/pos/product-search-panel';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,7 @@ import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, ClipboardList, HandCoins, Keyboard, Minus, Plus, Search, ShoppingCart, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ClipboardList, HandCoins, Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -970,193 +971,32 @@ export default function PosIndex({
                     <div
                         className={`min-h-0 w-full flex-1 flex-col border-r border-neutral-200 md:w-auto dark:border-neutral-700 ${mobileTab === 'cart' ? 'hidden md:flex' : 'flex'}`}
                     >
-                        {/* Search bar */}
-                        <div className="border-b border-neutral-200 p-3 dark:border-neutral-700">
-                            <div className="relative">
-                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    ref={searchRef}
-                                    type="search"
-                                    placeholder="Buscar producto por nombre o código... ( / )"
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    className="h-11 pl-9 text-base"
-                                />
-                                {searching && (
-                                    <span className="absolute top-1/2 right-3 -translate-y-1/2 text-xs text-[var(--brand-primary)]">Buscando...</span>
-                                )}
-                            </div>
-                            {/* Category filter */}
-                            {categories.length > 0 && (
-                                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5 md:flex-wrap md:overflow-visible md:pb-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedCategory('');
-                                            setSelectedType('');
-                                        }}
-                                        className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                            selectedCategory === '' && selectedType === ''
-                                                ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                        }`}
-                                    >
-                                        Todas
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedType('servicio');
-                                            setSelectedCategory('');
-                                        }}
-                                        className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                            selectedType === 'servicio'
-                                                ? 'border-purple-500 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                        }`}
-                                    >
-                                        Servicios
-                                    </button>
-                                    {categories
-                                        .filter((cat) => !/^servicios?$/i.test(cat.name.trim()))
-                                        .map((cat) => (
-                                            <button
-                                                key={cat.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedCategory(String(cat.id));
-                                                    setSelectedType('');
-                                                }}
-                                                className={`flex-shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-                                                    selectedCategory === String(cat.id)
-                                                        ? 'border-[var(--brand-primary)] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                        : 'border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400'
-                                                }`}
-                                            >
-                                                {cat.name}
-                                            </button>
-                                        ))}
-                                </div>
-                            )}
-                            {/* Keyboard hints — desktop only */}
-                            <div className="mt-2 hidden items-center gap-3 text-[11px] text-muted-foreground md:flex">
-                                <span className="flex items-center gap-1">
-                                    <Keyboard className="h-3 w-3" />
-                                    <kbd className="rounded border px-1">/</kbd> buscar
-                                </span>
-                                <span>
-                                    <kbd className="rounded border px-1">Enter</kbd> agregar
-                                </span>
-                                <span>
-                                    <kbd className="rounded border px-1">Esc</kbd> limpiar
-                                </span>
-                                <span>
-                                    <kbd className="rounded border px-1">F9</kbd> cobrar
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowShortcuts(true)}
-                                    className="ml-auto flex h-5 w-5 items-center justify-center rounded border border-neutral-300 text-[10px] font-bold text-muted-foreground hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
-                                    title="Ver todos los atajos (?)"
-                                >
-                                    ?
-                                </button>
-                            </div>
-
-                            {/* Shortcuts panel */}
-                            {showShortcuts && (
-                                <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <h3 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Atajos de teclado</h3>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowShortcuts(false)}
-                                            className="text-muted-foreground hover:text-foreground"
-                                        >
-                                            <X className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Buscar producto</span>
-                                            <kbd className="rounded border px-1.5 font-mono">/</kbd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Agregar primer resultado</span>
-                                            <kbd className="rounded border px-1.5 font-mono">Enter</kbd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Limpiar búsqueda</span>
-                                            <kbd className="rounded border px-1.5 font-mono">Esc</kbd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Cobrar venta</span>
-                                            <kbd className="rounded border px-1.5 font-mono">F9</kbd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Ver/ocultar atajos</span>
-                                            <kbd className="rounded border px-1.5 font-mono">?</kbd>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Results */}
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            {results.length === 0 && !searching && (selectedType !== '' || query.trim().length >= 2) && (
-                                <p className="px-4 py-8 text-center text-sm text-muted-foreground">No se encontraron productos</p>
-                            )}
-                            {query.trim().length < 2 && selectedType === '' && selectedCategory === '' && cart.length === 0 && (
-                                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                                    <ShoppingCart className="h-12 w-12 opacity-20" />
-                                    <p className="text-sm">Escribe para buscar productos</p>
-                                </div>
-                            )}
-                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {results.map((p, i) => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        onClick={() => addToCart(p)}
-                                        disabled={p.type !== 'servicio' && p.stock <= 0}
-                                        aria-label={`Agregar ${p.name} al carrito, ${formatCOP(p.sale_price)}`}
-                                        className={`flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-neutral-50 disabled:opacity-50 md:py-3 dark:hover:bg-neutral-800 ${i === 0 ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}
-                                    >
-                                        {p.image_url ? (
-                                            <img
-                                                src={p.image_url}
-                                                alt={p.name}
-                                                className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-neutral-100 object-cover shadow-sm dark:border-neutral-700"
-                                            />
-                                        ) : (
-                                            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-sm font-bold text-neutral-400 dark:bg-neutral-800">
-                                                {p.name.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">{p.name}</p>
-                                            <p className="font-mono text-xs text-muted-foreground">{p.code}</p>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            <span className="font-semibold text-green-700 dark:text-green-300">
-                                                {p.type === 'servicio' && p.variable_price ? 'A cotizar' : formatCOP(p.sale_price)}
-                                            </span>
-                                            {p.type === 'servicio' ? (
-                                                <Badge className="bg-purple-100 text-[10px] text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                    Servicio
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant={p.stock > 0 ? 'secondary' : 'destructive'} className="text-[10px]">
-                                                    Stock: {p.stock}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <Plus className="h-5 w-5 flex-shrink-0 text-green-600" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+                        <ProductSearchPanel
+                            query={query}
+                            onQueryChange={setQuery}
+                            searching={searching}
+                            searchRef={searchRef}
+                            categories={categories}
+                            selectedCategory={selectedCategory}
+                            selectedType={selectedType}
+                            onSelectAll={() => {
+                                setSelectedCategory('');
+                                setSelectedType('');
+                            }}
+                            onSelectServices={() => {
+                                setSelectedType('servicio');
+                                setSelectedCategory('');
+                            }}
+                            onSelectCategory={(id) => {
+                                setSelectedCategory(id);
+                                setSelectedType('');
+                            }}
+                            results={results}
+                            onAdd={addToCart}
+                            cartIsEmpty={cart.length === 0}
+                            showShortcuts={showShortcuts}
+                            onShowShortcuts={setShowShortcuts}
+                        />
                     </div>
 
                     {/* ── RIGHT: Cart + Payment ── */}
@@ -1510,34 +1350,7 @@ export default function PosIndex({
                 </div>
                 {/* ── end panels wrapper ── */}
 
-                {/* ── Mobile tab bar (hidden on desktop) ── */}
-                <div className="flex-shrink-0 border-t border-neutral-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden dark:border-neutral-700 dark:bg-neutral-950">
-                    <div className="flex">
-                        <button
-                            type="button"
-                            onClick={() => setMobileTab('search')}
-                            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${mobileTab === 'search' ? 'text-[var(--brand-primary)]' : 'text-neutral-400 dark:text-neutral-500'}`}
-                        >
-                            <Search className="h-5 w-5" />
-                            <span className="text-[10px] font-medium">Buscar</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setMobileTab('cart')}
-                            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${mobileTab === 'cart' ? 'text-[var(--brand-primary)]' : 'text-neutral-400 dark:text-neutral-500'}`}
-                        >
-                            <div className="relative">
-                                <ShoppingCart className="h-5 w-5" />
-                                {cart.length > 0 && (
-                                    <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1 text-[9px] font-bold text-white">
-                                        {cart.length}
-                                    </span>
-                                )}
-                            </div>
-                            <span className="text-[10px] font-medium">{cart.length > 0 ? formatCOP(total) : 'Carrito'}</span>
-                        </button>
-                    </div>
-                </div>
+                <MobileTabs active={mobileTab} onChange={setMobileTab} itemCount={cart.length} total={total} />
             </div>
             {/* Pending sales panel (slide-over) */}
             {showPendingPanel && (
