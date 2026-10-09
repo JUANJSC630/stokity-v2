@@ -59,6 +59,8 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
     credit_card: 'Tarjeta de crédito',
     debit_card: 'Tarjeta débito',
     transfer: 'Transferencia',
+    bank_transfer: 'Transferencia',
+    credito: 'Crédito',
     other: 'Otro',
 };
 
