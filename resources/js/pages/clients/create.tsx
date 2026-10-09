@@ -1,13 +1,11 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { StickyActions } from '@/components/admin/sticky-actions';
+import { ClientFormFields } from '@/components/clients/client-form-fields';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ChevronLeft, Save } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -15,7 +13,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/clients',
     },
     {
-        title: 'Crear Cliente',
+        title: 'Crear cliente',
         href: '/clients/create',
     },
 ];
@@ -24,6 +22,7 @@ export function CardCreateClient({
     onSuccess,
     onCancel,
     variant = 'default',
+    sticky = false,
 }: {
     onSuccess?: () => void;
     onCancel?: () => void;
@@ -38,7 +37,10 @@ export function CardCreateClient({
      * the POS "crear cliente" modal keep the full 'default' form.
      */
     variant?: 'default' | 'wholesale';
+    /** Keep the actions in view above the phone bottom bar (full page); dialogs keep them in the flow. */
+    sticky?: boolean;
 }) {
+    const onBrand = useOnBrandColor();
     const { can } = usePermissions();
     const isWholesaleVariant = variant === 'wholesale';
     const canManageWholesale = !isWholesaleVariant && can('clients.wholesale.manage');
@@ -84,162 +86,60 @@ export function CardCreateClient({
         }
     };
 
+    const actions = (
+        <>
+            <button
+                type="button"
+                onClick={handleCancel}
+                className="flex h-11 items-center justify-center rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:h-9"
+            >
+                Cancelar
+            </button>
+            <button
+                type="submit"
+                disabled={form.processing}
+                className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-5 text-sm font-medium transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 sm:h-9"
+                style={{ color: onBrand.hex }}
+            >
+                <Save className="size-4" aria-hidden="true" />
+                Guardar cliente
+            </button>
+        </>
+    );
+
     return (
-        <Card className="border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-            <CardHeader>
-                <CardTitle>Información del Cliente</CardTitle>
-                <CardDescription>
-                    Complete la información necesaria para crear un nuevo cliente. Todos los campos marcados con * son obligatorios.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">
-                                Nombre <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.name}
-                                onChange={(e) => form.setData('name', e.target.value)}
-                                required
-                            />
-                            {form.errors.name && <p className="text-sm text-red-500">{form.errors.name}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="document">
-                                Documento <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="document"
-                                type="text"
-                                className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.document}
-                                onChange={(e) => form.setData('document', e.target.value)}
-                                placeholder="Cédula de Ciudadanía"
-                                required
-                            />
-                            {form.errors.document && <p className="text-sm text-red-500">{form.errors.document}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Teléfono</Label>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.phone}
-                                onChange={(e) => form.setData('phone', e.target.value)}
-                            />
-                            {form.errors.phone && <p className="text-sm text-red-500">{form.errors.phone}</p>}
-                        </div>
-                        {!isWholesaleVariant && (
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Correo Electrónico</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                    value={form.data.email}
-                                    onChange={(e) => form.setData('email', e.target.value)}
-                                />
-                                {form.errors.email && <p className="text-sm text-red-500">{form.errors.email}</p>}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="address">{isWholesaleVariant ? 'Ciudad' : 'Dirección'}</Label>
-                            <Input
-                                id="address"
-                                type="text"
-                                className="max-w-full truncate bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.address}
-                                onChange={(e) => form.setData('address', e.target.value)}
-                            />
-                            {form.errors.address && <p className="text-sm text-red-500">{form.errors.address}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="birthdate">Fecha de Nacimiento</Label>
-                            <Input
-                                id="birthdate"
-                                type="date"
-                                className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                value={form.data.birthdate}
-                                onChange={(e) => form.setData('birthdate', e.target.value)}
-                            />
-                            {form.errors.birthdate && <p className="text-sm text-red-500">{form.errors.birthdate}</p>}
-                        </div>
-                    </div>
-                    {canManageWholesale && (
-                        <div className="space-y-3 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <Label htmlFor="is_wholesale">Cliente mayorista</Label>
-                                    <p className="text-xs text-muted-foreground">Aplica su descuento automáticamente en el POS al seleccionarlo.</p>
-                                </div>
-                                <Switch
-                                    id="is_wholesale"
-                                    checked={form.data.is_wholesale}
-                                    onCheckedChange={(checked) => {
-                                        form.setData('is_wholesale', checked);
-                                        if (!checked) form.setData('wholesale_discount_pct', '');
-                                    }}
-                                />
-                            </div>
-                            {form.data.is_wholesale && (
-                                <div className="space-y-2">
-                                    <Label htmlFor="wholesale_discount_pct">
-                                        Descuento (%) <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="wholesale_discount_pct"
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        step="0.01"
-                                        className="max-w-32 bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={form.data.wholesale_discount_pct}
-                                        onChange={(e) => form.setData('wholesale_discount_pct', e.target.value)}
-                                    />
-                                    {form.errors.wholesale_discount_pct && (
-                                        <p className="text-sm text-red-500">{form.errors.wholesale_discount_pct}</p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    <div className="flex justify-end space-x-2">
-                        <Button variant="outline" type="button" onClick={handleCancel}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={form.processing} className="gap-1">
-                            <Save className="size-4" />
-                            <span>Guardar Cliente</span>
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
-        </Card>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <ClientFormFields
+                data={form.data}
+                errors={form.errors}
+                setData={form.setData as never}
+                simplified={isWholesaleVariant}
+                canManageWholesale={canManageWholesale}
+            />
+            {sticky ? <StickyActions>{actions}</StickyActions> : <div className="flex items-center justify-end gap-2">{actions}</div>}
+        </form>
     );
 }
 
 export default function Create() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Crear Cliente" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-2 sm:p-4">
-                {/* Header with back button */}
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0">
-                    <Link href={route('clients.index')}>
-                        <Button variant="ghost" size="sm" className="mr-0 flex items-center gap-1 sm:mr-4">
-                            <ArrowLeft className="h-4 w-4" />
-                            Volver
-                        </Button>
+            <Head title="Crear cliente" />
+            <div className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={route('clients.index')}
+                        aria-label="Volver a clientes"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:h-8 sm:w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
                     </Link>
-                    <h1 className="text-xl font-semibold sm:text-2xl">Crear Nuevo Cliente</h1>
+                    <div className="min-w-0">
+                        <h1 className="text-xl leading-tight font-bold sm:text-2xl">Nuevo cliente</h1>
+                        <p className="text-sm text-muted-foreground">Los campos con * son obligatorios.</p>
+                    </div>
                 </div>
-                <CardCreateClient />
+                <CardCreateClient sticky />
             </div>
         </AppLayout>
     );
