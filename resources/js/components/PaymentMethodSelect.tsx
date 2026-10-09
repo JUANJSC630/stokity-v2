@@ -17,6 +17,8 @@ interface PaymentMethod {
 const EQUIVALENT_CODES: Record<string, string> = {
     transfer: 'bank_transfer',
     bank_transfer: 'transfer',
+    efectivo: 'cash',
+    cash: 'efectivo',
 };
 
 interface PaymentMethodSelectProps {
