@@ -15,6 +15,8 @@ interface SalesByBranchProps {
 }
 
 export function SalesByBranch({ branches }: SalesByBranchProps) {
+    const topAmount = Math.max(1, ...branches.map((branch) => branch.total_amount));
+
     return (
         <div className="rounded-xl border border-border/60 bg-card">
             {/* Header */}
@@ -29,10 +31,7 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
             ) : (
                 <div>
                     {branches.map((branch, index) => (
-                        <div
-                            key={branch.id}
-                            className={`flex items-center gap-3 px-5 py-3 ${index !== 0 ? 'border-t border-border/60' : 'border-t border-border/60'}`}
-                        >
+                        <div key={branch.id} className="flex items-center gap-3 border-t border-border/60 px-4 py-3 md:px-5">
                             {/* Rank */}
                             <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                                 {index + 1}
@@ -40,15 +39,21 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
 
                             {/* Name */}
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-medium">{branch.name}</p>
-                                {branch.business_name && <p className="truncate text-[11px] text-muted-foreground">{branch.business_name}</p>}
+                                <p className="truncate text-sm font-medium">{branch.name}</p>
+                                {branch.business_name && <p className="truncate text-xs text-muted-foreground">{branch.business_name}</p>}
+                                <div aria-hidden="true" className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                                    <div
+                                        className="h-full rounded-full bg-[var(--brand-primary)] transition-[width] duration-700"
+                                        style={{ width: `${Math.max(4, Math.round((branch.total_amount / topAmount) * 100))}%` }}
+                                    />
+                                </div>
                             </div>
 
                             {/* Stats */}
                             <div className="flex-shrink-0 text-right">
-                                <p className="text-xs font-semibold tabular-nums">{branch.total_sales} ventas</p>
-                                <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(branch.total_amount)}</p>
-                                <p className="text-[11px] text-muted-foreground/70 tabular-nums">prom. {formatCurrency(branch.average_sale)}</p>
+                                <p className="text-sm font-semibold tabular-nums">{branch.total_sales} ventas</p>
+                                <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(branch.total_amount)}</p>
+                                <p className="text-xs text-muted-foreground tabular-nums">prom. {formatCurrency(branch.average_sale)}</p>
                             </div>
                         </div>
                     ))}
