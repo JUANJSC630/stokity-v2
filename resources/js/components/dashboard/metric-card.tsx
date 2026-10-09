@@ -51,7 +51,7 @@ export function MetricCard({ title, value, format, description, icon, trend, cla
 
             {/* Value */}
             <p className="mt-3 truncate text-xl leading-none font-bold tracking-tight md:text-2xl">
-                {typeof value === 'number' && format ? <RollingNumber value={value} format={format} /> : value}
+                {typeof value === 'number' && format ? <RollingNumber value={value} format={format} intro /> : value}
             </p>
 
             {/* Description */}

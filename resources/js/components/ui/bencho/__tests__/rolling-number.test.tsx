@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { RollingNumber } from '../rolling-number';
 
@@ -6,6 +6,13 @@ const money = (n: number) => `$ ${n.toLocaleString('es-CO')}`;
 const wheels = (container: HTMLElement) => container.querySelectorAll('[class*="wheel"]').length;
 
 describe('RollingNumber', () => {
+    it('with intro, screen readers get the final value and the wheels settle on it', async () => {
+        const { container } = render(<RollingNumber value={1184500} format={money} intro />);
+
+        expect(screen.getByText('$ 1.184.500')).toHaveClass('sr-only');
+        await waitFor(() => expect(container.querySelector('[aria-hidden="true"]')).toHaveTextContent('$ 1.184.500'));
+    });
+
     it('exposes the whole formatted number to screen readers', () => {
         render(<RollingNumber value={1184500} format={money} />);
 

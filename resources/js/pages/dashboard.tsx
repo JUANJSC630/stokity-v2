@@ -1,4 +1,5 @@
 import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, RevenueHero, SalesByBranch, TopProducts } from '@/components/dashboard';
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
@@ -146,14 +147,14 @@ export default function Dashboard({
             <Head title="Inicio" />
             <div className="flex h-full flex-1 flex-col gap-6 overflow-x-hidden rounded-xl p-4 md:p-6">
                 {/* Header */}
-                <div>
+                <StaggerItem index={0}>
                     <h1 className="text-2xl font-bold tracking-tight">
                         {currentGreeting}, {userName}!
                     </h1>
                     <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
                         {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
                     </p>
-                </div>
+                </StaggerItem>
 
                 {/* Low-stock alert banner — shown only when there are affected products */}
                 <LowStockProducts products={lowStockProducts} />
@@ -163,7 +164,7 @@ export default function Dashboard({
 
                 {/* Today's revenue (pull down to refresh) next to the month and the catalog */}
                 <div className="grid gap-4 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                    <StaggerItem index={1} className="lg:col-span-2">
                         <RevenueHero
                             revenueToday={metrics.total_revenue_today}
                             revenueGrowth={growth.revenue_growth}
@@ -172,8 +173,8 @@ export default function Dashboard({
                             dailySales={dailySales ?? []}
                             onRefresh={refresh}
                         />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-1">
+                    </StaggerItem>
+                    <StaggerItem index={2} className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-1">
                         <MetricCard
                             className="col-span-2 lg:col-span-1"
                             title="Ingresos del Mes"
@@ -210,17 +211,21 @@ export default function Dashboard({
                                 icon={<Package className="h-4 w-4" />}
                             />
                         )}
-                    </div>
+                    </StaggerItem>
                 </div>
 
                 {/* Main content */}
-                <div className="grid gap-6 lg:grid-cols-2">
+                <StaggerItem index={3} className="grid gap-6 lg:grid-cols-2">
                     <RecentSales sales={recentSales} />
                     <TopProducts products={topProducts} />
-                </div>
+                </StaggerItem>
 
                 {/* Ventas por sucursal — admins only */}
-                {canViewBranchSales && salesByBranch.length > 0 && <SalesByBranch branches={salesByBranch} />}
+                {canViewBranchSales && salesByBranch.length > 0 && (
+                    <StaggerItem index={4}>
+                        <SalesByBranch branches={salesByBranch} />
+                    </StaggerItem>
+                )}
             </div>
         </AppLayout>
     );
