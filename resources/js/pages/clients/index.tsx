@@ -1,16 +1,16 @@
-import EyeButton from '@/components/common/EyeButton';
+import { ClientCards, ClientTable } from '@/components/clients/client-list';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/common/search-field';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type Client } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { Eye, Plus, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Plus, UserRound } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PageProps {
     clients: {
@@ -34,174 +34,144 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const formatCount = (value: number): string => String(value);
+
 export default function Index({ clients, filters }: PageProps) {
+    const onBrand = useOnBrandColor();
     usePolling(['clients'], 60_000);
 
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
 
-    const hasResetRef = useRef(false);
-    useEffect(() => {
-        if (search.trim() === '') {
-            const url = new URL(window.location.href);
-            const hasFilters = url.searchParams.get('search');
-            if (!hasResetRef.current && hasFilters) {
-                hasResetRef.current = true;
-                setSearch('');
-                applyFilters('');
-            }
-        } else {
-            hasResetRef.current = false;
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
-
-    const applyFilters = (searchParam = search) => {
+    const applyFilters = useCallback((searchParam: string) => {
         setIsSearching(true);
         const params = new URLSearchParams();
+        if (searchParam) params.append('search', searchParam);
+        const query = params.toString();
 
-        if (searchParam) {
-            params.append('search', searchParam);
-        }
-
-        router.visit(`/clients?${params.toString()}`, {
+        router.visit(query ? `/clients?${query}` : '/clients', {
             preserveState: true,
             preserveScroll: true,
             only: ['clients'],
             onFinish: () => setIsSearching(false),
         });
-    };
+    }, []);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
+    const hasResetRef = useRef(false);
+    useEffect(() => {
+        if (search.trim() === '') {
+            const url = new URL(window.location.href);
+            if (!hasResetRef.current && url.searchParams.get('search')) {
+                hasResetRef.current = true;
+                applyFilters('');
+            }
+        } else {
+            hasResetRef.current = false;
+        }
+    }, [search, applyFilters]);
 
-    const columns: Column<Client & { actions: null }>[] = [
-        { key: 'name', title: 'Nombre', render: (_: unknown, row: Client) => <span className="font-medium">{row.name}</span> },
-        { key: 'document', title: 'Documento' },
-        { key: 'phone', title: 'Teléfono', render: (_: unknown, row: Client) => row.phone || '-' },
-        { key: 'email', title: 'Correo', render: (_: unknown, row: Client) => row.email || '-' },
-        { key: 'address', title: 'Dirección', render: (_: unknown, row: Client) => row.address || '-' },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Client) => (
-                <div className="flex items-center gap-2">
-                    <Link href={route('clients.show', row.id)}>
-                        <EyeButton text="Ver Cliente" />
-                    </Link>
-                </div>
-            ),
-        },
-    ];
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['clients'], onFinish: () => resolve() });
+            }),
+        [],
+    );
+
+    const isFiltered = search.trim() !== '' || Boolean(filters.search);
+
+    const emptyState = (
+        <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                <UserRound className="size-7" aria-hidden="true" />
+            </span>
+            <div>
+                <p className="font-semibold">{isFiltered ? 'Ningún cliente coincide con la búsqueda' : 'Todavía no hay clientes'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {isFiltered ? 'Prueba con otro nombre, documento o correo.' : 'Agrega el primero para asociarlo a sus ventas.'}
+                </p>
+            </div>
+            {isFiltered ? (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setSearch('');
+                        applyFilters('');
+                    }}
+                    className="h-11 rounded-lg border border-border/60 px-4 text-sm font-medium hover:bg-muted sm:h-9"
+                >
+                    Limpiar búsqueda
+                </button>
+            ) : (
+                <Link
+                    href={route('clients.create')}
+                    className="flex h-11 items-center rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium hover:opacity-90 sm:h-9"
+                    style={{ color: onBrand.hex }}
+                >
+                    Nuevo cliente
+                </Link>
+            )}
+        </div>
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Clientes" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Gestión de Clientes</h1>
-                    <Link href={route('clients.create')}>
-                        <Button className="flex gap-1">
-                            <Plus className="mr-1 size-4" />
-                            Nuevo Cliente
-                        </Button>
+            <div className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl leading-tight font-bold sm:text-2xl">Clientes</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={clients.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {clients.total === 1 ? 'cliente' : 'clientes'}
+                            {isFiltered ? ' con esa búsqueda' : ' registrados'}
+                        </p>
+                    </div>
+                    <Link
+                        href={route('clients.create')}
+                        className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium transition-opacity hover:opacity-90 sm:h-9"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        Nuevo cliente
                     </Link>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Clientes</CardTitle>
-                            <CardDescription>Busca clientes por código, nombre o correo electrónico</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="client-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    id="client-search"
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <SearchField
+                    id="client-search"
+                    label="Buscar clientes"
+                    placeholder="Nombre, documento o correo"
+                    value={search}
+                    onChange={setSearch}
+                    onSubmit={() => applyFilters(search)}
+                />
 
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
-                    {/* Desktop table */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table aria-label="Clientes" columns={columns} data={clients.data.map((client) => ({ ...client, actions: null }))} />
-                    </div>
-
-                    {/* Mobile cards */}
-                    <div className="block md:hidden">
-                        {clients.data.length === 0 ? (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron clientes</div>
-                        ) : (
-                            <div className="flex flex-col gap-4 p-2">
-                                {clients.data.map((client) => (
-                                    <div key={client.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{client.name}</div>
-                                            <div className="flex items-center gap-1">
-                                                <Link href={route('clients.show', client.id)}>
-                                                    <Button aria-label="Ver detalle" variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                                        <Eye className="size-4" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Documento:</span> {client.document}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Teléfono:</span> {client.phone || '-'}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Correo:</span> {client.email || '-'}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            <span className="font-medium">Dirección:</span> {client.address || '-'}
-                                        </div>
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card" aria-busy={isSearching}>
+                    {isSearching ? (
+                        <div aria-hidden="true" className="flex flex-col divide-y divide-border/40">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-3 p-4">
+                                    <Skeleton className="size-11 rounded-xl" />
+                                    <div className="flex flex-1 flex-col gap-2">
+                                        <Skeleton className="h-4 w-1/2" />
+                                        <Skeleton className="h-3 w-2/3" />
                                     </div>
-                                ))}
+                                </div>
+                            ))}
+                        </div>
+                    ) : clients.data.length === 0 ? (
+                        emptyState
+                    ) : (
+                        <>
+                            <div className="md:hidden">
+                                <PullToRefresh onRefresh={refresh}>{() => <ClientCards clients={clients.data} />}</PullToRefresh>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Pagination */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...clients,
-                                resourceLabel: 'clientes',
-                            }}
-                        />
-                    </div>
+                            <div className="hidden md:block">
+                                <ClientTable clients={clients.data} />
+                            </div>
+                        </>
+                    )}
+                    <PaginationFooter data={{ ...clients, resourceLabel: 'clientes' }} />
                 </div>
             </div>
         </AppLayout>
