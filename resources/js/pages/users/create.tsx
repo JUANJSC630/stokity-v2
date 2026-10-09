@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
+import { prepareImageForUpload } from '@/lib/image-upload';
 import { type AssignableRole, type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ChevronLeft, Save, Upload, UserCircle } from 'lucide-react';
@@ -73,9 +74,10 @@ export default function CreateUser({ branches, roles }: Props) {
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0];
+        if (picked) {
+            const file = await prepareImageForUpload(picked);
             form.setData('photo', file);
 
             // Create a preview URL
@@ -97,11 +99,12 @@ export default function CreateUser({ branches, roles }: Props) {
         setIsDragging(false);
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith('image/')) {
+        const dropped = e.dataTransfer.files?.[0];
+        if (dropped && dropped.type.startsWith('image/')) {
+            const file = await prepareImageForUpload(dropped);
             form.setData('photo', file);
 
             // Create a preview URL

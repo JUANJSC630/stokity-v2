@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
+import { prepareImageForUpload } from '@/lib/image-upload';
 import { type Branch, type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -88,8 +89,9 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     useScrollToError(form.errors);
 
     // Manejar cambio de imagen
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0] || null;
+        const file = picked ? await prepareImageForUpload(picked) : null;
         form.setData('image', file);
 
         if (file) {
@@ -111,11 +113,12 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         setIsDragging(false);
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith('image/')) {
+        const dropped = e.dataTransfer.files?.[0];
+        if (dropped && dropped.type.startsWith('image/')) {
+            const file = await prepareImageForUpload(dropped);
             form.setData('image', file);
 
             const reader = new FileReader();
