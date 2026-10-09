@@ -1,0 +1,26 @@
+/* Odometer digits, adapted from Bencho's "Like" count (MIT): each digit is its
+   own wheel, so only the digits that change roll, and the farther-left ones
+   follow a beat later. */
+.roll {
+    display: inline-flex;
+    font-variant-numeric: tabular-nums;
+}
+
+.wheel {
+    position: relative;
+    display: inline-block;
+    height: 1.2em;
+    overflow: hidden;
+    line-height: 1.2em;
+    vertical-align: bottom;
+}
+
+.digit {
+    display: inline-block;
+}
+
+.fixed {
+    display: inline-block;
+    line-height: 1.2em;
+    white-space: pre;
+}

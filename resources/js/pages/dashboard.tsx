@@ -1,12 +1,16 @@
-import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, SalesByBranch, TopProducts } from '@/components/dashboard';
+import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, RevenueHero, SalesByBranch, TopProducts } from '@/components/dashboard';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { DollarSign, Package, ShoppingCart, UserRound } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { DollarSign, Package, UserRound } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+
+const DASHBOARD_PROPS = ['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'pendingSales', 'salesByBranch', 'dailySales'];
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -103,10 +107,19 @@ export default function Dashboard({
     recentSales,
     lowStockProducts,
     pendingSales = { total: 0, items: [] },
+    dailySales,
     userName,
 }: DashboardProps) {
     // Polling: refresh dashboard data every 2 minutes
-    usePolling(['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'pendingSales', 'salesByBranch'], 120_000);
+    usePolling(DASHBOARD_PROPS, 120_000);
+
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: DASHBOARD_PROPS, onFinish: () => resolve() });
+            }),
+        [],
+    );
     const { can } = usePermissions();
     const canViewLowStock = can('dashboard.low_stock.view');
     const canViewBranchSales = can('dashboard.branch_sales.view');
@@ -135,7 +148,9 @@ export default function Dashboard({
                     <h1 className="text-2xl font-bold tracking-tight">
                         {currentGreeting}, {userName}!
                     </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">Aquí tienes el resumen de hoy.</p>
+                    <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
+                        {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
+                    </p>
                 </div>
 
                 {/* Low-stock alert banner — shown only when there are affected products */}
@@ -144,49 +159,53 @@ export default function Dashboard({
                 {/* Pending sales alert — stock not yet deducted */}
                 <PendingSalesAlert sales={pendingSales.items} total={pendingSales.total} />
 
-                {/* Metric cards */}
-                <div className={`grid grid-cols-2 gap-3 md:gap-4 ${canViewLowStock ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
-                    <MetricCard
-                        title="Ventas Hoy"
-                        value={metrics.total_sales_today}
-                        description="Transacciones del día"
-                        icon={<ShoppingCart className="h-4 w-4" />}
-                        trend={{ value: growth.sales_growth, isPositive: growth.sales_growth >= 0 }}
-                    />
-                    <MetricCard
-                        title="Ingresos Hoy"
-                        value={formatCurrency(metrics.total_revenue_today)}
-                        description="Total facturado hoy"
-                        icon={<DollarSign className="h-4 w-4" />}
-                        trend={{ value: growth.revenue_growth, isPositive: growth.revenue_growth >= 0 }}
-                    />
-                    <MetricCard
-                        title="Ingresos del Mes"
-                        value={formatCurrency(metrics.total_revenue_month)}
-                        description={
-                            <span>
-                                {metrics.total_sales_month} transacciones · bruto antes de devoluciones
-                                {can('finances.view') && (
-                                    <>
-                                        {' · '}
-                                        <a href={route('finances.summary')} className="underline underline-offset-2 hover:text-foreground">
-                                            Ver en Finanzas
-                                        </a>
-                                    </>
-                                )}
-                            </span>
-                        }
-                        icon={<DollarSign className="h-4 w-4" />}
-                    />
-                    <MetricCard title="Clientes" value={metrics.total_clients} description="Registrados" icon={<UserRound className="h-4 w-4" />} />
-                    {canViewLowStock && (
-                        <MetricCard
-                            title="Productos"
-                            value={metrics.total_products}
-                            description="En inventario"
-                            icon={<Package className="h-4 w-4" />}
+                {/* Today's revenue (pull down to refresh) next to the month and the catalog */}
+                <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                        <RevenueHero
+                            revenueToday={metrics.total_revenue_today}
+                            revenueGrowth={growth.revenue_growth}
+                            salesToday={metrics.total_sales_today}
+                            averageSale={metrics.average_sale_today}
+                            dailySales={dailySales ?? []}
+                            onRefresh={refresh}
                         />
-                    )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-1">
+                        <MetricCard
+                            className="col-span-2 lg:col-span-1"
+                            title="Ingresos del Mes"
+                            value={formatCurrency(metrics.total_revenue_month)}
+                            description={
+                                <span>
+                                    {metrics.total_sales_month} transacciones · bruto antes de devoluciones
+                                    {can('finances.view') && (
+                                        <>
+                                            {' · '}
+                                            <a href={route('finances.summary')} className="underline underline-offset-2 hover:text-foreground">
+                                                Ver en Finanzas
+                                            </a>
+                                        </>
+                                    )}
+                                </span>
+                            }
+                            icon={<DollarSign className="h-4 w-4" />}
+                        />
+                        <MetricCard
+                            title="Clientes"
+                            value={metrics.total_clients}
+                            description="Registrados"
+                            icon={<UserRound className="h-4 w-4" />}
+                        />
+                        {canViewLowStock && (
+                            <MetricCard
+                                title="Productos"
+                                value={metrics.total_products}
+                                description="En inventario"
+                                icon={<Package className="h-4 w-4" />}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 {/* Main content */}

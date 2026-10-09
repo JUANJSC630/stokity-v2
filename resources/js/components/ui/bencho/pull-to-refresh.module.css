@@ -1,0 +1,66 @@
+/* Pull to refresh, adapted from Bencho's card (MIT): the sheet stretches with the
+   finger, past the line it commits and a ring of drops spins behind it. */
+.root {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent);
+    border-radius: var(--pull-radius, 20px);
+    background: var(--muted);
+    padding-bottom: var(--grow, 0px);
+    margin-bottom: calc(-1 * var(--grow, 0px));
+}
+
+.goo {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    z-index: 1;
+    display: grid;
+    width: 60px;
+    height: 60px;
+    margin: -30px 0 0 -30px;
+    place-items: center;
+    pointer-events: none;
+    opacity: var(--p, 0);
+    scale: calc(0.82 + var(--p, 0) * 0.18);
+}
+
+.root[data-phase='work'] .goo {
+    opacity: 1;
+    scale: 1;
+    animation: spin var(--rpm, 1000ms) linear infinite;
+}
+
+.drop {
+    grid-area: 1 / 1;
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--foreground) 38%, transparent);
+    transform: translate(calc(var(--dx, 0) * 1px), calc(var(--dy, 0) * 1px));
+}
+
+.root[data-phase='hold'] .sheet,
+.root[data-phase='work'] .sheet {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.sheet {
+    position: relative;
+    z-index: 2;
+    background: var(--card);
+    transform: translateY(var(--at, 0px));
+}
+
+@keyframes spin {
+    to {
+        rotate: 360deg;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .root[data-phase='work'] .goo {
+        animation-duration: 3s;
+    }
+}

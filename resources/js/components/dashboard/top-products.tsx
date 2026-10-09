@@ -39,27 +39,27 @@ export function TopProducts({ products }: TopProductsProps) {
                         {products.map((product, index) => (
                             <div
                                 key={product.id}
-                                className={`flex items-center gap-2 px-3 py-2.5 md:gap-3 md:px-5 md:py-3 ${index !== 0 ? 'border-t border-border/60' : ''}`}
+                                className={`flex items-center gap-3 px-3 py-3 md:px-5 ${index !== 0 ? 'border-t border-border/60' : ''}`}
                             >
                                 {/* Rank */}
                                 <div
-                                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}
+                                    className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${RANK_COLORS[index] ?? 'bg-muted text-muted-foreground'}`}
                                 >
                                     {index + 1}
                                 </div>
 
                                 {/* Product info */}
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs leading-tight font-medium">{product.name}</p>
-                                    <p className="text-[11px] text-muted-foreground">
+                                    <p className="truncate text-sm leading-tight font-medium">{product.name}</p>
+                                    <p className="truncate text-xs text-muted-foreground">
                                         {product.code} · {product.sales_count} {product.sales_count === 1 ? 'venta' : 'ventas'}
                                     </p>
                                 </div>
 
                                 {/* Stats */}
                                 <div className="flex-shrink-0 text-right">
-                                    <p className="text-xs font-semibold tabular-nums">{product.total_quantity} uds</p>
-                                    <p className="text-[11px] text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>
+                                    <p className="text-sm font-semibold tabular-nums">{product.total_quantity} uds</p>
+                                    <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>
                                 </div>
                             </div>
                         ))}
