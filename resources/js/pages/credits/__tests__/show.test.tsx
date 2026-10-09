@@ -162,8 +162,8 @@ describe('Credit detail: abono dialog', () => {
     it('offers only the quick amounts that fit in the balance, plus "Pagar todo"', () => {
         const dialog = openAbono();
 
-        expect(within(dialog).getByRole('button', { name: '$ 10.000' })).toBeInTheDocument();
-        expect(within(dialog).getByRole('button', { name: '$ 50.000' })).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: /^\$\s10\.000$/ })).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: /^\$\s50\.000$/ })).toBeInTheDocument();
         expect(within(dialog).getByRole('button', { name: 'Pagar todo' })).toBeInTheDocument();
     });
 
@@ -187,7 +187,7 @@ describe('Credit detail: abono dialog', () => {
 
     it('posts the abono with the amount, the method and the notes', () => {
         const dialog = openAbono();
-        fireEvent.click(within(dialog).getByRole('button', { name: '$ 50.000' }));
+        fireEvent.click(within(dialog).getByRole('button', { name: /^\$\s50\.000$/ }));
         fireEvent.click(within(dialog).getByRole('button', { name: 'método-transferencia' }));
         fireEvent.change(within(dialog).getByPlaceholderText('Observaciones...'), { target: { value: 'Pagó en la tarde' } });
 
@@ -202,7 +202,7 @@ describe('Credit detail: abono dialog', () => {
 
     it('sends null notes when none were written', () => {
         const dialog = openAbono();
-        fireEvent.click(within(dialog).getByRole('button', { name: '$ 10.000' }));
+        fireEvent.click(within(dialog).getByRole('button', { name: /^\$\s10\.000$/ }));
 
         fireEvent.click(within(dialog).getByRole('button', { name: /^Registrar/ }));
 

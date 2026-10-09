@@ -83,7 +83,7 @@ function pickClient(name = 'Ana Pérez') {
 
 function addProduct(term: string, name: string) {
     fireEvent.change(screen.getByPlaceholderText('Buscar producto por nombre o código...'), { target: { value: term } });
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
 }
 
 function toConditions(credit: 'layaway' | 'installments' | 'due_date' | 'hold') {
@@ -137,8 +137,8 @@ describe('New credit: step 1 (client and products)', () => {
 
         fireEvent.change(screen.getByPlaceholderText('Buscar producto por nombre o código...'), { target: { value: 'a' } });
 
-        expect(screen.getByRole('button', { name: /Collar Luna/ })).toHaveTextContent('Disp: 8');
-        expect(screen.getByRole('button', { name: /Arreglo de joyería/ })).not.toHaveTextContent('Disp:');
+        expect(screen.getByRole('button', { name: /^Collar Luna/ })).toHaveTextContent('Disp: 8');
+        expect(screen.getByRole('button', { name: /^Arreglo de joyería/ })).not.toHaveTextContent('Disp:');
     });
 
     it('says when no product matches', () => {
@@ -351,5 +351,52 @@ describe('New credit: step 3 (confirmation)', () => {
         expect(toast.error).toHaveBeenCalledWith('Sin stock disponible.');
         expect(toast.error).toHaveBeenCalledWith('Cliente inválido.');
         expect(screen.getByRole('button', { name: /Confirmar crédito/ })).toBeEnabled();
+    });
+});
+
+describe('New credit: live summary and stepper', () => {
+    it('keeps the summary on the side up to date as the user chooses', () => {
+        renderWizard();
+        const aside = screen.getByLabelText('Resumen en vivo');
+        expect(text(aside)).toContain('Sin elegir');
+        expect(text(aside)).toContain('Ninguno');
+
+        pickClient();
+        addProduct('collar', 'Collar Luna');
+        addProduct('collar', 'Collar Luna');
+
+        expect(text(aside)).toContain('Ana Pérez');
+        expect(text(aside)).toContain('1 · 2 uds');
+        expect(text(aside)).toContain('$ 200.000');
+    });
+
+    it('shows the modality, the initial payment and the resulting balance in the summary', () => {
+        renderWizard();
+        toConditions('layaway');
+        fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '40000' } });
+
+        const aside = screen.getByLabelText('Resumen en vivo');
+        expect(text(aside)).toContain('Separado');
+        expect(text(aside)).toContain('Con abono de$ 40.000');
+        expect(text(aside)).toContain('Quedaría un saldo de$ 60.000');
+    });
+
+    it('marks the current step in the stepper', () => {
+        renderWizard();
+
+        expect(screen.getByRole('list', { name: 'Pasos del crédito' }).querySelector('[aria-current="step"]')).toHaveTextContent('1');
+        pickClient();
+        addProduct('collar', 'Collar Luna');
+        fireEvent.click(next());
+
+        expect(screen.getByRole('list', { name: 'Pasos del crédito' }).querySelector('[aria-current="step"]')).toHaveTextContent('2');
+    });
+
+    it('goes back to the list with the arrow at the top', () => {
+        renderWizard();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Volver a créditos' }));
+
+        expect(router.visit).toHaveBeenCalledWith('/credits');
     });
 });

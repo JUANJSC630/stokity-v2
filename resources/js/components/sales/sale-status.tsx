@@ -56,6 +56,7 @@ export const SALE_STATUS_OPTIONS: { value: 'all' | SaleStatus; label: string }[]
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
     cash: 'Efectivo',
+    efectivo: 'Efectivo',
     credit_card: 'Tarjeta de crédito',
     debit_card: 'Tarjeta débito',
     transfer: 'Transferencia',

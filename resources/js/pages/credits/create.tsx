@@ -1,17 +1,31 @@
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { INPUT_CLASS } from '@/components/sales/form-fields';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Client } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRight, Calendar, Check, Clock, HandCoins, Layers, Package, Search, ShoppingBag, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Calendar,
+    Check,
+    ChevronLeft,
+    Clock,
+    HandCoins,
+    Layers,
+    Minus,
+    Package,
+    Plus,
+    Search,
+    ShoppingBag,
+    X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -51,7 +65,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function cop(value: number): string {
-    return `$ ${Number(value).toLocaleString('es-CO')}`;
+    return formatCurrency(Number(value));
 }
 
 const TYPE_CONFIG: Record<CreditType, { label: string; description: string; icon: typeof HandCoins; color: string }> = {
@@ -59,54 +73,63 @@ const TYPE_CONFIG: Record<CreditType, { label: string; description: string; icon
         label: 'Separado',
         description: 'El cliente aparta con un abono. El producto se entrega al completar el pago.',
         icon: ShoppingBag,
-        color: 'border-blue-500 bg-blue-50 dark:bg-blue-950',
+        color: '',
     },
     installments: {
         label: 'Cuotas',
         description: 'El producto se entrega de inmediato. El cliente paga en cuotas mensuales.',
         icon: Layers,
-        color: 'border-purple-500 bg-purple-50 dark:bg-purple-950',
+        color: '',
     },
     due_date: {
         label: 'Fecha acordada',
         description: 'El producto se entrega de inmediato. El cliente paga en una fecha acordada.',
         icon: Calendar,
-        color: 'border-amber-500 bg-amber-50 dark:bg-amber-950',
+        color: '',
     },
     hold: {
         label: 'Reservado',
         description: 'Solo se reserva. Sin abono. El cliente regresa a pagar y recoger.',
         icon: Clock,
-        color: 'border-gray-500 bg-gray-50 dark:bg-gray-950',
+        color: '',
     },
 };
 
 // ─── Step components ────────────────────────────────────────────────────────────
 
+const STEP_LABELS = ['Cliente y productos', 'Condiciones', 'Confirmar'];
+
 function StepIndicator({ current, total }: { current: number; total: number }) {
     return (
-        <div className="flex items-center gap-2">
+        <ol className="flex items-center gap-2" aria-label="Pasos del crédito">
             {Array.from({ length: total }, (_, i) => (
-                <div key={i} className="flex items-center gap-2">
-                    <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                <li key={i} className="flex items-center gap-2" aria-current={i === current ? 'step' : undefined}>
+                    <span
+                        className={cn(
+                            'flex size-8 items-center justify-center rounded-full text-sm font-bold transition-colors',
                             i < current
-                                ? 'bg-green-500 text-white'
+                                ? 'bg-emerald-500 text-white'
                                 : i === current
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted text-muted-foreground'
-                        }`}
+                                  ? 'bg-[var(--brand-primary)] text-white'
+                                  : 'bg-muted text-muted-foreground',
+                        )}
                     >
-                        {i < current ? <Check className="h-4 w-4" /> : i + 1}
-                    </div>
-                    {i < total - 1 && <div className={`h-0.5 w-8 ${i < current ? 'bg-green-500' : 'bg-muted'}`} />}
-                </div>
+                        {i < current ? <Check className="size-4" aria-hidden="true" /> : i + 1}
+                    </span>
+                    <span className={cn('hidden text-sm font-medium xl:inline', i === current ? 'text-foreground' : 'text-muted-foreground')}>
+                        {STEP_LABELS[i]}
+                    </span>
+                    {i < total - 1 && (
+                        <span className={cn('h-0.5 w-6 rounded-full', i < current ? 'bg-emerald-500' : 'bg-muted')} aria-hidden="true" />
+                    )}
+                </li>
             ))}
-        </div>
+        </ol>
     );
 }
 
 export default function CreditCreate({ clients, products, branchId }: Props) {
+    const onBrand = useOnBrandColor();
     const [step, setStep] = useState(0);
 
     // Step 1 — Client + Products
@@ -224,415 +247,548 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
     }
 
     const selectedClient = clients.find((c) => c.id === parseInt(clientId));
+    const unitCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo crédito" />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4 lg:p-6">
-                {/* Header with stepper */}
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold tracking-tight">Nuevo crédito</h1>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => router.visit('/credits')}
+                            aria-label="Volver a créditos"
+                            className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:size-9"
+                        >
+                            <ChevronLeft className="size-4" aria-hidden="true" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Nuevo crédito</h1>
+                            <p className="text-sm text-muted-foreground">
+                                Paso {step + 1} de 3 · {STEP_LABELS[step]}
+                            </p>
+                        </div>
+                    </div>
                     <StepIndicator current={step} total={3} />
                 </div>
 
-                {/* ═══ STEP 0: Client + Products ═══ */}
-                {step === 0 && (
-                    <div className="space-y-6">
-                        {/* Client selection */}
-                        <Card>
-                            <CardContent className="space-y-3 pt-6">
-                                <Label className="text-base font-semibold">Cliente</Label>
-                                <Input
-                                    placeholder="Buscar cliente por nombre o documento..."
-                                    value={clientSearch}
-                                    onChange={(e) => setClientSearch(e.target.value)}
-                                    className="mb-2"
-                                />
-                                {!clientId ? (
-                                    <div className="max-h-40 space-y-1 overflow-y-auto">
-                                        {filteredClients.map((c) => (
-                                            <button
-                                                key={c.id}
-                                                onClick={() => {
-                                                    setClientId(String(c.id));
-                                                    setClientSearch('');
-                                                }}
-                                                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
-                                            >
-                                                <span className="font-medium">{c.name}</span>
-                                                {c.document && <span className="text-muted-foreground">{c.document}</span>}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-between rounded-md bg-muted px-4 py-3">
-                                        <div>
-                                            <p className="font-medium">{selectedClient?.name}</p>
-                                            {selectedClient?.document && <p className="text-sm text-muted-foreground">{selectedClient.document}</p>}
-                                        </div>
-                                        <Button variant="ghost" size="sm" onClick={() => setClientId('')}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Product search + add */}
-                        <Card>
-                            <CardContent className="space-y-3 pt-6">
-                                <Label className="text-base font-semibold">Productos</Label>
-                                <div className="relative">
-                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Buscar producto por nombre o código..."
-                                        value={productSearch}
-                                        onChange={(e) => setProductSearch(e.target.value)}
-                                        className="pl-9"
-                                    />
-                                </div>
-                                {productSearch && (
-                                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border p-2">
-                                        {filteredProducts.length === 0 ? (
-                                            <p className="py-4 text-center text-sm text-muted-foreground">No se encontraron productos</p>
-                                        ) : (
-                                            filteredProducts.map((p) => {
-                                                const inCart = cart.find((item) => item.product.id === p.id);
-                                                return (
-                                                    <button
-                                                        key={p.id}
-                                                        onClick={() => {
-                                                            addToCart(p);
-                                                            setProductSearch('');
-                                                        }}
-                                                        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
-                                                    >
-                                                        <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                                                        <span className="text-muted-foreground">{cop(p.sale_price)}</span>
-                                                        {p.type !== 'servicio' && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                Disp: {p.available_stock}
-                                                            </Badge>
-                                                        )}
-                                                        {inCart && <Badge className="bg-green-600 text-xs">En carrito</Badge>}
-                                                    </button>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Cart */}
-                                {cart.length > 0 && (
-                                    <div className="space-y-2 pt-2">
-                                        <div className="rounded-md border">
-                                            {/* Header — desktop only */}
-                                            <div className="hidden grid-cols-[1fr_80px_100px_100px_40px] gap-2 bg-muted/50 px-3 py-2 text-xs font-medium md:grid">
-                                                <span>Producto</span>
-                                                <span className="text-center">Cant.</span>
-                                                <span className="text-right">Precio</span>
-                                                <span className="text-right">Subtotal</span>
-                                                <span />
-                                            </div>
-                                            {cart.map((item) => (
-                                                <div key={item.product.id} className="border-t px-3 py-2">
-                                                    {/* Mobile layout */}
-                                                    <div className="flex items-center justify-between gap-2 md:hidden">
-                                                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.product.name}</span>
-                                                        <span className="flex-shrink-0 text-sm font-semibold">{cop(item.subtotal)}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 flex-shrink-0 p-0"
-                                                            onClick={() => removeFromCart(item.product.id)}
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="mt-1 flex items-center gap-2 md:hidden">
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            value={item.quantity}
-                                                            onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
-                                                            className="h-8 w-20 text-center text-sm"
-                                                        />
-                                                        {item.product.variable_price ? (
-                                                            <CurrencyInput
-                                                                value={item.unit_price}
-                                                                onChange={(v) => updateCartPrice(item.product.id, v)}
-                                                                className="h-8 flex-1 text-right text-sm"
-                                                            />
-                                                        ) : (
-                                                            <span className="flex-1 text-right text-sm text-muted-foreground">
-                                                                {cop(item.unit_price)} c/u
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {/* Desktop layout */}
-                                                    <div className="hidden grid-cols-[1fr_80px_100px_100px_40px] items-center gap-2 md:grid">
-                                                        <span className="truncate text-sm">{item.product.name}</span>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            value={item.quantity}
-                                                            onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
-                                                            className="h-8 text-center text-sm"
-                                                        />
-                                                        {item.product.variable_price ? (
-                                                            <CurrencyInput
-                                                                value={item.unit_price}
-                                                                onChange={(v) => updateCartPrice(item.product.id, v)}
-                                                                className="h-8 text-right text-sm"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-right text-sm">{cop(item.unit_price)}</span>
-                                                        )}
-                                                        <span className="text-right text-sm font-medium">{cop(item.subtotal)}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 p-0"
-                                                            onClick={() => removeFromCart(item.product.id)}
-                                                        >
-                                                            <X className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="flex justify-end px-3">
-                                            <span className="text-lg font-bold">Total: {cop(cartTotal)}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
-                {/* ═══ STEP 1: Type + Conditions ═══ */}
-                {step === 1 && (
-                    <div className="space-y-6">
-                        {/* Type selection */}
-                        <div>
-                            <Label className="mb-3 block text-base font-semibold">Modalidad del crédito</Label>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {(Object.entries(TYPE_CONFIG) as [CreditType, (typeof TYPE_CONFIG)[CreditType]][]).map(([key, cfg]) => {
-                                    const Icon = cfg.icon;
-                                    const selected = creditType === key;
-                                    return (
-                                        <button
-                                            key={key}
-                                            onClick={() => {
-                                                setCreditType(key);
-                                                if (key === 'installments') {
-                                                    const d = new Date();
-                                                    d.setMonth(d.getMonth() + installmentsCount);
-                                                    setDueDate(format(d, 'yyyy-MM-dd'));
-                                                } else if (key !== 'due_date') {
-                                                    setDueDate('');
-                                                }
-                                            }}
-                                            className={`rounded-lg border-2 p-4 text-left transition-all ${selected ? cfg.color : 'border-transparent hover:border-muted-foreground/20'}`}
-                                        >
-                                            <div className="mb-1 flex items-center gap-2">
-                                                <Icon className="h-5 w-5" />
-                                                <span className="font-semibold">{cfg.label}</span>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">{cfg.description}</p>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Conditions */}
-                        {creditType && (
-                            <Card>
-                                <CardContent className="space-y-4 pt-6">
-                                    <Label className="text-base font-semibold">Condiciones</Label>
-
-                                    {creditType === 'installments' && (
-                                        <div className="space-y-2">
-                                            <Label>Número de cuotas</Label>
-                                            <Select
-                                                value={String(installmentsCount)}
-                                                onValueChange={(v) => {
-                                                    const n = parseInt(v);
-                                                    setInstallmentsCount(n);
-                                                    const d = new Date();
-                                                    d.setMonth(d.getMonth() + n);
-                                                    setDueDate(format(d, 'yyyy-MM-dd'));
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {[1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((n) => (
-                                                        <SelectItem key={n} value={String(n)}>
-                                                            {n} {n === 1 ? 'cuota' : 'cuotas'} — {cop(Math.round(cartTotal / n))} c/u
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    )}
-
-                                    {(creditType === 'due_date' || creditType === 'installments') && (
-                                        <div className="space-y-2">
-                                            <Label>{creditType === 'installments' ? 'Fecha de última cuota' : 'Fecha límite de pago'}</Label>
-                                            <Input
-                                                type="date"
-                                                value={dueDate}
-                                                min={format(new Date(), 'yyyy-MM-dd')}
-                                                onChange={(e) => setDueDate(e.target.value)}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {creditType !== 'hold' && (
-                                        <div className="space-y-2">
-                                            <Label>Abono inicial (opcional)</Label>
-                                            <CurrencyInput value={initialPayment} onChange={setInitialPayment} />
-                                            {initialPayment > 0 && (
-                                                <div className="space-y-2">
-                                                    <Label>Método de pago del abono</Label>
-                                                    <PaymentMethodSelect value={initialPaymentMethod} onValueChange={setInitialPaymentMethod} />
-                                                </div>
-                                            )}
-                                            {initialPayment > cartTotal && (
-                                                <p className="text-sm text-red-500">El abono no puede superar el total ({cop(cartTotal)})</p>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-2">
-                                        <Label>Notas (opcional)</Label>
-                                        <Textarea
-                                            value={notes}
-                                            onChange={(e) => setNotes(e.target.value)}
-                                            placeholder="Observaciones sobre el crédito..."
-                                            rows={2}
+                <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+                    <div className="flex min-w-0 flex-col gap-5">
+                        {/* ═══ STEP 0: Client + Products ═══ */}
+                        {step === 0 && (
+                            <div className="flex flex-col gap-5">
+                                <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-5">
+                                    <h2 className="text-base font-semibold">Cliente</h2>
+                                    <div className="relative">
+                                        <Search
+                                            className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <input
+                                            placeholder="Buscar cliente por nombre o documento..."
+                                            value={clientSearch}
+                                            onChange={(e) => setClientSearch(e.target.value)}
+                                            className={cn(INPUT_CLASS, 'pl-10')}
                                         />
                                     </div>
-                                </CardContent>
-                            </Card>
+                                    {!clientId ? (
+                                        <div className="max-h-56 space-y-1 overflow-y-auto">
+                                            {filteredClients.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    onClick={() => {
+                                                        setClientId(String(c.id));
+                                                        setClientSearch('');
+                                                    }}
+                                                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                                >
+                                                    <span className="font-medium">{c.name}</span>
+                                                    {c.document && <span className="text-muted-foreground">{c.document}</span>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between rounded-xl bg-[var(--brand-primary-soft)] px-4 py-3">
+                                            <div>
+                                                <p className="font-medium">{selectedClient?.name}</p>
+                                                {selectedClient?.document && (
+                                                    <p className="text-sm text-muted-foreground">{selectedClient.document}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setClientId('')}
+                                                aria-label="Cambiar cliente"
+                                                className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-background/60 hover:text-foreground sm:size-9"
+                                            >
+                                                <X className="size-4" aria-hidden="true" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </section>
+
+                                <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-5">
+                                    <h2 className="text-base font-semibold">Productos</h2>
+                                    <div className="relative">
+                                        <Search
+                                            className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                                            aria-hidden="true"
+                                        />
+                                        <input
+                                            placeholder="Buscar producto por nombre o código..."
+                                            value={productSearch}
+                                            onChange={(e) => setProductSearch(e.target.value)}
+                                            className={cn(INPUT_CLASS, 'pl-10')}
+                                        />
+                                    </div>
+                                    {productSearch && (
+                                        <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-border/60 p-2">
+                                            {filteredProducts.length === 0 ? (
+                                                <p className="py-4 text-center text-sm text-muted-foreground">No se encontraron productos</p>
+                                            ) : (
+                                                filteredProducts.map((p) => {
+                                                    const inCart = cart.find((item) => item.product.id === p.id);
+                                                    return (
+                                                        <button
+                                                            key={p.id}
+                                                            onClick={() => {
+                                                                addToCart(p);
+                                                                setProductSearch('');
+                                                            }}
+                                                            className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                                                        >
+                                                            <Package className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                                            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                                                            <span className="text-muted-foreground tabular-nums">{cop(p.sale_price)}</span>
+                                                            {p.type !== 'servicio' && (
+                                                                <span className="rounded-full border border-border/60 px-2 py-0.5 text-xs">
+                                                                    Disp: {p.available_stock}
+                                                                </span>
+                                                            )}
+                                                            {inCart && (
+                                                                <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-xs text-white">
+                                                                    En carrito
+                                                                </span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {cart.length > 0 && (
+                                        <div className="space-y-2 pt-2">
+                                            <div className="overflow-hidden rounded-xl border border-border/60">
+                                                <div className="hidden grid-cols-[1fr_120px_110px_110px_40px] gap-2 bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
+                                                    <span>Producto</span>
+                                                    <span className="text-center">Cant.</span>
+                                                    <span className="text-right">Precio</span>
+                                                    <span className="text-right">Subtotal</span>
+                                                    <span />
+                                                </div>
+                                                {cart.map((item) => (
+                                                    <div
+                                                        key={item.product.id}
+                                                        className="border-t border-border/60 px-3 py-3 first:border-t-0 md:first:border-t"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2 md:hidden">
+                                                            <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.product.name}</span>
+                                                            <span className="shrink-0 text-sm font-semibold tabular-nums">{cop(item.subtotal)}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeFromCart(item.product.id)}
+                                                                aria-label={`Quitar ${item.product.name}`}
+                                                                className="flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                                                            >
+                                                                <X className="size-4" aria-hidden="true" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="mt-1 flex items-center gap-2 md:hidden">
+                                                            <input
+                                                                type="number"
+                                                                min={1}
+                                                                value={item.quantity}
+                                                                onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
+                                                                aria-label={`Cantidad de ${item.product.name}`}
+                                                                className="h-11 w-20 rounded-lg border border-border/60 bg-background text-center text-base font-semibold"
+                                                            />
+                                                            {item.product.variable_price ? (
+                                                                <CurrencyInput
+                                                                    value={item.unit_price}
+                                                                    onChange={(v) => updateCartPrice(item.product.id, v)}
+                                                                    className="h-11 flex-1 text-right text-base"
+                                                                />
+                                                            ) : (
+                                                                <span className="flex-1 text-right text-sm text-muted-foreground">
+                                                                    {cop(item.unit_price)} c/u
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="hidden grid-cols-[1fr_120px_110px_110px_40px] items-center gap-2 md:grid">
+                                                            <span className="truncate text-sm font-medium">{item.product.name}</span>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label={`Menos ${item.product.name}`}
+                                                                    onClick={() => updateCartItem(item.product.id, item.quantity - 1)}
+                                                                    className="flex size-8 items-center justify-center rounded-md border border-border/60 hover:bg-muted"
+                                                                >
+                                                                    <Minus className="size-3" aria-hidden="true" />
+                                                                </button>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    value={item.quantity}
+                                                                    onChange={(e) => updateCartItem(item.product.id, parseInt(e.target.value) || 0)}
+                                                                    aria-label={`Cantidad de ${item.product.name}`}
+                                                                    className="h-8 w-12 rounded-md border border-border/60 bg-background text-center text-sm font-semibold [&::-webkit-inner-spin-button]:appearance-none"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label={`Más ${item.product.name}`}
+                                                                    onClick={() => updateCartItem(item.product.id, item.quantity + 1)}
+                                                                    className="flex size-8 items-center justify-center rounded-md border border-border/60 hover:bg-muted"
+                                                                >
+                                                                    <Plus className="size-3" aria-hidden="true" />
+                                                                </button>
+                                                            </div>
+                                                            {item.product.variable_price ? (
+                                                                <CurrencyInput
+                                                                    value={item.unit_price}
+                                                                    onChange={(v) => updateCartPrice(item.product.id, v)}
+                                                                    className="h-8 text-right text-sm"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-right text-sm tabular-nums">{cop(item.unit_price)}</span>
+                                                            )}
+                                                            <span className="text-right text-sm font-semibold tabular-nums">
+                                                                {cop(item.subtotal)}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeFromCart(item.product.id)}
+                                                                aria-label={`Quitar ${item.product.name}`}
+                                                                className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                                                            >
+                                                                <X className="size-4" aria-hidden="true" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-end px-1">
+                                                <span className="text-lg font-bold tabular-nums">Total: {cop(cartTotal)}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
                         )}
-                    </div>
-                )}
 
-                {/* ═══ STEP 2: Confirmation ═══ */}
-                {step === 2 && creditType && (
-                    <div className="space-y-4">
-                        <Card>
-                            <CardContent className="space-y-4 pt-6">
-                                <h2 className="text-lg font-bold">Resumen del crédito</h2>
+                        {/* ═══ STEP 1: Type + Conditions ═══ */}
+                        {step === 1 && (
+                            <div className="flex flex-col gap-5">
+                                <div>
+                                    <h2 className="mb-3 text-base font-semibold">Modalidad del crédito</h2>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        {(Object.entries(TYPE_CONFIG) as [CreditType, (typeof TYPE_CONFIG)[CreditType]][]).map(([key, cfg]) => {
+                                            const Icon = cfg.icon;
+                                            const selected = creditType === key;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => {
+                                                        setCreditType(key);
+                                                        if (key === 'installments') {
+                                                            const d = new Date();
+                                                            d.setMonth(d.getMonth() + installmentsCount);
+                                                            setDueDate(format(d, 'yyyy-MM-dd'));
+                                                        } else if (key !== 'due_date') {
+                                                            setDueDate('');
+                                                        }
+                                                    }}
+                                                    aria-pressed={selected}
+                                                    className={cn(
+                                                        'rounded-2xl border-2 p-4 text-left transition-colors',
+                                                        selected
+                                                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary-soft)]'
+                                                            : 'border-border/60 bg-card hover:bg-muted/50',
+                                                    )}
+                                                >
+                                                    <div className="mb-1 flex items-center gap-2">
+                                                        <Icon
+                                                            className={cn('size-5', selected && 'text-[var(--brand-primary)]')}
+                                                            aria-hidden="true"
+                                                        />
+                                                        <span className="font-semibold">{cfg.label}</span>
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground">{cfg.description}</p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Cliente</p>
-                                        <p className="font-medium">{selectedClient?.name}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Modalidad</p>
-                                        <p className="font-medium">{TYPE_CONFIG[creditType].label}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Total</p>
-                                        <p className="text-xl font-bold">{cop(cartTotal)}</p>
-                                    </div>
-                                    {initialPayment > 0 && (
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">Abono inicial</p>
-                                            <p className="font-medium text-green-600">{cop(initialPayment)}</p>
+                                {creditType && (
+                                    <section className="space-y-4 rounded-2xl border border-border/60 bg-card p-5">
+                                        <h2 className="text-base font-semibold">Condiciones</h2>
+
+                                        {creditType === 'installments' && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-sm font-medium">Número de cuotas</label>
+                                                <Select
+                                                    value={String(installmentsCount)}
+                                                    onValueChange={(v) => {
+                                                        const n = parseInt(v);
+                                                        setInstallmentsCount(n);
+                                                        const d = new Date();
+                                                        d.setMonth(d.getMonth() + n);
+                                                        setDueDate(format(d, 'yyyy-MM-dd'));
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-11 w-full text-base sm:h-10 sm:text-sm">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {[1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((n) => (
+                                                            <SelectItem key={n} value={String(n)}>
+                                                                {n} {n === 1 ? 'cuota' : 'cuotas'} — {cop(Math.round(cartTotal / n))} c/u
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+
+                                        {(creditType === 'due_date' || creditType === 'installments') && (
+                                            <div className="space-y-1.5">
+                                                <label htmlFor="credit-due-date" className="text-sm font-medium">
+                                                    {creditType === 'installments' ? 'Fecha de última cuota' : 'Fecha límite de pago'}
+                                                </label>
+                                                <input
+                                                    id="credit-due-date"
+                                                    type="date"
+                                                    value={dueDate}
+                                                    min={format(new Date(), 'yyyy-MM-dd')}
+                                                    onChange={(e) => setDueDate(e.target.value)}
+                                                    className={INPUT_CLASS}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {creditType !== 'hold' && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-sm font-medium">Abono inicial (opcional)</label>
+                                                <CurrencyInput value={initialPayment} onChange={setInitialPayment} className={INPUT_CLASS} />
+                                                {initialPayment > 0 && (
+                                                    <div className="space-y-1.5 pt-1">
+                                                        <label className="text-sm font-medium">Método de pago del abono</label>
+                                                        <PaymentMethodSelect
+                                                            value={initialPaymentMethod}
+                                                            onValueChange={setInitialPaymentMethod}
+                                                            triggerClassName="h-11 text-base sm:h-9 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {initialPayment > cartTotal && (
+                                                    <p className="text-sm text-red-500">El abono no puede superar el total ({cop(cartTotal)})</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-1.5">
+                                            <label htmlFor="credit-notes" className="text-sm font-medium">
+                                                Notas (opcional)
+                                            </label>
+                                            <textarea
+                                                id="credit-notes"
+                                                value={notes}
+                                                onChange={(e) => setNotes(e.target.value)}
+                                                placeholder="Observaciones sobre el crédito..."
+                                                rows={2}
+                                                className="w-full rounded-lg border border-border/60 bg-background p-3 text-base focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:text-sm"
+                                            />
                                         </div>
-                                    )}
-                                    {initialPayment > 0 && (
+                                    </section>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ═══ STEP 2: Confirmation ═══ */}
+                        {step === 2 && creditType && (
+                            <div className="rounded-2xl border border-border/60 bg-card p-5">
+                                <div className="space-y-4">
+                                    <h2 className="text-lg font-bold">Resumen del crédito</h2>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Saldo restante</p>
-                                            <p className="font-medium text-orange-500">{cop(cartTotal - initialPayment)}</p>
+                                            <p className="text-sm text-muted-foreground">Cliente</p>
+                                            <p className="font-medium">{selectedClient?.name}</p>
                                         </div>
-                                    )}
-                                    {creditType === 'installments' && (
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Cuotas</p>
-                                            <p className="font-medium">
-                                                {installmentsCount} x {cop(Math.round((cartTotal - initialPayment) / installmentsCount))}
+                                            <p className="text-sm text-muted-foreground">Modalidad</p>
+                                            <p className="font-medium">{TYPE_CONFIG[creditType].label}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Total</p>
+                                            <p className="text-xl font-bold">{cop(cartTotal)}</p>
+                                        </div>
+                                        {initialPayment > 0 && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Abono inicial</p>
+                                                <p className="font-medium text-emerald-600">{cop(initialPayment)}</p>
+                                            </div>
+                                        )}
+                                        {initialPayment > 0 && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Saldo restante</p>
+                                                <p className="font-medium text-orange-600">{cop(cartTotal - initialPayment)}</p>
+                                            </div>
+                                        )}
+                                        {creditType === 'installments' && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Cuotas</p>
+                                                <p className="font-medium">
+                                                    {installmentsCount} x {cop(Math.round((cartTotal - initialPayment) / installmentsCount))}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {dueDate && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Fecha límite</p>
+                                                <p className="font-medium">{format(new Date(dueDate + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="overflow-hidden rounded-xl border border-border/60">
+                                        <div className="bg-muted/50 px-3 py-2 text-sm font-medium">
+                                            {cart.length} producto{cart.length !== 1 ? 's' : ''}
+                                        </div>
+                                        {cart.map((item) => (
+                                            <div
+                                                key={item.product.id}
+                                                className="flex items-center justify-between border-t border-border/60 px-3 py-2 text-sm"
+                                            >
+                                                <span>
+                                                    {item.product.name} <span className="text-muted-foreground">x{item.quantity}</span>
+                                                </span>
+                                                <span className="font-medium tabular-nums">{cop(item.subtotal)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {(creditType === 'layaway' || creditType === 'hold') && (
+                                        <div className="rounded-xl bg-muted p-3 text-sm">
+                                            <p className="font-medium">Los productos quedarán reservados</p>
+                                            <p className="text-muted-foreground">
+                                                No se descontarán del inventario hasta que el cliente complete el pago.
                                             </p>
                                         </div>
                                     )}
-                                    {dueDate && (
+                                    {(creditType === 'installments' || creditType === 'due_date') && (
+                                        <div className="rounded-xl bg-muted p-3 text-sm">
+                                            <p className="font-medium">Los productos se entregarán de inmediato</p>
+                                            <p className="text-muted-foreground">Se creará una venta y el inventario se descontará ahora mismo.</p>
+                                        </div>
+                                    )}
+
+                                    {notes && (
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Fecha límite</p>
-                                            <p className="font-medium">{format(new Date(dueDate + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+                                            <p className="text-sm text-muted-foreground">Notas</p>
+                                            <p className="text-sm">{notes}</p>
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Products summary */}
-                                <div className="rounded-md border">
-                                    <div className="bg-muted/50 px-3 py-2 text-sm font-medium">
-                                        {cart.length} producto{cart.length !== 1 ? 's' : ''}
-                                    </div>
-                                    {cart.map((item) => (
-                                        <div key={item.product.id} className="flex items-center justify-between border-t px-3 py-2 text-sm">
-                                            <span>
-                                                {item.product.name} <span className="text-muted-foreground">x{item.quantity}</span>
-                                            </span>
-                                            <span className="font-medium">{cop(item.subtotal)}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center justify-between gap-3 border-t border-border/60 bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:z-auto lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+                            <button
+                                type="button"
+                                onClick={() => (step === 0 ? router.visit('/credits') : setStep(step - 1))}
+                                disabled={submitting}
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 sm:h-10"
+                            >
+                                <ArrowLeft className="size-4" aria-hidden="true" />
+                                {step === 0 ? 'Cancelar' : 'Atrás'}
+                            </button>
 
-                                {/* Warning for deferred types */}
-                                {(creditType === 'layaway' || creditType === 'hold') && (
-                                    <div className="rounded-md bg-muted p-3 text-sm">
-                                        <p className="font-medium">Los productos quedarán reservados</p>
-                                        <p className="text-muted-foreground">
-                                            No se descontarán del inventario hasta que el cliente complete el pago.
-                                        </p>
-                                    </div>
-                                )}
-                                {(creditType === 'installments' || creditType === 'due_date') && (
-                                    <div className="rounded-md bg-muted p-3 text-sm">
-                                        <p className="font-medium">Los productos se entregarán de inmediato</p>
-                                        <p className="text-muted-foreground">Se creará una venta y el inventario se descontará ahora mismo.</p>
-                                    </div>
-                                )}
-
-                                {notes && (
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Notas</p>
-                                        <p className="text-sm">{notes}</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                            {step < 2 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setStep(step + 1)}
+                                    disabled={!canNext()}
+                                    className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 sm:h-10"
+                                    style={{ color: onBrand.hex }}
+                                >
+                                    Siguiente
+                                    <ArrowRight className="size-4" aria-hidden="true" />
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={submitting || !canNext()}
+                                    className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40 sm:h-10"
+                                >
+                                    {submitting ? 'Registrando...' : 'Confirmar crédito'}
+                                    <Check className="size-4" aria-hidden="true" />
+                                </button>
+                            )}
+                        </div>
                     </div>
-                )}
 
-                {/* Navigation buttons */}
-                <div className="flex items-center justify-between pt-2">
-                    <Button variant="outline" onClick={() => (step === 0 ? router.visit('/credits') : setStep(step - 1))} disabled={submitting}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        {step === 0 ? 'Cancelar' : 'Atrás'}
-                    </Button>
-
-                    {step < 2 ? (
-                        <Button onClick={() => setStep(step + 1)} disabled={!canNext()}>
-                            Siguiente
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    ) : (
-                        <Button onClick={handleSubmit} disabled={submitting || !canNext()} className="bg-green-600 hover:bg-green-700">
-                            {submitting ? 'Registrando...' : 'Confirmar crédito'}
-                            <Check className="ml-2 h-4 w-4" />
-                        </Button>
-                    )}
+                    {/* Live summary: always in view on wide screens so the total and the plan are never out of sight */}
+                    <aside
+                        aria-label="Resumen en vivo"
+                        className="hidden rounded-2xl border border-border/60 bg-card p-5 lg:sticky lg:top-4 lg:block"
+                    >
+                        <h2 className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Tu crédito</h2>
+                        <dl className="space-y-3 text-sm">
+                            <div className="flex justify-between gap-3">
+                                <dt className="text-muted-foreground">Cliente</dt>
+                                <dd className="min-w-0 truncate text-right font-medium">{selectedClient?.name ?? 'Sin elegir'}</dd>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                                <dt className="text-muted-foreground">Productos</dt>
+                                <dd className="font-medium tabular-nums">{cart.length === 0 ? 'Ninguno' : `${cart.length} · ${unitCount} uds`}</dd>
+                            </div>
+                            {creditType && (
+                                <div className="flex justify-between gap-3">
+                                    <dt className="text-muted-foreground">Modalidad</dt>
+                                    <dd className="font-medium">{TYPE_CONFIG[creditType].label}</dd>
+                                </div>
+                            )}
+                            <div className="border-t border-border/60 pt-3">
+                                <div className="flex items-baseline justify-between gap-3">
+                                    <dt className="text-muted-foreground">Total del crédito</dt>
+                                    <dd className="text-2xl font-bold tracking-tight tabular-nums">
+                                        <RollingNumber value={cartTotal} format={cop} />
+                                    </dd>
+                                </div>
+                            </div>
+                            {initialPayment > 0 && (
+                                <>
+                                    <div className="flex justify-between gap-3 text-emerald-700 dark:text-emerald-400">
+                                        <dt>Con abono de</dt>
+                                        <dd className="font-medium tabular-nums">{cop(initialPayment)}</dd>
+                                    </div>
+                                    <div className="flex justify-between gap-3 text-orange-700 dark:text-orange-400">
+                                        <dt>Quedaría un saldo de</dt>
+                                        <dd className="font-medium tabular-nums">{cop(Math.max(0, cartTotal - initialPayment))}</dd>
+                                    </div>
+                                </>
+                            )}
+                        </dl>
+                        <p className="mt-4 flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                            <HandCoins className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                            Se actualiza mientras eliges. Nada se guarda hasta confirmar el último paso.
+                        </p>
+                    </aside>
                 </div>
             </div>
         </AppLayout>
