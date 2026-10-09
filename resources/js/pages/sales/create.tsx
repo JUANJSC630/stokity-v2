@@ -1,19 +1,19 @@
 import { CardCreateClient } from '@/components/clients';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect, Section } from '@/components/sales/form-fields';
+import { SwipeActions, SwipeActionsRow } from '@/components/ui/arc/swipe-actions';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Client, type User } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Plus, X } from 'lucide-react';
+import { ChevronLeft, ImageOff, Loader2, Minus, Plus, Search, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -49,13 +49,14 @@ export default function Create({ branches, clients }: Props) {
     const clientsWithAnonymous = anonymous ? sortedClients : [{ id: 0, name: 'Consumidor Final' }, ...sortedClients];
 
     const { auth } = usePage<{ auth: { user: User } }>().props;
+    const onBrand = useOnBrandColor();
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Ventas',
             href: '/sales',
         },
         {
-            title: 'Nueva Venta',
+            title: 'Nueva venta',
             href: '/sales/create',
         },
     ];
@@ -323,15 +324,26 @@ export default function Create({ branches, clients }: Props) {
     // Estado para el input de monto pagado (formato visual)
     const [amountPaidDisplay, setAmountPaidDisplay] = useState('');
 
+    function payWith(amount: number) {
+        const total = parseFloat(form.data.total) || 0;
+        form.setData('amount_paid', amount.toString());
+        setAmountPaidDisplay(formatNumber(amount));
+        form.setData('change_amount', (amount - total).toFixed(2));
+    }
+
+    const totalValue = parseFloat(form.data.total) || 0;
+    const discountApplied = form.data.discount_type !== 'none' && parseFloat(form.data.discount_amount) > 0;
+    const itemCount = saleProducts.reduce((sum, sp) => sum + sp.quantity, 0);
+    const query = productSearch.trim();
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Nueva Venta" />
+            <Head title="Nueva venta" />
 
-            {/* Modal para crear cliente */}
             <Dialog open={showCreateClient} onOpenChange={setShowCreateClient}>
                 <DialogContent className="max-w-lg md:max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Crear Nuevo Cliente</DialogTitle>
+                        <DialogTitle>Crear nuevo cliente</DialogTitle>
                     </DialogHeader>
                     <CardCreateClient
                         onSuccess={() => {
@@ -344,631 +356,509 @@ export default function Create({ branches, clients }: Props) {
                 </DialogContent>
             </Dialog>
 
-            <div className="flex flex-col gap-4 p-2 sm:p-4 md:h-[calc(100dvh-64px)] md:min-h-0 md:flex-row">
-                {/* Sección derecha: Productos disponibles */}
-                <div className="order-1 flex w-full flex-shrink-0 flex-col md:order-2 md:h-full md:min-h-0 md:w-[40%]">
-                    {/* Buscador arriba en móvil */}
-                    <div className="mb-2 block md:hidden">
-                        <Input
-                            type="search"
-                            placeholder="Buscar producto..."
-                            value={productSearch}
-                            onChange={(e) => setProductSearch(e.target.value)}
-                            onKeyDown={handleProductSearchKeyDown}
-                            className="mb-2"
-                            ref={productSearchRef}
-                        />
-                        {searching && <span className="text-xs text-orange-500">Buscando...</span>}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={route('sales.index')}
+                        aria-label="Volver a ventas"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:h-8 sm:w-8"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Link>
+                    <div className="min-w-0">
+                        <h1 className="truncate text-xl leading-tight font-bold sm:text-2xl">Nueva venta</h1>
+                        <p className="text-sm text-muted-foreground">Busca productos, revisa el total y registra el cobro.</p>
                     </div>
-                    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-orange-200 bg-white dark:border-orange-700 dark:bg-neutral-900">
-                        <CardHeader>
-                            <CardTitle>Productos</CardTitle>
-                            <CardDescription>Busca y agrega productos a la venta</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                            {/* Buscador solo visible en escritorio */}
-                            <div className="mb-2 hidden md:block">
-                                <Input
-                                    type="search"
-                                    placeholder="Buscar producto..."
-                                    value={productSearch}
-                                    onChange={(e) => setProductSearch(e.target.value)}
-                                    onKeyDown={handleProductSearchKeyDown}
-                                    className="mb-2"
-                                    ref={productSearchRef}
-                                />
-                                {searching && <div className="text-xs text-orange-500">Buscando...</div>}
-                            </div>
-                            <div className="min-h-0 flex-1 overflow-y-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Imagen</th>
-                                            <th>Nombre</th>
-                                            <th>Stock</th>
-                                            <th>Acción</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {productSearch.trim().length >= 2 && searchResults.length > 0 ? (
-                                            searchResults.map((p, idx) => (
-                                                <tr key={p.id} className={idx % 2 === 0 ? 'bg-neutral-50 dark:bg-neutral-900/40' : ''}>
-                                                    <td className="text-center font-mono text-xs text-neutral-500">{idx + 1}</td>
-                                                    <td className="text-center">
-                                                        {p.image_url && (
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-[1fr_24rem] lg:items-start">
+                    {/* Product picker: first on phones, side panel on desktop */}
+                    <div className="order-1 lg:sticky lg:top-4 lg:order-2">
+                        <Section title="Agregar productos">
+                            <div className="flex flex-col gap-3 px-5 pb-5">
+                                <div className="relative">
+                                    <label htmlFor="product-search" className="sr-only">
+                                        Buscar producto
+                                    </label>
+                                    <Search
+                                        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
+                                        aria-hidden="true"
+                                    />
+                                    <input
+                                        id="product-search"
+                                        type="search"
+                                        inputMode="search"
+                                        enterKeyHint="search"
+                                        autoComplete="off"
+                                        placeholder="Nombre o código del producto"
+                                        value={productSearch}
+                                        onChange={(e) => setProductSearch(e.target.value)}
+                                        onKeyDown={handleProductSearchKeyDown}
+                                        ref={productSearchRef}
+                                        className="h-11 w-full rounded-xl border border-border/60 bg-background pr-11 pl-10 text-base focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:h-10 sm:text-sm [&::-webkit-search-cancel-button]:hidden"
+                                    />
+                                    {searching && (
+                                        <Loader2
+                                            className="absolute top-1/2 right-3.5 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+                                            aria-label="Buscando"
+                                        />
+                                    )}
+                                </div>
+
+                                <div aria-live="polite" className="flex flex-col gap-2 lg:max-h-[60vh] lg:overflow-y-auto">
+                                    {query.length < 2 ? (
+                                        <p className="py-3 text-center text-sm text-muted-foreground">Escribe al menos 2 letras para buscar.</p>
+                                    ) : searchResults.length === 0 && !searching ? (
+                                        <p className="py-3 text-center text-sm text-muted-foreground">No se encontraron productos.</p>
+                                    ) : (
+                                        searchResults.map((p, index) => {
+                                            const inSale = saleProducts.some((sp) => sp.product.id === p.id);
+                                            const unavailable = p.stock <= 0 || inSale;
+                                            return (
+                                                <StaggerItem key={p.id} index={index}>
+                                                    <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-background p-2.5">
+                                                        {p.image_url ? (
                                                             <img
                                                                 src={p.image_url}
-                                                                alt={p.name}
-                                                                className="mx-auto h-8 w-8 rounded-full border border-neutral-200 object-cover shadow-sm"
+                                                                alt=""
+                                                                className="size-11 shrink-0 rounded-lg border border-border/60 object-cover"
                                                             />
+                                                        ) : (
+                                                            <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                                                <ImageOff className="size-5" aria-hidden="true" />
+                                                            </span>
                                                         )}
-                                                    </td>
-                                                    <td className="font-medium text-neutral-800 dark:text-neutral-100">{p.name}</td>
-                                                    <td className="text-center">
-                                                        <span
-                                                            className={`inline-block rounded px-2 py-1 text-xs font-semibold ${p.stock <= 0 ? 'bg-red-200 text-red-800' : 'bg-green-100 text-green-800'}`}
-                                                        >
-                                                            {p.stock}
-                                                        </span>
-                                                    </td>
-                                                    <td className="text-center">
-                                                        <Button
-                                                            aria-label="Agregar"
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="truncate text-sm leading-tight font-medium">{p.name}</p>
+                                                            <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                                                                <span className="font-semibold text-foreground tabular-nums">
+                                                                    {formatCOP(p.sale_price)}
+                                                                </span>
+                                                                <span
+                                                                    className={cn(
+                                                                        'rounded-full px-2 py-0.5 font-medium',
+                                                                        p.stock <= 0
+                                                                            ? 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                                                                            : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400',
+                                                                    )}
+                                                                >
+                                                                    {p.stock <= 0 ? 'Sin stock' : `Stock ${p.stock}`}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                        <button
                                                             type="button"
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            disabled={p.stock <= 0 || !!saleProducts.find((sp) => sp.product.id === p.id)}
+                                                            aria-label={`Agregar ${p.name}`}
+                                                            disabled={unavailable}
                                                             onClick={() => {
                                                                 handleAddProduct(p);
                                                                 setProductSearch('');
                                                             }}
-                                                            className={`transition-colors hover:bg-green-100 dark:hover:bg-green-900/30 ${p.stock > 0 && !saleProducts.find((sp) => sp.product.id === p.id) ? 'text-green-600' : 'text-neutral-400'}`}
-                                                            title="Agregar"
+                                                            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)] transition-opacity hover:opacity-90 disabled:bg-muted disabled:text-muted-foreground"
+                                                            style={unavailable ? undefined : { color: onBrand.hex }}
                                                         >
-                                                            <Plus className="h-5 w-5" />
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : productSearch.trim().length >= 2 && searchResults.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={5} className="text-center text-neutral-400">
-                                                    No se encontraron productos
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={5} className="text-center text-neutral-400">
-                                                    Escribe para buscar productos
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-                {/* Sección izquierda: Venta/factura */}
-                <div className="order-2 flex flex-1 flex-col md:order-1 md:h-full md:min-h-0 md:w-[60%]">
-                    <Card className="flex min-h-0 flex-1 flex-col overflow-hidden border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                        <CardHeader>
-                            <CardTitle>Información de la Venta</CardTitle>
-                            <CardDescription>Complete los detalles de la venta. Todos los campos marcados con * son obligatorios.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-y-auto">
-                            <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-4">
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="hidden space-y-2">
-                                        <Label htmlFor="branch_id">
-                                            Sucursal <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Select value={form.data.branch_id} onValueChange={(value) => form.setData('branch_id', value)}>
-                                            <SelectTrigger
-                                                id="branch_id"
-                                                className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                            >
-                                                <SelectValue placeholder="Seleccione sucursal" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {branches.map((branch) => (
-                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                        {branch.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {form.errors.branch_id && <p className="text-sm text-red-500">{form.errors.branch_id}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="client_id">
-                                            Cliente <span className="text-red-500">*</span>
-                                        </Label>
-                                        <div className="flex flex-row items-center gap-2">
-                                            <div className="flex-1">
-                                                <Select value={form.data.client_id || ''} onValueChange={(value) => form.setData('client_id', value)}>
-                                                    <SelectTrigger
-                                                        id="client_id"
-                                                        className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                                    >
-                                                        <SelectValue placeholder="Seleccione cliente" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {clientsWithAnonymous.map((client) => (
-                                                            <SelectItem key={client.id} value={client.id.toString()}>
-                                                                {client.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <Button
-                                                aria-label="Crear cliente"
-                                                type="button"
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() => setShowCreateClient(true)}
-                                                title="Crear cliente"
-                                                className="p-2"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                        {form.errors.client_id && <p className="text-sm text-red-500">{form.errors.client_id}</p>}
-                                    </div>
-
-                                    {/* <div className="space-y-2">
-                                        <Label htmlFor="seller_id">
-                                            Vendedor <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Select value={form.data.seller_id} onValueChange={(value) => form.setData('seller_id', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione vendedor" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sellers.map((seller) => (
-                                                    <SelectItem key={seller.id} value={seller.id.toString()}>
-                                                        {seller.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        {form.errors.seller_id && <p className="text-sm text-red-500">{form.errors.seller_id}</p>}
-                                    </div> */}
-
-                                    <PaymentMethodSelect
-                                        value={form.data.payment_method || undefined}
-                                        onValueChange={(value) => form.setData('payment_method', value)}
-                                        error={form.errors.payment_method}
-                                        required
-                                    />
-
-                                    {/* <div className="space-y-2">
-                                        <Label htmlFor="date">
-                                            Fecha y Hora <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="date"
-                                            type="datetime-local"
-                                            className="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                            value={form.data.date}
-                                            onChange={(e) => form.setData('date', e.target.value)}
-                                            required
-                                        />
-                                        {form.errors.date && <p className="text-sm text-red-500">{form.errors.date}</p>}
-                                    </div> */}
-
-                                    {/* <div className="space-y-2">
-                                        <Label htmlFor="status">
-                                            Estado <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Select value={form.data.status || ''} onValueChange={(value) => form.setData('status', value)}>
-                                            <SelectTrigger className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
-                                                <SelectValue placeholder="Seleccione estado" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="completed">Completada</SelectItem>
-                                                <SelectItem value="pending">Pendiente</SelectItem>
-                                                <SelectItem value="cancelled">Cancelada</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {form.errors.status && <p className="text-sm text-red-500">{form.errors.status}</p>}
-                                    </div> */}
-                                </div>
-
-                                {/* Productos agregados a la venta */}
-                                <div className="mt-2 flex flex-col gap-3">
-                                    <Label>Productos en la venta</Label>
-                                    {saleProducts.length > 0 ? (
-                                        <>
-                                            {/* Vista tabla en escritorio */}
-                                            <div className="hidden max-h-[280px] overflow-y-auto md:block">
-                                                <table className="mt-2 w-full border-separate border-spacing-y-1 text-sm">
-                                                    <thead>
-                                                        <tr className="bg-neutral-50 dark:bg-neutral-800">
-                                                            <th className="text-left font-semibold">Producto</th>
-                                                            <th className="text-center font-semibold">Cantidad</th>
-                                                            <th className="text-center font-semibold">Precio</th>
-                                                            <th className="text-center font-semibold">Impuesto</th>
-                                                            <th className="text-center font-semibold">Subtotal</th>
-                                                            <th></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {saleProducts.map((sp) => (
-                                                            <tr key={sp.product.id} className="rounded bg-white shadow-sm dark:bg-neutral-900">
-                                                                <td className="px-2 py-1 text-left font-medium text-neutral-800 dark:text-neutral-100">
-                                                                    {sp.product.name}
-                                                                </td>
-                                                                <td className="px-2 py-1 text-center align-middle">
-                                                                    <div className="flex h-full flex-col items-center justify-center gap-0.5">
-                                                                        <Input
-                                                                            type="number"
-                                                                            min={1}
-                                                                            max={sp.product.stock}
-                                                                            value={sp.quantity}
-                                                                            onChange={(e) =>
-                                                                                handleChangeQuantity(
-                                                                                    sp.product.id,
-                                                                                    Math.min(Number(e.target.value), sp.product.stock),
-                                                                                )
-                                                                            }
-                                                                            className="m-0 h-7 w-14 border-0 bg-transparent p-0 text-center align-middle text-sm font-semibold shadow-none focus:border-0 focus:ring-0"
-                                                                            style={{ verticalAlign: 'middle' }}
-                                                                        />
-                                                                        {sp.quantity >= sp.product.stock && (
-                                                                            <span className="text-[10px] font-semibold text-orange-500">máx.</span>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-2 py-1 text-center font-semibold text-blue-900 dark:text-blue-200">
-                                                                    {formatCOP(sp.product.sale_price)}
-                                                                </td>
-                                                                <td className="px-2 py-1 text-center font-semibold text-yellow-900 dark:text-yellow-200">
-                                                                    {sp.product.tax || 0}%
-                                                                </td>
-                                                                <td className="px-2 py-1 text-center font-semibold text-green-900 dark:text-green-200">
-                                                                    {formatCOP(sp.subtotal)}
-                                                                </td>
-                                                                <td className="px-2 py-1 text-center">
-                                                                    <Button
-                                                                        aria-label="Quitar producto"
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => handleRemoveProduct(sp.product.id)}
-                                                                        className="hover:bg-red-100 dark:hover:bg-red-900/30"
-                                                                        title="Quitar producto"
-                                                                    >
-                                                                        <X className="h-4 w-4 text-red-500" />
-                                                                    </Button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            {/* Vista tarjetas en móvil */}
-                                            <div className="flex flex-col gap-2 md:hidden">
-                                                {saleProducts.map((sp) => (
-                                                    <div
-                                                        key={sp.product.id}
-                                                        className="flex flex-col gap-1 rounded border border-neutral-100 bg-white p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
-                                                                {sp.product.name}
-                                                            </span>
-                                                            <Button
-                                                                aria-label="Quitar producto"
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                onClick={() => handleRemoveProduct(sp.product.id)}
-                                                                className="hover:bg-red-100 dark:hover:bg-red-900/30"
-                                                                title="Quitar producto"
-                                                            >
-                                                                <X className="h-4 w-4 text-red-500" />
-                                                            </Button>
-                                                        </div>
-                                                        <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                                                            <div>
-                                                                <span className="font-medium text-neutral-500">Cantidad: </span>
-                                                                <Input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    max={sp.product.stock}
-                                                                    value={sp.quantity}
-                                                                    onChange={(e) =>
-                                                                        handleChangeQuantity(
-                                                                            sp.product.id,
-                                                                            Math.min(Number(e.target.value), sp.product.stock),
-                                                                        )
-                                                                    }
-                                                                    className="inline-block h-7 w-14 border border-neutral-200 bg-neutral-50 px-1 py-0 text-center text-sm font-semibold dark:border-neutral-700 dark:bg-neutral-800"
-                                                                    style={{ verticalAlign: 'middle' }}
-                                                                />
-                                                            </div>
-                                                            <div>
-                                                                <span className="font-medium text-neutral-500">Precio: </span>
-                                                                <span className="font-semibold text-blue-900 dark:text-blue-200">
-                                                                    {formatCOP(sp.product.sale_price)}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="font-medium text-neutral-500">Impuesto: </span>
-                                                                <span className="font-semibold text-yellow-900 dark:text-yellow-200">
-                                                                    {sp.product.tax || 0}%
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="font-medium text-neutral-500">Subtotal: </span>
-                                                                <span className="font-semibold text-green-900 dark:text-green-200">
-                                                                    {formatCOP(sp.subtotal)}
-                                                                </span>
-                                                            </div>
-                                                        </div>
+                                                            <Plus className="size-5" aria-hidden="true" />
+                                                        </button>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="text-neutral-500">No hay productos agregados</div>
+                                                </StaggerItem>
+                                            );
+                                        })
                                     )}
                                 </div>
+                            </div>
+                        </Section>
+                    </div>
 
-                                {/* Descuento */}
-                                <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/50 p-3 dark:border-orange-800 dark:bg-orange-900/10">
-                                    <Label className="text-sm font-semibold text-orange-800 dark:text-orange-300">Descuento</Label>
-                                    <div className="flex gap-2">
-                                        <Select
-                                            value={form.data.discount_type}
-                                            onValueChange={(v) => form.setData('discount_type', v as 'none' | 'percentage' | 'fixed')}
-                                        >
-                                            <SelectTrigger className="w-36 bg-white dark:bg-neutral-800">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Sin descuento</SelectItem>
-                                                <SelectItem value="percentage">Porcentaje %</SelectItem>
-                                                <SelectItem value="fixed">Monto fijo $</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {form.data.discount_type !== 'none' &&
-                                            (form.data.discount_type === 'fixed' ? (
-                                                <CurrencyInput
-                                                    value={Number(form.data.discount_value) || 0}
-                                                    onChange={(v) => form.setData('discount_value', v > 0 ? String(v) : '0')}
-                                                    className="w-36 bg-white dark:bg-neutral-800"
-                                                    placeholder="0"
-                                                />
-                                            ) : (
-                                                <Input
-                                                    type="number"
-                                                    min={0}
-                                                    max={100}
-                                                    step={1}
-                                                    placeholder="0"
-                                                    value={form.data.discount_value === '0' ? '' : form.data.discount_value}
-                                                    onChange={(e) => form.setData('discount_value', e.target.value || '0')}
-                                                    className="w-32 bg-white dark:bg-neutral-800"
-                                                />
+                    <div className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+                        <FormPanel title="Cliente y pago">
+                            <LabeledField id="client_id" label="Cliente" required error={form.errors.client_id}>
+                                <div className="flex items-center gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <OptionSelect
+                                            id="client_id"
+                                            value={form.data.client_id || ''}
+                                            onValueChange={(value) => form.setData('client_id', value)}
+                                            options={clientsWithAnonymous}
+                                            placeholder="Seleccione cliente"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        aria-label="Crear cliente"
+                                        title="Crear cliente"
+                                        onClick={() => setShowCreateClient(true)}
+                                        className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:size-9"
+                                    >
+                                        <Plus className="size-4" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </LabeledField>
+
+                            <PaymentMethodSelect
+                                value={form.data.payment_method || undefined}
+                                onValueChange={(value) => form.setData('payment_method', value)}
+                                error={form.errors.payment_method}
+                                required
+                                triggerClassName="h-11 text-base sm:h-9 sm:text-sm"
+                            />
+                        </FormPanel>
+
+                        <Section
+                            title="Productos en la venta"
+                            action={itemCount > 0 ? <span className="text-xs text-muted-foreground tabular-nums">{itemCount} uds</span> : undefined}
+                        >
+                            {saleProducts.length === 0 ? (
+                                <p className="px-5 pb-6 text-center text-sm text-muted-foreground">
+                                    Aún no hay productos. Búscalos arriba para agregarlos.
+                                </p>
+                            ) : (
+                                <>
+                                    <div className="md:hidden">
+                                        <SwipeActions label={`${saleProducts.length} producto(s) en la venta`}>
+                                            {saleProducts.map((sp) => (
+                                                <SwipeActionsRow
+                                                    key={sp.product.id}
+                                                    label={sp.product.name}
+                                                    fullSwipe={false}
+                                                    trailing={[
+                                                        {
+                                                            label: 'Quitar',
+                                                            icon: <Trash2 />,
+                                                            tone: 'danger',
+                                                            onSelect: () => handleRemoveProduct(sp.product.id),
+                                                        },
+                                                    ]}
+                                                >
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <p className="min-w-0 text-[15px] leading-snug font-semibold">{sp.product.name}</p>
+                                                            <p className="shrink-0 text-base font-bold tabular-nums">{formatCOP(sp.subtotal)}</p>
+                                                        </div>
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-xs text-muted-foreground tabular-nums">
+                                                                {formatCOP(sp.product.sale_price)} c/u
+                                                                {sp.product.tax ? ` · IVA ${sp.product.tax}%` : ''}
+                                                            </p>
+                                                            <QuantityStepper
+                                                                quantity={sp.quantity}
+                                                                max={sp.product.stock}
+                                                                name={sp.product.name}
+                                                                onChange={(qty) => handleChangeQuantity(sp.product.id, qty)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </SwipeActionsRow>
                                             ))}
-                                        {form.data.discount_type !== 'none' && parseFloat(form.data.discount_amount) > 0 && (
-                                            <span className="flex items-center text-sm font-semibold text-red-600 dark:text-red-400">
+                                        </SwipeActions>
+                                    </div>
+
+                                    <table className="hidden w-full text-sm md:table">
+                                        <caption className="sr-only">Productos en la venta</caption>
+                                        <thead>
+                                            <tr className="border-y border-border/40 bg-muted/20 text-[11px] tracking-wide text-muted-foreground uppercase">
+                                                <th scope="col" className="px-5 py-2.5 text-left font-medium">
+                                                    Producto
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-center font-medium">
+                                                    Cantidad
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                                    Precio
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                                    Impuesto
+                                                </th>
+                                                <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                                    Subtotal
+                                                </th>
+                                                <th scope="col" className="w-14 px-5 py-2.5">
+                                                    <span className="sr-only">Quitar</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {saleProducts.map((sp) => (
+                                                <tr key={sp.product.id}>
+                                                    <td className="px-5 py-2.5 font-medium">{sp.product.name}</td>
+                                                    <td className="px-3 py-2.5">
+                                                        <div className="flex justify-center">
+                                                            <QuantityStepper
+                                                                quantity={sp.quantity}
+                                                                max={sp.product.stock}
+                                                                name={sp.product.name}
+                                                                onChange={(qty) => handleChangeQuantity(sp.product.id, qty)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-right tabular-nums">{formatCOP(sp.product.sale_price)}</td>
+                                                    <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
+                                                        {sp.product.tax || 0}%
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-right font-semibold tabular-nums">{formatCOP(sp.subtotal)}</td>
+                                                    <td className="px-5 py-2.5">
+                                                        <button
+                                                            type="button"
+                                                            aria-label={`Quitar ${sp.product.name}`}
+                                                            onClick={() => handleRemoveProduct(sp.product.id)}
+                                                            className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+                                                        >
+                                                            <X className="size-4" aria-hidden="true" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+                        </Section>
+
+                        <Section title="Descuento">
+                            <div className="flex flex-col gap-3 px-5 pb-5">
+                                <div role="group" aria-label="Tipo de descuento" className="grid grid-cols-3 gap-2">
+                                    {(
+                                        [
+                                            ['none', 'Sin descuento'],
+                                            ['percentage', 'Porcentaje %'],
+                                            ['fixed', 'Monto fijo $'],
+                                        ] as const
+                                    ).map(([value, label]) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            aria-pressed={form.data.discount_type === value}
+                                            onClick={() => form.setData('discount_type', value)}
+                                            className={cn(
+                                                'flex h-11 items-center justify-center rounded-lg border px-2 text-center text-sm leading-tight font-medium transition-colors sm:h-9',
+                                                form.data.discount_type === value
+                                                    ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                                                    : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {form.data.discount_type !== 'none' && (
+                                    <div className="flex items-center gap-3">
+                                        {form.data.discount_type === 'fixed' ? (
+                                            <CurrencyInput
+                                                aria-label="Monto del descuento"
+                                                value={Number(form.data.discount_value) || 0}
+                                                onChange={(v) => form.setData('discount_value', v > 0 ? String(v) : '0')}
+                                                className="h-11 flex-1 bg-white text-base sm:h-9 sm:text-sm dark:bg-neutral-800"
+                                                placeholder="0"
+                                            />
+                                        ) : (
+                                            <input
+                                                aria-label="Porcentaje de descuento"
+                                                type="number"
+                                                inputMode="decimal"
+                                                min={0}
+                                                max={100}
+                                                step={1}
+                                                placeholder="0"
+                                                value={form.data.discount_value === '0' ? '' : form.data.discount_value}
+                                                onChange={(e) => form.setData('discount_value', e.target.value || '0')}
+                                                className={cn(INPUT_CLASS, 'flex-1')}
+                                            />
+                                        )}
+                                        {discountApplied && (
+                                            <span className="shrink-0 text-sm font-semibold text-red-600 tabular-nums dark:text-red-400">
                                                 − {formatCOP(form.data.discount_amount)}
                                             </span>
                                         )}
                                     </div>
-                                </div>
+                                )}
+                            </div>
+                        </Section>
 
-                                {/* Totales */}
-                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="tax">Valor Impuesto</Label>
-                                        <Input
-                                            id="tax"
+                        {form.data.payment_method === 'cash' && (
+                            <Section title="Pago en efectivo">
+                                <div className="flex flex-col gap-3 px-5 pb-5">
+                                    <LabeledField id="amount_paid" label="Con cuánto paga" required error={form.errors.amount_paid}>
+                                        <input
+                                            id="amount_paid"
                                             type="text"
-                                            value={formatCOP(form.data.tax || 0)}
-                                            readOnly
+                                            inputMode="numeric"
+                                            placeholder="0"
+                                            className={INPUT_CLASS}
+                                            value={amountPaidDisplay}
+                                            onChange={(e) => {
+                                                const formattedValue = formatAmountPaidInput(e.target.value);
+                                                setAmountPaidDisplay(formattedValue);
+                                                const numericValue = parseFormattedAmount(formattedValue);
+                                                form.setData('amount_paid', numericValue.toString());
+                                                const total = parseFloat(form.data.total) || 0;
+                                                const change = Math.max(numericValue - total, 0);
+                                                form.setData('change_amount', change.toFixed(2));
+                                            }}
+                                            onBlur={() => {
+                                                const numericValue = parseFloat(form.data.amount_paid) || 0;
+                                                setAmountPaidDisplay(formatNumber(numericValue));
+                                            }}
                                             required
-                                            className="border-yellow-200 bg-yellow-50 font-semibold text-yellow-900 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200"
                                         />
+                                    </LabeledField>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(
+                                            [
+                                                ['Exacto', totalValue, 'Pagar exacto'],
+                                                ['Mil', Math.ceil(totalValue / 1000) * 1000, 'Redondear al mil'],
+                                                ['5 mil', Math.ceil(totalValue / 5000) * 5000, 'Redondear a 5 mil'],
+                                                ['10 mil', Math.ceil(totalValue / 10000) * 10000, 'Redondear a 10 mil'],
+                                            ] as const
+                                        ).map(([label, amount, title]) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                title={title}
+                                                onClick={() => payWith(amount)}
+                                                className="h-11 min-w-16 rounded-full border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-9"
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            aria-label="Limpiar monto"
+                                            title="Limpiar campo"
+                                            onClick={() => {
+                                                form.setData('amount_paid', '0');
+                                                setAmountPaidDisplay('');
+                                                form.setData('change_amount', '0.00');
+                                            }}
+                                            className="flex size-11 items-center justify-center rounded-full border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:size-9"
+                                        >
+                                            <X className="size-4" aria-hidden="true" />
+                                        </button>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="net">
-                                            Subtotal <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="net"
-                                            type="text"
-                                            value={formatCOP(form.data.net || 0)}
-                                            readOnly
-                                            required
-                                            className="border-blue-200 bg-blue-50 font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200"
-                                        />
-                                        {form.errors.net && <p className="text-sm text-red-500">{form.errors.net}</p>}
+                                    <div
+                                        className={cn(
+                                            'flex items-center justify-between rounded-xl px-4 py-3',
+                                            parseFloat(form.data.change_amount) >= 0
+                                                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                                : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300',
+                                        )}
+                                    >
+                                        <span id="change_amount" className="text-sm font-medium">
+                                            Cambio
+                                        </span>
+                                        <span aria-labelledby="change_amount" className="text-xl font-bold tabular-nums">
+                                            {formatCOP(form.data.change_amount || 0)}
+                                        </span>
                                     </div>
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label htmlFor="total">
-                                            Total <span className="text-red-500">*</span>
-                                        </Label>
-                                        <Input
-                                            id="total"
-                                            type="text"
-                                            value={formatCOP(form.data.total || 0)}
-                                            readOnly
-                                            required
-                                            className="border-green-200 bg-green-50 text-lg font-bold text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200"
-                                        />
-                                        {form.errors.total && <p className="text-sm text-red-500">{form.errors.total}</p>}
-                                    </div>
+                                    {form.errors.change_amount && <p className="text-xs text-red-500">{form.errors.change_amount}</p>}
                                 </div>
+                            </Section>
+                        )}
 
-                                {/* Notas */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="notes" className="text-sm text-neutral-600 dark:text-neutral-400">
-                                        Notas / Observaciones
-                                    </Label>
-                                    <Textarea
-                                        id="notes"
-                                        placeholder="Observaciones internas de la venta..."
-                                        value={form.data.notes}
-                                        onChange={(e) => form.setData('notes', e.target.value)}
-                                        rows={2}
-                                        maxLength={500}
-                                        className="resize-none bg-white text-sm dark:bg-neutral-800"
-                                    />
-                                    {form.errors.notes && <p className="text-sm text-red-500">{form.errors.notes}</p>}
+                        <Section title="Notas">
+                            <div className="px-5 pb-5">
+                                <label htmlFor="notes" className="sr-only">
+                                    Notas u observaciones
+                                </label>
+                                <textarea
+                                    id="notes"
+                                    placeholder="Observaciones internas de la venta..."
+                                    value={form.data.notes}
+                                    onChange={(e) => form.setData('notes', e.target.value)}
+                                    rows={2}
+                                    maxLength={500}
+                                    className="w-full resize-none rounded-lg border border-border/60 bg-white p-3 text-base focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:text-sm dark:bg-neutral-800"
+                                />
+                                {form.errors.notes && <p className="mt-1 text-xs text-red-500">{form.errors.notes}</p>}
+                            </div>
+                        </Section>
+
+                        <Section title="Resumen">
+                            <dl className="flex flex-col gap-2 px-5 pb-5">
+                                <div className="flex items-center justify-between gap-4">
+                                    <dt className="text-sm text-muted-foreground">Subtotal</dt>
+                                    <dd className="text-sm tabular-nums">{formatCOP(form.data.net || 0)}</dd>
                                 </div>
-
-                                {/* Sección de Pago y Cambio */}
-                                {form.data.payment_method === 'cash' && (
-                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="amount_paid">
-                                                Con Cuánto Paga <span className="text-red-500">*</span>
-                                            </Label>
-                                            <Input
-                                                id="amount_paid"
-                                                type="text"
-                                                placeholder="0"
-                                                className="w-full border-purple-200 bg-purple-50 text-purple-900 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-200"
-                                                value={amountPaidDisplay}
-                                                onChange={(e) => {
-                                                    const formattedValue = formatAmountPaidInput(e.target.value);
-                                                    setAmountPaidDisplay(formattedValue);
-                                                    const numericValue = parseFormattedAmount(formattedValue);
-                                                    form.setData('amount_paid', numericValue.toString());
-                                                    // Calcular cambio inmediatamente con el nuevo valor
-                                                    const total = parseFloat(form.data.total) || 0;
-                                                    const change = Math.max(numericValue - total, 0); // No permitir cambio negativo
-                                                    form.setData('change_amount', change.toFixed(2));
-                                                }}
-                                                onBlur={() => {
-                                                    const numericValue = parseFloat(form.data.amount_paid) || 0;
-                                                    setAmountPaidDisplay(formatNumber(numericValue));
-                                                }}
-                                                required
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex flex-wrap gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const total = parseFloat(form.data.total) || 0;
-                                                            form.setData('amount_paid', total.toString());
-                                                            setAmountPaidDisplay(formatNumber(total));
-                                                            form.setData('change_amount', '0.00');
-                                                        }}
-                                                        className="rounded border border-blue-300 bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800"
-                                                        title="Pagar exacto"
-                                                    >
-                                                        Exacto
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const total = parseFloat(form.data.total) || 0;
-                                                            const amount = Math.ceil(total / 1000) * 1000;
-                                                            form.setData('amount_paid', amount.toString());
-                                                            setAmountPaidDisplay(formatNumber(amount));
-                                                            const change = amount - total;
-                                                            form.setData('change_amount', change.toFixed(2));
-                                                        }}
-                                                        className="rounded border border-green-300 bg-green-100 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-200 dark:border-green-600 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800"
-                                                        title="Redondear al mil"
-                                                    >
-                                                        Mil
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const total = parseFloat(form.data.total) || 0;
-                                                            const amount = Math.ceil(total / 5000) * 5000;
-                                                            form.setData('amount_paid', amount.toString());
-                                                            setAmountPaidDisplay(formatNumber(amount));
-                                                            const change = amount - total;
-                                                            form.setData('change_amount', change.toFixed(2));
-                                                        }}
-                                                        className="rounded border border-purple-300 bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-200 dark:border-purple-600 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-800"
-                                                        title="Redondear a 5 mil"
-                                                    >
-                                                        5 Mil
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const total = parseFloat(form.data.total) || 0;
-                                                            const amount = Math.ceil(total / 10000) * 10000;
-                                                            form.setData('amount_paid', amount.toString());
-                                                            setAmountPaidDisplay(formatNumber(amount));
-                                                            const change = amount - total;
-                                                            form.setData('change_amount', change.toFixed(2));
-                                                        }}
-                                                        className="rounded border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 hover:bg-yellow-200 dark:border-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-300 dark:hover:bg-yellow-800"
-                                                        title="Redondear a 10 mil"
-                                                    >
-                                                        10 Mil
-                                                    </button>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        form.setData('amount_paid', '0');
-                                                        setAmountPaidDisplay('');
-                                                        form.setData('change_amount', '0.00');
-                                                    }}
-                                                    className="rounded border border-gray-300 bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                                                    title="Limpiar campo"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                            {form.errors.amount_paid && <p className="text-sm text-red-500">{form.errors.amount_paid}</p>}
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="change_amount">Cambio</Label>
-                                            <Input
-                                                id="change_amount"
-                                                type="text"
-                                                value={formatCOP(form.data.change_amount || 0)}
-                                                readOnly
-                                                className={`w-full font-semibold ${
-                                                    parseFloat(form.data.change_amount) >= 0
-                                                        ? 'border-green-200 bg-green-50 text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-200'
-                                                        : 'border-red-200 bg-red-50 text-red-900 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200'
-                                                }`}
-                                            />
-                                            {form.errors.change_amount && <p className="text-sm text-red-500">{form.errors.change_amount}</p>}
-                                        </div>
+                                <div className="flex items-center justify-between gap-4">
+                                    <dt className="text-sm text-muted-foreground">Impuesto</dt>
+                                    <dd className="text-sm tabular-nums">{formatCOP(form.data.tax || 0)}</dd>
+                                </div>
+                                {discountApplied && (
+                                    <div className="flex items-center justify-between gap-4">
+                                        <dt className="text-sm text-muted-foreground">Descuento</dt>
+                                        <dd className="text-sm text-red-500 tabular-nums dark:text-red-400">
+                                            − {formatCOP(form.data.discount_amount)}
+                                        </dd>
                                     </div>
                                 )}
-
-                                {/* Botones */}
-                                <div className="mt-4 flex flex-col justify-end gap-2 sm:flex-row sm:gap-0 sm:space-x-2">
-                                    <Link href={route('sales.index')}>
-                                        <Button variant="outline" type="button" className="w-full sm:w-auto">
-                                            Cancelar
-                                        </Button>
-                                    </Link>
-                                    <div className="w-full sm:w-auto" style={{ position: 'relative' }}>
-                                        <Button
-                                            type="submit"
-                                            className="w-full gap-1 sm:w-auto"
-                                            title={saleProducts.length === 0 ? 'Agrega al menos un producto para registrar la venta' : ''}
-                                        >
-                                            <span>Registrar Venta</span>
-                                        </Button>
-                                    </div>
+                                <div className="flex items-center justify-between gap-4 border-t border-border/40 pt-3">
+                                    <dt className="text-base font-semibold">Total</dt>
+                                    <dd className="text-2xl font-bold tracking-tight tabular-nums">
+                                        <RollingNumber value={totalValue} format={formatCurrency} />
+                                    </dd>
                                 </div>
-                            </form>
-                        </CardContent>
-                    </Card>
+                                {form.errors.net && <p className="text-xs text-red-500">{form.errors.net}</p>}
+                                {form.errors.total && <p className="text-xs text-red-500">{form.errors.total}</p>}
+                            </dl>
+                        </Section>
+                    </div>
                 </div>
-            </div>
+
+                <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex items-center gap-3 border-t border-border/60 bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 md:static md:z-auto md:mx-0 md:justify-end md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+                    <div className="min-w-0 flex-1 md:hidden">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="truncate text-lg leading-tight font-bold tabular-nums">{formatCurrency(totalValue)}</p>
+                    </div>
+                    <Link
+                        href={route('sales.index')}
+                        className="hidden h-9 items-center justify-center rounded-lg border border-border/60 bg-card px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted md:flex"
+                    >
+                        Cancelar
+                    </Link>
+                    <button
+                        type="submit"
+                        title={saleProducts.length === 0 ? 'Agrega al menos un producto para registrar la venta' : undefined}
+                        className="flex h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-primary)] px-6 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 md:h-9"
+                        style={{ color: onBrand.hex }}
+                    >
+                        Registrar venta
+                    </button>
+                </div>
+            </form>
         </AppLayout>
+    );
+}
+
+function QuantityStepper({ quantity, max, name, onChange }: { quantity: number; max: number; name: string; onChange: (quantity: number) => void }) {
+    return (
+        <div className="flex items-center gap-1" role="group" aria-label={`Cantidad de ${name}`}>
+            <button
+                type="button"
+                aria-label={`Menos ${name}`}
+                disabled={quantity <= 1}
+                onClick={() => onChange(Math.max(1, quantity - 1))}
+                className="flex size-11 items-center justify-center rounded-lg border border-border/60 bg-card transition-colors hover:bg-muted disabled:opacity-40 sm:size-9"
+            >
+                <Minus className="size-4" aria-hidden="true" />
+            </button>
+            <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={max}
+                value={quantity}
+                aria-label={`Cantidad de ${name}`}
+                onChange={(e) => onChange(Math.min(Number(e.target.value), max))}
+                className="h-11 w-14 rounded-lg border border-border/60 bg-background text-center text-base font-semibold tabular-nums focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:h-9 sm:text-sm [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <button
+                type="button"
+                aria-label={`Más ${name}`}
+                disabled={quantity >= max}
+                onClick={() => onChange(Math.min(max, quantity + 1))}
+                className="flex size-11 items-center justify-center rounded-lg border border-border/60 bg-card transition-colors hover:bg-muted disabled:opacity-40 sm:size-9"
+            >
+                <Plus className="size-4" aria-hidden="true" />
+            </button>
+            {quantity >= max && <span className="ml-1 text-[11px] font-semibold text-orange-500">máx.</span>}
+        </div>
     );
 }
