@@ -50,7 +50,7 @@ export function MetricCard({ title, value, description, icon, trend, className }
             <p className="mt-3 truncate text-xl leading-none font-bold tracking-tight md:text-2xl">{value}</p>
 
             {/* Description */}
-            {description && <p className="mt-2 text-[11px] text-muted-foreground">{description}</p>}
+            {description && <p className="mt-2 text-xs text-muted-foreground">{description}</p>}
         </div>
     );
 }

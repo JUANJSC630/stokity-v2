@@ -1,0 +1,78 @@
+/* Smooth curve with a scrubbable tip, adapted from Bencho's "Pull to refresh" card (MIT). */
+.plot {
+    --pad: 6px;
+    position: relative;
+    display: block;
+    padding: var(--pad) 0;
+    color: var(--spark-color, var(--brand-primary));
+    cursor: crosshair;
+    touch-action: pan-y;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.plot:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+.line {
+    display: block;
+    width: 100%;
+    height: var(--spark-height, 88px);
+    overflow: visible;
+}
+
+.curve {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.area {
+    fill: currentColor;
+    opacity: 0.08;
+}
+
+.guide {
+    position: absolute;
+    top: var(--pad);
+    bottom: var(--pad);
+    width: 1px;
+    margin-left: -0.5px;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+}
+
+.plot[data-scrub] .guide {
+    opacity: 0.28;
+}
+
+.tip {
+    position: absolute;
+    top: calc(var(--pad) + (100% - 2 * var(--pad)) * var(--tip, 0));
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: 0 0 0 2px currentColor;
+    pointer-events: none;
+    transition: scale 160ms cubic-bezier(0.28, 1.4, 0.36, 1);
+}
+
+.plot[data-scrub] .tip {
+    scale: 1.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guide,
+    .tip {
+        transition-duration: 1ms;
+    }
+}

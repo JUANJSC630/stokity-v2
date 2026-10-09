@@ -56,17 +56,17 @@ export function RecentSales({ sales }: RecentSalesProps) {
                                 <Link
                                     key={sale.id}
                                     href={route('sales.show', sale.id)}
-                                    className={`group flex items-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 md:py-3 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
+                                    className={`group flex items-center gap-2 px-3 py-3 transition-colors hover:bg-muted/40 md:gap-3 md:px-5 ${idx !== 0 ? 'border-t border-border/60' : ''}`}
                                 >
                                     {/* Client initial dot */}
-                                    <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-[10px] font-bold text-primary">
+                                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary/8 text-xs font-bold text-primary">
                                         {sale.client?.name ? sale.client.name.charAt(0).toUpperCase() : 'C'}
                                     </div>
 
                                     {/* Main info */}
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-xs leading-tight font-medium">{sale.client?.name || 'Consumidor Final'}</p>
-                                        <p className="truncate text-[11px] text-muted-foreground">
+                                        <p className="truncate text-sm leading-tight font-medium">{sale.client?.name || 'Consumidor Final'}</p>
+                                        <p className="truncate text-xs text-muted-foreground">
                                             {format(new Date(sale.date), 'd MMM, HH:mm', { locale: es })}
                                             {sale.seller && <> · {sale.seller.name}</>}
                                         </p>
@@ -74,8 +74,8 @@ export function RecentSales({ sales }: RecentSalesProps) {
 
                                     {/* Amount + status */}
                                     <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                                        <span className="text-xs font-semibold tabular-nums">{formatCurrency(sale.total)}</span>
-                                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.className}`}>
+                                        <span className="text-sm font-semibold tabular-nums">{formatCurrency(sale.total)}</span>
+                                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.className}`}>
                                             {status.label}
                                         </span>
                                     </div>
