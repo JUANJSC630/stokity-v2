@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
+import { prepareImageForUpload } from '@/lib/image-upload';
 import { type Branch, type BreadcrumbItem, type Category, type Product, type Supplier, type SupplierProduct } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -129,8 +130,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
         }
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0] || null;
+        const file = picked ? await prepareImageForUpload(picked) : null;
         form.setData('image', file);
         if (file) {
             const reader = new FileReader();
@@ -152,11 +154,12 @@ export default function EditProduct({ product, categories = [], branches = [], s
         e.preventDefault();
         setIsDragging(false);
     };
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && file.type.startsWith('image/')) {
+        const dropped = e.dataTransfer.files?.[0];
+        if (dropped && dropped.type.startsWith('image/')) {
+            const file = await prepareImageForUpload(dropped);
             form.setData('image', file);
             const reader = new FileReader();
             reader.onload = (e) => setImagePreview(e.target?.result as string);

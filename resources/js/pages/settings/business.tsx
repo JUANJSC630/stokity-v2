@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { prepareImageForUpload } from '@/lib/image-upload';
 import { type BreadcrumbItem, type BusinessSetting } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Camera, Link } from 'lucide-react';
@@ -33,9 +34,10 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
     const [logoPreview, setLogoPreview] = useState<string>(business.logo_url);
     const [showUrlInput, setShowUrlInput] = useState(false);
 
-    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        if (!file) return;
+    const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0] || null;
+        if (!picked) return;
+        const file = await prepareImageForUpload(picked);
         // File upload takes priority — clear any URL
         form.setData({ ...form.data, logo: file, logo_url: '' });
         const reader = new FileReader();

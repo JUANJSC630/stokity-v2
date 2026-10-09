@@ -1,3 +1,4 @@
+import { prepareImageForUpload } from '@/lib/image-upload';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
@@ -35,9 +36,10 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     // Avatar state
     const [imagePreview, setImagePreview] = useState<string | null>(auth.user.photo_url || null);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        if (file) {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0] || null;
+        if (picked) {
+            const file = await prepareImageForUpload(picked);
             // Limpiar error previo
             form.clearErrors('photo');
 
