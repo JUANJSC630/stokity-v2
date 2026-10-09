@@ -59,7 +59,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                 ¿Ya tienes cuenta?{' '}
                 <Link
                     href={route('login')}
-                    className="font-medium transition-colors duration-200 hover:text-[var(--brand-primary)]"
+                    className="-my-3 inline-block py-3 font-medium transition-colors duration-200 hover:text-[var(--brand-primary)]"
                     style={{ color: 'var(--brand-primary)' }}
                 >
                     Iniciar sesión
