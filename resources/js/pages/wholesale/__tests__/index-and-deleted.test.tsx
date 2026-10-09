@@ -70,7 +70,24 @@ function renderDeleted(data: Record<string, unknown>[], filters = {}) {
 }
 
 beforeAll(() => {
+    class NoopObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
@@ -122,18 +139,19 @@ describe('Wholesale index', () => {
 
         const box = screen.getByPlaceholderText('Buscar por código o cliente...');
         fireEvent.change(box, { target: { value: 'maria' } });
-        fireEvent.keyDown(box, { key: 'Enter' });
+        fireEvent.submit(screen.getByRole('search'));
 
         expect(router.get).toHaveBeenCalledWith('/wholesale', { status: 'completed', search: 'maria' }, { preserveState: true, replace: true });
     });
 
-    it('filters by status and clears it with "all"', () => {
+    it('filters by status with chips and clears it with "Todos"', () => {
         renderIndex([order(1)]);
 
-        fireEvent.change(screen.getByLabelText('Estado'), { target: { value: 'cancelled' } });
+        expect(screen.getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(screen.getByRole('button', { name: 'Cancelados' }));
         expect(router.get).toHaveBeenLastCalledWith('/wholesale', { status: 'cancelled' }, expect.any(Object));
 
-        fireEvent.change(screen.getByLabelText('Estado'), { target: { value: 'all' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Todos' }));
         expect(router.get).toHaveBeenLastCalledWith('/wholesale', { status: undefined }, expect.any(Object));
     });
 });
@@ -146,7 +164,7 @@ describe('Wholesale deleted orders', () => {
 
         expect(screen.getByText('M-203')).toHaveClass('line-through');
         expect(screen.getByText('Cliente 3')).toBeInTheDocument();
-        expect(text(screen.getByRole('table'))).toContain('$ 450.000');
+        expect(text(screen.getByRole('list', { name: '1 pedido(s) eliminado(s)' }))).toContain('$ 450.000');
         expect(screen.getByRole('link', { name: 'Ver detalle' })).toHaveAttribute('href', '/wholesale.deleted.show/3');
     });
 
@@ -160,7 +178,7 @@ describe('Wholesale deleted orders', () => {
         renderDeleted([deleted(3)]);
 
         fireEvent.change(screen.getByPlaceholderText('Buscar por código o cliente'), { target: { value: 'ana' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+        fireEvent.submit(screen.getByRole('search'));
 
         expect(router.get).toHaveBeenCalledWith(
             '/wholesale.deleted.index',

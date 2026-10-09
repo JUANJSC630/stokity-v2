@@ -1,15 +1,14 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderMarker, OrderStatusPill } from '@/components/wholesale/wholesale-meta';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem, type WholesaleSale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AlertCircle, Archive, Pencil, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { AlertCircle, Archive, ChevronLeft, Pencil, XCircle } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -19,10 +18,18 @@ interface Props {
     deleted?: boolean;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'destructive' | 'secondary' | 'outline'; className?: string }> = {
-    completed: { label: 'Completado', variant: 'secondary', className: 'bg-green-600 text-white hover:bg-green-700' },
-    cancelled: { label: 'Cancelado', variant: 'outline' },
-};
+const ACTION =
+    'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10';
+const KEEP_BUTTON = 'h-12 rounded-xl border border-border/60 text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50';
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="flex items-start justify-between gap-4 py-2.5 text-sm">
+            <dt className="shrink-0 text-muted-foreground">{label}</dt>
+            <dd className="min-w-0 text-right font-medium break-words">{children}</dd>
+        </div>
+    );
+}
 
 function CancelModal({ open, onClose, wholesaleSale }: { open: boolean; onClose: () => void; wholesaleSale: WholesaleSale }) {
     const [submitting, setSubmitting] = useState(false);
@@ -50,8 +57,8 @@ function CancelModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-red-500">
-                        <AlertCircle className="h-5 w-5" />
+                    <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <AlertCircle className="size-5" aria-hidden="true" />
                         Cancelar pedido mayorista
                     </DialogTitle>
                     <DialogDescription>
@@ -59,14 +66,19 @@ function CancelModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
                         pedido seguirá visible en la lista (marcado como "Cancelado") hasta que decidas eliminarlo.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={submitting}>
+                <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={onClose} disabled={submitting} className={KEEP_BUTTON}>
                         No, volver
-                    </Button>
-                    <Button variant="destructive" onClick={handleCancel} disabled={submitting}>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={submitting}
+                        className="h-12 rounded-xl bg-red-600 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
                         {submitting ? 'Cancelando...' : 'Sí, cancelar pedido'}
-                    </Button>
-                </DialogFooter>
+                    </button>
+                </div>
             </DialogContent>
         </Dialog>
     );
@@ -94,8 +106,8 @@ function DeleteModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
         <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-red-500">
-                        <Archive className="h-5 w-5" />
+                    <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <Archive className="size-5" aria-hidden="true" />
                         Eliminar pedido mayorista
                     </DialogTitle>
                     <DialogDescription>
@@ -103,14 +115,19 @@ function DeleteModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
                         por si necesitas consultarlo después.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={submitting}>
+                <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={onClose} disabled={submitting} className={KEEP_BUTTON}>
                         No, volver
-                    </Button>
-                    <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={submitting}
+                        className="h-12 rounded-xl bg-red-600 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
                         {submitting ? 'Eliminando...' : 'Sí, eliminar pedido'}
-                    </Button>
-                </DialogFooter>
+                    </button>
+                </div>
             </DialogContent>
         </Dialog>
     );
@@ -119,7 +136,6 @@ function DeleteModal({ open, onClose, wholesaleSale }: { open: boolean; onClose:
 export default function WholesaleShow({ wholesaleSale, canUpdate, canDelete, deleted = false }: Props) {
     const [cancelOpen, setCancelOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
-    const statusCfg = STATUS_CONFIG[wholesaleSale.status] ?? STATUS_CONFIG.completed;
     const isCompleted = wholesaleSale.status === 'completed';
     const isCancelled = wholesaleSale.status === 'cancelled';
 
@@ -147,10 +163,10 @@ export default function WholesaleShow({ wholesaleSale, canUpdate, canDelete, del
                 </>
             )}
 
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4 lg:p-6">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 sm:p-6">
                 {deleted && (
-                    <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
-                        <Archive className="h-4 w-4 shrink-0" />
+                    <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                        <Archive className="size-4 shrink-0" aria-hidden="true" />
                         <span>
                             Este pedido fue eliminado
                             {wholesaleSale.deleted_at ? ` el ${format(new Date(wholesaleSale.deleted_at), 'd MMM yyyy', { locale: es })}` : ''}. Es de
@@ -159,110 +175,147 @@ export default function WholesaleShow({ wholesaleSale, canUpdate, canDelete, del
                     </div>
                 )}
 
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={deleted ? '/wholesale/deleted' : '/wholesale'}
+                        aria-label="Volver a mayorista"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-muted-foreground transition-colors hover:bg-muted sm:size-9"
+                    >
+                        <ChevronLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                    <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-2xl font-bold tracking-tight">{wholesaleSale.code}</h1>
-                            <Badge variant={statusCfg.variant} className={statusCfg.className}>
-                                {statusCfg.label}
-                            </Badge>
+                            <h1 className="font-mono text-xl font-bold tracking-tight sm:text-2xl">{wholesaleSale.code}</h1>
+                            <OrderStatusPill status={wholesaleSale.status} />
                         </div>
                         <p className="text-sm text-muted-foreground">{wholesaleSale.client?.name ?? 'Sin cliente'}</p>
                     </div>
-                    {!deleted && (
-                        <div className="flex gap-2">
-                            {isCompleted && canUpdate && (
-                                <Button variant="outline" asChild>
-                                    <Link href={`/wholesale/${wholesaleSale.id}/edit`}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Editar
-                                    </Link>
-                                </Button>
-                            )}
-                            {isCompleted && canDelete && (
-                                <Button variant="destructive" onClick={() => setCancelOpen(true)}>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Cancelar pedido
-                                </Button>
-                            )}
-                            {isCancelled && canDelete && (
-                                <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-                                    <Archive className="mr-2 h-4 w-4" />
-                                    Eliminar
-                                </Button>
-                            )}
-                        </div>
-                    )}
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Detalle del pedido</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                            <div>
-                                <p className="text-muted-foreground">Vendedor</p>
-                                <p className="font-medium">{wholesaleSale.seller?.name ?? '—'}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Sucursal</p>
-                                <p className="font-medium">{wholesaleSale.branch?.name ?? '—'}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Fecha</p>
-                                <p className="font-medium">{format(new Date(wholesaleSale.date), 'd MMM yyyy', { locale: es })}</p>
-                            </div>
-                            <div>
-                                <p className="text-muted-foreground">Método de pago</p>
-                                <p className="font-medium capitalize">{wholesaleSale.payment_method}</p>
-                            </div>
-                        </div>
+                <div className="grid items-start gap-5 lg:grid-cols-[1fr_22rem]">
+                    <div className="order-2 flex min-w-0 flex-col gap-5 lg:order-1">
+                        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                            <h2 className="px-5 pt-4 pb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">Detalle del pedido</h2>
 
-                        <div className="overflow-x-auto rounded-md border">
-                            <table className="w-full text-sm">
-                                <thead className="bg-muted/50">
-                                    <tr className="text-left">
-                                        <th className="px-3 py-2 font-medium">Descripción</th>
-                                        <th className="px-3 py-2 text-center font-medium">Cantidad</th>
-                                        <th className="px-3 py-2 text-right font-medium">Precio unitario</th>
-                                        <th className="px-3 py-2 text-right font-medium">Subtotal</th>
+                            <table className="hidden w-full text-sm md:table">
+                                <caption className="sr-only">Artículos del pedido</caption>
+                                <thead>
+                                    <tr className="border-y border-border/40 bg-muted/30 text-left text-[11px] tracking-wide text-muted-foreground uppercase">
+                                        <th scope="col" className="px-5 py-2.5 font-medium">
+                                            Descripción
+                                        </th>
+                                        <th scope="col" className="px-3 py-2.5 text-center font-medium">
+                                            Cantidad
+                                        </th>
+                                        <th scope="col" className="px-3 py-2.5 text-right font-medium">
+                                            Precio unitario
+                                        </th>
+                                        <th scope="col" className="px-5 py-2.5 text-right font-medium">
+                                            Subtotal
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-border/40">
                                     {wholesaleSale.items.map((item) => (
-                                        <tr key={item.id} className="border-t">
-                                            <td className="px-3 py-2">{item.description}</td>
-                                            <td className="px-3 py-2 text-center">{item.quantity}</td>
-                                            <td className="px-3 py-2 text-right">{formatCurrency(item.unit_price)}</td>
-                                            <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                                        <tr key={item.id}>
+                                            <td className="px-5 py-3">{item.description}</td>
+                                            <td className="px-3 py-3 text-center tabular-nums">{item.quantity}</td>
+                                            <td className="px-3 py-3 text-right tabular-nums">{formatCurrency(item.unit_price)}</td>
+                                            <td className="px-5 py-3 text-right font-semibold tabular-nums">{formatCurrency(item.subtotal)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
 
-                        <div className="flex justify-end border-t pt-3">
-                            <div className="text-right">
-                                <p className="text-sm text-muted-foreground">Total</p>
-                                <p className="text-2xl font-bold">{formatCurrency(wholesaleSale.total)}</p>
-                            </div>
-                        </div>
+                            <ul aria-label="Artículos del pedido" className="divide-y divide-border/40 border-t border-border/60 md:hidden">
+                                {wholesaleSale.items.map((item) => (
+                                    <li key={item.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
+                                        <div className="min-w-0">
+                                            <p className="text-[15px] leading-snug font-medium">{item.description}</p>
+                                            <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                                                {item.quantity} × {formatCurrency(item.unit_price)}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-base font-bold tabular-nums">{formatCurrency(item.subtotal)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
 
-                        {wholesaleSale.estimated_cost !== null && (
-                            <p className="text-sm text-muted-foreground">
-                                Costo de materiales (interno): {formatCurrency(wholesaleSale.estimated_cost)}
-                            </p>
+                        {(wholesaleSale.estimated_cost !== null || wholesaleSale.notes) && (
+                            <section className="space-y-3 rounded-2xl border border-border/60 bg-card p-5">
+                                {wholesaleSale.estimated_cost !== null && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Costo de materiales (interno): {formatCurrency(wholesaleSale.estimated_cost)}
+                                    </p>
+                                )}
+                                {wholesaleSale.notes && (
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Notas</p>
+                                        <p className="text-sm">{wholesaleSale.notes}</p>
+                                    </div>
+                                )}
+                            </section>
                         )}
+                    </div>
 
-                        {wholesaleSale.notes && (
-                            <div>
-                                <p className="text-sm text-muted-foreground">Notas</p>
-                                <p className="text-sm">{wholesaleSale.notes}</p>
+                    <div className="order-1 flex min-w-0 flex-col gap-5 lg:sticky lg:top-4 lg:order-2">
+                        <section className="rounded-2xl border border-border/60 bg-card p-5">
+                            <div className="flex items-center gap-4">
+                                <OrderMarker status={wholesaleSale.status} />
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Total</p>
+                                    <p className="text-3xl leading-tight font-bold tracking-tight tabular-nums">
+                                        <RollingNumber value={Number(wholesaleSale.total)} format={formatCurrency} intro />
+                                    </p>
+                                </div>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+
+                            {!deleted && (isCompleted ? canUpdate || canDelete : isCancelled && canDelete) && (
+                                <div className="mt-4 grid grid-cols-2 gap-2">
+                                    {isCompleted && canUpdate && (
+                                        <Link href={`/wholesale/${wholesaleSale.id}/edit`} className={ACTION}>
+                                            <Pencil className="size-4" aria-hidden="true" />
+                                            Editar
+                                        </Link>
+                                    )}
+                                    {isCompleted && canDelete && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setCancelOpen(true)}
+                                            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:h-10 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                                        >
+                                            <XCircle className="size-4" aria-hidden="true" />
+                                            Cancelar pedido
+                                        </button>
+                                    )}
+                                    {isCancelled && canDelete && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteOpen(true)}
+                                            className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:h-10 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                                        >
+                                            <Archive className="size-4" aria-hidden="true" />
+                                            Eliminar
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </section>
+
+                        <section className="rounded-2xl border border-border/60 bg-card">
+                            <h2 className="px-5 pt-4 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">Datos</h2>
+                            <dl className="divide-y divide-border/40 px-5 pb-2">
+                                <Fact label="Vendedor">{wholesaleSale.seller?.name ?? '—'}</Fact>
+                                <Fact label="Sucursal">{wholesaleSale.branch?.name ?? '—'}</Fact>
+                                <Fact label="Fecha">{format(new Date(wholesaleSale.date), 'd MMM yyyy', { locale: es })}</Fact>
+                                <Fact label="Método de pago">
+                                    <span className="capitalize">{wholesaleSale.payment_method}</span>
+                                </Fact>
+                            </dl>
+                        </section>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );
