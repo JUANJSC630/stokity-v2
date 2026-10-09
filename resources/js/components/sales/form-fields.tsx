@@ -89,3 +89,19 @@ export function OptionSelect({
         </Select>
     );
 }
+
+/** A panel whose body is free-form (lists, totals) instead of a two-column field grid. */
+export function Section({ title, description, action, children }: { title: string; description?: string; action?: ReactNode; children: ReactNode }) {
+    return (
+        <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <header className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
+                <div className="min-w-0">
+                    <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h2>
+                    {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+                </div>
+                {action}
+            </header>
+            {children}
+        </section>
+    );
+}
