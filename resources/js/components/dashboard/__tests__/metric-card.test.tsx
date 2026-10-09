@@ -5,16 +5,14 @@ import { MetricCard } from '../metric-card';
 beforeAll(() => {
     vi.stubGlobal(
         'matchMedia',
-        vi
-            .fn()
-            .mockImplementation((query: string) => ({
-                matches: false,
-                media: query,
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-                addListener: vi.fn(),
-                removeListener: vi.fn(),
-            })),
+        vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
     );
 });
 
