@@ -1,3 +1,5 @@
+import { GrowBar } from '@/components/ui/bencho/grow-bar';
+import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { formatCurrency } from '@/lib/format';
 import { Building2 } from 'lucide-react';
 
@@ -31,7 +33,7 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
             ) : (
                 <div>
                     {branches.map((branch, index) => (
-                        <div key={branch.id} className="flex items-center gap-3 border-t border-border/60 px-4 py-3 md:px-5">
+                        <StaggerItem key={branch.id} index={index} className="flex items-center gap-3 border-t border-border/60 px-4 py-3 md:px-5">
                             {/* Rank */}
                             <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
                                 {index + 1}
@@ -42,9 +44,10 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
                                 <p className="truncate text-sm font-medium">{branch.name}</p>
                                 {branch.business_name && <p className="truncate text-xs text-muted-foreground">{branch.business_name}</p>}
                                 <div aria-hidden="true" className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
-                                    <div
-                                        className="h-full rounded-full bg-[var(--brand-primary)] transition-[width] duration-700"
-                                        style={{ width: `${Math.max(4, Math.round((branch.total_amount / topAmount) * 100))}%` }}
+                                    <GrowBar
+                                        className="bg-[var(--brand-primary)]"
+                                        percent={Math.max(4, Math.round((branch.total_amount / topAmount) * 100))}
+                                        delay={index * 50}
                                     />
                                 </div>
                             </div>
@@ -55,7 +58,7 @@ export function SalesByBranch({ branches }: SalesByBranchProps) {
                                 <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(branch.total_amount)}</p>
                                 <p className="text-xs text-muted-foreground tabular-nums">prom. {formatCurrency(branch.average_sale)}</p>
                             </div>
-                        </div>
+                        </StaggerItem>
                     ))}
                 </div>
             )}

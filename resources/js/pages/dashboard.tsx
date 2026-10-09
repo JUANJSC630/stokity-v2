@@ -99,6 +99,8 @@ interface DashboardProps {
     userName: string;
 }
 
+const formatCount = (value: number): string => String(value);
+
 export default function Dashboard({
     metrics,
     growth,
@@ -175,7 +177,8 @@ export default function Dashboard({
                         <MetricCard
                             className="col-span-2 lg:col-span-1"
                             title="Ingresos del Mes"
-                            value={formatCurrency(metrics.total_revenue_month)}
+                            value={metrics.total_revenue_month}
+                            format={formatCurrency}
                             description={
                                 <span>
                                     {metrics.total_sales_month} transacciones · bruto antes de devoluciones
@@ -194,6 +197,7 @@ export default function Dashboard({
                         <MetricCard
                             title="Clientes"
                             value={metrics.total_clients}
+                            format={formatCount}
                             description="Registrados"
                             icon={<UserRound className="h-4 w-4" />}
                         />
@@ -201,6 +205,7 @@ export default function Dashboard({
                             <MetricCard
                                 title="Productos"
                                 value={metrics.total_products}
+                                format={formatCount}
                                 description="En inventario"
                                 icon={<Package className="h-4 w-4" />}
                             />
