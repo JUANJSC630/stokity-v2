@@ -1,3 +1,4 @@
+import { paymentMethodLabel } from '@/components/sales/sale-status';
 import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { formatCurrency } from '@/lib/format';
@@ -165,7 +166,7 @@ export function CreditDetailPanel({ credit, canCancel, canUpdateInstallments, he
                                     <div className="flex items-start justify-between gap-3">
                                         <p className="text-lg leading-tight font-bold tabular-nums">{cop(payment.amount)}</p>
                                         <span className="rounded-full border border-border/60 px-2.5 py-0.5 text-xs text-muted-foreground">
-                                            {payment.payment_method}
+                                            {paymentMethodLabel(payment.payment_method)}
                                         </span>
                                     </div>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
