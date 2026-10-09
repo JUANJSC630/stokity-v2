@@ -50,6 +50,13 @@ describe('PaymentMethodSelect', () => {
         await waitFor(() => expect(onValueChange).toHaveBeenCalledWith('bank_transfer'));
     });
 
+    it('maps the "efectivo" default used by the credit forms to the active cash code', async () => {
+        const onValueChange = vi.fn();
+        render(<PaymentMethodSelect value="efectivo" onValueChange={onValueChange} />);
+
+        await waitFor(() => expect(onValueChange).toHaveBeenCalledWith('cash'));
+    });
+
     it('keeps showing a method that is no longer active, labelled as such', async () => {
         render(<PaymentMethodSelect value="nequi" onValueChange={vi.fn()} />);
 
