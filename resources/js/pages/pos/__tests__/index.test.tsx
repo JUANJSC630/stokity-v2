@@ -171,7 +171,7 @@ async function addProduct(term: string, name: string) {
 }
 
 const receivedInput = () => screen.getByText('Recibido:').parentElement!.querySelector('input') as HTMLInputElement;
-const priceModalInput = () => screen.getByText('Precio del servicio').parentElement!.querySelector('input') as HTMLInputElement;
+const priceModalInput = () => screen.getByRole('textbox', { name: 'Precio del servicio' }) as HTMLInputElement;
 const submitButton = () => screen.getByRole('button', { name: /Cobrar|Procesando/ });
 const discountSelect = () => screen.getAllByRole('combobox').find((s) => within(s).queryByText('Ninguno')) as HTMLSelectElement;
 const clientSelect = () => screen.getAllByRole('combobox').find((s) => within(s).queryByText('Mayorista Ltda')) as HTMLSelectElement;
@@ -633,6 +633,18 @@ describe('POS: credit sales', () => {
 });
 
 describe('POS: cash register', () => {
+    it('does not charge with F9 while the cash movement dialog is open', async () => {
+        renderPos();
+        await addProduct('co', 'Collar de perlas Luna');
+        fireEvent.click(screen.getByRole('button', { name: 'método-transferencia' }));
+        fireEvent.click(within(screen.getByTestId('header-actions')).getByRole('button', { name: /^Caja ·/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Ingreso de efectivo' }));
+
+        fireEvent.keyDown(window, { key: 'F9' });
+
+        expect(router.post).not.toHaveBeenCalled();
+    });
+
     it('shows when the open cash register started and offers to close it', () => {
         renderPos();
 

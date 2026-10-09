@@ -1,5 +1,8 @@
 import { useConfirm } from '@/components/confirm-dialog';
 import PaymentMethodSelect from '@/components/PaymentMethodSelect';
+import { CashMovementDialog, OpenSessionDialog, VariablePriceDialog } from '@/components/pos/cash-dialogs';
+import { CashSessionWidget } from '@/components/pos/cash-session-widget';
+import { PrinterWidget } from '@/components/pos/printer-widget';
 import { Badge } from '@/components/ui/badge';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
@@ -18,24 +21,7 @@ import { resolveWholesaleDiscount } from '@/lib/wholesale-discount';
 import { type Branch, type BreadcrumbItem, type CashSession, type Client, type SharedData } from '@/types';
 import type { Product } from '@/types/product';
 import { Head, router, usePage } from '@inertiajs/react';
-import {
-    AlertTriangle,
-    ArrowDownCircle,
-    ArrowUpCircle,
-    ClipboardList,
-    DoorOpen,
-    HandCoins,
-    Keyboard,
-    Minus,
-    Plus,
-    Printer,
-    Search,
-    ShoppingCart,
-    Trash2,
-    Wifi,
-    WifiOff,
-    X,
-} from 'lucide-react';
+import { AlertTriangle, ClipboardList, HandCoins, Keyboard, Minus, Plus, Search, ShoppingCart, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -111,198 +97,6 @@ function readStaleSessionDismissed(sessionId: number | undefined): boolean {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'POS', href: '/pos' }];
-
-// ─── Cash session widget (header) ────────────────────────────────────────────
-function CashSessionWidget({
-    session,
-    requireCashSession,
-    onOpen,
-    onMovement,
-}: {
-    session: CashSession | null;
-    requireCashSession: boolean;
-    onOpen: () => void;
-    onMovement: (type: 'cash_in' | 'cash_out') => void;
-}) {
-    const [open, setOpen] = React.useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        function handleClick(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, [open]);
-
-    const openTime = session ? new Date(session.opened_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : null;
-
-    if (!session) {
-        return (
-            <button
-                type="button"
-                onClick={onOpen}
-                className="flex h-8 items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-2.5 py-0.5 text-[11px] font-medium text-neutral-500 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400"
-            >
-                <span className="h-1.5 w-1.5 rounded-full bg-neutral-400" />
-                {requireCashSession ? 'Abrir caja' : 'Caja cerrada'}
-            </button>
-        );
-    }
-
-    return (
-        <div ref={ref} className="relative">
-            <button
-                type="button"
-                onClick={() => setOpen((v) => !v)}
-                className="flex h-8 items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300"
-            >
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                Caja · {openTime}
-            </button>
-
-            {open && (
-                <div className="absolute top-full right-0 z-50 mt-1 w-52 rounded-xl border border-neutral-200 bg-white py-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            onMovement('cash_in');
-                            setOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    >
-                        <ArrowDownCircle className="h-4 w-4 text-green-600" />
-                        Ingreso de efectivo
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            onMovement('cash_out');
-                            setOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    >
-                        <ArrowUpCircle className="h-4 w-4 text-red-500" />
-                        Egreso de efectivo
-                    </button>
-                    <div className="my-1 border-t border-neutral-100 dark:border-neutral-800" />
-                    <button
-                        type="button"
-                        onClick={() => {
-                            router.visit(route('cash-sessions.close.form', session.id));
-                            setOpen(false);
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                        <DoorOpen className="h-4 w-4" />
-                        Cerrar caja
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ─── Printer status indicator ────────────────────────────────────────────────
-function PrinterStatusBadge({ status, selectedPrinter, onConnect }: { status: string; selectedPrinter: string; onConnect: () => void }) {
-    if (status === 'connected' && selectedPrinter) {
-        return (
-            <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                <Wifi className="h-3 w-3" />
-                {selectedPrinter.length > 12 ? selectedPrinter.slice(0, 10) + '…' : selectedPrinter}
-            </span>
-        );
-    }
-    if (status === 'connecting') {
-        return (
-            <span className="flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-[11px] text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
-                <Printer className="h-3 w-3 animate-pulse" />
-                Conectando…
-            </span>
-        );
-    }
-    if (status === 'unavailable') {
-        return (
-            <button
-                type="button"
-                onClick={onConnect}
-                className="flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400"
-            >
-                <WifiOff className="h-3 w-3" />
-                Sin impresora
-            </button>
-        );
-    }
-    return null;
-}
-
-// ─── Printer widget (header) ─────────────────────────────────────────────────
-function PrinterWidget({ printer }: { printer: ReturnType<typeof import('@/hooks/use-printer').usePrinter> }) {
-    const [open, setOpen] = React.useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        function handleClick(e: MouseEvent) {
-            if (ref.current && !ref.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, [open]);
-
-    return (
-        <div ref={ref} className="relative">
-            <button type="button" onClick={() => setOpen((v) => !v)} className="flex h-8 items-center" title="Configurar impresora">
-                <PrinterStatusBadge status={printer.status} selectedPrinter={printer.selectedPrinter} onConnect={printer.connect} />
-            </button>
-
-            {open && (
-                <div className="absolute top-full right-0 z-50 mt-1 w-72 rounded-xl border border-neutral-200 bg-white p-3 shadow-xl dark:border-neutral-700 dark:bg-neutral-900">
-                    <p className="mb-2 text-xs font-semibold text-muted-foreground">Impresora</p>
-
-                    {printer.status === 'unavailable' && (
-                        <div className="mb-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
-                            QZ Tray no detectado.{' '}
-                            <a href="https://qz.io/download/" target="_blank" rel="noreferrer" className="underline">
-                                Descargar
-                            </a>
-                        </div>
-                    )}
-
-                    {printer.printers.length > 0 && (
-                        <Select value={printer.selectedPrinter} onValueChange={printer.setSelectedPrinter}>
-                            <SelectTrigger className="h-8 w-full text-xs">
-                                <SelectValue placeholder="Selecciona impresora…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {printer.printers.map((name) => (
-                                    <SelectItem key={name} value={name} className="text-xs">
-                                        {name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                        <p className="text-xs text-muted-foreground">
-                            Ancho del papel:{' '}
-                            <a href="/settings/ticket" className="font-medium text-blue-600 underline dark:text-blue-400">
-                                Configurar
-                            </a>
-                        </p>
-                        <button type="button" onClick={() => printer.connect()} className="text-xs text-blue-600 hover:underline dark:text-blue-400">
-                            Reconectar
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
 
 export default function PosIndex({
     branches,
@@ -1108,201 +902,48 @@ export default function PosIndex({
         <AppLayout breadcrumbs={breadcrumbs} headerActions={headerActions}>
             <Head title="POS — Punto de Venta" />
 
-            {/* ── Cash session: strict mode blocking modal ── */}
-            {!currentSession && requireCashSession && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
-                        <h2 className="mb-1 text-lg font-bold">Abrir caja</h2>
-                        <p className="mb-4 text-sm text-muted-foreground">Debes abrir la caja antes de realizar ventas.</p>
-                        <form onSubmit={handleOpenSession} className="space-y-3">
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Fondo inicial</label>
-                                <CurrencyInput
-                                    value={openingAmount}
-                                    onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
-                                    placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Notas (opcional)</label>
-                                <textarea
-                                    value={openingNotes}
-                                    onChange={(e) => setOpeningNotes(e.target.value)}
-                                    rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={submittingSession}
-                                className="w-full rounded-xl bg-[var(--brand-primary)] py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                            >
-                                {submittingSession ? 'Abriendo...' : 'Abrir caja'}
-                            </button>
-                        </form>
-                        <div className="mt-3 text-center">
-                            <a href="/dashboard" className="text-xs text-muted-foreground hover:underline">
-                                Ir al inicio
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <OpenSessionDialog
+                open={(!currentSession && requireCashSession) || (showOpenSessionModal && !requireCashSession)}
+                blocking={!currentSession && requireCashSession}
+                amount={openingAmount}
+                notes={openingNotes}
+                submitting={submittingSession}
+                onAmountChange={setOpeningAmount}
+                onNotesChange={setOpeningNotes}
+                onSubmit={handleOpenSession}
+                onClose={() => setShowOpenSessionModal(false)}
+            />
 
-            {/* ── Variable-price service modal ── */}
-            {varPriceProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-neutral-900">
-                        <h2 className="mb-1 font-semibold">Precio del servicio</h2>
-                        <p className="mb-3 text-sm text-muted-foreground">{varPriceProduct.name}</p>
-                        <CurrencyInput value={varPriceValue} onChange={setVarPriceValue} className="w-full" autoFocus />
-                        <div className="mt-4 flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setVarPriceProduct(null)}
-                                className="flex-1 rounded-lg border border-neutral-200 py-2 text-sm font-medium dark:border-neutral-700"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (varPriceValue <= 0) {
-                                        toast.error('Ingresa un precio válido');
-                                        return;
-                                    }
-                                    addToCartWithPrice(varPriceProduct, 1, varPriceValue);
-                                    setVarPriceProduct(null);
-                                }}
-                                className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
-                            >
-                                Agregar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <VariablePriceDialog
+                productName={varPriceProduct ? varPriceProduct.name : null}
+                value={varPriceValue}
+                onChange={setVarPriceValue}
+                onCancel={() => setVarPriceProduct(null)}
+                onConfirm={() => {
+                    if (!varPriceProduct) return;
+                    if (varPriceValue <= 0) {
+                        toast.error('Ingresa un precio válido');
+                        return;
+                    }
+                    addToCartWithPrice(varPriceProduct, 1, varPriceValue);
+                    setVarPriceProduct(null);
+                }}
+            />
 
-            {/* ── Cash movement modal ── */}
-            {showMovementModal && currentSession && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl dark:bg-neutral-900">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="font-semibold">{movementType === 'cash_in' ? 'Ingreso de efectivo' : 'Egreso de efectivo'}</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowMovementModal(false)}
-                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddMovement} className="space-y-3">
-                            <div className="flex gap-2">
-                                {(['cash_in', 'cash_out'] as const).map((t) => (
-                                    <button
-                                        key={t}
-                                        type="button"
-                                        onClick={() => setMovementType(t)}
-                                        className={`flex-1 rounded-lg border py-1.5 text-xs font-medium transition-colors ${
-                                            movementType === t
-                                                ? t === 'cash_in'
-                                                    ? 'border-green-400 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                    : 'border-red-400 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                                : 'border-neutral-200 text-muted-foreground hover:bg-neutral-50 dark:border-neutral-700'
-                                        }`}
-                                    >
-                                        {t === 'cash_in' ? 'Ingreso' : 'Egreso'}
-                                    </button>
-                                ))}
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Monto *</label>
-                                <CurrencyInput
-                                    value={Number(movementAmount) || 0}
-                                    onChange={(v) => setMovementAmount(v > 0 ? String(v) : '')}
-                                    required
-                                    placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Concepto *</label>
-                                <input
-                                    type="text"
-                                    value={movementConcept}
-                                    onChange={(e) => setMovementConcept(e.target.value)}
-                                    required
-                                    placeholder="Ej: Pago proveedor"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Notas (opcional)</label>
-                                <textarea
-                                    value={movementNotes}
-                                    onChange={(e) => setMovementNotes(e.target.value)}
-                                    rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={submittingSession}
-                                className={`w-full rounded-xl py-2 text-sm font-bold text-white disabled:opacity-50 ${movementType === 'cash_in' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
-                            >
-                                {submittingSession ? 'Registrando...' : 'Registrar'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ── Open session modal (soft mode, triggered by button) ── */}
-            {showOpenSessionModal && !requireCashSession && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="font-semibold">Abrir caja</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowOpenSessionModal(false)}
-                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleOpenSession} className="space-y-3">
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Fondo inicial</label>
-                                <CurrencyInput
-                                    value={openingAmount}
-                                    onChange={(v) => setOpeningAmount(v > 0 ? String(v) : '')}
-                                    placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1 block text-xs font-medium">Notas (opcional)</label>
-                                <textarea
-                                    value={openingNotes}
-                                    onChange={(e) => setOpeningNotes(e.target.value)}
-                                    rows={2}
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={submittingSession}
-                                className="w-full rounded-xl bg-[var(--brand-primary)] py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                            >
-                                {submittingSession ? 'Abriendo...' : 'Abrir caja'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <CashMovementDialog
+                open={showMovementModal && !!currentSession}
+                type={movementType}
+                amount={movementAmount}
+                concept={movementConcept}
+                notes={movementNotes}
+                submitting={submittingSession}
+                onTypeChange={setMovementType}
+                onAmountChange={setMovementAmount}
+                onConceptChange={setMovementConcept}
+                onNotesChange={setMovementNotes}
+                onSubmit={handleAddMovement}
+                onClose={() => setShowMovementModal(false)}
+            />
 
             <div className="flex h-[calc(100dvh-64px)] flex-col">
                 {/* ── F7: session open too long — non-blocking, dismissible per session ── */}
