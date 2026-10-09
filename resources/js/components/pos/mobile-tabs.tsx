@@ -17,6 +17,7 @@ interface MobileTabsProps {
 export function MobileTabs({ active, onChange, itemCount, total }: MobileTabsProps) {
     const onBrand = useOnBrandColor();
     const hasItems = itemCount > 0;
+    const filled = hasItems && active === 'search';
 
     return (
         <div
@@ -44,23 +45,25 @@ export function MobileTabs({ active, onChange, itemCount, total }: MobileTabsPro
                 onClick={() => onChange('cart')}
                 className={cn(
                     'flex h-14 min-w-0 flex-1 items-center justify-center gap-3 rounded-xl px-4 text-sm font-semibold transition-colors',
-                    hasItems
+                    filled
                         ? 'bg-[var(--brand-primary)]'
                         : active === 'cart'
                           ? 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
                           : 'text-muted-foreground hover:bg-muted',
                 )}
-                style={hasItems ? { color: onBrand.hex } : undefined}
+                style={filled ? { color: onBrand.hex } : undefined}
             >
                 <span className="relative">
                     <ShoppingCart className="size-5" aria-hidden="true" />
                     {hasItems && (
-                        <span className="absolute -top-2 -right-3 flex min-w-4 items-center justify-center rounded-full bg-background px-1 text-[10px] leading-4 font-bold text-foreground">
+                        <span className="absolute -top-2 -right-3 flex min-w-4 items-center justify-center rounded-full bg-background px-1 text-[10px] leading-4 font-bold text-foreground ring-1 ring-border">
                             {itemCount}
                         </span>
                     )}
                 </span>
-                <span className="truncate tabular-nums">{hasItems ? `Ver carrito · ${formatCurrency(total)}` : 'Carrito'}</span>
+                <span className="truncate tabular-nums">
+                    {hasItems ? `${active === 'cart' ? 'Carrito' : 'Ver carrito'} · ${formatCurrency(total)}` : 'Carrito'}
+                </span>
             </button>
         </div>
     );
