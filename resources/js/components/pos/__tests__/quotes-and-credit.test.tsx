@@ -55,6 +55,16 @@ describe('PendingQuotesSheet', () => {
         expect(props.onDelete).toHaveBeenCalledWith(props.quotes[0]);
     });
 
+    it('disables deletion for quotes with audit history', () => {
+        const props = sheet({ quotes: [{ ...quote(1), has_audit_history: true }, quote(2)] });
+
+        const [locked, free] = screen.getAllByRole('button', { name: /Eliminar cotización/ });
+        expect(locked).toBeDisabled();
+        expect(free).toBeEnabled();
+        fireEvent.click(locked);
+        expect(props.onDelete).not.toHaveBeenCalled();
+    });
+
     it('shows a loading hint instead of the list', () => {
         sheet({ loading: true });
 

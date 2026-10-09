@@ -9,6 +9,8 @@ export interface PendingQuote {
     client_name: string;
     product_count: number;
     total: number;
+    /** Quotes that were once completed keep immutable audit history and cannot be deleted. */
+    has_audit_history?: boolean;
     created_at: string;
 }
 
@@ -70,8 +72,10 @@ export function PendingQuotesSheet({ open, loading, quotes, onClose, onLoad, onD
                                         <button
                                             type="button"
                                             onClick={() => onDelete(quote)}
+                                            disabled={quote.has_audit_history}
+                                            title={quote.has_audit_history ? 'Tiene historial de auditoría y no se puede eliminar' : undefined}
                                             aria-label={`Eliminar cotización ${quote.code.slice(-8)}`}
-                                            className="flex size-11 items-center justify-center rounded-xl border border-red-200 text-red-500 transition-colors hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30"
+                                            className="flex size-11 items-center justify-center rounded-xl border border-red-200 text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-red-900 dark:hover:bg-red-950/30"
                                         >
                                             <Trash2 className="size-4" aria-hidden="true" />
                                         </button>

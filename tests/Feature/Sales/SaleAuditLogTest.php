@@ -133,10 +133,21 @@ it('refuses to hard-delete a pending sale that already has audit history', funct
 
     $this->actingAs($this->admin)
         ->delete(route('sales.pending.destroy', $this->sale))
-        ->assertStatus(422);
+        ->assertSessionHasErrors('sale');
 
     expect(Sale::withTrashed()->find($this->sale->id))->not->toBeNull();
     expect(SaleAuditLog::where('sale_id', $this->sale->id)->count())->toBe(1);
+});
+
+it('flags pending quotes with audit history so the POS can disable deletion', function () {
+    $this->actingAs($this->admin)
+        ->put(route('sales.update', $this->sale), updateSalePayload($this->sale, ['status' => 'pending']));
+
+    $this->actingAs($this->admin)
+        ->getJson(route('sales.pending'))
+        ->assertOk()
+        ->assertJsonPath('0.id', $this->sale->id)
+        ->assertJsonPath('0.has_audit_history', true);
 });
 
 it('exposes audit logs to an admin viewing the sale', function () {

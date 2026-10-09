@@ -68,6 +68,7 @@ interface PendingSale {
     net: number;
     total: number;
     notes: string | null;
+    has_audit_history: boolean;
     created_at: string;
     products: PendingProduct[];
 }
@@ -751,7 +752,7 @@ export default function PosIndex({
                 if (activePendingId === id) cancelActivePending();
                 toast.success('Cotización eliminada');
             },
-            onError: () => toast.error('Error al eliminar cotización'),
+            onError: (errors) => toast.error(errors.sale ?? 'Error al eliminar cotización'),
         });
     }
 

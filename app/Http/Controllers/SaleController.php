@@ -17,6 +17,7 @@ use App\Services\StockMovementService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class SaleController extends Controller
@@ -276,6 +277,7 @@ class SaleController extends Controller
         $user = Auth::user();
 
         $query = Sale::with(['client:id,name', 'saleProducts.product:id,name,tax,stock,image'])
+            ->withExists('auditLogs')
             ->where('status', 'pending');
 
         if ($user->isRestrictedToOwnBranch() && $user->branch_id) {
@@ -294,6 +296,7 @@ class SaleController extends Controller
                 'net' => $sale->net,
                 'total' => $sale->total,
                 'notes' => $sale->notes,
+                'has_audit_history' => (bool) $sale->audit_logs_exists,
                 'created_at' => $sale->created_at,
                 'products' => $sale->saleProducts->map(fn ($sp) => [
                     'product_id' => $sp->product_id,
@@ -546,7 +549,9 @@ class SaleController extends Controller
         // history the hard-delete below (and its FK cascade) would otherwise
         // silently destroy, contradicting SaleAuditLog's immutability.
         if ($sale->auditLogs()->exists()) {
-            abort(422, 'Esta venta tiene historial de auditoría y no puede eliminarse como cotización.');
+            throw ValidationException::withMessages([
+                'sale' => 'Esta cotización tiene historial de auditoría y no puede eliminarse.',
+            ]);
         }
 
         $sale->saleProducts()->delete();
