@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductShow from '../show';
 
 const env = vi.hoisted(() => ({
@@ -13,7 +13,12 @@ const env = vi.hoisted(() => ({
     },
 }));
 
-vi.mock('@inertiajs/react', () => ({ Head: () => null, Link: 'a', router: { visit: vi.fn() } }));
+vi.mock('@inertiajs/react', () => ({
+    Head: () => null,
+    Link: 'a',
+    router: { visit: vi.fn() },
+    usePage: () => ({ props: { business: { brand_color: '#C4686F' } } }),
+}));
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/hooks/use-printer', () => ({ usePrinter: () => env.printer }));
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
@@ -41,6 +46,15 @@ const baseProduct = {
 const renderShow = (overrides: Record<string, unknown> = {}) => render(<ProductShow product={{ ...baseProduct, ...overrides } as never} />);
 const text = (node: HTMLElement) => (node.textContent ?? '').replace(/\s/g, ' ');
 
+beforeAll(() => {
+    class NoopObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', NoopObserver);
+});
+
 beforeEach(() => {
     vi.clearAllMocks();
     env.printer = { status: 'idle', selectedPrinter: '', printLabels: vi.fn() };
@@ -51,12 +65,13 @@ describe('Product detail', () => {
         renderShow();
 
         const page = text(document.body);
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Detalles del Producto');
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bolso de cuero');
+        expect(page).toContain('Detalles del producto');
         expect(screen.getByAltText('Bolso de cuero')).toHaveAttribute('src', '/img/7.jpg');
         expect(page).toContain('Precio de compra');
-        expect(page).toContain('$80.000');
+        expect(page).toContain('$ 80.000');
         expect(page).toContain('Precio de venta');
-        expect(page).toContain('$150.000');
+        expect(page).toContain('$ 150.000');
         expect(page).toContain('19%');
         expect(page).toContain('Stock actual');
         expect(screen.getByText('12')).toBeInTheDocument();
@@ -98,7 +113,8 @@ describe('Product detail', () => {
         renderShow({ type: 'servicio', stock: 0 });
 
         const page = text(document.body);
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Detalles del Servicio');
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bolso de cuero');
+        expect(page).toContain('Detalles del servicio');
         expect(page).toContain('Costo del servicio');
         expect(page).toContain('Precio base');
         expect(page).not.toContain('Stock actual');
@@ -110,7 +126,7 @@ describe('Product detail', () => {
         renderShow({ type: 'servicio', variable_price: true });
 
         expect(screen.getByText('Variable')).toBeInTheDocument();
-        expect(text(document.body)).not.toContain('$150.000');
+        expect(text(document.body)).not.toContain('$ 150.000');
     });
 
     it('shows a QR code of the product code', () => {

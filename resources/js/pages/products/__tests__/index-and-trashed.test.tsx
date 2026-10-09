@@ -8,6 +8,7 @@ import ProductsIndex from '../index';
 import ProductsTrashed from '../trashed';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     granted: [] as string[],
     printer: { status: 'idle', selectedPrinter: '', printLabels: vi.fn() } as {
         status: string;
@@ -21,7 +22,7 @@ vi.mock('@inertiajs/react', () => ({
     router: { visit: vi.fn(), put: vi.fn(), delete: vi.fn() },
     Head: () => null,
     Link: 'a',
-    usePage: vi.fn(() => ({ props: { flash: env.flash } })),
+    usePage: vi.fn(() => ({ props: { flash: env.flash, business: { brand_color: '#C4686F' } } })),
 }));
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/hooks/use-permissions', () => ({ usePermissions: () => ({ can: (permission: string) => env.granted.includes(permission) }) }));
@@ -84,11 +85,23 @@ beforeAll(() => {
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    env.wide = true;
     env.granted = [];
     env.flash = {};
     env.printer = { status: 'idle', selectedPrinter: '', printLabels: vi.fn() };
@@ -105,12 +118,12 @@ describe('Catalog list', () => {
         expect(cells).toContain('Producto 1');
         expect(cells).toContain('SKU-1');
         expect(cells).toContain('Bolsos');
-        expect(cells).toContain('$12.000');
+        expect(cells).toContain('$ 12.000');
         expect(cells).toContain('19%');
         expect(cells).toContain('20');
         expect(cells).toContain('Producto');
         expect(cells).toContain('Activo');
-        expect(within(table).getByRole('link')).toHaveAttribute('href', '/products/1');
+        expect(within(table).getByRole('link', { name: 'Producto 1' })).toHaveAttribute('href', '/products/1');
     });
 
     it('shows a dash instead of stock for services and marks inactive products', () => {
@@ -153,10 +166,28 @@ describe('Catalog list', () => {
         expect(document.querySelector('a[href="/products/trashed"]')).not.toBeNull();
     });
 
-    it('says so on small screens when there is nothing to show', () => {
+    it('says so when there is nothing to show', () => {
         renderIndex([]);
 
         expect(screen.getByText('No hay productos que mostrar')).toBeInTheDocument();
+    });
+
+    it('lists cards on phones with the name, price, code, category and stock, each opening the product', () => {
+        env.wide = false;
+        renderIndex([product(1), product(2, { type: 'servicio', stock: 0, status: false, variable_price: true })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 producto(s)' });
+        const first = within(list).getByRole('link', { name: /Producto 1/ });
+        expect(first).toHaveAttribute('href', '/products/1');
+        expect(text(first)).toContain('$ 12.000');
+        expect(text(first)).toContain('SKU-1 · Bolsos');
+        expect(text(first)).toContain('Stock 20');
+        const service = within(list).getByRole('link', { name: /Producto 2/ });
+        expect(text(service)).toContain('Variable');
+        expect(text(service)).toContain('Servicio');
+        expect(text(service)).toContain('Inactivo');
+        expect(text(service)).not.toContain('Stock');
     });
 
     it('filters by type with the tabs, keeping the other filters out of the address when they are "all"', () => {
@@ -312,7 +343,7 @@ describe('Catalog trash', () => {
         const cells = text(screen.getByRole('table', { name: 'Productos eliminados' }));
         expect(cells).toContain('Producto 3');
         expect(cells).toContain('SKU-3');
-        expect(cells).toContain('$36.000');
+        expect(cells).toContain('$ 36.000');
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Productos en Papelera');
         expect(screen.getByRole('link', { name: /Volver a Productos/ })).toHaveAttribute('href', '/products');
     });

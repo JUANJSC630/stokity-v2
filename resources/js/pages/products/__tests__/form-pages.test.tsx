@@ -21,7 +21,7 @@ vi.mock('@inertiajs/react', async () => {
         router: { post: vi.fn(), delete: vi.fn() },
         Head: () => null,
         Link: 'a',
-        usePage: () => ({ props: { flash: env.flash } }),
+        usePage: () => ({ props: { flash: env.flash, business: { brand_color: '#C4686F' } } }),
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
             const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -453,7 +453,7 @@ describe('Edit product: suppliers', () => {
     it('removes a supplier link', () => {
         renderEdit();
 
-        fireEvent.click(screen.getAllByRole('button', { name: 'Eliminar' }).at(-1) as HTMLElement);
+        fireEvent.click(screen.getByRole('button', { name: 'Quitar proveedor Cueros SAS' }));
         fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedores' }));
 
         expect(vi.mocked(router.post).mock.calls[0][1]).toEqual({ suppliers: [] });

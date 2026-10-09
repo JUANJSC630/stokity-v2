@@ -67,15 +67,17 @@ export function OptionSelect({
     onValueChange,
     options,
     placeholder,
+    disabled,
 }: {
     id: string;
     value: string;
     onValueChange: (value: string) => void;
     options: Option[];
     placeholder: string;
+    disabled?: boolean;
 }) {
     return (
-        <Select value={value} onValueChange={onValueChange}>
+        <Select value={value} onValueChange={onValueChange} disabled={disabled}>
             <SelectTrigger id={id} className={SELECT_TRIGGER}>
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
