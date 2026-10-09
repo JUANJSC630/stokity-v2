@@ -81,7 +81,7 @@ export function RevenueHero({ revenueToday, revenueGrowth, salesToday, averageSa
                                 {scrubbed ? (
                                     <span className="tabular-nums">{formatCurrency(scrubbed.total_amount)}</span>
                                 ) : (
-                                    <RollingNumber value={revenueToday} format={formatCurrency} />
+                                    <RollingNumber value={revenueToday} format={formatCurrency} intro />
                                 )}
                             </p>
                             <div className="mt-3 flex min-h-6 items-center gap-2 text-xs text-muted-foreground">
@@ -125,13 +125,13 @@ export function RevenueHero({ revenueToday, revenueGrowth, salesToday, averageSa
                         <div className="min-w-0">
                             <dt className="text-xs text-muted-foreground">Ventas hoy</dt>
                             <dd className="mt-0.5 text-xl font-semibold">
-                                <RollingNumber value={salesToday} format={formatCount} />
+                                <RollingNumber value={salesToday} format={formatCount} intro />
                             </dd>
                         </div>
                         <div className="min-w-0">
                             <dt className="text-xs text-muted-foreground">Ticket promedio</dt>
                             <dd className="mt-0.5 truncate text-xl font-semibold">
-                                <RollingNumber value={averageSale} format={formatCurrency} />
+                                <RollingNumber value={averageSale} format={formatCurrency} intro />
                             </dd>
                         </div>
                     </dl>

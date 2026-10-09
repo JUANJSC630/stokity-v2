@@ -72,7 +72,7 @@ export function TopProducts({ products }: TopProductsProps) {
                                 {/* Stats */}
                                 <div className="flex-shrink-0 text-right">
                                     <p className="flex justify-end gap-1 text-sm font-semibold tabular-nums">
-                                        <RollingNumber value={product.total_quantity} format={(value) => String(value)} />
+                                        <RollingNumber value={product.total_quantity} format={(value) => String(value)} intro />
                                         <span>uds</span>
                                     </p>
                                     <p className="text-xs text-muted-foreground tabular-nums">{formatCurrency(product.total_amount)}</p>

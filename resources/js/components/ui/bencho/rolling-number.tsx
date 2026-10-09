@@ -5,28 +5,41 @@
  * separators), the full number is exposed to screen readers, and motion stops under prefers-reduced-motion.
  */
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './rolling-number.module.css';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const DURATION = 0.42;
 const STAGGER = 0.04;
 
-export function RollingNumber({ value, format, className }: { value: number; format: (value: number) => string; className?: string }) {
+interface RollingNumberProps {
+    value: number;
+    format: (value: number) => string;
+    className?: string;
+    /** Rolls up from zero the first time it appears instead of showing the value straight away. */
+    intro?: boolean;
+}
+
+export function RollingNumber({ value, format, className, intro = false }: RollingNumberProps) {
     const reduced = useReducedMotion() ?? false;
-    const previous = useRef(value);
-    const up = value >= previous.current;
+    const [shown, setShown] = useState(intro && !reduced ? 0 : value);
+    const previous = useRef(shown);
+    const up = shown >= previous.current;
 
     useEffect(() => {
-        previous.current = value;
+        previous.current = shown;
+    }, [shown]);
+
+    useEffect(() => {
+        setShown(value);
     }, [value]);
 
-    const text = format(value);
+    const text = format(shown);
     const chars = Array.from(text);
 
     return (
         <span className={className}>
-            <span className="sr-only">{text}</span>
+            <span className="sr-only">{format(value)}</span>
             <span className={styles.roll} aria-hidden="true">
                 {chars.map((char, index) => {
                     const place = chars.length - 1 - index;

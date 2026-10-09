@@ -23,6 +23,19 @@
     overflow: visible;
 }
 
+.line {
+    animation: reveal 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes reveal {
+    from {
+        clip-path: inset(-8px 100% -8px 0);
+    }
+    to {
+        clip-path: inset(-8px -8px -8px 0);
+    }
+}
+
 .curve {
     fill: none;
     stroke: currentColor;
@@ -64,6 +77,14 @@
     box-shadow: 0 0 0 2px currentColor;
     pointer-events: none;
     transition: scale 160ms cubic-bezier(0.28, 1.4, 0.36, 1);
+    animation: tip-in 360ms 950ms cubic-bezier(0.28, 1.4, 0.36, 1) both;
+}
+
+@keyframes tip-in {
+    from {
+        opacity: 0;
+        scale: 0.2;
+    }
 }
 
 .plot[data-scrub] .tip {
@@ -71,6 +92,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .line,
+    .tip {
+        animation: none;
+    }
+
     .guide,
     .tip {
         transition-duration: 1ms;

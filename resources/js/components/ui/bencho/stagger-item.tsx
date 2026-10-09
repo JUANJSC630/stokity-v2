@@ -8,9 +8,9 @@ export function StaggerItem({ index, children, className }: { index: number; chi
     return (
         <motion.div
             className={className}
-            initial={reduced ? false : { opacity: 0, y: 8 }}
+            initial={reduced ? false : { opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 8) * 0.05 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 8) * 0.05 }}
         >
             {children}
         </motion.div>
