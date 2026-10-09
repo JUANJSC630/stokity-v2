@@ -4,7 +4,9 @@ import { CartLine } from '@/components/pos/cart-line';
 import { CashMovementDialog, OpenSessionDialog, VariablePriceDialog } from '@/components/pos/cash-dialogs';
 import { CashSessionWidget } from '@/components/pos/cash-session-widget';
 import { CashTender } from '@/components/pos/cash-tender';
+import { CreditSaleDialog } from '@/components/pos/credit-sale-dialog';
 import { MobileTabs } from '@/components/pos/mobile-tabs';
+import { PendingQuotesSheet } from '@/components/pos/pending-quotes-sheet';
 import { PrinterWidget } from '@/components/pos/printer-widget';
 import { ProductSearchPanel } from '@/components/pos/product-search-panel';
 import { RollingNumber } from '@/components/ui/bencho/rolling-number';
@@ -1274,212 +1276,50 @@ export default function PosIndex({
 
                 <MobileTabs active={mobileTab} onChange={setMobileTab} itemCount={cart.length} total={total} />
             </div>
-            {/* Pending sales panel (slide-over) */}
-            {showPendingPanel && (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowPendingPanel(false)} />
-                    {/* Panel */}
-                    <div className="relative flex h-full w-full max-w-sm flex-col bg-white shadow-2xl dark:bg-neutral-900">
-                        <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                            <h2 className="font-semibold">Cotizaciones pendientes</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowPendingPanel(false)}
-                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="min-h-0 flex-1 overflow-y-auto">
-                            {loadingPending && <p className="px-4 py-8 text-center text-sm text-muted-foreground">Cargando...</p>}
-                            {!loadingPending && pendingSales.length === 0 && (
-                                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                                    <ClipboardList className="h-10 w-10 opacity-20" />
-                                    <p className="text-sm">No hay cotizaciones pendientes</p>
-                                </div>
-                            )}
-                            {!loadingPending &&
-                                pendingSales.map((sale) => (
-                                    <div key={sale.id} className="border-b border-neutral-100 p-4 dark:border-neutral-800">
-                                        <div className="mb-2 flex items-start justify-between">
-                                            <div>
-                                                <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{sale.client_name}</p>
-                                                <p className="font-mono text-[11px] text-muted-foreground">#{sale.code.slice(-8)}</p>
-                                            </div>
-                                            <span className="text-sm font-bold text-green-700 dark:text-green-300">{formatCOP(sale.total)}</span>
-                                        </div>
-                                        <p className="mb-1 text-xs text-muted-foreground">
-                                            {sale.product_count} producto{sale.product_count !== 1 ? 's' : ''}
-                                            {' · '}
-                                            {new Date(sale.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => loadPendingSale(sale)}
-                                                className="flex-1 rounded-lg bg-amber-500 py-1.5 text-xs font-semibold text-white hover:bg-amber-600"
-                                            >
-                                                Cargar
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    const accepted = await confirm({ title: '¿Eliminar esta cotización?', confirmLabel: 'Eliminar' });
-                                                    if (accepted) deletePendingSale(sale.id);
-                                                }}
-                                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Credit mini-modal */}
-            {showCreditModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black/50" onClick={() => setShowCreditModal(false)} />
-                    <div className="relative mx-4 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-neutral-900">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-lg font-bold">Registrar como crédito</h2>
-                            <button
-                                type="button"
-                                onClick={() => setShowCreditModal(false)}
-                                className="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Type selection */}
-                        <div className="mb-4 grid grid-cols-2 gap-2">
-                            {[
-                                { key: 'layaway' as const, label: 'Separado', desc: 'Entrega al completar pago' },
-                                { key: 'installments' as const, label: 'Cuotas', desc: 'Entrega inmediata, pago en cuotas' },
-                                { key: 'due_date' as const, label: 'Fecha acordada', desc: 'Entrega inmediata, pago en fecha' },
-                                { key: 'hold' as const, label: 'Reservado', desc: 'Sin abono, sin entrega' },
-                            ].map((t) => (
-                                <button
-                                    key={t.key}
-                                    type="button"
-                                    onClick={() => {
-                                        setCreditType(t.key);
-                                        if (t.key === 'installments') {
-                                            const d = new Date();
-                                            d.setMonth(d.getMonth() + creditInstallments);
-                                            setCreditDueDate(d.toISOString().slice(0, 10));
-                                        } else if (t.key !== 'due_date') {
-                                            setCreditDueDate('');
-                                        }
-                                    }}
-                                    className={`rounded-lg border-2 p-3 text-left text-sm transition-colors ${creditType === t.key ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
-                                >
-                                    <p className="font-semibold">{t.label}</p>
-                                    <p className="text-xs text-muted-foreground">{t.desc}</p>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Conditions */}
-                        <div className="mb-4 space-y-3">
-                            {creditType === 'installments' && (
-                                <div>
-                                    <Label className="mb-1 block text-sm">Número de cuotas</Label>
-                                    <select
-                                        value={creditInstallments}
-                                        onChange={(e) => {
-                                            const n = parseInt(e.target.value);
-                                            setCreditInstallments(n);
-                                            const d = new Date();
-                                            d.setMonth(d.getMonth() + n);
-                                            setCreditDueDate(d.toISOString().slice(0, 10));
-                                        }}
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    >
-                                        {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
-                                            <option key={n} value={n}>
-                                                {n} {n === 1 ? 'cuota' : 'cuotas'} — {formatCOP(Math.round(total / n))} c/u
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                            {(creditType === 'due_date' || creditType === 'installments') && (
-                                <div>
-                                    <Label className="mb-1 block text-sm">
-                                        {creditType === 'installments' ? 'Fecha última cuota' : 'Fecha límite de pago'}
-                                    </Label>
-                                    <Input
-                                        type="date"
-                                        value={creditDueDate}
-                                        min={new Date().toISOString().slice(0, 10)}
-                                        onChange={(e) => setCreditDueDate(e.target.value)}
-                                    />
-                                </div>
-                            )}
-                            {creditType !== 'hold' && (
-                                <div>
-                                    <Label className="mb-1 block text-sm">Abono inicial (opcional)</Label>
-                                    <CurrencyInput value={creditInitialPayment} onChange={setCreditInitialPayment} />
-                                    {creditInitialPayment > 0 && (
-                                        <div className="mt-2">
-                                            <Label className="mb-1 block text-sm">Método de pago del abono</Label>
-                                            <PaymentMethodSelect value={creditInitialMethod} onValueChange={setCreditInitialMethod} />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            <div>
-                                <Label className="mb-1 block text-sm">Notas (opcional)</Label>
-                                <Input value={creditNotes} onChange={(e) => setCreditNotes(e.target.value)} placeholder="Observaciones..." />
-                            </div>
-                        </div>
-
-                        {/* Summary */}
-                        <div className="mb-4 rounded-lg bg-neutral-50 p-3 dark:bg-neutral-800">
-                            <div className="flex justify-between text-sm">
-                                <span>Total del crédito</span>
-                                <span className="font-bold">{formatCOP(total)}</span>
-                            </div>
-                            {creditInitialPayment > 0 && (
-                                <div className="mt-1 flex justify-between text-sm text-green-600">
-                                    <span>Abono inicial</span>
-                                    <span>{formatCOP(creditInitialPayment)}</span>
-                                </div>
-                            )}
-                            {creditInitialPayment > 0 && (
-                                <div className="mt-1 flex justify-between text-sm text-orange-500">
-                                    <span>Saldo pendiente</span>
-                                    <span className="font-semibold">{formatCOP(total - creditInitialPayment)}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setShowCreditModal(false)}
-                                className="flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCreditSubmit}
-                                disabled={submitting || creditInitialPayment > total}
-                                className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-40"
-                            >
-                                {submitting ? 'Registrando...' : 'Confirmar crédito'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PendingQuotesSheet
+                open={showPendingPanel}
+                loading={loadingPending}
+                quotes={pendingSales}
+                onClose={() => setShowPendingPanel(false)}
+                onLoad={(quote) => loadPendingSale(pendingSales.find((sale) => sale.id === quote.id) ?? (quote as PendingSale))}
+                onDelete={async (quote) => {
+                    const accepted = await confirm({ title: '¿Eliminar esta cotización?', confirmLabel: 'Eliminar' });
+                    if (accepted) deletePendingSale(quote.id);
+                }}
+            />
+            <CreditSaleDialog
+                open={showCreditModal}
+                onClose={() => setShowCreditModal(false)}
+                type={creditType}
+                onSelectType={(key) => {
+                    setCreditType(key);
+                    if (key === 'installments') {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + creditInstallments);
+                        setCreditDueDate(d.toISOString().slice(0, 10));
+                    } else if (key !== 'due_date') {
+                        setCreditDueDate('');
+                    }
+                }}
+                installments={creditInstallments}
+                onInstallmentsChange={(n) => {
+                    setCreditInstallments(n);
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + n);
+                    setCreditDueDate(d.toISOString().slice(0, 10));
+                }}
+                dueDate={creditDueDate}
+                onDueDateChange={setCreditDueDate}
+                initialPayment={creditInitialPayment}
+                onInitialPaymentChange={setCreditInitialPayment}
+                initialMethod={creditInitialMethod}
+                onInitialMethodChange={setCreditInitialMethod}
+                notes={creditNotes}
+                onNotesChange={setCreditNotes}
+                total={total}
+                submitting={submitting}
+                onConfirm={handleCreditSubmit}
+            />
             {dialog}
         </AppLayout>
     );

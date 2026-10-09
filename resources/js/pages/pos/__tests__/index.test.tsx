@@ -4,7 +4,7 @@
  * They deliberately assert current behavior, not ideal behavior.
  */
 import { router } from '@inertiajs/react';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -576,6 +576,47 @@ describe('POS: quotes (pending sales)', () => {
 
         expect(router.patch).toHaveBeenCalledWith('/sales.pending.update/90', expect.objectContaining({ total: '40500.00' }), expect.any(Object));
         expect(router.post).not.toHaveBeenCalled();
+    });
+});
+
+describe('POS: quotes panel and credit conditions', () => {
+    it('deletes a quote only after confirming, and updates the list', async () => {
+        renderPos({ pendingSalesCount: 1 });
+        fireEvent.click(screen.getByTitle('Cotizaciones pendientes'));
+        fireEvent.click(await screen.findByRole('button', { name: /Eliminar cotización/ }));
+
+        expect(router.delete).not.toHaveBeenCalled();
+        fireEvent.click(await screen.findByRole('button', { name: 'Eliminar' }));
+
+        await waitFor(() => expect(router.delete).toHaveBeenCalledWith('/sales.pending.destroy/90', expect.any(Object)));
+    });
+
+    it('sets the last installment date when the credit type or the number of installments changes', async () => {
+        renderPos();
+        await addProduct('co', 'Collar de perlas Luna');
+        fireEvent.change(clientSelect(), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: /Vender a crédito/ }));
+
+        fireEvent.click(screen.getByRole('button', { name: /Cuotas/ }));
+        const due = screen.getByLabelText('Fecha última cuota') as HTMLInputElement;
+        expect(due.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+        const before = due.value;
+        fireEvent.change(screen.getByLabelText('Número de cuotas'), { target: { value: '12' } });
+        expect((screen.getByLabelText('Fecha última cuota') as HTMLInputElement).value).not.toBe(before);
+    });
+
+    it('sends the installment plan with the credit', async () => {
+        renderPos();
+        await addProduct('co', 'Collar de perlas Luna');
+        fireEvent.change(clientSelect(), { target: { value: '3' } });
+        fireEvent.click(screen.getByRole('button', { name: /Vender a crédito/ }));
+        fireEvent.click(screen.getByRole('button', { name: /Cuotas/ }));
+        fireEvent.change(screen.getByLabelText('Número de cuotas'), { target: { value: '6' } });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Confirmar crédito' }));
+
+        expect(lastPost().data).toMatchObject({ type: 'installments', installments_count: 6, client_id: 3 });
     });
 });
 
