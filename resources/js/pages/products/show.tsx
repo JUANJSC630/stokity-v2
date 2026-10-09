@@ -1,13 +1,16 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusPill, TypePill, isLowStock } from '@/components/products/product-meta';
+import { Section } from '@/components/sales/form-fields';
+import { GrowBar } from '@/components/ui/bencho/grow-bar';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/format';
+import { formatCurrency, formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Product } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Download, Edit2, Printer, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, ArrowLeftRight, Download, MinusCircle, Package, PackagePlus, Pencil, Printer } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import QRCode from 'react-qr-code';
 
@@ -15,8 +18,23 @@ interface ProductShowProps {
     product: Product;
 }
 
+const formatPesos = (value: number): string => formatCurrency(value);
+
+const ACTION =
+    'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-60 sm:h-10';
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="flex items-center justify-between gap-4 py-3">
+            <dt className="text-sm text-muted-foreground">{label}</dt>
+            <dd className="text-right text-sm font-medium">{children}</dd>
+        </div>
+    );
+}
+
 export default function ProductShow({ product }: ProductShowProps) {
     const isService = product.type === 'servicio';
+    const onBrand = useOnBrandColor();
     const printer = usePrinter();
     const [printingLabel, setPrintingLabel] = useState(false);
 
@@ -65,254 +83,190 @@ export default function ProductShow({ product }: ProductShowProps) {
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
-        {
-            title: 'Catálogo',
-            href: '/products',
-        },
-        {
-            title: product.name,
-            href: `/products/${product.id}`,
-        },
+        { title: 'Inicio', href: '/dashboard' },
+        { title: 'Catálogo', href: '/products' },
+        { title: product.name, href: `/products/${product.id}` },
     ];
+
+    const low = isLowStock(product);
+    const stockPercent = Math.min(100, Math.round((product.stock / Math.max(product.min_stock * 3, product.stock, 1)) * 100));
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${isService ? 'Servicio' : 'Producto'}: ${product.name}`} />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-2xl font-semibold">Detalles del {isService ? 'Servicio' : 'Producto'}</h1>
-                    <div className="flex flex-wrap gap-2">
-                        <Link href="/products">
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                <ArrowLeft className="h-4 w-4" />
-                                <span className="hidden sm:inline">Volver</span>
-                            </Button>
-                        </Link>
-                        {!isService && (
-                            <>
-                                <Link href={`/products/${product.id}/movements`}>
-                                    <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                            />
-                                        </svg>
-                                        <span className="hidden sm:inline">Movimientos</span>
-                                    </Button>
-                                </Link>
-                                <Link href={`/stock-movements/create?product_id=${product.id}`}>
-                                    <Button size="sm" className="flex items-center gap-1">
-                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        <span className="hidden sm:inline">Nuevo Movimiento</span>
-                                    </Button>
-                                </Link>
-                                <Link href={`/stock-movements/create?product_id=${product.id}&type=write_off`}>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex items-center gap-1 text-orange-600 hover:text-orange-700 dark:text-orange-400"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="hidden sm:inline">Registrar Baja</span>
-                                    </Button>
-                                </Link>
-                            </>
-                        )}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-1"
-                            onClick={handlePrintLabel}
-                            disabled={printingLabel}
-                            aria-label={printingLabel ? 'Imprimiendo etiqueta' : 'Imprimir etiqueta'}
-                        >
-                            <Printer className="h-4 w-4" />
-                            <span className="hidden sm:inline">{printingLabel ? 'Imprimiendo...' : 'Imprimir etiqueta'}</span>
-                        </Button>
-                        <Link href={`/products/${product.id}/edit`}>
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                <Edit2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Editar</span>
-                            </Button>
-                        </Link>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href="/products"
+                        aria-label="Volver"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                            Detalles del {isService ? 'servicio' : 'producto'}
+                        </p>
+                        <h1 className="truncate text-xl font-bold tracking-tight sm:text-2xl">{product.name}</h1>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Imagen y estado */}
-                    <Card className="lg:col-span-1">
-                        <CardHeader>
-                            <CardTitle>Imagen</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-4">
-                            <div className="aspect-square w-full overflow-hidden rounded-md bg-gray-100">
-                                <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                <section className="grid gap-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-5 md:grid-cols-[minmax(0,18rem)_1fr] md:gap-6">
+                    <div className="aspect-[16/10] w-full overflow-hidden rounded-xl border border-border/60 bg-muted md:aspect-square">
+                        {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="size-full object-cover" />
+                        ) : (
+                            <div className="flex size-full items-center justify-center text-muted-foreground">
+                                <Package className="size-10" aria-hidden="true" />
                             </div>
+                        )}
+                    </div>
 
-                            <div className="flex w-full flex-col gap-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-neutral-500 dark:text-neutral-400">Estado:</span>
-                                    {product.status ? (
-                                        <Badge
-                                            variant="default"
-                                            className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
-                                        >
-                                            Activo
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="secondary" className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-                                            Inactivo
-                                        </Badge>
-                                    )}
-                                </div>
+                    <div className="flex min-w-0 flex-col gap-5">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <TypePill type={product.type} />
+                            <StatusPill active={product.status} />
+                        </div>
 
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-neutral-500 dark:text-neutral-400">Tipo:</span>
-                                    {isService ? (
-                                        <Badge className="bg-purple-100 text-xs text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                            Servicio
-                                        </Badge>
-                                    ) : (
-                                        <Badge className="bg-blue-100 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">Producto</Badge>
-                                    )}
-                                </div>
-
-                                <div className="flex flex-col justify-start py-2">
-                                    <div className="flex flex-col items-center justify-between">
-                                        <span className="text-sm text-muted-foreground">Código:</span>
-                                        <span className="font-medium">{product.code}</span>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1 py-2">
-                                        <QRCode
-                                            id="product-qr"
-                                            value={product.code}
-                                            size={80}
-                                            style={{ height: 'auto', maxWidth: 80, width: '100%' }}
-                                            viewBox="0 0 256 256"
-                                            className="sm:h-20 sm:w-20"
-                                        />
-                                        <p className="text-center text-[10px] text-muted-foreground">Escanea para agregar al POS</p>
-                                        <button
-                                            type="button"
-                                            onClick={downloadQr}
-                                            className="flex items-center gap-1 text-[11px] text-primary hover:underline"
-                                        >
-                                            <Download className="h-3 w-3" />
-                                            Descargar PNG
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Categoría:</span>
-                                    <span className="font-medium">{product.category?.name}</span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Sucursal:</span>
-                                    <span className="font-medium">{product.branch?.name}</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Información general */}
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <CardTitle>{product.name}</CardTitle>
-                            <CardDescription>
-                                {isService ? 'Información detallada del servicio' : 'Información detallada del producto'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* Precios */}
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                                        {isService ? 'Costo del servicio' : 'Precio de compra'}
-                                    </div>
-                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                        $
-                                        {Number(product.purchase_price).toLocaleString('es-CO', {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 0,
-                                        })}
-                                    </div>
-                                </div>
-                                <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">
-                                        {isService ? 'Precio base' : 'Precio de venta'}
-                                    </div>
-                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                        {isService && product.variable_price ? (
-                                            <span className="text-base font-medium text-purple-600 dark:text-purple-400">Variable</span>
-                                        ) : (
-                                            <>
-                                                $
-                                                {Number(product.sale_price).toLocaleString('es-CO', {
-                                                    minimumFractionDigits: 0,
-                                                    maximumFractionDigits: 0,
-                                                })}
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="rounded-md bg-neutral-50 p-4 sm:col-span-2 lg:col-span-1 dark:bg-neutral-800">
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Impuesto</div>
-                                    <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                        {product.tax || 0}%
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Inventario — solo para productos físicos */}
-                            {!isService && (
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                        <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock actual</div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                                {product.stock}
-                                            </span>
-                                            {product.stock <= product.min_stock && <Badge variant="destructive">Bajo</Badge>}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-md bg-neutral-50 p-4 dark:bg-neutral-800">
-                                        <div className="text-sm text-neutral-500 dark:text-neutral-400">Stock mínimo</div>
-                                        <div className="text-xl font-semibold text-neutral-900 sm:text-2xl dark:text-neutral-100">
-                                            {product.min_stock}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Descripción */}
+                        <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <h3 className="mb-2 text-lg font-medium text-neutral-900 dark:text-neutral-100">Descripción</h3>
-                                <div className="min-h-[100px] rounded-md bg-neutral-50 p-4 whitespace-pre-wrap dark:bg-neutral-800 dark:text-neutral-100">
-                                    {product.description || 'Sin descripción'}
-                                </div>
+                                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                    {isService ? 'Precio base' : 'Precio de venta'}
+                                </p>
+                                <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                                    {isService && product.variable_price ? (
+                                        <span className="text-2xl font-semibold text-violet-600 dark:text-violet-300">Variable</span>
+                                    ) : (
+                                        <RollingNumber value={Number(product.sale_price)} format={formatPesos} intro />
+                                    )}
+                                </p>
                             </div>
+                            <div>
+                                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                    {isService ? 'Costo del servicio' : 'Precio de compra'}
+                                </p>
+                                <p className="mt-1 text-xl font-semibold text-muted-foreground tabular-nums sm:text-2xl">
+                                    {formatCurrency(Number(product.purchase_price))}
+                                </p>
+                            </div>
+                        </div>
 
-                            {/* Fechas */}
-                            <div className="grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2 dark:border-neutral-700">
-                                <div>
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Creado</div>
-                                    <div className="text-neutral-900 dark:text-neutral-100">{formatDate(product.created_at)}</div>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                            <Link
+                                href={`/products/${product.id}/edit`}
+                                className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:col-span-1 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Pencil className="size-4" aria-hidden="true" />
+                                Editar
+                            </Link>
+                            <button
+                                type="button"
+                                className={ACTION}
+                                onClick={handlePrintLabel}
+                                disabled={printingLabel}
+                                aria-label={printingLabel ? 'Imprimiendo etiqueta' : 'Imprimir etiqueta'}
+                            >
+                                <Printer className="size-4" aria-hidden="true" />
+                                {printingLabel ? 'Imprimiendo...' : 'Imprimir etiqueta'}
+                            </button>
+                            {!isService && (
+                                <>
+                                    <Link href={`/products/${product.id}/movements`} className={ACTION}>
+                                        <ArrowLeftRight className="size-4" aria-hidden="true" />
+                                        Movimientos
+                                    </Link>
+                                    <Link href={`/stock-movements/create?product_id=${product.id}`} className={ACTION}>
+                                        <PackagePlus className="size-4" aria-hidden="true" />
+                                        Nuevo movimiento
+                                    </Link>
+                                    <Link
+                                        href={`/stock-movements/create?product_id=${product.id}&type=write_off`}
+                                        className={cn(ACTION, 'text-orange-600 dark:text-orange-400')}
+                                    >
+                                        <MinusCircle className="size-4" aria-hidden="true" />
+                                        Registrar baja
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                <div className="grid gap-5 lg:grid-cols-3">
+                    <div className="flex flex-col gap-5 lg:col-span-2">
+                        {!isService && (
+                            <Section title="Inventario">
+                                <div className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Stock actual</p>
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <span className="text-3xl font-bold tabular-nums">{product.stock}</span>
+                                            {low && (
+                                                <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300">
+                                                    Bajo
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Stock mínimo</p>
+                                        <p className="mt-1 text-3xl font-bold text-muted-foreground tabular-nums">{product.min_stock}</p>
+                                    </div>
+                                    <div
+                                        role="img"
+                                        aria-label={`Stock de ${product.stock} unidades, mínimo ${product.min_stock}`}
+                                        className="h-2 overflow-hidden rounded-full bg-muted sm:col-span-2"
+                                    >
+                                        <GrowBar percent={stockPercent} className={low ? 'bg-red-500' : 'bg-emerald-500'} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-sm text-neutral-500 dark:text-neutral-400">Actualizado</div>
-                                    <div className="text-neutral-900 dark:text-neutral-100">{formatDate(product.updated_at)}</div>
+                            </Section>
+                        )}
+
+                        <Section title="Descripción">
+                            <p className="px-5 pb-5 text-sm whitespace-pre-wrap">{product.description || 'Sin descripción'}</p>
+                        </Section>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                        <Section title="Datos">
+                            <dl className="divide-y divide-border/50 px-5 pb-2">
+                                <Fact label="Impuesto">{product.tax || 0}%</Fact>
+                                <Fact label="Categoría">{product.category?.name}</Fact>
+                                <Fact label="Sucursal">{product.branch?.name}</Fact>
+                                <Fact label="Creado">{formatDate(product.created_at)}</Fact>
+                                <Fact label="Actualizado">{formatDate(product.updated_at)}</Fact>
+                            </dl>
+                        </Section>
+
+                        <Section title="Código">
+                            <div className="flex items-center gap-4 px-5 pb-5">
+                                <div className="shrink-0 rounded-xl bg-white p-2.5">
+                                    <QRCode
+                                        id="product-qr"
+                                        value={product.code}
+                                        size={96}
+                                        style={{ height: 'auto', maxWidth: 96, width: '100%' }}
+                                        viewBox="0 0 256 256"
+                                    />
+                                </div>
+                                <div className="flex min-w-0 flex-col items-start gap-1">
+                                    <span className="font-mono text-sm font-semibold break-all">{product.code}</span>
+                                    <p className="text-xs text-muted-foreground">Escanea para agregar al POS</p>
+                                    <button
+                                        type="button"
+                                        onClick={downloadQr}
+                                        className="-ml-3 flex h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-[var(--brand-primary)] hover:bg-muted sm:h-9"
+                                    >
+                                        <Download className="size-4" aria-hidden="true" />
+                                        Descargar PNG
+                                    </button>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </Section>
+                    </div>
                 </div>
             </div>
         </AppLayout>

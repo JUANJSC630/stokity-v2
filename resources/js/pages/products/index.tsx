@@ -1,23 +1,21 @@
-import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { SearchField } from '@/components/common/search-field';
+import { ProductCards, ProductTable } from '@/components/products/product-list';
+import { SELECT_TRIGGER } from '@/components/sales/form-fields';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Eye, Plus, Printer, Search, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Package, Plus, Printer, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface ProductsPageProps {
@@ -42,11 +40,17 @@ interface ProductsPageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Catálogo',
-        href: '/products',
-    },
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Catálogo', href: '/products' },
 ];
+
+const TYPE_TABS = [
+    { value: 'all', label: 'Todos' },
+    { value: 'producto', label: 'Productos' },
+    { value: 'servicio', label: 'Servicios' },
+];
+
+const formatCount = (value: number): string => String(value);
 
 export default function Products({
     products,
@@ -54,26 +58,17 @@ export default function Products({
     branches = [],
     filters = { search: '', status: 'all', category: 'all', branch: 'all' },
 }: ProductsPageProps) {
-    const { flash } = usePage<{ flash: { error?: string } }>().props;
+    const onBrand = useOnBrandColor();
+    const isWide = useMediaQuery('(min-width: 768px)');
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [category, setCategory] = useState(filters?.category || 'all');
     const [branch, setBranch] = useState(filters?.branch || 'all');
     const [typeFilter, setTypeFilter] = useState(filters?.type || 'all');
     const [isSearching, setIsSearching] = useState(false);
-    const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [printingLabels, setPrintingLabels] = useState(false);
     const printer = usePrinter();
-
-    // Capture flash error from backend (e.g. blocked delete)
-    useEffect(() => {
-        if (flash?.error) {
-            setDeleteError(flash.error);
-        }
-    }, [flash?.error]);
 
     // Drop any selected id that's no longer in the visible page (new
     // filter/search/page navigation, or the 60s background poll removing a
@@ -84,7 +79,6 @@ export default function Products({
         setSelectedIds((previous) => new Set([...previous].filter((id) => visibleIds.has(id))));
     }, [products.data]);
 
-    const searchRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Polling: refresh product list (stock levels) every 60 seconds
@@ -94,6 +88,7 @@ export default function Products({
     // branches.view: only Administrador holds it among the default roles —
     // matches the previous admin-only branch column/filter exactly.
     const isAdmin = can('branches.view');
+    const canCreate = can('products.create');
 
     // Debounced auto-search on text input change
     useEffect(() => {
@@ -107,8 +102,7 @@ export default function Products({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSearch = () => {
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         applyFilters();
     };
@@ -140,32 +134,6 @@ export default function Products({
             only: ['products'],
             onFinish: () => setIsSearching(false),
         });
-    };
-
-    const handleDelete = () => {
-        if (!productToDelete) return;
-
-        if (productToDelete.stock > 0) {
-            setDeleteError(
-                `Este producto tiene ${productToDelete.stock} unidades en inventario. Debes dar de baja el stock desde Movimientos de Stock antes de eliminarlo.`,
-            );
-            return;
-        }
-
-        router.delete(`/products/${productToDelete.id}`, {
-            preserveState: true,
-            onSuccess: () => {
-                setDeleteModalOpen(false);
-                setProductToDelete(null);
-                setDeleteError(null);
-            },
-        });
-    };
-
-    const handleCloseDeleteModal = () => {
-        setDeleteModalOpen(false);
-        setProductToDelete(null);
-        setDeleteError(null);
     };
 
     const toggleSelected = (id: number) => {
@@ -204,410 +172,220 @@ export default function Products({
         }
     };
 
-    const columns: Column<Product & { actions: null }>[] = [
-        ...(can('products.create')
-            ? [
-                  {
-                      key: 'id' as keyof (Product & { actions: null }),
-                      title: '',
-                      render: (_: unknown, row: Product) => (
-                          <Checkbox
-                              checked={selectedIds.has(row.id)}
-                              onCheckedChange={() => toggleSelected(row.id)}
-                              disabled={printingLabels}
-                              aria-label={`Seleccionar ${row.name} para imprimir etiqueta`}
-                          />
-                      ),
-                  },
-              ]
-            : []),
-        {
-            key: 'name',
-            title: 'Producto',
-            render: (_: unknown, row: Product) => (
-                <div className="flex items-center gap-3">
-                    <img
-                        src={row.image_url}
-                        alt={row.name}
-                        className="h-10 w-10 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
-                    />
-                    <span className="text-neutral-900 dark:text-neutral-100">{row.name}</span>
-                </div>
-            ),
-        },
-        { key: 'code', title: 'Código' },
-        { key: 'category', title: 'Categoría', render: (_: unknown, row: Product) => row.category?.name },
-        {
-            key: 'sale_price',
-            title: 'Precio de venta',
-            render: (_: unknown, row: Product) => (
-                <span className="text-neutral-700 dark:text-neutral-200">
-                    ${Number(row.sale_price).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                </span>
-            ),
-        },
-        {
-            key: 'tax',
-            title: 'Impuesto',
-            render: (_: unknown, row: Product) => <span className="text-neutral-700 dark:text-neutral-200">{row.tax || 0}%</span>,
-        },
-        {
-            key: 'stock',
-            title: 'Stock',
-            render: (_: unknown, row: Product) =>
-                row.type === 'servicio' ? (
-                    <span className="text-muted-foreground">—</span>
-                ) : row.stock <= row.min_stock ? (
-                    <span className="inline-flex items-center justify-center rounded-md bg-red-100 px-2 py-1 text-sm font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
-                        {row.stock}
-                    </span>
-                ) : (
-                    <span className="text-neutral-700 dark:text-neutral-200">{row.stock}</span>
-                ),
-        },
-        {
-            key: 'type' as keyof (Product & { actions: null }),
-            title: 'Tipo',
-            render: (_: unknown, row: Product) =>
-                row.type === 'servicio' ? (
-                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Servicio</Badge>
-                ) : (
-                    <Badge className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">Producto</Badge>
-                ),
-        },
-        {
-            key: 'status',
-            title: 'Estado',
-            render: (_: unknown, row: Product) =>
-                row.status ? (
-                    <Badge variant="default" className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
-                        Activo
-                    </Badge>
-                ) : (
-                    <Badge variant="secondary" className="text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-                        Inactivo
-                    </Badge>
-                ),
-        },
-        ...(isAdmin
-            ? [
-                  {
-                      key: 'branch' as keyof (Product & { actions: null }),
-                      title: 'Sucursal',
-                      render: (_: unknown, row: Product) => row.branch?.name,
-                  },
-              ]
-            : []),
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Product) => (
-                <div className="flex gap-1">
-                    <Link href={`/products/${row.id}`}>
-                        <EyeButton text="Ver Producto" />
-                    </Link>
-                </div>
-            ),
-        },
-    ];
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['products'], onFinish: () => resolve() });
+            }),
+        [],
+    );
+
+    const listProps = {
+        products: products.data,
+        selectable: canCreate,
+        selectedIds,
+        onToggle: toggleSelected,
+        busy: printingLabels,
+        showBranch: isAdmin,
+        canEdit: can('products.edit'),
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Catálogo" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Catálogo</h1>
-                    <div className="flex gap-2">
-                        {can('products.create') && selectedIds.size > 0 && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex items-center gap-1"
+
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Catálogo</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={products.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {products.total === 1 ? 'artículo' : 'artículos'} entre productos y servicios
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {can('products.delete') && (
+                            <Link
+                                href="/products/trashed"
+                                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10"
+                            >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                <span className="hidden sm:inline">Papelera</span>
+                                <span className="sr-only sm:hidden">Papelera</span>
+                            </Link>
+                        )}
+                        {canCreate && (
+                            <Link
+                                href="/products/create"
+                                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10 sm:flex-none"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Plus className="size-4" aria-hidden="true" />
+                                Nuevo
+                            </Link>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <SearchField
+                        id="product-search"
+                        label="Buscar productos"
+                        placeholder="Buscar por nombre o código..."
+                        value={search}
+                        onChange={setSearch}
+                        onSubmit={handleSearch}
+                    />
+                    <div
+                        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+                        role="group"
+                        aria-label="Tipo"
+                    >
+                        {TYPE_TABS.map((tab) => (
+                            <button
+                                key={tab.value}
+                                type="button"
+                                aria-pressed={typeFilter === tab.value}
+                                onClick={() => handleTypeChange(tab.value)}
+                                className={cn(
+                                    'inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+                                    typeFilter === tab.value
+                                        ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                                        : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+                                )}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div
+                        className={cn('grid grid-cols-2 gap-3', isAdmin && branches.length > 0 ? 'md:grid-cols-3' : 'md:grid-cols-2', 'lg:max-w-2xl')}
+                    >
+                        <div className="space-y-1.5">
+                            <label htmlFor="status-filter" className="text-xs font-medium text-muted-foreground">
+                                Estado
+                            </label>
+                            <Select value={status} onValueChange={handleStatusChange}>
+                                <SelectTrigger id="status-filter" className={SELECT_TRIGGER}>
+                                    <SelectValue placeholder="Estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="1">Activos</SelectItem>
+                                    <SelectItem value="0">Inactivos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label htmlFor="category-filter" className="text-xs font-medium text-muted-foreground">
+                                Categoría
+                            </label>
+                            <Select
+                                value={category}
+                                onValueChange={(value) => {
+                                    setCategory(value);
+                                    applyFilters(search, status, value, branch);
+                                }}
+                            >
+                                <SelectTrigger id="category-filter" className={SELECT_TRIGGER}>
+                                    <SelectValue placeholder="Categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {categories.map((item) => (
+                                        <SelectItem key={item.id} value={item.id.toString()}>
+                                            {item.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {isAdmin && branches.length > 0 && (
+                            <div className="col-span-2 space-y-1.5 md:col-span-1">
+                                <label htmlFor="branch-filter" className="text-xs font-medium text-muted-foreground">
+                                    Sucursal
+                                </label>
+                                <Select
+                                    value={branch}
+                                    onValueChange={(value) => {
+                                        setBranch(value);
+                                        applyFilters(search, status, category, value);
+                                    }}
+                                >
+                                    <SelectTrigger id="branch-filter" className={SELECT_TRIGGER}>
+                                        <SelectValue placeholder="Sucursal" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {branches.map((item) => (
+                                            <SelectItem key={item.id} value={item.id.toString()}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {canCreate && selectedIds.size > 0 && (
+                    <div
+                        role="region"
+                        aria-label="Selección"
+                        className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/95 p-2 pl-4 shadow-lg backdrop-blur"
+                    >
+                        <span className="text-sm font-medium tabular-nums">
+                            {selectedIds.size} {selectedIds.size === 1 ? 'seleccionado' : 'seleccionados'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedIds(new Set())}
+                                disabled={printingLabels}
+                                aria-label="Quitar selección"
+                                className="flex size-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted sm:size-10"
+                            >
+                                <X className="size-4" aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
                                 onClick={handlePrintSelectedLabels}
                                 disabled={printingLabels}
+                                className="flex h-11 items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold disabled:opacity-60 sm:h-10"
+                                style={{ color: onBrand.hex }}
                             >
-                                <Printer className="h-4 w-4" />
+                                <Printer className="size-4" aria-hidden="true" />
                                 {printingLabels ? 'Imprimiendo...' : `Imprimir etiquetas (${selectedIds.size})`}
-                            </Button>
-                        )}
-                        {can('products.create') && (
-                            <Link href="/products/create">
-                                <Button size="sm" className="flex items-center gap-1">
-                                    <Plus className="h-4 w-4" />
-                                    Nuevo
-                                </Button>
-                            </Link>
-                        )}
-                        {can('products.delete') && (
-                            <Link href="/products/trashed">
-                                <Button variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                        )}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Type tabs */}
-                <div className="flex gap-1">
-                    {[
-                        { value: 'all', label: 'Todos' },
-                        { value: 'producto', label: 'Productos' },
-                        { value: 'servicio', label: 'Servicios' },
-                    ].map((tab) => (
-                        <Button
-                            key={tab.value}
-                            size="sm"
-                            variant={typeFilter === tab.value ? 'default' : 'outline'}
-                            onClick={() => handleTypeChange(tab.value)}
-                        >
-                            {tab.label}
-                        </Button>
-                    ))}
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar</CardTitle>
-                            <CardDescription>Busca por código, nombre, estado, categoría o sucursal</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="product-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Estado
-                                    </Label>
-                                    <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger id="status-filter" className="h-8 text-sm">
-                                            <SelectValue placeholder="Estado" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos</SelectItem>
-                                            <SelectItem value="1">Activos</SelectItem>
-                                            <SelectItem value="0">Inactivos</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="category-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={category}
-                                        onValueChange={(value) => {
-                                            setCategory(value);
-                                            applyFilters(search, status, value, branch);
-                                        }}
-                                    >
-                                        <SelectTrigger id="category-filter" className="h-8 text-sm">
-                                            <SelectValue placeholder="Categoría" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas</SelectItem>
-                                            {categories.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {isAdmin && branches.length > 0 && (
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="branch-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                            Sucursal
-                                        </Label>
-                                        <Select
-                                            value={branch}
-                                            onValueChange={(value) => {
-                                                setBranch(value);
-                                                applyFilters(search, status, category, value);
-                                            }}
-                                        >
-                                            <SelectTrigger id="branch-filter" className="h-8 text-sm">
-                                                <SelectValue placeholder="Sucursal" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Todas</SelectItem>
-                                                {branches.map((branch) => (
-                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                        {branch.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {/* Vista tabla en md+ */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={products.data.map((product) => ({ ...product, actions: null }))} loading={isSearching} />
-                    </div>
-
-                    {/* Vista tarjetas en móvil */}
-                    <div className="block md:hidden">
-                        {isSearching ? (
-                            <div className="space-y-4 p-2">
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="flex items-center gap-3">
-                                            <Skeleton className="h-12 w-12 rounded-md" />
-                                            <Skeleton className="h-4 w-2/3" />
-                                        </div>
-                                        <Skeleton className="h-3 w-1/2" />
-                                        <Skeleton className="h-3 w-1/3" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : products.data.length === 0 ? (
-                            <div className="p-6 text-center text-muted-foreground">No hay productos que mostrar</div>
-                        ) : (
-                            products.data.map((product) => (
-                                <div
-                                    key={product.id}
-                                    className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-                                >
-                                    <div className="mb-2 flex items-center gap-3">
-                                        {can('products.create') && (
-                                            <Checkbox
-                                                checked={selectedIds.has(product.id)}
-                                                onCheckedChange={() => toggleSelected(product.id)}
-                                                disabled={printingLabels}
-                                                aria-label={`Seleccionar ${product.name} para imprimir etiqueta`}
-                                            />
-                                        )}
-                                        <img
-                                            src={product.image_url}
-                                            alt={product.name}
-                                            className="h-12 w-12 rounded-md border border-neutral-200 bg-muted object-cover dark:border-neutral-700"
-                                        />
-                                        <div className="font-medium text-neutral-900 dark:text-neutral-100">{product.name}</div>
-                                    </div>
-                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Código: {product.code}</div>
-                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Categoría: {product.category?.name}</div>
-                                    <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                        Precio: $
-                                        {Number(product.sale_price).toLocaleString('es-CO', {
-                                            minimumFractionDigits: 0,
-                                            maximumFractionDigits: 0,
-                                        })}
-                                    </div>
-                                    <div className="mb-1 text-xs">
-                                        Stock:{' '}
-                                        {product.stock <= product.min_stock ? (
-                                            <span className="font-medium text-red-700 dark:text-red-200">{product.stock}</span>
-                                        ) : (
-                                            <span className="text-neutral-700 dark:text-neutral-200">{product.stock}</span>
-                                        )}
-                                    </div>
-                                    <div className="mb-1 text-xs">
-                                        Estado:{' '}
-                                        {product.status ? (
-                                            <span className="inline-flex items-center rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                Activo
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-                                                Inactivo
-                                            </span>
-                                        )}
-                                    </div>
-                                    {isAdmin && (
-                                        <div className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">Sucursal: {product.branch?.name}</div>
-                                    )}
-                                    <div className="mt-2 flex justify-end gap-2">
-                                        <Link href={`/products/${product.id}`}>
-                                            <Button aria-label="Ver detalles" variant="ghost" size="icon" className="h-8 w-8" title="Ver detalles">
-                                                <Eye className="h-4 w-4 text-neutral-700 dark:text-neutral-200" />
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
-                    {/* Pagination */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...products,
-                                resourceLabel: 'productos',
-                            }}
-                        />
-                    </div>
-                </div>
-
-                {/* Delete confirmation modal */}
-                <Dialog
-                    open={deleteModalOpen}
-                    onOpenChange={(open) => {
-                        if (!open) handleCloseDeleteModal();
-                    }}
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
+                    )}
                 >
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>¿Eliminar producto?</DialogTitle>
-                            <DialogDescription>
-                                El producto será enviado a la papelera. Puedes restaurarlo más tarde si lo necesitas.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        {deleteError ? (
-                            <div className="flex items-start gap-3 rounded-md bg-red-50 p-3 text-red-800 dark:bg-red-950 dark:text-red-300">
-                                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-                                <p className="text-sm">{deleteError}</p>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 rounded-md bg-amber-50 p-3 text-amber-800">
-                                <AlertTriangle className="h-5 w-5" />
-                                <div className="text-sm">
-                                    <strong>¿Estás seguro?</strong> Esta acción no se puede deshacer inmediatamente.
-                                </div>
-                            </div>
-                        )}
-
-                        <DialogFooter>
-                            <Button variant="outline" onClick={handleCloseDeleteModal}>
-                                {deleteError ? 'Cerrar' : 'Cancelar'}
-                            </Button>
-                            {!deleteError && (
-                                <Button variant="destructive" onClick={handleDelete}>
-                                    Eliminar
-                                </Button>
-                            )}
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                    {products.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <Package className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No hay productos que mostrar</p>
+                            <p className="text-sm text-muted-foreground">Prueba con otra búsqueda o quita algún filtro.</p>
+                        </div>
+                    ) : isWide ? (
+                        <ProductTable {...listProps} />
+                    ) : (
+                        <PullToRefresh onRefresh={refresh}>{() => <ProductCards {...listProps} />}</PullToRefresh>
+                    )}
+                    <PaginationFooter data={{ ...products, resourceLabel: 'productos' }} />
+                </div>
             </div>
         </AppLayout>
     );
