@@ -1,99 +1,17 @@
-import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SalesFilters, toDateParam, type DateSpan } from '@/components/sales/sales-filters';
+import { SalesCards, SalesTable } from '@/components/sales/sales-list';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem, type Sale } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { endOfMonth, endOfWeek, endOfYear, startOfMonth, startOfWeek, startOfYear, subDays, subMonths } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { CheckCircle2, Clock, CreditCard, Eye, Plus, Search, Trash2, XCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import type { RangeKeyDict } from 'react-date-range';
-import { DateRangePicker, createStaticRanges } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(date.getDate() + days);
-    return result;
-}
-
-const customStaticRanges = createStaticRanges([
-    {
-        label: 'Hoy',
-        range: () => ({ startDate: new Date(), endDate: new Date() }),
-    },
-    {
-        label: 'Ayer',
-        range: () => {
-            const yesterday = subDays(new Date(), 1);
-            return { startDate: yesterday, endDate: yesterday };
-        },
-    },
-    {
-        label: 'Esta semana',
-        range: () => ({ startDate: startOfWeek(new Date(), { weekStartsOn: 1 }), endDate: endOfWeek(new Date(), { weekStartsOn: 1 }) }),
-    },
-    {
-        label: 'Últimos 7 días',
-        range: () => ({ startDate: subDays(new Date(), 6), endDate: new Date() }),
-    },
-    {
-        label: 'Este mes',
-        range: () => ({ startDate: startOfMonth(new Date()), endDate: endOfMonth(new Date()) }),
-    },
-    {
-        label: 'Mes pasado',
-        range: () => {
-            const prevMonth = subMonths(new Date(), 1);
-            return { startDate: startOfMonth(prevMonth), endDate: endOfMonth(prevMonth) };
-        },
-    },
-    {
-        label: 'Este año',
-        range: () => ({ startDate: startOfYear(new Date()), endDate: endOfYear(new Date()) }),
-    },
-]);
-
-const customInputRanges = [
-    {
-        label: 'Días hasta hoy',
-        range(value: number) {
-            return {
-                startDate: subDays(new Date(), Math.max(Number(value), 1) - 1),
-                endDate: new Date(),
-            };
-        },
-        getCurrentValue(range: { startDate?: Date; endDate?: Date }) {
-            if (!range.startDate || !range.endDate) return '-';
-            return Math.max(1, Math.floor((Number(range.endDate) - Number(range.startDate)) / (1000 * 60 * 60 * 24)) + 1);
-        },
-    },
-    {
-        label: 'Días desde hoy',
-        range(value: number) {
-            return {
-                startDate: new Date(),
-                endDate: addDays(new Date(), Math.max(Number(value), 1) - 1),
-            };
-        },
-        getCurrentValue(range: { startDate?: Date; endDate?: Date }) {
-            if (!range.startDate || !range.endDate) return '-';
-            return Math.max(1, Math.floor((Number(range.endDate) - Number(range.startDate)) / (1000 * 60 * 60 * 24)) + 1);
-        },
-    },
-];
+import { Plus, ReceiptText, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PageProps {
     sales: {
@@ -120,38 +38,40 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const formatCount = (value: number): string => String(value);
+
 export default function Index({ sales, filters }: PageProps) {
     const { can } = usePermissions();
+    const onBrand = useOnBrandColor();
 
-    // Polling: refresh sales list every 60 seconds
     usePolling(['sales'], 60_000);
 
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [dateRange, setDateRange] = useState({
-        startDate: filters.date_from ? new Date(filters.date_from) : undefined,
-        endDate: filters.date_to ? new Date(filters.date_to) : undefined,
-        key: 'selection',
+    const [range, setRange] = useState<DateSpan>({
+        startDate: filters.date_from ? new Date(`${filters.date_from}T00:00:00`) : undefined,
+        endDate: filters.date_to ? new Date(`${filters.date_to}T00:00:00`) : undefined,
     });
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
-    const datePickerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
-                setShowDatePicker(false);
-            }
-        };
+    const visit = useCallback((searchParam: string, statusParam: string, span: DateSpan) => {
+        setIsSearching(true);
+        const params = new URLSearchParams();
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        if (searchParam) params.append('search', searchParam);
+        if (statusParam && statusParam !== 'all') params.append('status', statusParam);
+        if (span.startDate) params.append('date_from', toDateParam(span.startDate));
+        if (span.endDate) params.append('date_to', toDateParam(span.endDate));
+
+        const query = params.toString();
+        router.visit(query ? `/sales?${query}` : '/sales', {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['sales'],
+            onFinish: () => setIsSearching(false),
+        });
     }, []);
 
-    // Nuevo efecto: si el buscador queda vacío, limpia los filtros y aplica el estado inicial sin recargar la página
     const hasResetRef = useRef(false);
     useEffect(() => {
         if (search.trim() === '') {
@@ -164,12 +84,8 @@ export default function Index({ sales, filters }: PageProps) {
             if (!hasResetRef.current && hasFilters) {
                 hasResetRef.current = true;
                 setStatus('all');
-                setDateRange({
-                    startDate: undefined,
-                    endDate: undefined,
-                    key: 'selection',
-                });
-                applyFilters('', 'all', undefined, undefined);
+                setRange({});
+                visit('', 'all', {});
             }
         } else {
             hasResetRef.current = false;
@@ -177,364 +93,142 @@ export default function Index({ sales, filters }: PageProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
+    const changeStatus = (next: string) => {
+        setStatus(next);
+        visit(search, next, range);
     };
 
-    const formatDate = (date: Date) => {
-        return date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : '';
+    const changeRange = (next: DateSpan) => {
+        setRange(next);
+        visit(search, status, next);
     };
 
-    const handleStatusChange = (newStatus: string) => {
-        setStatus(newStatus);
-        // Aplica el filtro usando router.visit para mantener los filtros y evitar recarga completa
-        const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        if (newStatus && newStatus !== 'all') params.append('status', newStatus);
-        if (dateRange.startDate) params.append('date_from', formatDate(dateRange.startDate));
-        if (dateRange.endDate) params.append('date_to', formatDate(dateRange.endDate));
-        router.visit(`/sales?${params.toString()}`, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['sales'],
-        });
-    };
-
-    const handleDateChange = (ranges: RangeKeyDict) => {
-        const { selection } = ranges;
-        setDateRange({
-            startDate: selection.startDate,
-            endDate: selection.endDate,
-            key: 'selection',
-        });
-    };
-    const applyFilters = (searchParam = search, statusParam = status, startDate = dateRange.startDate, endDate = dateRange.endDate) => {
-        setIsSearching(true);
-        const params = new URLSearchParams();
-
-        if (searchParam) {
-            params.append('search', searchParam);
-        }
-
-        if (statusParam && statusParam !== 'all') {
-            params.append('status', statusParam);
-        }
-
-        if (startDate) {
-            params.append('date_from', formatDate(startDate));
-        }
-
-        if (endDate) {
-            params.append('date_to', formatDate(endDate));
-        }
-
-        // Cuando se aplican filtros, siempre volver a la página 1
-        // pero preservar los filtros existentes
-        router.visit(`/sales?${params.toString()}`, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['sales'],
-            onFinish: () => setIsSearching(false),
-        });
-    };
     const clearFilters = () => {
-        setIsSearching(true);
         setSearch('');
         setStatus('all');
-        setDateRange({
-            startDate: undefined,
-            endDate: undefined,
-            key: 'selection',
-        });
-        router.visit('/sales', {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['sales'],
-            onFinish: () => setIsSearching(false),
-        });
+        setRange({});
+        visit('', 'all', {});
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'completed':
-                return (
-                    <Badge className="flex items-center bg-green-100 text-green-800 hover:bg-green-100">
-                        <CheckCircle2 className="mr-1 size-3.5" />
-                        Completada
-                    </Badge>
-                );
-            case 'pending':
-                return (
-                    <Badge className="flex items-center bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                        <Clock className="mr-1 size-3.5" />
-                        Pendiente
-                    </Badge>
-                );
-            case 'cancelled':
-                return (
-                    <Badge className="flex items-center bg-red-100 text-red-800 hover:bg-red-100">
-                        <XCircle className="mr-1 size-3.5" />
-                        Cancelada
-                    </Badge>
-                );
-            case 'credit_pending':
-                return (
-                    <Badge className="flex items-center bg-blue-100 text-blue-800 hover:bg-blue-100">
-                        <CreditCard className="mr-1 size-3.5" />
-                        Crédito Pendiente
-                    </Badge>
-                );
-            default:
-                return <Badge>{status}</Badge>;
-        }
-    };
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['sales'], onFinish: () => resolve() });
+            }),
+        [],
+    );
 
-    const getPaymentMethodText = (method: string) => {
-        const methods = {
-            cash: 'Efectivo',
-            credit_card: 'Tarjeta de crédito',
-            debit_card: 'Tarjeta débito',
-            transfer: 'Transferencia',
-            other: 'Otro',
-        };
-        return methods[method as keyof typeof methods] || method;
-    };
+    const canEdit = can('sales.update');
+    const isFiltered = search.trim() !== '' || status !== 'all' || range.startDate !== undefined;
 
-    const columns: Column<Sale & { actions: null }>[] = [
-        { key: 'code', title: 'Código' },
-        { key: 'client', title: 'Cliente', render: (_: unknown, row: Sale) => row.client?.name || 'N/A' },
-        { key: 'total', title: 'Total', render: (_: unknown, row: Sale) => <span className="font-semibold">{formatCurrency(row.total)}</span> },
-        { key: 'payment_method', title: 'Método de pago', render: (_: unknown, row: Sale) => getPaymentMethodText(row.payment_method) },
-        { key: 'date', title: 'Fecha', render: (_: unknown, row: Sale) => formatDateTime(row.date) },
-        {
-            key: 'status',
-            title: 'Estado',
-            render: (_: unknown, row: Sale) => (
-                <div className="flex items-center gap-1.5">
-                    {getStatusBadge(row.status)}
-                    {row.credit_sale_id && <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Crédito</Badge>}
-                </div>
-            ),
-        },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Sale) => (
-                <Link href={route('sales.show', row.id)}>
-                    <EyeButton text="Ver Venta" />
+    const emptyState = (
+        <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                <ReceiptText className="size-7" aria-hidden="true" />
+            </span>
+            <div>
+                <p className="font-semibold">{isFiltered ? 'Ninguna venta coincide con esos filtros' : 'Todavía no hay ventas'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    {isFiltered ? 'Prueba con otro estado o fechas, o quita los filtros.' : 'Cuando registres la primera, aparecerá aquí.'}
+                </p>
+            </div>
+            {isFiltered ? (
+                <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="h-11 rounded-lg border border-border/60 px-4 text-sm font-medium hover:bg-muted sm:h-9"
+                >
+                    Limpiar filtros
+                </button>
+            ) : (
+                <Link
+                    href={route('sales.create')}
+                    className="flex h-11 items-center rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium hover:opacity-90 sm:h-9"
+                    style={{ color: onBrand.hex }}
+                >
+                    Nueva venta
                 </Link>
-            ),
-        },
-    ];
+            )}
+        </div>
+    );
+
+    const skeleton = (
+        <div aria-hidden="true" className="flex flex-col divide-y divide-border/40">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-4">
+                    <Skeleton className="size-11 rounded-xl" />
+                    <div className="flex flex-1 flex-col gap-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-2/3" />
+                    </div>
+                    <Skeleton className="h-4 w-16" />
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Ventas" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Administración de Ventas</h1>
+            <div className="flex flex-col gap-5 p-4 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl leading-tight font-bold sm:text-2xl">Ventas</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={sales.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {sales.total === 1 ? 'venta' : 'ventas'}
+                            {isFiltered ? ' con los filtros actuales' : ' registradas'}
+                        </p>
+                    </div>
                     <div className="flex items-center gap-2">
                         {can('sales.view_deleted') && (
-                            <Link href={route('sales.deleted.index')}>
-                                <Button variant="outline" size="sm" className="flex items-center gap-1.5 text-muted-foreground">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Eliminadas
-                                </Button>
+                            <Link
+                                href={route('sales.deleted.index')}
+                                aria-label="Ver ventas eliminadas"
+                                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-9"
+                            >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                <span className="hidden sm:inline">Eliminadas</span>
                             </Link>
                         )}
-                        <Link href={route('sales.create')}>
-                            <Button>
-                                <Plus className="mr-1 size-4" />
-                                Nueva Venta
-                            </Button>
+                        <Link
+                            href={route('sales.create')}
+                            className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--brand-primary)] px-4 text-sm font-medium transition-opacity hover:opacity-90 sm:h-9 sm:flex-none"
+                            style={{ color: onBrand.hex }}
+                        >
+                            <Plus className="size-4" aria-hidden="true" />
+                            Nueva venta
                         </Link>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Ventas</CardTitle>
-                            <CardDescription>Busca ventas por código, cliente o vendedor, estado o rango de fechas</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="sale-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    id="sale-search"
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pr-12 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                                {search && (
-                                                    <kbd className="absolute top-1.5 right-2 rounded border border-neutral-300 px-1 text-[10px] text-neutral-400 dark:border-neutral-600">
-                                                        Enter ↵
-                                                    </kbd>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
+                <SalesFilters
+                    search={search}
+                    onSearchChange={setSearch}
+                    onSearchSubmit={() => visit(search, status, range)}
+                    status={status}
+                    onStatusChange={changeStatus}
+                    range={range}
+                    onRangeChange={changeRange}
+                    onClear={clearFilters}
+                />
 
-                                <div className="w-full">
-                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Estado
-                                    </Label>
-                                    <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger
-                                            id="status-filter"
-                                            className="w-full bg-white text-black dark:bg-neutral-800 dark:text-neutral-100"
-                                        >
-                                            <SelectValue placeholder="Estado" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos</SelectItem>
-                                            <SelectItem value="completed">Completada</SelectItem>
-                                            <SelectItem value="pending">Pendiente</SelectItem>
-                                            <SelectItem value="credit_pending">Crédito Pendiente</SelectItem>
-                                            <SelectItem value="cancelled">Cancelada</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="relative w-full" ref={datePickerRef}>
-                                    <Label htmlFor="date-range" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Rango de fechas
-                                    </Label>
-                                    <Input
-                                        id="date-range"
-                                        type="text"
-                                        placeholder="Seleccionar rango de fechas"
-                                        className="w-full cursor-pointer bg-white text-sm text-black md:text-base dark:bg-neutral-800 dark:text-neutral-100"
-                                        value={
-                                            dateRange.startDate && dateRange.endDate
-                                                ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
-                                                : ''
-                                        }
-                                        onClick={() => setShowDatePicker(!showDatePicker)}
-                                        readOnly
-                                    />
-
-                                    {showDatePicker && (
-                                        <div className="fixed inset-0 z-40 flex items-center justify-center md:absolute md:inset-auto md:right-0 md:z-10 md:mt-2 md:origin-top-right">
-                                            <div className="absolute inset-0 bg-black/30 md:hidden" onClick={() => setShowDatePicker(false)}></div>
-                                            <div
-                                                className="relative mx-2 w-[95vw] max-w-xs overflow-auto rounded-md bg-white p-4 shadow-lg md:max-w-md md:p-0 dark:bg-neutral-800"
-                                                style={{ maxHeight: '90vh' }}
-                                            >
-                                                <DateRangePicker
-                                                    ranges={[dateRange]}
-                                                    onChange={handleDateChange}
-                                                    months={1}
-                                                    direction="horizontal"
-                                                    rangeColors={['#3b82f6']}
-                                                    locale={es}
-                                                    staticRanges={customStaticRanges}
-                                                    inputRanges={customInputRanges}
-                                                />
-                                                <div className="flex justify-end gap-2 pt-4">
-                                                    <Button size="sm" variant="outline" className="mr-2" onClick={() => setShowDatePicker(false)}>
-                                                        Cancelar
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setShowDatePicker(false);
-                                                            applyFilters();
-                                                        }}
-                                                    >
-                                                        Aplicar
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex w-full flex-col justify-end">
-                                    <Button variant="outline" onClick={clearFilters}>
-                                        Limpiar filtros
-                                    </Button>
-                                </div>
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-card" aria-busy={isSearching}>
+                    {isSearching ? (
+                        skeleton
+                    ) : sales.data.length === 0 ? (
+                        emptyState
+                    ) : (
+                        <>
+                            <div className="md:hidden">
+                                <PullToRefresh onRefresh={refresh}>{() => <SalesCards sales={sales.data} canEdit={canEdit} />}</PullToRefresh>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {/* Tabla solo visible en escritorio */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={sales.data.map((sale) => ({ ...sale, actions: null }))} loading={isSearching} />
-                    </div>
-
-                    {/* Tarjetas para móvil */}
-                    <div className="block md:hidden">
-                        {isSearching ? (
-                            <div className="flex flex-col gap-4 p-2">
-                                {Array.from({ length: 6 }).map((_, i) => (
-                                    <div key={i} className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
-                                        <Skeleton className="h-4 w-1/3" />
-                                        <Skeleton className="h-3 w-2/3" />
-                                        <Skeleton className="h-3 w-1/2" />
-                                        <Skeleton className="h-3 w-1/4" />
-                                    </div>
-                                ))}
+                            <div className="hidden md:block">
+                                <SalesTable sales={sales.data} canEdit={canEdit} />
                             </div>
-                        ) : sales.data.length === 0 ? (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron ventas con los filtros seleccionados</div>
-                        ) : (
-                            <div className="flex flex-col gap-4 p-2">
-                                {sales.data.map((sale) => (
-                                    <div key={sale.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{sale.code}</div>
-                                            <Link href={route('sales.show', sale.id)}>
-                                                <Button aria-label="Ver venta" variant="ghost" size="icon" className="h-8 w-8 p-0" title="Ver venta">
-                                                    <Eye className="size-4" />
-                                                </Button>
-                                            </Link>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Cliente:</span> {sale.client?.name || 'N/A'}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Total:</span> {formatCurrency(sale.total)}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Método de pago:</span> {getPaymentMethodText(sale.payment_method)}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Fecha:</span> {formatDateTime(sale.date)}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Estado:</span> {getStatusBadge(sale.status)}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Paginación */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...sales,
-                                resourceLabel: 'ventas',
-                            }}
-                        />
-                    </div>
+                        </>
+                    )}
+                    <PaginationFooter data={{ ...sales, resourceLabel: 'ventas' }} />
                 </div>
             </div>
         </AppLayout>
