@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock('@inertiajs/react', () => ({
     Head: () => null,
+    Link: 'a',
+    usePage: () => ({ props: { business: { brand_color: '#C4686F' } } }),
     router: { post: vi.fn() },
     useForm: () => ({ data: { closing_amount_declared: '', closing_notes: '' }, setData: vi.fn(), post: vi.fn(), processing: false, errors: {} }),
 }));
@@ -35,6 +37,14 @@ const fullProps = {
 describe('cash session close page', () => {
     beforeEach(() => {
         vi.stubGlobal('route', (name: string) => `/${name}`);
+        vi.stubGlobal(
+            'ResizeObserver',
+            class {
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            },
+        );
     });
 
     it('shows only counts to a blind user', () => {

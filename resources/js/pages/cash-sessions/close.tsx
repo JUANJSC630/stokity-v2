@@ -1,9 +1,16 @@
-import { Badge } from '@/components/ui/badge';
+import { StickyActions } from '@/components/admin/sticky-actions';
+import { SessionStatusPill, formatCOP } from '@/components/cash/cash-meta';
+import { ManualMovements, SalesByMethod } from '@/components/cash/cash-sections';
+import { INPUT_CLASS } from '@/components/sales/form-fields';
+import { DragStepper } from '@/components/ui/bencho/drag-stepper';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatTime } from '@/lib/format';
+import { formatTime } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { FormEventHandler, useCallback, useState } from 'react';
 
 interface SalesSummary {
@@ -26,16 +33,15 @@ interface Props {
     creditPaymentsCount: number;
 }
 
-function formatCOP(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return '$0';
-    return formatCurrency(num);
-}
-
 const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Inicio', href: '/dashboard' },
     { title: 'Caja', href: '/cash-sessions' },
     { title: 'Cierre', href: '#' },
 ];
+
+const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000] as const;
+
+const MODE = 'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors';
 
 export default function CashSessionClose({
     session,
@@ -47,12 +53,12 @@ export default function CashSessionClose({
     creditPaymentsTotal,
     creditPaymentsCount,
 }: Props) {
+    const onBrand = useOnBrandColor();
     const form = useForm({
         closing_amount_declared: '',
         closing_notes: '',
     });
 
-    const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000] as const;
     const [useDenominations, setUseDenominations] = useState(false);
     const [denomCounts, setDenomCounts] = useState<Record<number, number>>({});
     const [coins, setCoins] = useState('');
@@ -82,248 +88,252 @@ export default function CashSessionClose({
         form.post(route('cash-sessions.close', session.id));
     };
 
+    const declared = Number(form.data.closing_amount_declared) || 0;
+    const hasDeclared = form.data.closing_amount_declared !== '';
+    const countNotUsed = useDenominations && denomTotal > 0 && String(denomTotal) !== form.data.closing_amount_declared;
+    const showCredit = isBlind ? creditPaymentsCount > 0 : (creditPaymentsTotal ?? 0) > 0;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Cierre de Caja" />
 
-            <div className="mx-auto max-w-2xl space-y-4 p-4">
-                {/* Header */}
-                <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-lg font-bold">Cierre de Caja — Turno #{session.id}</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Abierta a las {formatTime(openedAt)}
-                                {' · '}
-                                Duración: {hours > 0 ? `${hours}h ` : ''}
-                                {mins}m
-                            </p>
-                        </div>
-                        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Abierta</Badge>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Cierre de Caja — Turno #{session.id}</h1>
+                        <p className="text-sm text-muted-foreground">
+                            Abierta a las {formatTime(openedAt)}
+                            {' · '}
+                            Duración: {hours > 0 ? `${hours}h ` : ''}
+                            {mins}m
+                        </p>
                     </div>
+                    <SessionStatusPill open />
                 </div>
 
-                {/* Sales summary */}
-                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                    <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                        <h2 className="font-semibold">Ventas del turno</h2>
-                    </div>
-                    {salesSummary.length === 0 ? (
-                        <p className="px-4 py-4 text-sm text-muted-foreground">Sin ventas en este turno</p>
-                    ) : (
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-neutral-100 text-xs text-muted-foreground dark:border-neutral-800">
-                                    <th className="px-4 py-2 text-left">Método</th>
-                                    <th className="px-4 py-2 text-center"># Ventas</th>
-                                    {!isBlind && <th className="px-4 py-2 text-right">Total</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {salesSummary.map((row) => (
-                                    <tr key={row.method}>
-                                        <td className="px-4 py-2">{row.name}</td>
-                                        <td className="px-4 py-2 text-center">{row.count}</td>
-                                        {!isBlind && <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total ?? 0)}</td>}
-                                    </tr>
-                                ))}
-                                {!isBlind && (
-                                    <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
-                                        <td className="px-4 py-2">Total ventas</td>
-                                        <td />
-                                        <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales ?? 0)}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+                    <form
+                        onSubmit={submit}
+                        className="order-first flex flex-col gap-5 lg:sticky lg:top-4 lg:order-none lg:col-start-2 lg:row-start-1"
+                    >
+                        <section className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
+                            <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Conteo físico de efectivo</h2>
 
-                {/* Cash movements */}
-                {movements.length > 0 && (
-                    <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                        <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                            <h2 className="font-semibold">Movimientos manuales</h2>
-                        </div>
-                        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                            {movements.map((m) => (
-                                <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                                    <div>
-                                        <span
-                                            className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                                        >
-                                            {m.type === 'cash_in' ? 'INGRESO' : 'EGRESO'}
+                            {!isBlind && (
+                                <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm dark:bg-blue-950/30">
+                                    <div className="flex justify-between gap-3">
+                                        <span className="text-blue-700 dark:text-blue-300">Efectivo esperado en caja:</span>
+                                        <span className="font-bold text-blue-800 tabular-nums dark:text-blue-200">
+                                            {formatCOP(expectedCash ?? 0)}
                                         </span>
-                                        {m.concept}
-                                        {m.notes && <span className="text-xs text-muted-foreground"> · {m.notes}</span>}
                                     </div>
-                                    {!isBlind && (
-                                        <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                            {m.type === 'cash_in' ? '+' : '-'}
-                                            {formatCOP(m.amount ?? 0)}
+                                </div>
+                            )}
+
+                            <div role="group" aria-label="Forma de contar" className="flex gap-1 rounded-xl bg-muted p-1">
+                                <button
+                                    type="button"
+                                    aria-pressed={!useDenominations}
+                                    onClick={() => setUseDenominations(false)}
+                                    className={cn(MODE, !useDenominations ? 'bg-background shadow-sm' : 'text-muted-foreground')}
+                                >
+                                    Monto directo
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={useDenominations}
+                                    onClick={() => setUseDenominations(true)}
+                                    className={cn(MODE, useDenominations ? 'bg-background shadow-sm' : 'text-muted-foreground')}
+                                >
+                                    Contar por denominación
+                                </button>
+                            </div>
+
+                            {useDenominations ? (
+                                <div className="flex flex-col gap-3">
+                                    <p className="text-sm font-medium">Desglose por denominación</p>
+                                    <ul className="divide-y divide-border/40 rounded-xl border border-border/60">
+                                        {DENOMINATIONS.map((denom) => (
+                                            <li key={denom} className="flex items-center justify-between gap-3 px-3 py-2">
+                                                <div className="min-w-0">
+                                                    <span className="text-sm font-medium">{formatCOP(denom)}</span>
+                                                    <p className="text-xs text-muted-foreground tabular-nums">
+                                                        = {formatCOP((denomCounts[denom] || 0) * denom)}
+                                                    </p>
+                                                </div>
+                                                <DragStepper
+                                                    label={`Billetes de ${formatCOP(denom)}`}
+                                                    value={denomCounts[denom] || 0}
+                                                    min={0}
+                                                    max={9999}
+                                                    sweepRange={40}
+                                                    onChange={(value) => updateDenom(denom, String(value))}
+                                                    className="w-40 shrink-0"
+                                                />
+                                            </li>
+                                        ))}
+                                        <li className="flex items-center justify-between gap-3 px-3 py-2">
+                                            <span className="text-sm font-medium">Monedas</span>
+                                            <div className="relative w-40">
+                                                <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">
+                                                    $
+                                                </span>
+                                                <CurrencyInput
+                                                    value={Number(coins) || 0}
+                                                    onChange={(v) => setCoins(v > 0 ? String(v) : '')}
+                                                    placeholder="0"
+                                                    aria-label="Monedas"
+                                                    className={cn(INPUT_CLASS, 'pl-7 text-right')}
+                                                />
+                                            </div>
+                                        </li>
+                                    </ul>
+                                    <div className="flex items-center justify-between rounded-xl bg-muted px-4 py-3">
+                                        <span className="text-sm font-bold">Total contado:</span>
+                                        <span className="text-lg font-bold text-green-700 tabular-nums dark:text-green-300">
+                                            {formatCOP(denomTotal)}
                                         </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={syncDenomToForm}
+                                        className="flex h-11 w-full items-center justify-center rounded-xl border border-green-300 bg-green-50 px-3 text-sm font-medium text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300"
+                                    >
+                                        Usar {formatCOP(denomTotal)} como monto contado
+                                    </button>
+                                    {countNotUsed && (
+                                        <p
+                                            role="status"
+                                            className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
+                                        >
+                                            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                                            <span>
+                                                Contaste {formatCOP(denomTotal)}, pero aún no lo usas como monto contado. Pulsa «Usar{' '}
+                                                {formatCOP(denomTotal)} como monto contado» antes de confirmar.
+                                            </span>
+                                        </p>
+                                    )}
+                                    {hasDeclared && (
+                                        <p className="text-center text-xs text-muted-foreground">
+                                            Monto a declarar: <strong>{formatCOP(declared)}</strong>
+                                        </p>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                        {!isBlind && (
-                            <>
-                                <div className="flex justify-between border-t border-neutral-200 px-4 py-2 text-sm dark:border-neutral-700">
-                                    <span className="text-muted-foreground">Ingresos manuales</span>
-                                    <span className="font-semibold text-green-700">+{formatCOP(cashMovementsIn)}</span>
-                                </div>
-                                <div className="flex justify-between px-4 py-2 text-sm">
-                                    <span className="text-muted-foreground">Egresos manuales</span>
-                                    <span className="font-semibold text-red-600">-{formatCOP(cashMovementsOut)}</span>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )}
-
-                {/* Credit payments breakdown */}
-                {(isBlind ? creditPaymentsCount > 0 : (creditPaymentsTotal ?? 0) > 0) && (
-                    <div className="rounded-xl border border-blue-200 bg-white dark:border-blue-800 dark:bg-neutral-900">
-                        <div className="flex items-center justify-between border-b border-blue-200 px-4 py-3 dark:border-blue-800">
-                            <h2 className="font-semibold">Abonos de crédito</h2>
-                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                                {isBlind
-                                    ? `${creditPaymentsCount} ${creditPaymentsCount === 1 ? 'abono' : 'abonos'}`
-                                    : formatCOP(creditPaymentsTotal ?? 0)}
-                            </Badge>
-                        </div>
-                        <div className="px-4 py-3 text-sm text-muted-foreground">
-                            Los abonos de crédito ya están incluidos en los ingresos manuales de arriba.
-                        </div>
-                    </div>
-                )}
-
-                {/* Conteo físico */}
-                <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
-                    <h2 className="mb-3 font-semibold">Conteo físico de efectivo</h2>
-
-                    {!isBlind && (
-                        <div className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-sm dark:bg-blue-900/20">
-                            <div className="flex justify-between">
-                                <span className="text-blue-700 dark:text-blue-300">Efectivo esperado en caja:</span>
-                                <span className="font-bold text-blue-800 dark:text-blue-200">{formatCOP(expectedCash ?? 0)}</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <form onSubmit={submit} className="space-y-3">
-                        {/* Toggle: monto directo vs desglose */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setUseDenominations(false);
-                                }}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${!useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
-                            >
-                                Monto directo
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setUseDenominations(true);
-                                }}
-                                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${useDenominations ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
-                            >
-                                Contar por denominación
-                            </button>
-                        </div>
-
-                        {useDenominations ? (
-                            <div className="space-y-2">
-                                <label className="mb-1 block text-sm font-medium">Desglose por denominación</label>
-                                <div className="rounded-lg border border-neutral-200 dark:border-neutral-700">
-                                    {DENOMINATIONS.map((denom) => (
-                                        <div
-                                            key={denom}
-                                            className="flex items-center justify-between border-b border-neutral-100 px-3 py-1.5 last:border-b-0 dark:border-neutral-800"
-                                        >
-                                            <span className="text-sm font-medium">{formatCOP(denom)}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-muted-foreground">×</span>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={denomCounts[denom] || ''}
-                                                    onChange={(e) => updateDenom(denom, e.target.value)}
-                                                    placeholder="0"
-                                                    className="w-16 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                                                />
-                                                <span className="w-24 text-right text-sm text-muted-foreground">
-                                                    = {formatCOP((denomCounts[denom] || 0) * denom)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div className="flex items-center justify-between border-t border-neutral-200 px-3 py-1.5 dark:border-neutral-700">
-                                        <span className="text-sm font-medium">Monedas</span>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    <label htmlFor="closing-amount" className="text-sm font-medium">
+                                        Efectivo contado físicamente *
+                                    </label>
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-lg text-muted-foreground">
+                                            $
+                                        </span>
                                         <CurrencyInput
-                                            value={Number(coins) || 0}
-                                            onChange={(v) => setCoins(v > 0 ? String(v) : '')}
+                                            id="closing-amount"
+                                            value={declared}
+                                            onChange={(v) => form.setData('closing_amount_declared', String(v))}
+                                            required
                                             placeholder="0"
-                                            className="w-28 rounded border border-neutral-300 px-2 py-1 text-right text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                            className={cn(INPUT_CLASS, 'h-14 pl-8 text-xl font-semibold tabular-nums sm:h-12')}
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between rounded-lg bg-neutral-100 px-3 py-2 dark:bg-neutral-800">
-                                    <span className="text-sm font-bold">Total contado:</span>
-                                    <span className="text-base font-bold text-green-700 dark:text-green-300">{formatCOP(denomTotal)}</span>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={syncDenomToForm}
-                                    className="w-full rounded-lg border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
-                                >
-                                    Usar {formatCOP(denomTotal)} como monto contado
-                                </button>
-                                {form.data.closing_amount_declared && (
-                                    <p className="text-center text-xs text-muted-foreground">
-                                        Monto a declarar: <strong>{formatCOP(Number(form.data.closing_amount_declared))}</strong>
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Efectivo contado físicamente *</label>
-                                <CurrencyInput
-                                    value={Number(form.data.closing_amount_declared) || 0}
-                                    onChange={(v) => form.setData('closing_amount_declared', String(v))}
-                                    required
-                                    placeholder="0"
-                                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                            )}
+                            {form.errors.closing_amount_declared && (
+                                <p role="alert" className="text-xs text-red-500">
+                                    {form.errors.closing_amount_declared}
+                                </p>
+                            )}
+
+                            <div className="space-y-1.5">
+                                <label htmlFor="closing-notes" className="text-sm font-medium">
+                                    Notas del cierre (opcional)
+                                </label>
+                                <textarea
+                                    id="closing-notes"
+                                    value={form.data.closing_notes}
+                                    onChange={(e) => form.setData('closing_notes', e.target.value)}
+                                    rows={2}
+                                    className="w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-base text-black focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:text-sm dark:bg-neutral-800 dark:text-neutral-100"
                                 />
                             </div>
-                        )}
-                        {form.errors.closing_amount_declared && <p className="mt-1 text-xs text-red-500">{form.errors.closing_amount_declared}</p>}
-                        <div>
-                            <label className="mb-1 block text-sm font-medium">Notas del cierre (opcional)</label>
-                            <textarea
-                                value={form.data.closing_notes}
-                                onChange={(e) => form.setData('closing_notes', e.target.value)}
-                                rows={2}
-                                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={form.processing}
-                            className="w-full rounded-xl bg-[var(--brand-primary)] py-3 text-sm font-bold text-white disabled:opacity-50"
-                        >
-                            {form.processing ? 'Procesando...' : 'Confirmar cierre de caja'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => router.visit(route('pos.index'))}
-                            className="w-full rounded-lg border border-neutral-200 py-2 text-sm text-muted-foreground hover:bg-neutral-50 dark:border-neutral-700"
-                        >
-                            Cancelar
-                        </button>
+                        </section>
+
+                        <StickyActions>
+                            <div className="mr-auto min-w-0">
+                                <p className="text-[11px] leading-none text-muted-foreground">A declarar</p>
+                                <p className="mt-1 text-lg leading-none font-bold tabular-nums">{hasDeclared ? formatCOP(declared) : '—'}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => router.visit(route('pos.index'))}
+                                className="flex h-11 items-center justify-center rounded-xl border border-border/60 px-4 text-sm text-muted-foreground hover:bg-muted sm:h-10"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={form.processing}
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                {form.processing && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+                                {form.processing ? 'Procesando...' : 'Confirmar cierre de caja'}
+                            </button>
+                        </StickyActions>
                     </form>
+
+                    <div className="flex flex-col gap-5 lg:col-start-1 lg:row-start-1">
+                        <SalesByMethod
+                            title="Ventas del turno"
+                            rows={salesSummary}
+                            isBlind={isBlind}
+                            totalLabel="Total ventas"
+                            total={totalSales ?? 0}
+                        />
+
+                        {movements.length > 0 && (
+                            <ManualMovements
+                                movements={movements}
+                                isBlind={isBlind}
+                                detail="notes"
+                                footer={
+                                    !isBlind && (
+                                        <div className="border-t border-border/60 px-5 py-3 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Ingresos manuales</span>
+                                                <span className="font-semibold text-green-700 tabular-nums dark:text-green-400">
+                                                    +{formatCOP(cashMovementsIn)}
+                                                </span>
+                                            </div>
+                                            <div className="mt-1 flex justify-between">
+                                                <span className="text-muted-foreground">Egresos manuales</span>
+                                                <span className="font-semibold text-red-600 tabular-nums dark:text-red-400">
+                                                    -{formatCOP(cashMovementsOut)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                            />
+                        )}
+
+                        {showCredit && (
+                            <section className="rounded-2xl border border-blue-200 bg-card dark:border-blue-900">
+                                <div className="flex items-center justify-between gap-3 px-5 py-4">
+                                    <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Abonos de crédito</h2>
+                                    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-950/50 dark:text-blue-200">
+                                        {isBlind
+                                            ? `${creditPaymentsCount} ${creditPaymentsCount === 1 ? 'abono' : 'abonos'}`
+                                            : formatCOP(creditPaymentsTotal ?? 0)}
+                                    </span>
+                                </div>
+                                <p className="border-t border-border/60 px-5 py-3 text-sm text-muted-foreground">
+                                    Los abonos de crédito ya están incluidos en los ingresos manuales de arriba.
+                                </p>
+                            </section>
+                        )}
+                    </div>
                 </div>
             </div>
         </AppLayout>

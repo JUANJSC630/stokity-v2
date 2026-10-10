@@ -8,6 +8,7 @@ import Index from '../index';
 import Show from '../show';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     post: vi.fn(),
     errors: {} as Record<string, string>,
     printer: { status: 'idle', selectedPrinter: '', printCashSession: vi.fn() } as {
@@ -75,10 +76,22 @@ beforeAll(() => {
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.errors = {};
     env.printer = { status: 'idle', selectedPrinter: '', printCashSession: vi.fn() };
 });
@@ -126,14 +139,44 @@ describe('Cash history', () => {
         expect(cells[2]).toContain('text-amber-600');
     });
 
-    it('opens a session from its table row and from its phone card', () => {
+    it('opens a session from its table row', () => {
         renderIndex([session()]);
 
         fireEvent.click(within(screen.getByRole('table')).getAllByRole('row')[1]);
-        expect(router.visit).toHaveBeenLastCalledWith('/cash-sessions.show/7');
 
-        fireEvent.click(screen.getByRole('button', { name: /Apertura:/ }));
-        expect(router.visit).toHaveBeenCalledTimes(2);
+        expect(router.visit).toHaveBeenLastCalledWith('/cash-sessions.show/7');
+    });
+
+    it('lists cards on phones with sales, state and difference, opening the session on tap', () => {
+        env.wide = false;
+        renderIndex([session(), session({ id: 8, status: 'open', closed_at: null, discrepancy: null }), session({ id: 9, discrepancy: 0 })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const [closed, opened, balanced] = within(screen.getByRole('list', { name: '3 turno(s)' })).getAllByRole('listitem');
+        expect(text(closed)).toContain('#7');
+        expect(text(closed)).toContain('$ 450.000');
+        expect(text(closed)).toContain('Faltante -$ 5.000');
+        expect(text(closed)).toContain('Cierre:');
+        expect(text(opened)).toContain('Abierta');
+        expect(text(opened)).not.toContain('Cierre:');
+        expect(text(balanced)).toContain('Cuadra');
+
+        fireEvent.click(within(closed).getByRole('button'));
+        expect(router.visit).toHaveBeenCalledWith('/cash-sessions.show/7');
+    });
+
+    it('folds the filters on phones and counts the active ones', () => {
+        env.wide = false;
+        renderIndex([session()], { date_from: '2026-10-01', branch_id: '2' });
+
+        expect(document.querySelector('input[type="date"]')).toBeNull();
+        const toggle = screen.getByRole('button', { name: /Filtros/ });
+        expect(text(toggle)).toContain('2');
+
+        fireEvent.click(toggle);
+
+        expect(document.querySelectorAll('input[type="date"]')).toHaveLength(2);
+        expect(screen.getByRole('button', { name: 'Filtrar' })).toBeInTheDocument();
     });
 
     it('says so when there are no sessions', () => {
@@ -196,9 +239,9 @@ describe('Cash history', () => {
             ],
         });
 
-        expect(screen.getByText(/Mostrando 1–20 de 25/)).toBeInTheDocument();
+        expect(screen.getByText(/Mostrando 1 a 20 de 25 turnos/)).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: '2' }));
-        expect(router.visit).toHaveBeenCalledWith('/cash-sessions?page=2');
+        expect(router.visit).toHaveBeenCalledWith('/cash-sessions?page=2', expect.any(Object));
     });
 });
 
@@ -227,11 +270,11 @@ describe('Cash session detail', () => {
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Turno #7');
         const page = text(document.body);
-        expect(page).toContain('Sucursal: Centro');
-        expect(page).toContain('Cajero: Carlos');
-        expect(page).toContain('Apertura: 5 de oct de 2026');
-        expect(page).toContain('Cierre: 5 de oct de 2026');
-        expect(page).toContain('Duración: 8h 30m');
+        expect(page).toContain('SucursalCentro');
+        expect(page).toContain('CajeroCarlos');
+        expect(page).toContain('Apertura5 de oct de 2026');
+        expect(page).toContain('Cierre5 de oct de 2026');
+        expect(page).toContain('Duración8h 30m');
         expect(screen.getByText('Cerrada')).toBeInTheDocument();
     });
 
@@ -239,8 +282,9 @@ describe('Cash session detail', () => {
         renderShow({ status: 'open', closed_at: null });
 
         expect(screen.getByText('Abierta')).toBeInTheDocument();
-        expect(text(document.body)).toContain('Duración: —');
-        expect(text(document.body)).not.toContain('Cierre:');
+        expect(text(document.body)).toContain('Duración—');
+        expect(screen.queryByText('Cierre')).not.toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Resultado del cuadre' })).not.toBeInTheDocument();
     });
 
     it('lists the sales by payment method with their totals and the grand total', () => {
@@ -296,6 +340,21 @@ describe('Cash session detail', () => {
 
         renderShow({ total_sales_card: 0, total_sales_transfer: 0, total_sales_other: 0 });
         expect(text(document.body)).not.toContain('Otros métodos');
+    });
+
+    it('highlights the result of a closed shift: short, balanced or over', () => {
+        const { unmount } = renderShow();
+        expect(text(screen.getByRole('region', { name: 'Resultado del cuadre' }))).toContain('-$ 5.000');
+        expect(text(screen.getByRole('region', { name: 'Resultado del cuadre' }))).toContain('Faltante');
+        unmount();
+
+        const { unmount: again } = renderShow({ discrepancy: 0 });
+        expect(text(screen.getByRole('region', { name: 'Resultado del cuadre' }))).toContain('Cuadra');
+        again();
+
+        renderShow({ discrepancy: 2000 });
+        expect(text(screen.getByRole('region', { name: 'Resultado del cuadre' }))).toContain('+$ 2.000');
+        expect(text(screen.getByRole('region', { name: 'Resultado del cuadre' }))).toContain('Sobrante');
     });
 
     it('does not show the reconciliation while the shift is open', () => {
@@ -448,13 +507,10 @@ describe('Close cash session', () => {
         renderClose();
 
         fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
-        const countFor = (label: string) =>
-            (screen.getByText(label, { selector: 'span.text-sm.font-medium' }).parentElement as HTMLElement).querySelector(
-                'input[type="number"]',
-            ) as HTMLInputElement;
-        fireEvent.change(countFor('$ 100.000'), { target: { value: '2' } });
-        fireEvent.change(countFor('$ 50.000'), { target: { value: '3' } });
-        fireEvent.change(countFor('$ 1.000'), { target: { value: '5' } });
+        const countFor = (amount: string) => screen.getByLabelText(new RegExp(`^Billetes de \\$\\s${amount}$`)) as HTMLInputElement;
+        fireEvent.change(countFor('100\\.000'), { target: { value: '2' } });
+        fireEvent.change(countFor('50\\.000'), { target: { value: '3' } });
+        fireEvent.change(countFor('1\\.000'), { target: { value: '5' } });
         const coins = screen.getByText('Monedas').parentElement?.querySelector('input') as HTMLInputElement;
         fireEvent.change(coins, { target: { value: '2500' } });
 
@@ -470,11 +526,25 @@ describe('Close cash session', () => {
         renderClose();
         fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
 
-        fireEvent.change(screen.getAllByPlaceholderText('0')[0], { target: { value: '-3' } });
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s1\.000$/), { target: { value: '-3' } });
         expect(text(document.body)).toContain('Total contado:$ 0');
 
         fireEvent.click(screen.getByRole('button', { name: 'Monto directo' }));
         expect(screen.getByText('Efectivo contado físicamente *')).toBeInTheDocument();
+    });
+
+    it('always shows what will be declared, and warns when a count has not been used yet', () => {
+        renderClose();
+        expect(text(document.body)).toContain('A declarar—');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '4' } });
+        expect(screen.getByRole('status')).toHaveTextContent(/Contaste \$\s40\.000, pero aún no lo usas/);
+        expect(text(document.body)).toContain('A declarar—');
+
+        fireEvent.click(screen.getByRole('button', { name: /Usar \$\s40\.000 como monto contado/ }));
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(text(document.body)).toContain('A declarar$ 40.000');
     });
 
     it('shows the server error of the declared amount', () => {
