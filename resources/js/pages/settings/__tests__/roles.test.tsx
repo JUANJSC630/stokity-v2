@@ -13,6 +13,7 @@ const env = vi.hoisted(() => ({
     transform: vi.fn(),
     errors: {} as Record<string, string>,
     processing: false,
+    wide: true,
 }));
 
 vi.mock('@inertiajs/react', async () => {
@@ -52,6 +53,17 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
 });
 
@@ -59,6 +71,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     env.errors = {};
     env.processing = false;
+    env.wide = true;
 });
 
 const role = (id: number, overrides: Record<string, unknown> = {}) => ({
@@ -100,6 +113,16 @@ describe('Roles list', () => {
         expect(within(rows[1]).getByText('Cobra en el POS')).toBeInTheDocument();
         expect(within(rows[2]).getByText('Su sucursal')).toBeInTheDocument();
         expect(within(rows[2]).queryByText('del sistema')).not.toBeInTheDocument();
+    });
+
+    it('lists the roles as cards on a phone, with the same actions', () => {
+        env.wide = false;
+        render(<RolesIndex roles={roles as never} />);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(screen.getByText(/Todas las sucursales · 40 permisos/)).toBeInTheDocument();
+        expect(screen.getAllByLabelText('Editar').length).toBe(3);
+        expect(screen.getAllByLabelText('Eliminar').length).toBe(2);
     });
 
     it('links to the create page and to each role', () => {
