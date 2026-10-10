@@ -1,18 +1,19 @@
-import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/common/search-field';
+import { SELECT_TRIGGER } from '@/components/sales/form-fields';
+import { SupplierCards, SupplierTable } from '@/components/suppliers/supplier-list';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Supplier } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { Plus, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Plus, Truck } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PageProps {
     suppliers: {
@@ -32,16 +33,28 @@ interface PageProps {
     };
 }
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Proveedores', href: '/suppliers' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Proveedores', href: '/suppliers' },
+];
+
+const STATUS_CHIPS = [
+    { value: 'all', label: 'Todos' },
+    { value: 'active', label: 'Activos' },
+    { value: 'inactive', label: 'Inactivos' },
+];
+
+const formatCount = (value: number): string => String(value);
 
 export default function Index({ suppliers, branches, filters }: PageProps) {
     usePolling(['suppliers'], 120_000);
+    const onBrand = useOnBrandColor();
+    const isWide = useMediaQuery('(min-width: 768px)');
 
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
     const [branch, setBranch] = useState(filters.branch || 'all');
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
     const hasResetRef = useRef(false);
 
     useEffect(() => {
@@ -57,12 +70,12 @@ export default function Index({ suppliers, branches, filters }: PageProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
-    const applyFilters = (searchParam = search) => {
+    const visit = (searchParam: string, statusParam: string, branchParam: string) => {
         setIsSearching(true);
         const params = new URLSearchParams();
         if (searchParam) params.append('search', searchParam);
-        if (status && status !== 'all') params.append('status', status);
-        if (branch && branch !== 'all') params.append('branch', branch);
+        if (statusParam && statusParam !== 'all') params.append('status', statusParam);
+        if (branchParam && branchParam !== 'all') params.append('branch', branchParam);
 
         router.visit(`/suppliers?${params.toString()}`, {
             preserveState: true,
@@ -72,201 +85,125 @@ export default function Index({ suppliers, branches, filters }: PageProps) {
         });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
+    const applyFilters = (searchParam = search) => visit(searchParam, status, branch);
 
     const handleStatusChange = (value: string) => {
         setStatus(value);
-        setIsSearching(true);
-        const params = new URLSearchParams();
-        if (search) params.append('search', search);
-        if (value !== 'all') params.append('status', value);
-        if (branch !== 'all') params.append('branch', branch);
-        router.visit(`/suppliers?${params.toString()}`, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['suppliers'],
-            onFinish: () => setIsSearching(false),
-        });
+        visit(search, value, branch);
     };
 
-    const columns: Column<Supplier & { actions: null }>[] = [
-        {
-            key: 'name',
-            title: 'Proveedor',
-            render: (_: unknown, row: Supplier) => <span className="font-medium">{row.name}</span>,
-        },
-        { key: 'nit', title: 'NIT', render: (_: unknown, row: Supplier) => row.nit || '-' },
-        { key: 'contact_name', title: 'Contacto', render: (_: unknown, row: Supplier) => row.contact_name || '-' },
-        { key: 'phone', title: 'Teléfono', render: (_: unknown, row: Supplier) => row.phone || '-' },
-        { key: 'email', title: 'Correo', render: (_: unknown, row: Supplier) => row.email || '-' },
-        {
-            key: 'status',
-            title: 'Estado',
-            render: (_: unknown, row: Supplier) =>
-                row.status ? (
-                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Activo</Badge>
-                ) : (
-                    <Badge variant="secondary" className="text-xs">
-                        Inactivo
-                    </Badge>
-                ),
-        },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Supplier) => (
-                <Link href={route('suppliers.show', row.id)}>
-                    <EyeButton text="Ver Proveedor" />
-                </Link>
-            ),
-        },
-    ];
+    const handleBranchChange = (value: string) => {
+        setBranch(value);
+        visit(search, status, value);
+    };
+
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['suppliers'], onFinish: () => resolve() });
+            }),
+        [],
+    );
+
+    const listProps = { suppliers: suppliers.data, showBranch: branches.length > 0 };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Proveedores" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Gestión de Proveedores</h1>
-                    <Link href={route('suppliers.create')}>
-                        <Button className="flex gap-1">
-                            <Plus className="mr-1 size-4" />
-                            Nuevo Proveedor
-                        </Button>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Gestión de Proveedores</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={suppliers.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {suppliers.total === 1 ? 'proveedor' : 'proveedores'} para tus compras de inventario
+                        </p>
+                    </div>
+                    <Link
+                        href={route('suppliers.create')}
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        Nuevo Proveedor
                     </Link>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Filtrar Proveedores</CardTitle>
-                        <CardDescription>Busca por nombre, NIT, contacto o correo</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-4 md:grid-cols-4">
-                            <div className="col-span-2">
-                                <form onSubmit={handleSearch}>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="supplier-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                            Buscar
-                                        </Label>
-                                        <div className="relative">
-                                            <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                            <Input
-                                                id="supplier-search"
-                                                ref={searchRef}
-                                                type="search"
-                                                placeholder="Nombre, NIT, contacto, correo..."
-                                                className="h-8 pl-8 text-sm"
-                                                value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Estado</Label>
-                                    <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger className="h-8 text-sm">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos</SelectItem>
-                                            <SelectItem value="active">Activos</SelectItem>
-                                            <SelectItem value="inactive">Inactivos</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            {branches.length > 0 && (
-                                <div>
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Sucursal</Label>
-                                        <Select
-                                            value={branch}
-                                            onValueChange={(value) => {
-                                                setBranch(value);
-                                                setIsSearching(true);
-                                                const params = new URLSearchParams();
-                                                if (search) params.append('search', search);
-                                                if (status !== 'all') params.append('status', status);
-                                                if (value !== 'all') params.append('branch', value);
-                                                router.visit(`/suppliers?${params.toString()}`, {
-                                                    preserveState: true,
-                                                    preserveScroll: true,
-                                                    only: ['suppliers'],
-                                                    onFinish: () => setIsSearching(false),
-                                                });
-                                            }}
-                                        >
-                                            <SelectTrigger className="h-8 text-sm">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Todas</SelectItem>
-                                                {branches.map((b) => (
-                                                    <SelectItem key={b.id} value={String(b.id)}>
-                                                        {b.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
+                <div className="flex flex-col gap-3">
+                    <SearchField
+                        id="supplier-search"
+                        label="Buscar proveedores"
+                        placeholder="Nombre, NIT, contacto, correo..."
+                        value={search}
+                        onChange={setSearch}
+                        onSubmit={() => applyFilters()}
+                    />
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div
+                            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+                            role="group"
+                            aria-label="Estado"
+                        >
+                            {STATUS_CHIPS.map((chip) => (
+                                <button
+                                    key={chip.value}
+                                    type="button"
+                                    aria-pressed={status === chip.value}
+                                    onClick={() => handleStatusChange(chip.value)}
+                                    className={cn(
+                                        'inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+                                        status === chip.value
+                                            ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                                            : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+                                    )}
+                                >
+                                    {chip.label}
+                                </button>
+                            ))}
                         </div>
-                    </CardContent>
-                </Card>
-
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {/* Desktop table */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table columns={columns} data={suppliers.data.map((s) => ({ ...s, actions: null }))} loading={isSearching} />
-                    </div>
-
-                    {/* Mobile cards */}
-                    <div className="block md:hidden">
-                        {suppliers.data.length === 0 ? (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron proveedores</div>
-                        ) : (
-                            <div className="flex flex-col gap-4 p-2">
-                                {suppliers.data.map((supplier) => (
-                                    <div key={supplier.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{supplier.name}</div>
-                                            <Link href={route('suppliers.show', supplier.id)}>
-                                                <EyeButton text="Ver" />
-                                            </Link>
-                                        </div>
-                                        {supplier.nit && (
-                                            <div className="mb-1 text-sm text-muted-foreground">
-                                                <span className="font-medium">NIT:</span> {supplier.nit}
-                                            </div>
-                                        )}
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Contacto:</span> {supplier.contact_name || '-'}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Teléfono:</span> {supplier.phone || '-'}
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            <span className="font-medium">Estado:</span>{' '}
-                                            {supplier.status ? (
-                                                <span className="text-green-600 dark:text-green-400">Activo</span>
-                                            ) : (
-                                                <span className="text-neutral-400">Inactivo</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                        {branches.length > 0 && (
+                            <div className="space-y-1.5 sm:w-56">
+                                <label htmlFor="branch-filter" className="text-xs font-medium text-muted-foreground">
+                                    Sucursal
+                                </label>
+                                <Select value={branch} onValueChange={handleBranchChange}>
+                                    <SelectTrigger id="branch-filter" className={`${SELECT_TRIGGER} text-left [&>span]:truncate`}>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {branches.map((item) => (
+                                            <SelectItem key={item.id} value={String(item.id)}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                     </div>
+                </div>
 
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
+                    )}
+                >
+                    {suppliers.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <Truck className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No se encontraron proveedores</p>
+                            <p className="text-sm text-muted-foreground">Prueba con otra búsqueda o registra un proveedor nuevo.</p>
+                        </div>
+                    ) : isWide ? (
+                        <SupplierTable {...listProps} />
+                    ) : (
+                        <PullToRefresh onRefresh={refresh}>{() => <SupplierCards {...listProps} />}</PullToRefresh>
+                    )}
                     <PaginationFooter data={{ ...suppliers, resourceLabel: 'proveedores' }} />
                 </div>
             </div>

@@ -1,17 +1,18 @@
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
 import { useConfirm } from '@/components/confirm-dialog';
-import { Badge } from '@/components/ui/badge';
+import { INPUT_CLASS, Section } from '@/components/sales/form-fields';
+import { MovementTypePill, signedQuantity } from '@/components/stock/stock-meta';
+import { SupplierAvatar, SupplierStatusPill } from '@/components/suppliers/supplier-list';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type StockMovement, type Supplier, type SupplierProduct } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Mail, MapPin, Pencil, Phone, Trash2, User } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 interface PaginatedMovements {
     data: StockMovement[];
@@ -30,28 +31,43 @@ interface PageProps {
     filters: { start_date?: string; end_date?: string };
 }
 
-const TYPE_LABELS: Record<string, string> = {
-    ingreso: 'Ingreso',
-    out: 'Salida',
-    adjustment: 'Ajuste',
-    write_off: 'Baja',
-    supplier_return: 'Dev. a proveedor',
-};
+const ACTION =
+    'flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:h-10';
 
-const TYPE_COLORS: Record<string, string> = {
-    ingreso: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    out: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    adjustment: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    write_off: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    supplier_return: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-};
+function Stat({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+    return (
+        <div className={cn('rounded-2xl border border-border/60 bg-card p-4', className)}>
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="mt-1 text-xl font-bold tabular-nums sm:text-2xl">{children}</p>
+        </div>
+    );
+}
+
+function Info({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+    return (
+        <div className="flex items-start gap-3">
+            <span className="mt-0.5 shrink-0 text-muted-foreground/60" aria-hidden="true">
+                {icon}
+            </span>
+            <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{label}</dt>
+                <dd className="text-sm font-medium break-words">{children}</dd>
+            </div>
+        </div>
+    );
+}
+
+const HEAD = 'px-3 py-3 font-medium';
 
 export default function Show({ supplier, movements, totalCost, filters }: PageProps) {
     const { confirm, dialog } = useConfirm();
+    const onBrand = useOnBrandColor();
+    const isWide = useMediaQuery('(min-width: 768px)');
     const [startDate, setStartDate] = useState(filters.start_date ?? '');
     const [endDate, setEndDate] = useState(filters.end_date ?? '');
 
     const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Inicio', href: '/dashboard' },
         { title: 'Proveedores', href: '/suppliers' },
         { title: supplier.name, href: `/suppliers/${supplier.id}` },
     ];
@@ -89,299 +105,344 @@ export default function Show({ supplier, movements, totalCost, filters }: PagePr
         });
     };
 
-    const productColumns: Column<SupplierProduct & { actions: null }>[] = [
-        {
-            key: 'name',
-            title: 'Producto',
-            render: (_: unknown, row: SupplierProduct) => (
-                <Link href={route('products.show', row.id)} className="font-medium hover:underline">
-                    {row.name}
-                </Link>
-            ),
-        },
-        { key: 'code', title: 'Código' },
-        {
-            key: 'pivot' as keyof SupplierProduct,
-            title: 'Cód. Proveedor',
-            render: (_: unknown, row: SupplierProduct) => row.pivot.supplier_code || '-',
-        },
-        {
-            key: 'sale_price',
-            title: 'P. compra (proveedor)',
-            render: (_: unknown, row: SupplierProduct) => (row.pivot.purchase_price != null ? formatCurrency(Number(row.pivot.purchase_price)) : '-'),
-        },
-        { key: 'stock', title: 'Stock' },
-        {
-            key: 'actions',
-            title: 'Predeterminado',
-            render: (_: unknown, row: SupplierProduct) =>
-                row.pivot.is_default ? (
-                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">Sí</Badge>
-                ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
-                ),
-        },
-    ];
-
-    const movementColumns: Column<StockMovement & { actions: null }>[] = [
-        {
-            key: 'movement_date',
-            title: 'Fecha',
-            render: (_: unknown, row: StockMovement) => formatDate(row.movement_date),
-        },
-        {
-            key: 'type',
-            title: 'Tipo',
-            render: (_: unknown, row: StockMovement) => (
-                <span className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[row.type] ?? 'bg-gray-100 text-gray-800'}`}>
-                    {TYPE_LABELS[row.type] ?? row.type}
-                </span>
-            ),
-        },
-        {
-            key: 'product_id',
-            title: 'Producto',
-            render: (_: unknown, row: StockMovement) =>
-                row.product ? (
-                    <Link href={route('products.show', row.product_id)} className="hover:underline">
-                        {row.product.name}
-                    </Link>
-                ) : (
-                    `#${row.product_id}`
-                ),
-        },
-        { key: 'quantity', title: 'Cant.' },
-        {
-            key: 'unit_cost',
-            title: 'Costo unit.',
-            render: (_: unknown, row: StockMovement) => (row.unit_cost != null ? formatCurrency(Number(row.unit_cost)) : '-'),
-        },
-        {
-            key: 'reference',
-            title: 'Referencia',
-            render: (_: unknown, row: StockMovement) => row.reference || '-',
-        },
-    ];
+    const products = supplier.products ?? [];
+    const productLink = (id: number, name: string) => (
+        <Link href={route('products.show', id)} className="font-medium hover:underline">
+            {name}
+        </Link>
+    );
+    const hasContact = supplier.contact_name || supplier.phone || supplier.email || supplier.address || supplier.branch;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Proveedor: ${supplier.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header */}
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-2xl font-semibold">Detalle del Proveedor</h1>
-                    <div className="flex flex-wrap gap-2">
-                        <Link href={route('suppliers.index')}>
-                            <Button variant="outline" size="sm" className="gap-1">
-                                <ArrowLeft className="h-4 w-4" />
-                                <span className="hidden sm:inline">Volver</span>
-                            </Button>
-                        </Link>
-                        <Link href={route('suppliers.edit', supplier.id)}>
-                            <Button variant="outline" size="sm" className="gap-1">
-                                <Edit2 className="h-4 w-4" />
-                                <span className="hidden sm:inline">Editar</span>
-                            </Button>
-                        </Link>
-                        <Button variant="destructive" size="sm" className="gap-1" onClick={handleDelete}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="hidden sm:inline">Eliminar</span>
-                        </Button>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={route('suppliers.index')}
+                        aria-label="Volver"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                    <SupplierAvatar name={supplier.name} className="hidden sm:flex" />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Detalle del Proveedor</p>
+                        <h1 className="text-xl leading-tight font-bold break-words sm:text-2xl">{supplier.name}</h1>
+                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                            {supplier.nit && <span className="font-mono">NIT: {supplier.nit}</span>}
+                            <span>Registrado {formatDate(supplier.created_at)}</span>
+                            <SupplierStatusPill active={supplier.status} className="px-2 py-0.5" />
+                        </p>
                     </div>
                 </div>
 
-                {/* Info card */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <CardTitle>{supplier.name}</CardTitle>
-                                {supplier.nit && <CardDescription>NIT: {supplier.nit}</CardDescription>}
-                            </div>
-                            {supplier.status ? (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Activo</Badge>
-                            ) : (
-                                <Badge variant="secondary">Inactivo</Badge>
-                            )}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {supplier.contact_name && (
-                                <div>
-                                    <div className="text-sm text-muted-foreground">Contacto</div>
-                                    <div className="font-medium">{supplier.contact_name}</div>
-                                </div>
-                            )}
-                            {supplier.phone && (
-                                <div>
-                                    <div className="text-sm text-muted-foreground">Teléfono</div>
-                                    <div className="font-medium">{supplier.phone}</div>
-                                </div>
-                            )}
-                            {supplier.email && (
-                                <div>
-                                    <div className="text-sm text-muted-foreground">Correo</div>
-                                    <div className="font-medium">{supplier.email}</div>
-                                </div>
-                            )}
-                            {supplier.address && (
-                                <div>
-                                    <div className="text-sm text-muted-foreground">Dirección</div>
-                                    <div className="font-medium">{supplier.address}</div>
-                                </div>
-                            )}
-                            {supplier.branch && (
-                                <div>
-                                    <div className="text-sm text-muted-foreground">Sucursal</div>
-                                    <div className="font-medium">{supplier.branch.name}</div>
-                                </div>
-                            )}
-                            <div>
-                                <div className="text-sm text-muted-foreground">Registrado</div>
-                                <div className="font-medium">{formatDate(supplier.created_at)}</div>
-                            </div>
-                        </div>
-                        {supplier.notes && (
-                            <div className="mt-4">
-                                <div className="text-sm text-muted-foreground">Notas</div>
-                                <div className="mt-1 rounded-md bg-neutral-50 p-3 text-sm whitespace-pre-wrap dark:bg-neutral-800">
-                                    {supplier.notes}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
+                    <Link
+                        href={route('suppliers.edit', supplier.id)}
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Pencil className="size-4" aria-hidden="true" />
+                        Editar
+                    </Link>
+                    {supplier.phone && (
+                        <a href={`tel:${supplier.phone}`} className={ACTION}>
+                            <Phone className="size-4" aria-hidden="true" />
+                            Llamar
+                        </a>
+                    )}
+                    {supplier.email && (
+                        <a href={`mailto:${supplier.email}`} className={ACTION}>
+                            <Mail className="size-4" aria-hidden="true" />
+                            Escribir
+                        </a>
+                    )}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDelete}
+                        className="h-11 gap-2 rounded-xl border-red-200 px-4 text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-10 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+                    >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                        Eliminar
+                    </Button>
+                </div>
 
-                {/* Products */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Productos vinculados</CardTitle>
-                        <CardDescription>
-                            {supplier.products?.length
-                                ? `${supplier.products.length} producto(s) asociado(s) a este proveedor`
-                                : 'Ningún producto asociado aún — vincúlalos desde Editar Producto'}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {(supplier.products ?? []).length === 0 ? (
-                            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-                                Sin productos. Asocia productos desde la página de edición de cada producto.
-                            </p>
-                        ) : (
-                            <>
-                                {/* Mobile: card list */}
-                                <div className="divide-y md:hidden">
-                                    {(supplier.products ?? []).map((p) => (
-                                        <div key={p.id} className="flex items-start justify-between gap-2 px-4 py-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Stat label="Productos vinculados">{products.length}</Stat>
+                    <Stat label="Movimientos">{movements.total}</Stat>
+                    {totalCost > 0 && (
+                        <Stat label="Total compras" className="col-span-2 sm:col-span-1">
+                            {formatCurrency(totalCost)}
+                        </Stat>
+                    )}
+                </div>
+
+                <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <div className="flex flex-col gap-5">
+                        <Section
+                            title="Productos vinculados"
+                            description={
+                                products.length
+                                    ? `${products.length} producto(s) asociado(s) a este proveedor`
+                                    : 'Ningún producto asociado aún — vincúlalos desde Editar Producto'
+                            }
+                        >
+                            {products.length === 0 ? (
+                                <p className="px-5 pb-5 text-sm text-muted-foreground">
+                                    Sin productos. Asocia productos desde la página de edición de cada producto.
+                                </p>
+                            ) : isWide ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-y border-border/60 text-left text-[11px] tracking-wide text-muted-foreground uppercase">
+                                                <th scope="col" className="px-5 py-3 font-medium">
+                                                    Producto
+                                                </th>
+                                                <th scope="col" className={HEAD}>
+                                                    Código
+                                                </th>
+                                                <th scope="col" className={HEAD}>
+                                                    Cód. Proveedor
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'text-right')}>
+                                                    P. compra (proveedor)
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'text-right')}>
+                                                    Stock
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'pr-5')}>
+                                                    Predeterminado
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {products.map((p) => (
+                                                <tr key={p.id} className="hover:bg-muted/40">
+                                                    <td className="px-5 py-3">{productLink(p.id, p.name)}</td>
+                                                    <td className="px-3 py-3 font-mono text-xs text-muted-foreground">{p.code}</td>
+                                                    <td className="px-3 py-3 text-muted-foreground">{p.pivot.supplier_code || '-'}</td>
+                                                    <td className="px-3 py-3 text-right tabular-nums">
+                                                        {p.pivot.purchase_price != null ? formatCurrency(Number(p.pivot.purchase_price)) : '-'}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right tabular-nums">{p.stock}</td>
+                                                    <td className="px-3 py-3 pr-5">
+                                                        {p.pivot.is_default ? (
+                                                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                                                Sí
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <ul className="divide-y divide-border/40 border-t border-border/60">
+                                    {products.map((p) => (
+                                        <li key={p.id} className="flex items-start justify-between gap-3 px-5 py-3">
                                             <div className="min-w-0 flex-1">
-                                                <Link href={route('products.show', p.id)} className="font-medium hover:underline">
-                                                    {p.name}
-                                                </Link>
-                                                <p className="text-xs text-muted-foreground">{p.code}</p>
+                                                {productLink(p.id, p.name)}
+                                                <p className="font-mono text-xs text-muted-foreground">{p.code}</p>
                                                 {p.pivot.purchase_price != null && (
                                                     <p className="mt-0.5 text-xs text-muted-foreground">
                                                         Compra: {formatCurrency(Number(p.pivot.purchase_price))}
                                                     </p>
                                                 )}
                                             </div>
-                                            <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                                                <span className="text-xs font-medium">Stock: {p.stock}</span>
+                                            <div className="flex shrink-0 flex-col items-end gap-1">
+                                                <span className="text-xs font-medium tabular-nums">Stock: {p.stock}</span>
                                                 {p.pivot.is_default ? (
-                                                    <Badge className="bg-green-100 text-xs text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                                                         Predeterminado
-                                                    </Badge>
+                                                    </span>
                                                 ) : null}
                                             </div>
-                                        </div>
+                                        </li>
                                     ))}
-                                </div>
-                                {/* Desktop: full table */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <Table columns={productColumns} data={(supplier.products ?? []).map((p) => ({ ...p, actions: null }))} />
-                                </div>
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
+                                </ul>
+                            )}
+                        </Section>
 
-                {/* Movements with date filter */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <CardTitle>Historial de movimientos</CardTitle>
-                                <CardDescription>
-                                    Movimientos de stock vinculados a este proveedor
-                                    {totalCost > 0 && (
-                                        <span className="ml-2 font-medium text-foreground">— Total compras: {formatCurrency(totalCost)}</span>
-                                    )}
-                                </CardDescription>
-                            </div>
-                            {/* Date filter */}
-                            <div className="flex flex-wrap items-end gap-2">
-                                <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Desde</Label>
-                                    <Input type="date" className="h-8 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                        <Section title="Historial de movimientos" description="Movimientos de stock vinculados a este proveedor">
+                            <div className="flex flex-wrap items-end gap-3 px-5 pb-4">
+                                <div className="min-w-36 flex-1 space-y-1.5 sm:flex-none">
+                                    <label htmlFor="start-date" className="text-xs text-muted-foreground">
+                                        Desde
+                                    </label>
+                                    <input
+                                        id="start-date"
+                                        type="date"
+                                        className={INPUT_CLASS}
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                    />
                                 </div>
-                                <div className="space-y-1">
-                                    <Label className="text-xs text-muted-foreground">Hasta</Label>
-                                    <Input type="date" className="h-8 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                                <div className="min-w-36 flex-1 space-y-1.5 sm:flex-none">
+                                    <label htmlFor="end-date" className="text-xs text-muted-foreground">
+                                        Hasta
+                                    </label>
+                                    <input
+                                        id="end-date"
+                                        type="date"
+                                        className={INPUT_CLASS}
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                    />
                                 </div>
-                                <Button size="sm" className="h-8" onClick={applyDateFilter}>
+                                <Button
+                                    type="button"
+                                    onClick={applyDateFilter}
+                                    className="h-11 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:opacity-90 sm:h-9"
+                                    style={{ color: onBrand.hex }}
+                                >
                                     Filtrar
                                 </Button>
                                 {(filters.start_date || filters.end_date) && (
-                                    <Button size="sm" variant="ghost" className="h-8 text-muted-foreground" onClick={clearFilter}>
+                                    <Button type="button" variant="ghost" onClick={clearFilter} className="h-11 text-muted-foreground sm:h-9">
                                         Limpiar
                                     </Button>
                                 )}
                             </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {movements.data.length === 0 ? (
-                            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Sin movimientos registrados con este proveedor.</p>
-                        ) : (
-                            <>
-                                {/* Mobile: card list */}
-                                <div className="divide-y md:hidden">
+
+                            {movements.data.length === 0 ? (
+                                <p className="border-t border-border/60 px-5 py-8 text-center text-sm text-muted-foreground">
+                                    Sin movimientos registrados con este proveedor.
+                                </p>
+                            ) : isWide ? (
+                                <div className="overflow-x-auto border-t border-border/60">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-border/60 text-left text-[11px] tracking-wide text-muted-foreground uppercase">
+                                                <th scope="col" className="px-5 py-3 font-medium">
+                                                    Fecha
+                                                </th>
+                                                <th scope="col" className={HEAD}>
+                                                    Tipo
+                                                </th>
+                                                <th scope="col" className={HEAD}>
+                                                    Producto
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'text-right')}>
+                                                    Cant.
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'text-right')}>
+                                                    Costo unit.
+                                                </th>
+                                                <th scope="col" className={cn(HEAD, 'pr-5')}>
+                                                    Referencia
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {movements.data.map((m) => (
+                                                <tr key={m.id} className="hover:bg-muted/40">
+                                                    <td className="px-5 py-3 whitespace-nowrap text-muted-foreground">
+                                                        {formatDate(m.movement_date)}
+                                                    </td>
+                                                    <td className="px-3 py-3">
+                                                        <MovementTypePill type={m.type} />
+                                                    </td>
+                                                    <td className="px-3 py-3">
+                                                        {m.product ? (
+                                                            <Link href={route('products.show', m.product_id)} className="hover:underline">
+                                                                {m.product.name}
+                                                            </Link>
+                                                        ) : (
+                                                            `#${m.product_id}`
+                                                        )}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right font-semibold tabular-nums">
+                                                        {signedQuantity(m.type, m.quantity)}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right tabular-nums">
+                                                        {m.unit_cost != null ? formatCurrency(Number(m.unit_cost)) : '-'}
+                                                    </td>
+                                                    <td className="px-3 py-3 pr-5">{m.reference || '-'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <ul className="divide-y divide-border/40 border-t border-border/60">
                                     {movements.data.map((m) => (
-                                        <div key={m.id} className="px-4 py-3">
+                                        <li key={m.id} className="flex flex-col gap-1.5 px-5 py-3">
                                             <div className="flex items-center justify-between gap-2">
                                                 <span className="text-xs text-muted-foreground">{formatDate(m.movement_date)}</span>
-                                                <span
-                                                    className={`rounded px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[m.type] ?? 'bg-gray-100 text-gray-800'}`}
-                                                >
-                                                    {TYPE_LABELS[m.type] ?? m.type}
-                                                </span>
+                                                <MovementTypePill type={m.type} className="px-2 py-0.5" />
                                             </div>
-                                            <p className="mt-1 font-medium">
-                                                {m.product ? (
-                                                    <Link href={route('products.show', m.product_id)} className="hover:underline">
-                                                        {m.product.name}
-                                                    </Link>
-                                                ) : (
-                                                    `#${m.product_id}`
-                                                )}
-                                            </p>
-                                            <p className="mt-0.5 text-xs text-muted-foreground">
-                                                Cant: {m.quantity}
-                                                {m.unit_cost != null && <> · Costo: {formatCurrency(Number(m.unit_cost))}</>}
-                                                {m.reference && <> · {m.reference}</>}
-                                            </p>
-                                        </div>
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <p className="min-w-0 font-medium">
+                                                    {m.product ? (
+                                                        <Link href={route('products.show', m.product_id)} className="hover:underline">
+                                                            {m.product.name}
+                                                        </Link>
+                                                    ) : (
+                                                        `#${m.product_id}`
+                                                    )}
+                                                </p>
+                                                <span className="shrink-0 font-bold tabular-nums">{signedQuantity(m.type, m.quantity)}</span>
+                                            </div>
+                                            {(m.unit_cost != null || m.reference) && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {m.unit_cost != null && <>Costo: {formatCurrency(Number(m.unit_cost))}</>}
+                                                    {m.unit_cost != null && m.reference && ' · '}
+                                                    {m.reference}
+                                                </p>
+                                            )}
+                                        </li>
                                     ))}
-                                </div>
-                                {/* Desktop: full table */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <Table columns={movementColumns} data={movements.data.map((m) => ({ ...m, actions: null }))} />
-                                </div>
-                            </>
+                                </ul>
+                            )}
+                            <PaginationFooter data={{ ...movements, resourceLabel: 'movimientos' }} />
+                        </Section>
+                    </div>
+
+                    <div className="flex flex-col gap-5">
+                        {hasContact && (
+                            <Section title="Contacto">
+                                <dl className="flex flex-col gap-4 px-5 pb-5">
+                                    {supplier.contact_name && (
+                                        <Info icon={<User className="size-4" />} label="Contacto">
+                                            {supplier.contact_name}
+                                        </Info>
+                                    )}
+                                    {supplier.phone && (
+                                        <Info icon={<Phone className="size-4" />} label="Teléfono">
+                                            {supplier.phone}
+                                        </Info>
+                                    )}
+                                    {supplier.email && (
+                                        <Info icon={<Mail className="size-4" />} label="Correo">
+                                            {supplier.email}
+                                        </Info>
+                                    )}
+                                    {supplier.address && (
+                                        <Info icon={<MapPin className="size-4" />} label="Dirección">
+                                            {supplier.address}
+                                        </Info>
+                                    )}
+                                    {supplier.branch && (
+                                        <Info icon={<span className="block size-4" />} label="Sucursal">
+                                            {supplier.branch.name}
+                                        </Info>
+                                    )}
+                                </dl>
+                            </Section>
                         )}
-                        <PaginationFooter data={{ ...movements, resourceLabel: 'movimientos' }} />
-                    </CardContent>
-                </Card>
+                        {supplier.notes && (
+                            <Section title="Notas">
+                                <p className="px-5 pb-5 text-sm whitespace-pre-wrap">{supplier.notes}</p>
+                            </Section>
+                        )}
+                    </div>
+                </div>
             </div>
             {dialog}
         </AppLayout>
