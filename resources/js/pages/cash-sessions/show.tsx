@@ -1,10 +1,14 @@
-import { Badge } from '@/components/ui/badge';
+import { SessionStatusPill, differenceText, differenceWord, formatCOP, formatDifference, formatDuration } from '@/components/cash/cash-meta';
+import { ManualMovements, SalesByMethod } from '@/components/cash/cash-sections';
+import { Section } from '@/components/sales/form-fields';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, Printer } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 interface SalesDetail {
     method: string;
@@ -20,24 +24,29 @@ interface Props {
     isBlind: boolean;
 }
 
-function formatCOP(value: number | string | null | undefined) {
-    const num = typeof value === 'string' ? parseFloat(value) : (value ?? 0);
-    if (isNaN(num as number)) return '$0';
-    return formatCurrency(num as number);
-}
-
-function formatDuration(from: string, to: string | null) {
-    if (!to) return '—';
-    const mins = Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000);
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
 const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Inicio', href: '/dashboard' },
     { title: 'Historial de Caja', href: '/cash-sessions' },
     { title: 'Arqueo', href: '#' },
 ];
+
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="min-w-0">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-sm font-medium break-words">{children}</dd>
+        </div>
+    );
+}
+
+function LedgerRow({ label, value, valueClass, strong }: { label: string; value: string; valueClass?: string; strong?: boolean }) {
+    return (
+        <div className={cn('flex justify-between gap-3 py-2.5 text-sm', strong && 'font-bold')}>
+            <span className={strong ? '' : 'text-muted-foreground'}>{label}</span>
+            <span className={cn('tabular-nums', strong ? '' : 'font-medium', valueClass)}>{value}</span>
+        </div>
+    );
+}
 
 export default function CashSessionShow({ session, movements, salesDetail, isBlind }: Props) {
     const printer = usePrinter();
@@ -65,186 +74,137 @@ export default function CashSessionShow({ session, movements, salesDetail, isBli
     const cashOut = movements.filter((m) => m.type === 'cash_out').reduce((s, m) => s + Number(m.amount), 0);
 
     const discrepancy = Number(session.discrepancy ?? 0);
-    const discrepancyColor =
-        discrepancy === 0
-            ? 'text-green-600 dark:text-green-400'
-            : discrepancy < 0
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-amber-600 dark:text-amber-400';
-
     const totalSales = salesDetail.reduce((s, r) => s + Number(r.total), 0);
+    const isOpen = session.status === 'open';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Arqueo — Turno #${session.id}`} />
 
-            <div className="mx-auto max-w-2xl space-y-4 p-4">
-                {/* Header card */}
-                <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
-                    <div className="flex items-start justify-between">
-                        <div className="space-y-0.5">
-                            <h1 className="text-lg font-bold">Turno #{session.id}</h1>
-                            {session.branch && <p className="text-sm text-muted-foreground">Sucursal: {session.branch.name}</p>}
-                            {session.opened_by && <p className="text-sm text-muted-foreground">Cajero: {session.opened_by.name}</p>}
-                            <p className="text-sm text-muted-foreground">Apertura: {formatDateTime(openedAt)}</p>
-                            {closedAt && <p className="text-sm text-muted-foreground">Cierre: {formatDateTime(closedAt)}</p>}
-                            <p className="text-sm text-muted-foreground">Duración: {formatDuration(session.opened_at, session.closed_at)}</p>
-                        </div>
-                        <Badge
-                            className={
-                                session.status === 'open'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                    : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
-                            }
-                        >
-                            {session.status === 'open' ? 'Abierta' : 'Cerrada'}
-                        </Badge>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href={route('cash-sessions.index')}
+                        aria-label="Volver al historial"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Arqueo</p>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Turno #{session.id}</h1>
                     </div>
+                    <SessionStatusPill open={isOpen} />
                 </div>
 
-                {/* Sales by method */}
-                <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                    <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                        <h2 className="font-semibold">Ventas por método de pago</h2>
+                <section className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 lg:grid-cols-5">
+                        {session.branch && <Fact label="Sucursal">{session.branch.name}</Fact>}
+                        {session.opened_by && <Fact label="Cajero">{session.opened_by.name}</Fact>}
+                        <Fact label="Apertura">{formatDateTime(openedAt)}</Fact>
+                        {closedAt && <Fact label="Cierre">{formatDateTime(closedAt)}</Fact>}
+                        <Fact label="Duración">{formatDuration(session.opened_at, session.closed_at)}</Fact>
+                    </dl>
+                </section>
+
+                {!isOpen && (
+                    <section
+                        aria-label="Resultado del cuadre"
+                        className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-5"
+                    >
+                        <div>
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Resultado del cuadre</p>
+                            <p className={cn('mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl', differenceText(discrepancy))}>
+                                {formatDifference(discrepancy)}
+                            </p>
+                        </div>
+                        <span className={cn('rounded-full bg-muted px-3 py-1.5 text-sm font-semibold', differenceText(discrepancy))}>
+                            {differenceWord(discrepancy)}
+                        </span>
+                    </section>
+                )}
+
+                <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                    <div className="flex flex-col gap-5">
+                        <SalesByMethod title="Ventas por método de pago" rows={salesDetail} isBlind={isBlind} totalLabel="Total" total={totalSales} />
+                        {movements.length > 0 && <ManualMovements movements={movements} isBlind={isBlind} detail="user" />}
                     </div>
-                    {salesDetail.length === 0 ? (
-                        <p className="px-4 py-4 text-sm text-muted-foreground">Sin ventas en este turno</p>
-                    ) : (
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-neutral-100 text-xs text-muted-foreground dark:border-neutral-800">
-                                    <th className="px-4 py-2 text-left">Método</th>
-                                    <th className="px-4 py-2 text-center"># Ventas</th>
-                                    {!isBlind && <th className="px-4 py-2 text-right">Total</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {salesDetail.map((row) => (
-                                    <tr key={row.method}>
-                                        <td className="px-4 py-2">{row.name}</td>
-                                        <td className="px-4 py-2 text-center">{row.count}</td>
-                                        {!isBlind && <td className="px-4 py-2 text-right font-semibold">{formatCOP(row.total ?? 0)}</td>}
-                                    </tr>
-                                ))}
-                                {!isBlind && (
-                                    <tr className="border-t-2 border-neutral-200 font-bold dark:border-neutral-700">
-                                        <td className="px-4 py-2">Total</td>
-                                        <td />
-                                        <td className="px-4 py-2 text-right text-green-700 dark:text-green-300">{formatCOP(totalSales)}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+
+                    {!isOpen && (
+                        <div className="flex flex-col gap-5">
+                            <Section title="Cuadre de caja">
+                                <div className="divide-y divide-border/40 px-5 pb-3">
+                                    <LedgerRow label="+ Fondo inicial" value={formatCOP(session.opening_amount)} />
+                                    <LedgerRow
+                                        label="+ Ventas en efectivo"
+                                        value={formatCOP(session.total_sales_cash)}
+                                        valueClass="text-green-700 dark:text-green-400"
+                                    />
+                                    <LedgerRow
+                                        label="+ Ingresos manuales"
+                                        value={`+${formatCOP(cashIn)}`}
+                                        valueClass="text-green-700 dark:text-green-400"
+                                    />
+                                    <LedgerRow
+                                        label="− Egresos manuales"
+                                        value={`-${formatCOP(cashOut)}`}
+                                        valueClass="text-red-600 dark:text-red-400"
+                                    />
+                                    <LedgerRow
+                                        label="− Devoluciones efectivo"
+                                        value={`-${formatCOP(session.total_refunds_cash)}`}
+                                        valueClass="text-red-600 dark:text-red-400"
+                                    />
+                                    <LedgerRow label="= Efectivo esperado" value={formatCOP(session.expected_cash)} strong />
+                                    <LedgerRow
+                                        label="Efectivo contado"
+                                        value={formatCOP(session.closing_amount_declared)}
+                                        valueClass="font-semibold"
+                                    />
+                                    <div className="flex justify-between gap-3 py-3">
+                                        <span className="font-bold">Diferencia</span>
+                                        <span className={cn('text-lg font-bold tabular-nums', differenceText(discrepancy))}>
+                                            {discrepancy > 0 ? '+' : ''}
+                                            {formatCOP(discrepancy)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {session.total_sales_card > 0 || session.total_sales_transfer > 0 || session.total_sales_other > 0 ? (
+                                    <div className="border-t border-border/60 px-5 py-4">
+                                        <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Otros métodos</p>
+                                        <div className="space-y-1.5 text-sm">
+                                            {Number(session.total_sales_card) > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Tarjeta</span>
+                                                    <span className="font-semibold tabular-nums">{formatCOP(session.total_sales_card)}</span>
+                                                </div>
+                                            )}
+                                            {Number(session.total_sales_transfer) > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Transferencia</span>
+                                                    <span className="font-semibold tabular-nums">{formatCOP(session.total_sales_transfer)}</span>
+                                                </div>
+                                            )}
+                                            {Number(session.total_sales_other) > 0 && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-muted-foreground">Otro</span>
+                                                    <span className="font-semibold tabular-nums">{formatCOP(session.total_sales_other)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </Section>
+                        </div>
                     )}
                 </div>
 
-                {/* Manual movements */}
-                {movements.length > 0 && (
-                    <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                        <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                            <h2 className="font-semibold">Movimientos manuales</h2>
-                        </div>
-                        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                            {movements.map((m) => (
-                                <div key={m.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                                    <div>
-                                        <span
-                                            className={`mr-2 rounded px-1.5 py-0.5 text-[10px] font-semibold ${m.type === 'cash_in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                                        >
-                                            {m.type === 'cash_in' ? 'INGRESO' : 'EGRESO'}
-                                        </span>
-                                        {m.concept}
-                                        {m.user && <span className="text-xs text-muted-foreground"> · {m.user.name}</span>}
-                                    </div>
-                                    {!isBlind && (
-                                        <span className={`font-semibold ${m.type === 'cash_in' ? 'text-green-700' : 'text-red-600'}`}>
-                                            {m.type === 'cash_in' ? '+' : '-'}
-                                            {formatCOP(m.amount ?? 0)}
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Cuadre de caja */}
-                {session.status === 'closed' && (
-                    <div className="rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
-                        <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                            <h2 className="font-semibold">Cuadre de caja</h2>
-                        </div>
-                        <div className="divide-y divide-neutral-100 px-4 py-2 text-sm dark:divide-neutral-800">
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">+ Fondo inicial</span>
-                                <span className="font-medium">{formatCOP(session.opening_amount)}</span>
-                            </div>
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">+ Ventas en efectivo</span>
-                                <span className="font-medium text-green-700">{formatCOP(session.total_sales_cash)}</span>
-                            </div>
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">+ Ingresos manuales</span>
-                                <span className="font-medium text-green-700">+{formatCOP(cashIn)}</span>
-                            </div>
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">− Egresos manuales</span>
-                                <span className="font-medium text-red-600">-{formatCOP(cashOut)}</span>
-                            </div>
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">− Devoluciones efectivo</span>
-                                <span className="font-medium text-red-600">-{formatCOP(session.total_refunds_cash)}</span>
-                            </div>
-                            <div className="flex justify-between py-2 font-bold">
-                                <span>= Efectivo esperado</span>
-                                <span>{formatCOP(session.expected_cash)}</span>
-                            </div>
-                            <div className="flex justify-between py-1.5">
-                                <span className="text-muted-foreground">Efectivo contado</span>
-                                <span className="font-semibold">{formatCOP(session.closing_amount_declared)}</span>
-                            </div>
-                            <div className="flex justify-between py-2">
-                                <span className="font-bold">Diferencia</span>
-                                <span className={`text-lg font-bold ${discrepancyColor}`}>
-                                    {discrepancy > 0 ? '+' : ''}
-                                    {formatCOP(discrepancy)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {session.total_sales_card > 0 || session.total_sales_transfer > 0 || session.total_sales_other > 0 ? (
-                            <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-700">
-                                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">Otros métodos</p>
-                                <div className="space-y-1 text-sm">
-                                    {Number(session.total_sales_card) > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Tarjeta</span>
-                                            <span className="font-semibold">{formatCOP(session.total_sales_card)}</span>
-                                        </div>
-                                    )}
-                                    {Number(session.total_sales_transfer) > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Transferencia</span>
-                                            <span className="font-semibold">{formatCOP(session.total_sales_transfer)}</span>
-                                        </div>
-                                    )}
-                                    {Number(session.total_sales_other) > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Otro</span>
-                                            <span className="font-semibold">{formatCOP(session.total_sales_other)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
-                )}
-
-                <div className="flex gap-2">
+                <div className="flex gap-2 sm:justify-end">
                     <button
                         type="button"
                         onClick={() => router.visit(route('cash-sessions.index'))}
-                        className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700"
+                        className="flex h-11 flex-1 items-center justify-center rounded-xl border border-border/60 px-5 text-sm font-medium hover:bg-muted sm:h-10 sm:flex-none"
                     >
                         Historial
                     </button>
@@ -253,8 +213,9 @@ export default function CashSessionShow({ session, movements, salesDetail, isBli
                             type="button"
                             onClick={handlePrint}
                             disabled={printing}
-                            className="flex-1 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+                            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-foreground px-5 text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:h-10 sm:flex-none"
                         >
+                            <Printer className="size-4" aria-hidden="true" />
                             {printing ? 'Imprimiendo...' : 'Imprimir'}
                         </button>
                     )}
