@@ -1,27 +1,17 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateField, FilterSelect, ReportFilterPanel, ReportHeader, ReportKpi, ReportTable } from '@/components/reports/report-parts';
+import { type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Award, Calendar, Download, TrendingUp, Users2 } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head } from '@inertiajs/react';
+import { Award, TrendingDown, TrendingUp, Users2 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-    {
-        title: 'Reporte de Vendedores',
-        href: '/reports/sellers',
-    },
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Reportes', href: '/reports' },
+    { title: 'Reporte de Vendedores', href: '/reports/sellers' },
 ];
 
 interface SellerPerformance {
@@ -50,29 +40,42 @@ interface SellerByBranch {
     total_amount: number;
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
-
 interface Props {
     sellersData?: {
         sellers_performance: SellerPerformance[];
         sellers_comparison: SellerComparison[];
         sellers_by_branch: SellerByBranch[];
     };
-    filters: Filters;
+    filters: ReportFilters;
     branches?: Array<{ id: number; name: string; business_name?: string }>;
     categories?: Array<{ id: number; name: string }>;
-    user?: {
-        is_admin: boolean;
-        branch_id?: number;
-        branch_name?: string;
-    };
+    user?: ReportUser;
+}
+
+const formatNumber = (num: number | null | undefined) => {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '0';
+    }
+    return new Intl.NumberFormat('es-CO').format(num);
+};
+
+function Growth({ value }: { value: number }) {
+    const Icon = value >= 0 ? TrendingUp : TrendingDown;
+
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center gap-1 font-semibold',
+                value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+            )}
+        >
+            <Icon className="size-4" aria-hidden="true" />
+            <span>
+                {value > 0 ? '+' : ''}
+                {value}%
+            </span>
+        </span>
+    );
 }
 
 export default function SellersReport({
@@ -82,75 +85,12 @@ export default function SellersReport({
     categories = [],
     user,
 }: Props) {
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const { localFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports/sellers',
+        exportBase: '/reports/sellers/export',
+        filters,
+        user,
     });
-
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        // Para usuarios no administradores, forzar el filtro de sucursal
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        router.get('/reports/sellers', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        const url = new URL(`/reports/sellers/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
-
-    const formatNumber = (num: number | null | undefined) => {
-        if (num === null || num === undefined || isNaN(num)) {
-            return '0';
-        }
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
-
-    const getGrowthIcon = (growth: number) => {
-        return growth >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingUp className="h-4 w-4 rotate-180 text-red-500" />;
-    };
-
-    const getGrowthColor = (growth: number) => {
-        return growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-    };
 
     const totalSellers = sellersData?.sellers_performance?.length ?? 0;
     const totalSales = sellersData?.sellers_performance?.reduce((sum, seller) => sum + seller.total_sales, 0) || 0;
@@ -160,328 +100,118 @@ export default function SellersReport({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Vendedores" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Reporte de Vendedores</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
-                    </div>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader
+                    title="Reporte de Vendedores"
+                    subtitle="Cuánto vende cada persona y cómo cambia frente al periodo anterior"
+                    onExport={exportReport}
+                />
+
+                <ReportFilterPanel
+                    description="Configura los filtros para el análisis de vendedores"
+                    onApply={applyFilters}
+                    activeCount={activeCount}
+                >
+                    <DateField
+                        id="date_from"
+                        label="Fecha Desde"
+                        value={dateRange.from}
+                        onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                    />
+                    <DateField id="date_to" label="Fecha Hasta" value={dateRange.to} onChange={(to) => setDateRange((prev) => ({ ...prev, to }))} />
+                    {user?.is_admin && (
+                        <FilterSelect
+                            id="branch"
+                            label="Sucursal"
+                            value={localFilters.branch_id || 'all'}
+                            onChange={(value) => setFilter('branch_id', value)}
+                            allLabel="Todas las sucursales"
+                            options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                        />
+                    )}
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                </ReportFilterPanel>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                    <ReportKpi label="Vendedores Activos" icon={<Users2 className="size-4" />} hint="Vendedores con ventas">
+                        {formatNumber(totalSellers)}
+                    </ReportKpi>
+                    <ReportKpi label="Total Ventas" icon={<TrendingUp className="size-4" />} hint="Ventas realizadas">
+                        {formatNumber(totalSales)}
+                    </ReportKpi>
+                    <ReportKpi label="Ingresos Totales" icon={<Award className="size-4" />} hint="Ingresos generados">
+                        {formatCurrency(totalRevenue)}
+                    </ReportKpi>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros</CardTitle>
-                            <CardDescription>Configura los filtros para el análisis de vendedores</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Desde
-                                    </Label>
-                                    <Input
-                                        id="date_from"
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Hasta
-                                    </Label>
-                                    <Input
-                                        id="date_to"
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                {user?.is_admin && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                            Sucursal
-                                        </Label>
-                                        <Select
-                                            value={localFilters.branch_id || 'all'}
-                                            onValueChange={(value) =>
-                                                setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                            }
-                                        >
-                                            <SelectTrigger id="branch" className="h-8 text-sm">
-                                                <SelectValue placeholder="Todas las sucursales" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Todas las sucursales</SelectItem>
-                                                {branches?.map((branch) => (
-                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                        {branch.business_name || branch.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="category" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las categorías" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las categorías</SelectItem>
-                                            {categories?.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <Section title="Rendimiento de Vendedores" description="Top vendedores por volumen de ventas">
+                    <ReportTable
+                        caption="Rendimiento de vendedores"
+                        rows={Array.isArray(sellersData?.sellers_performance) ? sellersData.sellers_performance : []}
+                        rowKey={(seller) => seller.id}
+                        columns={[
+                            { key: 'name', header: 'Vendedor', cell: (s) => s.name, mobile: 'title' },
+                            { key: 'email', header: 'Email', cell: (s) => s.email, mobile: 'subtitle' },
+                            { key: 'sales', header: 'Ventas', cell: (s) => formatNumber(s.total_sales), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (s) => formatCurrency(s.total_amount), align: 'right', mobile: 'value' },
+                            { key: 'avg', header: 'Promedio', cell: (s) => formatCurrency(s.average_sale), align: 'right', mobile: 'detail' },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Resumen */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Vendedores Activos</CardTitle>
-                                <Users2 className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(totalSellers)}</div>
-                                <p className="text-xs text-muted-foreground">Vendedores con ventas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Ventas</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(totalSales)}</div>
-                                <p className="text-xs text-muted-foreground">Ventas realizadas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                                <Award className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-                                <p className="text-xs text-muted-foreground">Ingresos generados</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                <Section title="Comparación de Períodos" description="Crecimiento de ventas vs período anterior">
+                    <ReportTable
+                        caption="Comparación de períodos"
+                        rows={Array.isArray(sellersData?.sellers_comparison) ? sellersData.sellers_comparison : []}
+                        rowKey={(seller) => seller.id}
+                        columns={[
+                            { key: 'name', header: 'Vendedor', cell: (s) => s.name, mobile: 'title' },
+                            {
+                                key: 'current',
+                                header: 'Período Actual',
+                                cell: (s) => formatNumber(s.current_period_sales),
+                                align: 'right',
+                                mobile: 'detail',
+                            },
+                            {
+                                key: 'previous',
+                                header: 'Período Anterior',
+                                cell: (s) => formatNumber(s.previous_period_sales),
+                                align: 'right',
+                                mobile: 'detail',
+                            },
+                            {
+                                key: 'growth',
+                                header: 'Crecimiento',
+                                cell: (s) => <Growth value={s.growth_percentage} />,
+                                align: 'right',
+                                mobile: 'value',
+                            },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Rendimiento de vendedores */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Rendimiento de Vendedores</CardTitle>
-                            <CardDescription>Top vendedores por volumen de ventas</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {Array.isArray(sellersData?.sellers_performance) &&
-                                    sellersData.sellers_performance.map((seller) => (
-                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium">{seller.name}</p>
-                                                <p className="truncate text-xs text-muted-foreground">{seller.email}</p>
-                                            </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="font-semibold">{formatCurrency(seller.total_amount)}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatNumber(seller.total_sales)} ventas · prom {formatCurrency(seller.average_sale)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Vendedor</th>
-                                            <th className="p-2 text-left">Email</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Promedio</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.isArray(sellersData?.sellers_performance) &&
-                                            sellersData.sellers_performance.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2 font-medium">{seller.name}</td>
-                                                    <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
-                                                    <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
-                                                    <td className="p-2 text-right font-medium">{formatCurrency(seller.total_amount)}</td>
-                                                    <td className="p-2 text-right">{formatCurrency(seller.average_sale)}</td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Comparación de períodos */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Comparación de Períodos</CardTitle>
-                            <CardDescription>Crecimiento de ventas vs período anterior</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {Array.isArray(sellersData?.sellers_comparison) &&
-                                    sellersData.sellers_comparison.map((seller) => (
-                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <p className="font-medium">{seller.name}</p>
-                                            <div className="flex-shrink-0 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    {getGrowthIcon(seller.growth_percentage)}
-                                                    <span className={`font-semibold ${getGrowthColor(seller.growth_percentage)}`}>
-                                                        {seller.growth_percentage > 0 ? '+' : ''}
-                                                        {seller.growth_percentage}%
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {formatNumber(seller.current_period_sales)} → {formatNumber(seller.previous_period_sales)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Vendedor</th>
-                                            <th className="p-2 text-right">Período Actual</th>
-                                            <th className="p-2 text-right">Período Anterior</th>
-                                            <th className="p-2 text-right">Crecimiento</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.isArray(sellersData?.sellers_comparison) &&
-                                            sellersData.sellers_comparison.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2 font-medium">{seller.name}</td>
-                                                    <td className="p-2 text-right">{formatNumber(seller.current_period_sales)}</td>
-                                                    <td className="p-2 text-right">{formatNumber(seller.previous_period_sales)}</td>
-                                                    <td className="p-2 text-right">
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            {getGrowthIcon(seller.growth_percentage)}
-                                                            <span className={getGrowthColor(seller.growth_percentage)}>
-                                                                {seller.growth_percentage > 0 ? '+' : ''}
-                                                                {seller.growth_percentage}%
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Vendedores por sucursal */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Vendedores por Sucursal</CardTitle>
-                            <CardDescription>Desglose de vendedores por sucursal</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {Array.isArray(sellersData?.sellers_by_branch) &&
-                                    sellersData.sellers_by_branch.map((seller) => (
-                                        <div key={seller.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium">{seller.name}</p>
-                                                <p className="truncate text-xs text-muted-foreground">{seller.email}</p>
-                                                <Badge variant="outline" className="mt-1 text-xs">
-                                                    {seller.branch_name}
-                                                </Badge>
-                                            </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="font-semibold">{formatCurrency(seller.total_amount)}</p>
-                                                <p className="text-xs text-muted-foreground">{formatNumber(seller.total_sales)} ventas</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Vendedor</th>
-                                            <th className="p-2 text-left">Email</th>
-                                            <th className="p-2 text-left">Sucursal</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.isArray(sellersData?.sellers_by_branch) &&
-                                            sellersData.sellers_by_branch.map((seller) => (
-                                                <tr
-                                                    key={seller.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2 font-medium">{seller.name}</td>
-                                                    <td className="p-2 text-sm text-muted-foreground">{seller.email}</td>
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{seller.branch_name}</Badge>
-                                                    </td>
-                                                    <td className="p-2 text-right">{formatNumber(seller.total_sales)}</td>
-                                                    <td className="p-2 text-right font-medium">{formatCurrency(seller.total_amount)}</td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Section title="Vendedores por Sucursal" description="Desglose de vendedores por sucursal">
+                    <ReportTable
+                        caption="Vendedores por sucursal"
+                        rows={Array.isArray(sellersData?.sellers_by_branch) ? sellersData.sellers_by_branch : []}
+                        rowKey={(seller, index) => `${seller.id}-${index}`}
+                        columns={[
+                            { key: 'name', header: 'Vendedor', cell: (s) => s.name, mobile: 'title' },
+                            { key: 'email', header: 'Email', cell: (s) => s.email, mobile: 'subtitle' },
+                            { key: 'branch', header: 'Sucursal', cell: (s) => s.branch_name, mobile: 'detail' },
+                            { key: 'sales', header: 'Ventas', cell: (s) => formatNumber(s.total_sales), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (s) => formatCurrency(s.total_amount), align: 'right', mobile: 'value' },
+                        ]}
+                    />
+                </Section>
             </div>
         </AppLayout>
     );

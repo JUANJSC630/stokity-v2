@@ -1,131 +1,65 @@
+import { DateField, FilterSelect, ReportEmpty, ReportFilterPanel, ReportHeader } from '@/components/reports/report-parts';
+import { type ReportFilters, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Calendar, Download } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-    {
-        title: 'Detalle de Ventas',
-        href: '/reports/sales-detail',
-    },
+    { title: 'Reportes', href: '/reports' },
+    { title: 'Detalle de Ventas', href: '/reports/sales-detail' },
 ];
+
+interface StatusBlock {
+    total_sales: number;
+    total_amount: number;
+    net_amount: number;
+    tax_amount: number;
+    average_sale: number;
+}
 
 interface SalesData {
     period: string;
-    completed: {
-        total_sales: number;
-        total_amount: number;
-        net_amount: number;
-        tax_amount: number;
-        average_sale: number;
-    };
-    cancelled: {
-        total_sales: number;
-        total_amount: number;
-        net_amount: number;
-        tax_amount: number;
-        average_sale: number;
-    };
-    pending: {
-        total_sales: number;
-        total_amount: number;
-        net_amount: number;
-        tax_amount: number;
-        average_sale: number;
-    };
-    credit_pending: {
-        total_sales: number;
-        total_amount: number;
-        net_amount: number;
-        tax_amount: number;
-        average_sale: number;
-    };
+    completed: StatusBlock;
+    cancelled: StatusBlock;
+    pending: StatusBlock;
+    credit_pending: StatusBlock;
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
+type Status = 'completed' | 'cancelled' | 'pending' | 'credit_pending';
+
+const STATUSES: Array<{ key: Status; label: string }> = [
+    { key: 'completed', label: 'Completadas' },
+    { key: 'cancelled', label: 'Canceladas' },
+    { key: 'pending', label: 'Pendientes' },
+    { key: 'credit_pending', label: 'Crédito Pendiente' },
+];
 
 interface Props {
     salesData: SalesData[];
-    filters: Filters;
+    filters: ReportFilters;
     branches?: Array<{ id: number; name: string; business_name?: string }>;
     categories?: Array<{ id: number; name: string }>;
     groupBy: string;
 }
 
+const formatNumber = (num: number) => new Intl.NumberFormat('es-CO').format(num);
+
+const groupLabel = (groupBy: string) => (groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : groupBy === 'month' ? 'mes' : 'año');
+
 export default function SalesDetail({ salesData = [], filters, branches = [], categories = [], groupBy }: Props) {
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const isWide = useMediaQuery('(min-width: 768px)');
+    const { localFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports/sales-detail',
+        exportBase: '/reports/sales-detail/export',
+        filters,
     });
 
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        router.get('/reports/sales-detail', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        const url = new URL(`/reports/sales-detail/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
-
-    const formatNumber = (num: number) => {
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
-
-    // Calcular totales por estado
-    const getTotalsByStatus = (status: 'completed' | 'cancelled' | 'pending' | 'credit_pending') => {
+    const getTotalsByStatus = (status: Status) => {
         return salesData.reduce(
             (acc, item) => {
                 acc.total_sales += Number(item[status]?.total_sales || 0);
@@ -140,283 +74,139 @@ export default function SalesDetail({ salesData = [], filters, branches = [], ca
         );
     };
 
-    const completedTotals = getTotalsByStatus('completed');
-    const cancelledTotals = getTotalsByStatus('cancelled');
-    const pendingTotals = getTotalsByStatus('pending');
-    const creditPendingTotals = getTotalsByStatus('credit_pending');
+    const num = (value: number | undefined) => Number(value) || 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Detalle de Ventas" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Detalle de Ventas</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
-                    </div>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader
+                    title="Detalle de Ventas"
+                    subtitle="Cada periodo con sus ventas completadas, canceladas y pendientes"
+                    onExport={exportReport}
+                />
+
+                <ReportFilterPanel description="Configura los filtros para el análisis de ventas" onApply={applyFilters} activeCount={activeCount}>
+                    <DateField
+                        id="date_from"
+                        label="Fecha Desde"
+                        value={dateRange.from}
+                        onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                    />
+                    <DateField id="date_to" label="Fecha Hasta" value={dateRange.to} onChange={(to) => setDateRange((prev) => ({ ...prev, to }))} />
+                    <FilterSelect
+                        id="branch"
+                        label="Sucursal"
+                        value={localFilters.branch_id || 'all'}
+                        onChange={(value) => setFilter('branch_id', value)}
+                        allLabel="Todas las sucursales"
+                        options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                    />
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                </ReportFilterPanel>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {STATUSES.map(({ key, label }) => {
+                        const totals = getTotalsByStatus(key);
+
+                        return (
+                            <div key={key} className="rounded-2xl border border-border/60 bg-card p-4">
+                                <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                                <p className="mt-1 text-xl font-bold tracking-tight tabular-nums sm:text-2xl">{formatNumber(totals.total_sales)}</p>
+                                <p className="text-xs text-muted-foreground">Ventas</p>
+                                <p className="mt-2 text-base font-semibold tabular-nums">{formatCurrency(totals.total_amount)}</p>
+                                <p className="text-xs text-muted-foreground">Monto total</p>
+                            </div>
+                        );
+                    })}
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros</CardTitle>
-                            <CardDescription>Configura los filtros para el análisis de ventas</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Desde
-                                    </Label>
-                                    <Input
-                                        id="date_from"
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Hasta
-                                    </Label>
-                                    <Input
-                                        id="date_to"
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Sucursal
-                                    </Label>
-                                    <Select
-                                        value={localFilters.branch_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="branch" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las sucursales" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las sucursales</SelectItem>
-                                            {branches?.map((branch) => (
-                                                <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                    {branch.business_name || branch.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="category" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las categorías" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las categorías</SelectItem>
-                                            {categories?.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Resumen por estado */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Completadas</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(completedTotals.total_sales)}</div>
-                                <div className="text-xs text-muted-foreground">Ventas</div>
-                                <div className="mt-2 text-lg font-semibold">{formatCurrency(completedTotals.total_amount)}</div>
-                                <div className="text-xs text-muted-foreground">Monto total</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Canceladas</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(cancelledTotals.total_sales)}</div>
-                                <div className="text-xs text-muted-foreground">Ventas</div>
-                                <div className="mt-2 text-lg font-semibold">{formatCurrency(cancelledTotals.total_amount)}</div>
-                                <div className="text-xs text-muted-foreground">Monto total</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(pendingTotals.total_sales)}</div>
-                                <div className="text-xs text-muted-foreground">Ventas</div>
-                                <div className="mt-2 text-lg font-semibold">{formatCurrency(pendingTotals.total_amount)}</div>
-                                <div className="text-xs text-muted-foreground">Monto total</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Crédito Pendiente</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(creditPendingTotals.total_sales)}</div>
-                                <div className="text-xs text-muted-foreground">Ventas</div>
-                                <div className="mt-2 text-lg font-semibold">{formatCurrency(creditPendingTotals.total_amount)}</div>
-                                <div className="text-xs text-muted-foreground">Monto total</div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Tabla de datos */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Detalle por Período</CardTitle>
-                            <CardDescription>
-                                Ventas desglosadas por{' '}
-                                {groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : groupBy === 'month' ? 'mes' : 'año'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {/* Mobile: simplified card list (completed only) */}
-                            <div className="divide-y md:hidden">
-                                {salesData.map((item, index) => (
-                                    <div key={index} className="py-3">
-                                        <div className="flex items-center justify-between">
-                                            <Badge variant="outline">{item.period}</Badge>
-                                            <span className="font-semibold">{formatCurrency(Number(item.completed?.total_amount) || 0)}</span>
-                                        </div>
-                                        <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
-                                            <span>{formatNumber(Number(item.completed?.total_sales) || 0)} ventas</span>
-                                            <span>Prom: {formatCurrency(Number(item.completed?.average_sale) || 0)}</span>
-                                            {(Number(item.cancelled?.total_sales) || 0) > 0 && (
-                                                <span className="text-red-500">{formatNumber(Number(item.cancelled?.total_sales) || 0)} cancel.</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop: full 15-column table */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Período</th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Completadas
+                <Section title="Detalle por Período" description={`Ventas desglosadas por ${groupLabel(groupBy)}`}>
+                    {salesData.length === 0 ? (
+                        <ReportEmpty>Sin ventas en el periodo.</ReportEmpty>
+                    ) : isWide ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm" aria-label="Detalle de ventas por período">
+                                <thead>
+                                    <tr className="border-b border-border/60 text-xs text-muted-foreground">
+                                        <th className="px-3 py-2 text-left font-medium">Período</th>
+                                        {STATUSES.map(({ key, label }) => (
+                                            <th key={key} colSpan={5} className="border-l border-border/60 px-3 py-2 text-center font-medium">
+                                                {label}
                                             </th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Canceladas
-                                            </th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Pendientes
-                                            </th>
-                                            <th className="p-2 text-center" colSpan={5}>
-                                                Crédito Pendiente
-                                            </th>
-                                        </tr>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Fecha</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto</th>
-                                            <th className="p-2 text-right">Neto</th>
-                                            <th className="p-2 text-right">Imp.</th>
-                                            <th className="p-2 text-right">Prom.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {salesData.map((item, index) => (
-                                            <tr
-                                                key={index}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{item.period}</Badge>
-                                                </td>
-                                                <td className="p-2 text-right">{formatNumber(Number(item.completed?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.completed?.total_amount) || 0)}
-                                                </td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.completed?.net_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.completed?.tax_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.completed?.average_sale) || 0)}</td>
-                                                <td className="p-2 text-right">{formatNumber(Number(item.cancelled?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.cancelled?.total_amount) || 0)}
-                                                </td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.net_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.tax_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.cancelled?.average_sale) || 0)}</td>
-                                                <td className="p-2 text-right">{formatNumber(Number(item.pending?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.pending?.total_amount) || 0)}
-                                                </td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.pending?.net_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.pending?.tax_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.pending?.average_sale) || 0)}</td>
-                                                <td className="p-2 text-right">{formatNumber(Number(item.credit_pending?.total_sales) || 0)}</td>
-                                                <td className="p-2 text-right font-medium">
-                                                    {formatCurrency(Number(item.credit_pending?.total_amount) || 0)}
-                                                </td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.net_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.tax_amount) || 0)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(Number(item.credit_pending?.average_sale) || 0)}</td>
-                                            </tr>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                                    </tr>
+                                    <tr className="border-b border-border/60 text-xs text-muted-foreground">
+                                        <th className="px-3 py-2 text-left font-medium">Fecha</th>
+                                        {STATUSES.flatMap(({ key }) =>
+                                            ['Ventas', 'Monto', 'Neto', 'Imp.', 'Prom.'].map((header, i) => (
+                                                <th
+                                                    key={`${key}-${header}`}
+                                                    className={cn('px-3 py-2 text-right font-medium', i === 0 && 'border-l border-border/60')}
+                                                >
+                                                    {header}
+                                                </th>
+                                            )),
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {salesData.map((item, index) => (
+                                        <tr key={index} className="border-b border-border/40 last:border-0 hover:bg-muted/40">
+                                            <td className="px-3 py-2">
+                                                <Badge variant="outline">{item.period}</Badge>
+                                            </td>
+                                            {STATUSES.map(({ key }) => (
+                                                <StatusCells key={key} block={item[key]} />
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-border/60 px-4">
+                            {salesData.map((item, index) => (
+                                <li key={index} className="py-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Badge variant="outline">{item.period}</Badge>
+                                        <span className="font-semibold tabular-nums">{formatCurrency(num(item.completed?.total_amount))}</span>
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+                                        <span>{formatNumber(num(item.completed?.total_sales))} ventas</span>
+                                        <span>Prom: {formatCurrency(num(item.completed?.average_sale))}</span>
+                                        {num(item.cancelled?.total_sales) > 0 && (
+                                            <span className="text-red-500">{formatNumber(num(item.cancelled?.total_sales))} cancel.</span>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Section>
             </div>
         </AppLayout>
+    );
+}
+
+function StatusCells({ block }: { block: StatusBlock | undefined }) {
+    const num = (value: number | undefined) => Number(value) || 0;
+
+    return (
+        <>
+            <td className="border-l border-border/60 px-3 py-2 text-right tabular-nums">{formatNumber(num(block?.total_sales))}</td>
+            <td className="px-3 py-2 text-right font-medium tabular-nums">{formatCurrency(num(block?.total_amount))}</td>
+            <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(num(block?.net_amount))}</td>
+            <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(num(block?.tax_amount))}</td>
+            <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(num(block?.average_sale))}</td>
+        </>
     );
 }

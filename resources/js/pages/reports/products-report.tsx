@@ -1,27 +1,17 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateField, FilterSelect, ReportEmpty, ReportFilterPanel, ReportHeader, ReportKpi, ReportTable } from '@/components/reports/report-parts';
+import { type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency as formatCurrencyShared } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { AlertTriangle, Calendar, Download, Package, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head } from '@inertiajs/react';
+import { AlertTriangle, Package, TrendingUp } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-    {
-        title: 'Reporte de Productos',
-        href: '/reports/products',
-    },
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Reportes', href: '/reports' },
+    { title: 'Reporte de Productos', href: '/reports/products' },
 ];
 
 interface TopProduct {
@@ -59,15 +49,6 @@ interface ProductPerformance {
     stock_level: number;
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
-
 interface Props {
     productsData: {
         top_products: TopProduct[];
@@ -75,14 +56,43 @@ interface Props {
         low_stock_products: LowStockProduct[];
         products_performance: ProductPerformance[];
     };
-    filters: Filters;
+    filters: ReportFilters;
     branches: Array<{ id: number; name: string; business_name?: string }>;
     categories: Array<{ id: number; name: string }>;
-    user?: {
-        is_admin: boolean;
-        branch_id?: number;
-        branch_name?: string;
-    };
+    user?: ReportUser;
+}
+
+const formatCurrency = (amount: number) => {
+    // Verificar si el valor es NaN o no es un número válido
+    if (isNaN(amount) || !isFinite(amount)) {
+        return '$ 0';
+    }
+    return formatCurrencyShared(amount);
+};
+
+const formatNumber = (num: number) => {
+    // Verificar si el valor es NaN o no es un número válido
+    if (isNaN(num) || !isFinite(num)) {
+        return '0';
+    }
+    return new Intl.NumberFormat('es-CO').format(num);
+};
+
+function CodeTag({ code }: { code: string }) {
+    return <span className="rounded-md border border-border/60 px-1.5 py-0.5 font-mono text-xs">{code}</span>;
+}
+
+function StockTag({ stock }: { stock: number }) {
+    return (
+        <span
+            className={cn(
+                'inline-flex min-w-7 items-center justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums',
+                stock === 0 ? 'bg-destructive text-white' : 'bg-muted text-foreground',
+            )}
+        >
+            {formatNumber(stock)}
+        </span>
+    );
 }
 
 export default function ProductsReport({
@@ -92,78 +102,12 @@ export default function ProductsReport({
     categories = [],
     user,
 }: Props) {
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const { localFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports/products',
+        exportBase: '/reports/products/export',
+        filters,
+        user,
     });
-
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        // Para usuarios no administradores, forzar el filtro de sucursal
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        router.get('/reports/products', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        const url = new URL(`/reports/products/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
-
-    const formatCurrency = (amount: number) => {
-        // Verificar si el valor es NaN o no es un número válido
-        if (isNaN(amount) || !isFinite(amount)) {
-            return '$ 0';
-        }
-
-        return formatCurrencyShared(amount);
-    };
-
-    const formatNumber = (num: number) => {
-        // Verificar si el valor es NaN o no es un número válido
-        if (isNaN(num) || !isFinite(num)) {
-            return '0';
-        }
-
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
 
     const totalProducts = productsData.top_products.length;
     const totalRevenue = productsData.top_products.reduce((sum, product) => {
@@ -176,316 +120,111 @@ export default function ProductsReport({
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Productos" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Reporte de Productos</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
-                    </div>
-                </div>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader
+                    title="Reporte de Productos"
+                    subtitle="Lo que más se vende, por categoría y lo que hay que reponer"
+                    onExport={exportReport}
+                />
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros</CardTitle>
-                            <CardDescription>Configura los filtros para el análisis de productos</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Desde
-                                    </Label>
-                                    <Input
-                                        id="date_from"
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Hasta
-                                    </Label>
-                                    <Input
-                                        id="date_to"
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                {user?.is_admin && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                            Sucursal
-                                        </Label>
-                                        <Select
-                                            value={localFilters.branch_id || 'all'}
-                                            onValueChange={(value) =>
-                                                setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                            }
-                                        >
-                                            <SelectTrigger id="branch" className="h-8 text-sm">
-                                                <SelectValue placeholder="Todas las sucursales" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Todas las sucursales</SelectItem>
-                                                {branches.map((branch) => (
-                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                        {branch.business_name || branch.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="category" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las categorías" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las categorías</SelectItem>
-                                            {categories.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Resumen */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Productos Vendidos</CardTitle>
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(totalProducts)}</div>
-                                <p className="text-xs text-muted-foreground">Productos con ventas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-                                <p className="text-xs text-muted-foreground">Ingresos por productos</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Bajo Stock</CardTitle>
-                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(lowStockCount)}</div>
-                                <p className="text-xs text-muted-foreground">Productos con stock bajo</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Productos más vendidos */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Productos Más Vendidos</CardTitle>
-                            <CardDescription>Top 20 productos con mayor volumen de ventas</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {productsData.top_products.map((product) => (
-                                    <div key={product.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-medium">{product.name}</p>
-                                            <p className="text-xs text-muted-foreground">{product.code}</p>
-                                        </div>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(product.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatNumber(product.total_quantity)} uds · {formatNumber(product.sales_count)} ventas
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Código</th>
-                                            <th className="p-2 text-left">Producto</th>
-                                            <th className="p-2 text-right">Cantidad</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {productsData.top_products.map((product) => (
-                                            <tr
-                                                key={product.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{product.code}</Badge>
-                                                </td>
-                                                <td className="p-2 font-medium">{product.name}</td>
-                                                <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(product.total_amount)}</td>
-                                                <td className="p-2 text-right">{formatNumber(product.sales_count)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Productos por categoría */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ventas por Categoría</CardTitle>
-                            <CardDescription>Desglose de ventas por categoría de productos</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {productsData.products_by_category.map((category) => (
-                                    <div key={category.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                        <p className="font-medium">{category.name}</p>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(category.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatNumber(category.total_quantity)} uds · {formatNumber(category.unique_products)} productos
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Categoría</th>
-                                            <th className="p-2 text-right">Cantidad</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Productos Únicos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {productsData.products_by_category.map((category) => (
-                                            <tr
-                                                key={category.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2 font-medium">{category.name}</td>
-                                                <td className="p-2 text-right">{formatNumber(category.total_quantity)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(category.total_amount)}</td>
-                                                <td className="p-2 text-right">{formatNumber(category.unique_products)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Productos con bajo stock */}
-                    {productsData.low_stock_products.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <AlertTriangle className="h-5 w-5 text-orange-500" />
-                                    Productos con Bajo Stock
-                                </CardTitle>
-                                <CardDescription>Productos que requieren reabastecimiento</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {/* Mobile */}
-                                <div className="divide-y md:hidden">
-                                    {productsData.low_stock_products.map((product) => (
-                                        <div key={product.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium">{product.name}</p>
-                                                <p className="text-xs text-muted-foreground">{product.code}</p>
-                                            </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>
-                                                    {formatNumber(product.stock)}
-                                                </Badge>
-                                                <p className="mt-0.5 text-xs text-muted-foreground">mín {formatNumber(product.min_stock)}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Desktop */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                                <th className="p-2 text-left">Código</th>
-                                                <th className="p-2 text-left">Producto</th>
-                                                <th className="p-2 text-right">Stock Actual</th>
-                                                <th className="p-2 text-right">Stock Mínimo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {productsData.low_stock_products.map((product) => (
-                                                <tr
-                                                    key={product.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{product.code}</Badge>
-                                                    </td>
-                                                    <td className="p-2 font-medium">{product.name}</td>
-                                                    <td className="p-2 text-right">
-                                                        <Badge variant={product.stock === 0 ? 'destructive' : 'secondary'}>
-                                                            {formatNumber(product.stock)}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="p-2 text-right">{formatNumber(product.min_stock)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
+                <ReportFilterPanel description="Configura los filtros para el análisis de productos" onApply={applyFilters} activeCount={activeCount}>
+                    <DateField
+                        id="date_from"
+                        label="Fecha Desde"
+                        value={dateRange.from}
+                        onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                    />
+                    <DateField id="date_to" label="Fecha Hasta" value={dateRange.to} onChange={(to) => setDateRange((prev) => ({ ...prev, to }))} />
+                    {user?.is_admin && (
+                        <FilterSelect
+                            id="branch"
+                            label="Sucursal"
+                            value={localFilters.branch_id || 'all'}
+                            onChange={(value) => setFilter('branch_id', value)}
+                            allLabel="Todas las sucursales"
+                            options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                        />
                     )}
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                </ReportFilterPanel>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                    <ReportKpi label="Productos Vendidos" icon={<Package className="size-4" />} hint="Productos con ventas">
+                        {formatNumber(totalProducts)}
+                    </ReportKpi>
+                    <ReportKpi label="Ingresos Totales" icon={<TrendingUp className="size-4" />} hint="Ingresos por productos">
+                        {formatCurrency(totalRevenue)}
+                    </ReportKpi>
+                    <ReportKpi
+                        label="Bajo Stock"
+                        icon={<AlertTriangle className="size-4" />}
+                        hint="Productos con stock bajo"
+                        tone={lowStockCount > 0 ? 'text-orange-600 dark:text-orange-400' : undefined}
+                    >
+                        {formatNumber(lowStockCount)}
+                    </ReportKpi>
                 </div>
+
+                <Section title="Productos Más Vendidos" description="Top 20 productos con mayor volumen de ventas">
+                    <ReportTable
+                        caption="Productos más vendidos"
+                        rows={productsData.top_products}
+                        rowKey={(product) => product.id}
+                        columns={[
+                            { key: 'code', header: 'Código', cell: (p) => <CodeTag code={p.code} />, mobile: 'subtitle' },
+                            { key: 'name', header: 'Producto', cell: (p) => p.name, mobile: 'title' },
+                            { key: 'qty', header: 'Cantidad', cell: (p) => formatNumber(p.total_quantity), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (p) => formatCurrency(p.total_amount), align: 'right', mobile: 'value' },
+                            { key: 'sales', header: 'Ventas', cell: (p) => formatNumber(p.sales_count), align: 'right', mobile: 'detail' },
+                        ]}
+                    />
+                </Section>
+
+                <Section title="Ventas por Categoría" description="Desglose de ventas por categoría de productos">
+                    <ReportTable
+                        caption="Ventas por categoría"
+                        rows={productsData.products_by_category}
+                        rowKey={(category) => category.id}
+                        columns={[
+                            { key: 'name', header: 'Categoría', cell: (c) => c.name, mobile: 'title' },
+                            { key: 'qty', header: 'Cantidad', cell: (c) => formatNumber(c.total_quantity), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (c) => formatCurrency(c.total_amount), align: 'right', mobile: 'value' },
+                            {
+                                key: 'unique',
+                                header: 'Productos Únicos',
+                                cell: (c) => formatNumber(c.unique_products),
+                                align: 'right',
+                                mobile: 'detail',
+                            },
+                        ]}
+                    />
+                </Section>
+
+                {productsData.low_stock_products.length > 0 && (
+                    <Section title="Productos con Bajo Stock" description="Productos que requieren reabastecimiento">
+                        <ReportTable
+                            caption="Productos con bajo stock"
+                            rows={productsData.low_stock_products}
+                            rowKey={(product) => product.id}
+                            columns={[
+                                { key: 'code', header: 'Código', cell: (p) => <CodeTag code={p.code} />, mobile: 'subtitle' },
+                                { key: 'name', header: 'Producto', cell: (p) => p.name, mobile: 'title' },
+                                { key: 'stock', header: 'Stock Actual', cell: (p) => <StockTag stock={p.stock} />, align: 'right', mobile: 'value' },
+                                { key: 'min', header: 'Stock Mínimo', cell: (p) => formatNumber(p.min_stock), align: 'right', mobile: 'detail' },
+                            ]}
+                        />
+                    </Section>
+                )}
+                {productsData.top_products.length === 0 && productsData.products_by_category.length === 0 && (
+                    <ReportEmpty>Sin ventas en el periodo.</ReportEmpty>
+                )}
             </div>
         </AppLayout>
     );

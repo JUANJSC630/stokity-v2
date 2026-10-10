@@ -21,6 +21,7 @@ vi.mock('@inertiajs/react', () => ({
 }));
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/hooks/use-polling', () => ({ usePolling: vi.fn() }));
+const env = vi.hoisted(() => ({ wide: true }));
 vi.mock('@/lib/download', () => ({ downloadFile: vi.fn() }));
 vi.mock('react-hot-toast', () => ({ default: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/components/ui/select', () => ({
@@ -56,11 +57,23 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     vi.mocked(downloadFile).mockResolvedValue(undefined);
 });
 
@@ -291,13 +304,13 @@ describe('Reports dashboard', () => {
             sales_summary: { ...dashboard.sales_summary, growth: { sales_count: value, total_amount: 0 } },
         });
         const { unmount } = renderDashboard();
-        expect(screen.getByText('+25%').className).toContain('text-green-600');
+        expect(screen.getByText('+25%').closest('p')!.className).toContain('text-green-600');
         unmount();
         const { unmount: second } = renderDashboard(withGrowth(-10));
-        expect(screen.getByText('-10%').className).toContain('text-red-600');
+        expect(screen.getByText('-10%').closest('p')!.className).toContain('text-red-600');
         second();
         renderDashboard(withGrowth(0));
-        expect(screen.getByText('0%').className).toContain('text-neutral-600');
+        expect(screen.getByText('0%').closest('p')!.className).toContain('text-neutral-600');
     });
 
     it('summarizes the top 5 products and the returns in the first tab', () => {
@@ -416,7 +429,16 @@ describe('Sales detail report', () => {
         const rows = within(screen.getByRole('table')).getAllByRole('row');
         expect(text(rows[2])).toContain('2026-10-01');
         expect(text(rows[2])).toContain('$ 4.000.000');
+        expect(screen.queryByText('2 cancel.')).toBeNull();
+    });
+
+    it('swaps the 21-column table for a short card per period on a phone', () => {
+        env.wide = false;
+        renderDetail();
+
+        expect(screen.queryByRole('table')).toBeNull();
         expect(screen.getAllByText('2 cancel.').length).toBe(1);
+        expect(text(document.body)).toContain('$ 4.000.000');
     });
 });
 
@@ -690,7 +712,7 @@ describe('Cash balance report', () => {
     it('shows each branch with its payment methods, and the net cash only when it took cash', () => {
         renderBalance();
 
-        const [centro, norte] = screen.getAllByRole('table').map((table) => table.closest('[data-slot="card"]') as HTMLElement);
+        const [centro, norte] = screen.getAllByRole('table').map((table) => table.closest('section') as HTMLElement);
         expect(text(centro)).toContain('Efectivo');
         expect(text(centro)).toContain('Nequi');
         expect(text(centro)).toContain('Cobrado − cambio entregado');
@@ -702,8 +724,8 @@ describe('Cash balance report', () => {
     it('says how many returns each branch registered, in the plural and the singular', () => {
         renderBalance();
 
-        // Finding: the plural is written "devoluciónes" (the accent stays); the redesign spells it "devoluciones".
-        expect(text(document.body)).toContain('2 devoluciónes registradas');
+        // Finding fixed by the redesign: the plural used to read "devoluciónes".
+        expect(text(document.body)).toContain('2 devoluciones registradas');
         expect(text(document.body)).toContain('1 devolución registrada');
     });
 
