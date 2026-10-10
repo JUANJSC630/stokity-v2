@@ -1,12 +1,11 @@
 import { DeleteWithReasonDialog } from '@/components/common/DeleteWithReasonDialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ExpenseCategoryDialog } from '@/components/finance/expense-category-dialog';
+import { colorHex } from '@/components/finance/expense-colors';
+import { Section } from '@/components/sales/form-fields';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type ExpenseCategory } from '@/types';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -21,122 +20,12 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Categorías', href: '/expense-categories' },
 ];
 
-// ─── Color palette ─────────────────────────────────────────────────────────────
-
-const COLOR_OPTIONS: { label: string; value: string; hex: string }[] = [
-    { label: 'Azul', value: 'blue', hex: '#3b82f6' },
-    { label: 'Morado', value: 'purple', hex: '#a855f7' },
-    { label: 'Amarillo', value: 'yellow', hex: '#eab308' },
-    { label: 'Cyan', value: 'cyan', hex: '#06b6d4' },
-    { label: 'Rosa', value: 'pink', hex: '#ec4899' },
-    { label: 'Naranja', value: 'orange', hex: '#f97316' },
-    { label: 'Gris', value: 'gray', hex: '#6b7280' },
-    { label: 'Rojo', value: 'red', hex: '#ef4444' },
-    { label: 'Verde', value: 'green', hex: '#22c55e' },
-    { label: 'Índigo', value: 'indigo', hex: '#6366f1' },
-    { label: 'Pizarra', value: 'slate', hex: '#64748b' },
-    { label: 'Lima', value: 'lime', hex: '#84cc16' },
-];
-
-function colorHex(color: string | null): string {
-    return COLOR_OPTIONS.find((c) => c.value === color)?.hex ?? '#94a3b8';
+function Dot({ color }: { color: string | null }) {
+    return <span aria-hidden="true" className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: colorHex(color) }} />;
 }
-
-// ─── CategoryModal ─────────────────────────────────────────────────────────────
-
-interface CategoryModalProps {
-    open: boolean;
-    onClose: () => void;
-    category?: ExpenseCategory;
-}
-
-function CategoryModal({ open, onClose, category }: CategoryModalProps) {
-    const isEdit = Boolean(category);
-    const { errors } = usePage().props as { errors: Record<string, string> };
-
-    const { data, setData, post, put, processing, reset } = useForm({
-        name: category?.name ?? '',
-        color: category?.color ?? 'blue',
-    });
-
-    const handleClose = () => {
-        reset();
-        onClose();
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isEdit && category) {
-            put(`/expense-categories/${category.id}`, {
-                onSuccess: () => {
-                    toast.success('Categoría actualizada.');
-                    handleClose();
-                },
-                preserveScroll: true,
-            });
-        } else {
-            post('/expense-categories', {
-                onSuccess: () => {
-                    toast.success('Categoría creada.');
-                    handleClose();
-                },
-                preserveScroll: true,
-            });
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-            <DialogContent className="max-w-sm">
-                <DialogHeader>
-                    <DialogTitle>{isEdit ? 'Editar categoría' : 'Nueva categoría'}</DialogTitle>
-                </DialogHeader>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1.5">
-                        <Label>Nombre</Label>
-                        <Input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="Ej: Publicidad" autoFocus />
-                        {errors.name && <p className="text-xs text-red-600">{errors.name}</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Color</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {COLOR_OPTIONS.map((c) => (
-                                <button
-                                    key={c.value}
-                                    type="button"
-                                    title={c.label}
-                                    onClick={() => setData('color', c.value)}
-                                    className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${
-                                        data.color === c.value ? 'scale-110 border-neutral-900 dark:border-white' : 'border-transparent'
-                                    }`}
-                                    style={{ backgroundColor: c.hex }}
-                                />
-                            ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Seleccionado: <strong>{COLOR_OPTIONS.find((c) => c.value === data.color)?.label ?? '—'}</strong>
-                        </p>
-                    </div>
-
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose} disabled={processing}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ExpenseCategoriesIndex({ categories }: Props) {
+    const onBrand = useOnBrandColor();
     const [showCreate, setShowCreate] = useState(false);
     const [editCategory, setEditCategory] = useState<ExpenseCategory | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<ExpenseCategory | null>(null);
@@ -179,96 +68,91 @@ export default function ExpenseCategoriesIndex({ categories }: Props) {
                 onClose={() => setDeleteTarget(null)}
             />
 
-            <CategoryModal open={showCreate} onClose={() => setShowCreate(false)} />
+            <ExpenseCategoryDialog open={showCreate} onClose={() => setShowCreate(false)} />
 
-            {editCategory && <CategoryModal open={Boolean(editCategory)} onClose={() => setEditCategory(null)} category={editCategory} />}
+            {editCategory && <ExpenseCategoryDialog open={Boolean(editCategory)} onClose={() => setEditCategory(null)} category={editCategory} />}
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold">Categorías de gastos</h1>
-                        <p className="mt-0.5 text-sm text-muted-foreground">Organiza tus gastos con categorías personalizadas</p>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Categorías de gastos</h1>
+                        <p className="text-sm text-muted-foreground">Organiza tus gastos con categorías personalizadas</p>
                     </div>
-                    <Button onClick={() => setShowCreate(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
+                    <button
+                        type="button"
+                        onClick={() => setShowCreate(true)}
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
                         Nueva categoría
-                    </Button>
+                    </button>
                 </div>
 
-                {/* Custom categories */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Categorías personalizadas ({customCategories.length})</CardTitle>
-                        <CardDescription>Creadas por ti. Puedes editarlas o eliminarlas.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {customCategories.length === 0 ? (
-                            <div className="py-10 text-center">
-                                <p className="text-sm text-muted-foreground">No hay categorías personalizadas aún.</p>
-                                <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowCreate(true)}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Crear la primera
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                                {customCategories.map((cat) => (
-                                    <div key={cat.id} className="flex items-center justify-between py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: colorHex(cat.color) }} />
-                                            <span className="text-sm font-medium">{cat.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                aria-label="Editar"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={() => setEditCategory(cat)}
-                                                title="Editar"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                aria-label="Eliminar"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-red-600 hover:text-red-700"
-                                                onClick={() => setDeleteTarget(cat)}
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* System categories */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                            Categorías del sistema ({systemCategories.length})
-                        </CardTitle>
-                        <CardDescription>Predefinidas por el sistema. No se pueden modificar ni eliminar.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                            {systemCategories.map((cat) => (
-                                <div key={cat.id} className="flex items-center gap-3 py-3">
-                                    <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ backgroundColor: colorHex(cat.color) }} />
-                                    <span className="text-sm text-muted-foreground">{cat.name}</span>
-                                    <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground/50" />
-                                </div>
-                            ))}
+                <Section
+                    title={`Categorías personalizadas (${customCategories.length})`}
+                    description="Creadas por ti. Puedes editarlas o eliminarlas."
+                >
+                    {customCategories.length === 0 ? (
+                        <div className="flex flex-col items-center gap-3 px-5 pb-8 text-center">
+                            <p className="text-sm text-muted-foreground">No hay categorías personalizadas aún.</p>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreate(true)}
+                                className="flex h-11 items-center gap-2 rounded-xl border border-border/60 px-4 text-sm font-medium hover:bg-muted sm:h-9"
+                            >
+                                <Plus className="size-4" aria-hidden="true" />
+                                Crear la primera
+                            </button>
                         </div>
-                    </CardContent>
-                </Card>
+                    ) : (
+                        <ul className="divide-y divide-border/40 border-t border-border/60">
+                            {customCategories.map((cat) => (
+                                <li key={cat.id} className="flex items-center justify-between gap-3 px-5 py-2">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <Dot color={cat.color} />
+                                        <span className="truncate text-sm font-medium">{cat.name}</span>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <button
+                                            type="button"
+                                            aria-label="Editar"
+                                            title="Editar"
+                                            onClick={() => setEditCategory(cat)}
+                                            className="flex size-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground sm:size-9"
+                                        >
+                                            <Pencil className="size-4" aria-hidden="true" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            aria-label="Eliminar"
+                                            title="Eliminar"
+                                            onClick={() => setDeleteTarget(cat)}
+                                            className="flex size-11 items-center justify-center rounded-lg text-red-600 hover:bg-red-50 sm:size-9 dark:hover:bg-red-950/40"
+                                        >
+                                            <Trash2 className="size-4" aria-hidden="true" />
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Section>
+
+                <Section
+                    title={`Categorías del sistema (${systemCategories.length})`}
+                    description="Predefinidas por el sistema. No se pueden modificar ni eliminar."
+                >
+                    <ul className="divide-y divide-border/40 border-t border-border/60">
+                        {systemCategories.map((cat) => (
+                            <li key={cat.id} className="flex items-center gap-3 px-5 py-3.5">
+                                <Dot color={cat.color} />
+                                <span className="text-sm text-muted-foreground">{cat.name}</span>
+                                <Lock className="ml-auto size-3.5 text-muted-foreground/50" aria-hidden="true" />
+                            </li>
+                        ))}
+                    </ul>
+                </Section>
             </div>
         </AppLayout>
     );

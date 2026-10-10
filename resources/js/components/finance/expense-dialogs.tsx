@@ -1,7 +1,7 @@
 import { INPUT_CLASS, LabeledField, SELECT_TRIGGER } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { cn } from '@/lib/utils';
@@ -78,6 +78,7 @@ export function RegisterMonthlyExpensesDialog({
             <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Gastos fijos de {currentMonth}</DialogTitle>
+                    <DialogDescription>Confirma o ajusta los montos antes de registrar</DialogDescription>
                 </DialogHeader>
 
                 <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
@@ -141,6 +142,8 @@ export function ExpenseFormDialog({
     branches,
     userBranchId,
     expense,
+    showNotes = false,
+    editLabel = 'Guardar',
 }: {
     open: boolean;
     onClose: () => void;
@@ -148,6 +151,9 @@ export function ExpenseFormDialog({
     branches: Array<{ id: number; name: string }>;
     userBranchId: number | null;
     expense?: Expense;
+    /** The full ledger also asks for a free note; the dashboard does not. */
+    showNotes?: boolean;
+    editLabel?: string;
 }) {
     const onBrand = useOnBrandColor();
     const isEdit = Boolean(expense);
@@ -184,7 +190,7 @@ export function ExpenseFormDialog({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <LabeledField id="expense-category" label="Categoría">
+                    <LabeledField id="expense-category" label="Categoría" error={errors.expense_category_id}>
                         <Select value={data.expense_category_id} onValueChange={(v) => setData('expense_category_id', v)}>
                             <SelectTrigger id="expense-category" className={SELECT_TRIGGER}>
                                 <SelectValue placeholder="Sin categoría" />
@@ -203,7 +209,7 @@ export function ExpenseFormDialog({
                         </Select>
                     </LabeledField>
 
-                    <LabeledField id="expense-description" label="Descripción">
+                    <LabeledField id="expense-description" label="Descripción" error={errors.description}>
                         <input
                             id="expense-description"
                             value={data.description}
@@ -226,7 +232,7 @@ export function ExpenseFormDialog({
                         </div>
                     </LabeledField>
 
-                    <LabeledField id="expense-date" label="Fecha">
+                    <LabeledField id="expense-date" label="Fecha" error={errors.expense_date}>
                         <input
                             id="expense-date"
                             type="date"
@@ -253,6 +259,19 @@ export function ExpenseFormDialog({
                         </LabeledField>
                     )}
 
+                    {showNotes && (
+                        <LabeledField id="expense-notes" label="Notas (opcional)">
+                            <textarea
+                                id="expense-notes"
+                                value={data.notes}
+                                onChange={(e) => setData('notes', e.target.value)}
+                                rows={2}
+                                placeholder="Observaciones adicionales..."
+                                className="w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-base text-black focus:ring-2 focus:ring-[var(--brand-primary)] focus:outline-none sm:text-sm dark:bg-neutral-800 dark:text-neutral-100"
+                            />
+                        </LabeledField>
+                    )}
+
                     <DialogFooter className="gap-2 sm:gap-2">
                         <Button type="button" variant="outline" onClick={handleClose} disabled={processing} className="h-11 sm:h-10">
                             Cancelar
@@ -263,7 +282,7 @@ export function ExpenseFormDialog({
                             className="flex h-11 items-center justify-center rounded-md bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:h-10"
                             style={{ color: onBrand.hex }}
                         >
-                            {processing ? 'Guardando...' : isEdit ? 'Guardar' : 'Registrar'}
+                            {processing ? 'Guardando...' : isEdit ? editLabel : 'Registrar'}
                         </button>
                     </DialogFooter>
                 </form>

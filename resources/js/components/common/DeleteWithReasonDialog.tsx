@@ -54,15 +54,15 @@ export function DeleteWithReasonDialog({
                         rows={2}
                         maxLength={500}
                         placeholder="¿Por qué se elimina?"
-                        className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                        className="flex min-h-[60px] w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-base text-black shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] sm:text-sm dark:bg-neutral-800 dark:text-neutral-100"
                     />
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={handleClose} disabled={processing}>
+                <DialogFooter className="gap-2 sm:gap-2">
+                    <Button variant="outline" onClick={handleClose} disabled={processing} className="h-11 sm:h-10">
                         Cancelar
                     </Button>
-                    <Button variant="destructive" onClick={handleConfirm} disabled={processing}>
+                    <Button variant="destructive" onClick={handleConfirm} disabled={processing} className="h-11 sm:h-10">
                         {processing ? 'Eliminando...' : confirmLabel}
                     </Button>
                 </DialogFooter>
