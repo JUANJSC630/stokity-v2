@@ -7,6 +7,7 @@ import { type Expense } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Pencil, Trash2 } from 'lucide-react';
+import { colorHex } from './expense-colors';
 
 export type PeriodOption = 'this_week' | 'this_month' | 'last_month' | 'this_year' | 'custom';
 
@@ -17,8 +18,6 @@ export const PERIOD_LABELS: Record<PeriodOption, string> = {
     this_year: 'Este año',
     custom: 'Personalizado',
 };
-
-const DEFAULT_COLOR = '#94a3b8';
 
 /** Periods as chips that scroll sideways on a phone, instead of a dropdown that hides the choices. */
 export function PeriodChips({ value, onChange }: { value: PeriodOption; onChange: (period: PeriodOption) => void }) {
@@ -53,7 +52,7 @@ export function ColorDot({ color, className }: { color: string | null | undefine
         <span
             aria-hidden="true"
             className={cn('inline-block size-2.5 shrink-0 rounded-full', className)}
-            style={{ backgroundColor: color ?? DEFAULT_COLOR }}
+            style={{ backgroundColor: colorHex(color) }}
         />
     );
 }
@@ -106,13 +105,31 @@ interface ExpenseRowsProps {
     expenses: Expense[];
     onEdit: (expense: Expense) => void;
     onDelete: (expense: Expense) => void;
+    /** The full expense ledger: complete date and where the expense came from (fixed or one-off). */
+    detailed?: boolean;
+}
+
+/** Where an expense came from: a monthly fixed expense or one registered by hand. */
+export function OriginPill({ recurring, className }: { recurring: boolean; className?: string }) {
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+                recurring ? 'bg-muted text-muted-foreground' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+                className,
+            )}
+        >
+            {recurring ? 'Recurrente' : 'Puntual'}
+        </span>
+    );
 }
 
 const titleOf = (expense: Expense): string => expense.description || expense.category?.name || 'Sin descripción';
-const dayOf = (expense: Expense): string => format(new Date(expense.expense_date), 'dd MMM', { locale: es });
+const dayOf = (expense: Expense, detailed = false): string =>
+    format(new Date(expense.expense_date), detailed ? 'dd/MM/yyyy' : 'dd MMM', { locale: es });
 
 /** Phones: a row per expense; swipe (or the row menu) to edit or delete. */
-export function ExpenseCards({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
+export function ExpenseCards({ expenses, onEdit, onDelete, detailed = false }: ExpenseRowsProps) {
     return (
         <SwipeActions label={`${expenses.length} gasto(s)`}>
             {expenses.map((expense, index) => (
@@ -131,9 +148,10 @@ export function ExpenseCards({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-[15px] font-semibold">{titleOf(expense)}</p>
                                 <p className="truncate text-xs text-muted-foreground">
-                                    {dayOf(expense)}
+                                    {dayOf(expense, detailed)}
                                     {expense.category && ` · ${expense.category.name}`}
                                 </p>
+                                {detailed && <OriginPill recurring={Boolean(expense.template)} className="mt-1" />}
                             </div>
                             <span className="shrink-0 text-[15px] font-bold tabular-nums">{formatCurrency(expense.amount)}</span>
                         </div>
@@ -145,7 +163,7 @@ export function ExpenseCards({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
 }
 
 /** Desktop: the expenses of the period as a table with the actions at the end of each row. */
-export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
+export function ExpenseTable({ expenses, onEdit, onDelete, detailed = false }: ExpenseRowsProps) {
     return (
         <table className="w-full text-sm">
             <caption className="sr-only">Gastos del periodo</caption>
@@ -163,6 +181,11 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
                     <th scope="col" className="px-3 py-3 text-right font-medium">
                         Monto
                     </th>
+                    {detailed && (
+                        <th scope="col" className="px-3 py-3 font-medium">
+                            Origen
+                        </th>
+                    )}
                     <th scope="col" className="w-24 px-6 py-3">
                         <span className="sr-only">Acciones</span>
                     </th>
@@ -171,7 +194,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
             <tbody className="divide-y divide-border/40">
                 {expenses.map((expense) => (
                     <tr key={expense.id} className="group transition-colors hover:bg-muted/40">
-                        <td className="px-6 py-3 whitespace-nowrap text-muted-foreground">{dayOf(expense)}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-muted-foreground">{dayOf(expense, detailed)}</td>
                         <td className="max-w-xs px-3 py-3 font-medium">
                             <span className="line-clamp-1">{titleOf(expense)}</span>
                         </td>
@@ -186,6 +209,11 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
                             )}
                         </td>
                         <td className="px-3 py-3 text-right font-semibold tabular-nums">{formatCurrency(expense.amount)}</td>
+                        {detailed && (
+                            <td className="px-3 py-3">
+                                <OriginPill recurring={Boolean(expense.template)} />
+                            </td>
+                        )}
                         <td className="px-6 py-3">
                             <div className="flex justify-end gap-1 opacity-60 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
                                 <button
@@ -210,5 +238,26 @@ export function ExpenseTable({ expenses, onEdit, onDelete }: ExpenseRowsProps) {
                 ))}
             </tbody>
         </table>
+    );
+}
+
+type DueStatus = 'registered' | 'overdue' | 'due_soon' | 'inactive' | 'pending' | undefined;
+
+const DUE: Record<string, { label: string; tone: string }> = {
+    registered: { label: 'Registrado', tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' },
+    overdue: { label: 'Vencido', tone: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300' },
+    due_soon: { label: 'Vence pronto', tone: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' },
+    inactive: { label: 'Pausada', tone: 'bg-muted text-muted-foreground' },
+    pending: { label: 'Pendiente', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300' },
+};
+
+/** Where a fixed expense stands this month. Anything the server does not name counts as pending. */
+export function DueStatusPill({ status, className }: { status: DueStatus; className?: string }) {
+    const { label, tone } = DUE[status ?? 'pending'] ?? DUE.pending;
+
+    return (
+        <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap', tone, className)}>
+            {label}
+        </span>
     );
 }

@@ -9,6 +9,7 @@ import ExpensesIndex from '../index';
 import ExpenseTemplates from '../templates';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     post: vi.fn(),
     put: vi.fn(),
     errors: {} as Record<string, string>,
@@ -109,10 +110,22 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.errors = {};
     env.pageErrors = {};
 });
@@ -189,7 +202,20 @@ describe('Expenses list', () => {
         expect(screen.getByRole('button', { name: 'Registrar ahora' })).toBeInTheDocument();
     });
 
-    it('keeps the filters folded until there is an active one, and counts them', () => {
+    it('lists swipeable rows on phones with the full date, the origin and the amount', () => {
+        env.wide = false;
+        renderIndex([expense(1), expense(2, { template: template(1), description: 'Internet' })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 gasto(s)' });
+        expect(text(list)).toContain('05/10/2026 · Arriendo');
+        expect(text(list)).toContain('Puntual');
+        expect(text(list)).toContain('Recurrente');
+        expect(text(list)).toContain('$ 800.000');
+    });
+
+    it('keeps the filters folded on phones until there is an active one, and counts them', () => {
+        env.wide = false;
         const { unmount } = renderIndex([expense(1)]);
         expect(screen.queryByText('Fecha desde')).not.toBeInTheDocument();
         fireEvent.click(screen.getByText('Filtros'));
@@ -279,10 +305,20 @@ describe('Expenses list', () => {
         fireEvent.click(within(dialog).getAllByLabelText('No aplica')[1]);
         fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar gastos' }));
 
-        // Finding: this page posts to '/expenses/batch', which has no route; the finances dashboard posts the same list to '/expenses'.
+        // Fixed in the redesign: this page used to post to '/expenses/batch' (no such route); it now posts the list to '/expenses' like the dashboard.
         expect(router.post).toHaveBeenCalledWith(
-            '/expenses/batch',
-            { expenses: [{ template_id: 1, amount: 120000 }] },
+            '/expenses',
+            {
+                expenses: [
+                    {
+                        expense_template_id: 1,
+                        branch_id: 1,
+                        expense_category_id: 2,
+                        amount: 120000,
+                        expense_date: new Date().toISOString().slice(0, 10),
+                    },
+                ],
+            },
             expect.objectContaining({ preserveScroll: true }),
         );
     });

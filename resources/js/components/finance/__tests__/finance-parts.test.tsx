@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { ExpenseCards, ExpenseTable, PeriodChips, ProfitSplit } from '../finance-parts';
+import { colorHex } from '../expense-colors';
+import { DueStatusPill, ExpenseCards, ExpenseTable, OriginPill, PeriodChips, ProfitSplit } from '../finance-parts';
 
 const text = (node: HTMLElement) => (node.textContent ?? '').replace(/\s/g, ' ');
 
@@ -90,5 +91,54 @@ describe('expense rows', () => {
         const list = screen.getByRole('list', { name: '1 gasto(s)' });
         expect(text(list)).toContain('Arriendo');
         expect(text(list)).toContain('05 oct · Arriendo');
+    });
+});
+
+describe('detailed expense rows', () => {
+    it('shows the full date and the origin of each expense in the table', () => {
+        render(<ExpenseTable expenses={[expense(1), expense(2, { template: { id: 3 } })]} onEdit={vi.fn()} onDelete={vi.fn()} detailed />);
+
+        const rows = within(screen.getByRole('table')).getAllByRole('row');
+        expect(text(rows[0])).toContain('Origen');
+        expect(text(rows[1])).toContain('05/10/2026');
+        expect(text(rows[1])).toContain('Puntual');
+        expect(text(rows[2])).toContain('Recurrente');
+    });
+
+    it('does the same on phone cards', () => {
+        render(<ExpenseCards expenses={[expense(1, { template: { id: 3 } })]} onEdit={vi.fn()} onDelete={vi.fn()} detailed />);
+
+        expect(text(screen.getByRole('list'))).toContain('05/10/2026 · Arriendo');
+        expect(screen.getByText('Recurrente')).toBeInTheDocument();
+    });
+
+    it('names the origin of an expense', () => {
+        const { rerender } = render(<OriginPill recurring />);
+        expect(screen.getByText('Recurrente')).toBeInTheDocument();
+        rerender(<OriginPill recurring={false} />);
+        expect(screen.getByText('Puntual')).toBeInTheDocument();
+    });
+});
+
+describe('due status and colors', () => {
+    it.each([
+        ['registered', 'Registrado'],
+        ['overdue', 'Vencido'],
+        ['due_soon', 'Vence pronto'],
+        ['inactive', 'Pausada'],
+        ['pending', 'Pendiente'],
+        [undefined, 'Pendiente'],
+    ])('names %s as %s', (status, label) => {
+        render(<DueStatusPill status={status as never} />);
+
+        expect(screen.getByText(label)).toBeInTheDocument();
+    });
+
+    it('turns a stored color name into its hex, keeps a hex and falls back to a neutral gray', () => {
+        expect(colorHex('red')).toBe('#ef4444');
+        expect(colorHex('slate')).toBe('#64748b');
+        expect(colorHex('#123456')).toBe('#123456');
+        expect(colorHex('nope')).toBe('#94a3b8');
+        expect(colorHex(null)).toBe('#94a3b8');
     });
 });
