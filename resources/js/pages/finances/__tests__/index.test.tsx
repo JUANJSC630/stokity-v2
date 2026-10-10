@@ -6,6 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import FinancesIndex from '../index';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     post: vi.fn(),
     put: vi.fn(),
     errors: {} as Record<string, string>,
@@ -120,10 +121,22 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.errors = {};
 });
 
@@ -147,11 +160,16 @@ describe('Finances: figures', () => {
 
     it('marks a net loss in red and a net profit in green', () => {
         const { unmount } = renderPage();
-        expect(screen.getByText('$ 1.800.000', { selector: 'p' }).className).toContain('text-green-600');
+        const profit = screen.getByRole('region', { name: 'Ganancia neta' });
+        expect(profit.className).toContain('border-green-300');
+        expect(text(profit)).toContain('$ 1.800.000');
         unmount();
 
         renderPage({ netProfit: -500000 });
-        expect(screen.getByText('$ -500.000', { selector: 'p' }).className).toContain('text-red-600');
+        const loss = screen.getByRole('region', { name: 'Ganancia neta' });
+        expect(loss.className).toContain('border-red-300');
+        expect(text(loss)).toContain('-$ 500.000');
+        expect(text(loss)).toContain('Los costos y gastos superan a los ingresos del periodo');
     });
 
     it('writes "1 registro" in the singular', () => {
@@ -184,7 +202,7 @@ describe('Finances: figures', () => {
 
     it('lays out the profit and loss statement, with the returns row only when there are returns', () => {
         const { unmount } = renderPage();
-        const table = screen.getByRole('table');
+        const table = screen.getByRole('table', { name: 'Estado de resultados' });
         expect(text(table)).toContain('Ingresos por ventas');
         expect(text(table)).toContain('$ 5.000.000');
         expect(text(table)).not.toContain('(-) Devoluciones');
@@ -197,8 +215,8 @@ describe('Finances: figures', () => {
         unmount();
 
         renderPage({ returnsTotal: 150000, netRevenue: 4850000 });
-        expect(text(screen.getByRole('table'))).toContain('(-) Devoluciones');
-        expect(text(screen.getByRole('table'))).toContain('$ 150.000');
+        expect(text(screen.getByRole('table', { name: 'Estado de resultados' }))).toContain('(-) Devoluciones');
+        expect(text(screen.getByRole('table', { name: 'Estado de resultados' }))).toContain('$ 150.000');
     });
 
     it('shows the expenses by category with their share, or says there are none', () => {
@@ -221,7 +239,8 @@ describe('Finances: filters', () => {
     it('reloads with the chosen period, asking for all branches by default', () => {
         renderPage();
 
-        fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'last_month' } });
+        expect(screen.getByRole('button', { name: 'Este mes' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(screen.getByRole('button', { name: 'Mes anterior' }));
 
         expect(router.get).toHaveBeenCalledWith(
             '/finances',
@@ -232,7 +251,7 @@ describe('Finances: filters', () => {
 
     it('filters by branch and keeps the period, sending 0 for "all branches"', () => {
         renderPage({ branches });
-        const [, branch] = screen.getAllByRole('combobox');
+        const branch = screen.getByRole('combobox');
 
         fireEvent.change(branch, { target: { value: '2' } });
         expect(vi.mocked(router.get).mock.lastCall?.[1]).toMatchObject({ period: 'this_month', branch: '2' });
@@ -243,17 +262,17 @@ describe('Finances: filters', () => {
 
     it('offers the branch selector only when there are branches to choose from', () => {
         const { unmount } = renderPage();
-        expect(screen.getAllByRole('combobox')).toHaveLength(1);
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
         unmount();
 
         renderPage({ branches });
-        expect(screen.getAllByRole('combobox')).toHaveLength(2);
+        expect(screen.getAllByRole('combobox')).toHaveLength(1);
     });
 
     it('asks for dates with a custom period and only reloads when they are applied', () => {
         renderPage();
 
-        fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'custom' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Personalizado' }));
         expect(router.get).not.toHaveBeenCalled();
 
         const [from, to] = Array.from(document.querySelectorAll('input[type="date"]')) as HTMLInputElement[];
@@ -278,10 +297,22 @@ describe('Finances: expenses of the period', () => {
         const page = text(document.body);
         expect(page).toContain('Arriendo local');
         expect(page).toContain('05 oct');
-        expect(page).toContain('· Arriendo');
+        expect(text(screen.getByRole('table', { name: 'Gastos del periodo' }))).toContain('Arriendo');
         expect(page).toContain('$ 800.000');
         expect(page).toContain('Sin descripción');
         expect(page).toContain('2 gastos · Total: $ 1.200.000');
+    });
+
+    it('lists the expenses as swipeable rows on phones, with date, category and amount', () => {
+        env.wide = false;
+        renderPage();
+
+        expect(screen.queryByRole('table', { name: 'Gastos del periodo' })).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 gasto(s)' });
+        expect(text(list)).toContain('Arriendo local');
+        expect(text(list)).toContain('05 oct · Arriendo');
+        expect(text(list)).toContain('$ 800.000');
+        expect(text(list)).toContain('Sin descripción');
     });
 
     it('invites to register the first expense when there are none', () => {
