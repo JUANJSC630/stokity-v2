@@ -1,22 +1,19 @@
 import { useConfirm } from '@/components/confirm-dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ExpenseFormDialog, RegisterMonthlyExpensesDialog } from '@/components/finance/expense-dialogs';
+import { ColorDot, ExpenseCards, ExpenseTable, PeriodChips, ProfitSplit, type PeriodOption } from '@/components/finance/finance-parts';
+import { INPUT_CLASS, SELECT_TRIGGER, Section } from '@/components/sales/form-fields';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Expense, type ExpenseCategory, type ExpenseTemplate } from '@/types';
-import { Head, router, useForm } from '@inertiajs/react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { AlertTriangle, DollarSign, HelpCircle, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
+import { Head, router } from '@inertiajs/react';
+import { AlertTriangle, CalendarClock, Plus, TrendingDown, TrendingUp } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 interface ExpenseByCategoryRow {
     category: string;
@@ -27,7 +24,7 @@ interface ExpenseByCategoryRow {
 }
 
 interface Props {
-    period: 'this_week' | 'this_month' | 'last_month' | 'this_year' | 'custom';
+    period: PeriodOption;
     dateFrom: string;
     dateTo: string;
     periodLabel: string;
@@ -53,283 +50,49 @@ interface Props {
     activeCreditsCount: number;
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Inicio', href: '/dashboard' },
     { title: 'Finanzas', href: '/finances' },
 ];
 
-function cop(value: number): string {
-    return `$ ${Number(value).toLocaleString('es-CO')}`;
-}
+const formatPesos = (value: number): string => formatCurrency(value);
 
-function todayStr(): string {
-    return new Date().toISOString().slice(0, 10);
-}
-
-type PeriodOption = 'this_week' | 'this_month' | 'last_month' | 'this_year' | 'custom';
-
-const PERIOD_LABELS: Record<PeriodOption, string> = {
-    this_week: 'Esta semana',
-    this_month: 'Este mes',
-    last_month: 'Mes anterior',
-    this_year: 'Este año',
-    custom: 'Personalizado',
-};
-
-function HelpTip({ text }: { text: string }) {
+function Kpi({ label, hint, children, tone }: { label: string; hint: ReactNode; children: ReactNode; tone: string }) {
     return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <HelpCircle className="inline h-3.5 w-3.5 text-muted-foreground" />
-            </TooltipTrigger>
-            <TooltipContent side="top">{text}</TooltipContent>
-        </Tooltip>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className={cn('mt-1 text-2xl font-bold tracking-tight tabular-nums', tone)}>{children}</p>
+            <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+        </div>
     );
 }
 
-// ─── RegisterMonthlyExpensesModal ──────────────────────────────────────────────
-
-interface MonthlyExpenseEntry {
-    template_id: number;
-    amount: number;
-    skip: boolean;
-}
-
-function RegisterMonthlyExpensesModal({
-    open,
-    onClose,
-    templates,
-    currentMonth,
+/** One line of the statement, with what it means written under it instead of in a tooltip a phone cannot show. */
+function StatementRow({
+    label,
+    hint,
+    value,
+    tone,
+    strong,
+    divider,
 }: {
-    open: boolean;
-    onClose: () => void;
-    templates: ExpenseTemplate[];
-    currentMonth: string;
+    label: string;
+    hint?: string;
+    value: number;
+    tone?: string;
+    strong?: boolean;
+    divider?: boolean;
 }) {
-    const [entries, setEntries] = useState<MonthlyExpenseEntry[]>(() =>
-        templates.map((t) => ({ template_id: t.id, amount: t.reference_amount, skip: false })),
-    );
-    const [submitting, setSubmitting] = useState(false);
-
-    const updateEntry = (idx: number, patch: Partial<MonthlyExpenseEntry>) => {
-        setEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, ...patch } : e)));
-    };
-
-    const handleSubmit = () => {
-        const today = new Date().toISOString().slice(0, 10);
-        const toRegister = entries
-            .filter((e) => !e.skip)
-            .map((e) => {
-                const t = templates.find((t) => t.id === e.template_id)!;
-                return {
-                    expense_template_id: t.id,
-                    branch_id: t.branch_id,
-                    expense_category_id: t.expense_category_id ?? undefined,
-                    amount: e.amount,
-                    expense_date: today,
-                };
-            });
-
-        if (toRegister.length === 0) {
-            onClose();
-            return;
-        }
-        setSubmitting(true);
-        router.post(
-            '/expenses',
-            { expenses: toRegister },
-            {
-                onFinish: () => {
-                    setSubmitting(false);
-                    onClose();
-                },
-                preserveScroll: true,
-            },
-        );
-    };
-
     return (
-        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-            <DialogContent className="max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>Gastos fijos de {currentMonth}</DialogTitle>
-                </DialogHeader>
-
-                <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-                    {templates.map((t, idx) => (
-                        <div
-                            key={t.id}
-                            className={`rounded-lg border p-3 ${entries[idx]?.skip ? 'opacity-50' : ''} border-neutral-200 dark:border-neutral-700`}
-                        >
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                    {t.category && (
-                                        <span
-                                            className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                            style={{ backgroundColor: t.category.color ?? '#94a3b8' }}
-                                        />
-                                    )}
-                                    <div>
-                                        <p className="text-sm font-medium">{t.name}</p>
-                                        {t.category && <p className="text-xs text-muted-foreground">{t.category.name}</p>}
-                                    </div>
-                                </div>
-                                <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <input
-                                        type="checkbox"
-                                        checked={entries[idx]?.skip ?? false}
-                                        onChange={(e) => updateEntry(idx, { skip: e.target.checked })}
-                                        className="h-3.5 w-3.5"
-                                    />
-                                    No aplica
-                                </label>
-                            </div>
-                            <CurrencyInput
-                                value={entries[idx]?.amount ?? 0}
-                                onChange={(v) => updateEntry(idx, { amount: v })}
-                                disabled={entries[idx]?.skip ?? false}
-                                className="w-full"
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={submitting}>
-                        Cancelar
-                    </Button>
-                    <Button onClick={handleSubmit} disabled={submitting}>
-                        {submitting ? 'Registrando...' : 'Registrar gastos'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <tr className={cn(divider ? 'border-b-2 border-border' : 'border-b border-border/40')}>
+            <td className={cn('py-3 pr-3', strong ? 'font-semibold' : 'text-muted-foreground', tone)}>
+                {label}
+                {hint && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
+            </td>
+            <td className={cn('py-3 text-right whitespace-nowrap tabular-nums', strong && 'font-semibold', tone)}>{formatPesos(value)}</td>
+        </tr>
     );
 }
-
-// ─── ExpenseFormModal ──────────────────────────────────────────────────────────
-
-function ExpenseFormModal({
-    open,
-    onClose,
-    categories,
-    branches,
-    userBranchId,
-    expense,
-}: {
-    open: boolean;
-    onClose: () => void;
-    categories: ExpenseCategory[];
-    branches: Array<{ id: number; name: string }>;
-    userBranchId: number | null;
-    expense?: Expense;
-}) {
-    const isEdit = Boolean(expense);
-    const isAdmin = branches.length > 0;
-
-    const { data, setData, post, put, processing, reset, errors } = useForm({
-        expense_category_id: expense?.expense_category_id ? String(expense.expense_category_id) : '',
-        description: expense?.description ?? '',
-        amount: expense?.amount ?? 0,
-        expense_date: expense?.expense_date?.slice(0, 10) ?? todayStr(),
-        branch_id: expense?.branch_id ? String(expense.branch_id) : userBranchId ? String(userBranchId) : '',
-        notes: expense?.notes ?? '',
-    });
-
-    const handleClose = () => {
-        reset();
-        onClose();
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (isEdit && expense) {
-            put(`/expenses/${expense.id}`, { onSuccess: handleClose, preserveScroll: true });
-        } else {
-            post('/expenses', { onSuccess: handleClose, preserveScroll: true });
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-            <DialogContent className="max-w-md">
-                <DialogHeader>
-                    <DialogTitle>{isEdit ? 'Editar gasto' : 'Registrar gasto'}</DialogTitle>
-                </DialogHeader>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1.5">
-                        <Label>Categoría</Label>
-                        <Select value={data.expense_category_id} onValueChange={(v) => setData('expense_category_id', v)}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Sin categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Sin categoría</SelectItem>
-                                {categories.map((c) => (
-                                    <SelectItem key={c.id} value={String(c.id)}>
-                                        <div className="flex items-center gap-2">
-                                            <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: c.color ?? '#94a3b8' }} />
-                                            {c.name}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label>Descripción</Label>
-                        <Input value={data.description} onChange={(e) => setData('description', e.target.value)} placeholder="Ej: Arriendo local" />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label>Monto</Label>
-                        <CurrencyInput value={data.amount} onChange={(v) => setData('amount', v)} placeholder="0" />
-                        {errors.amount && <p className="text-xs text-red-600">{errors.amount}</p>}
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label>Fecha</Label>
-                        <Input type="date" value={data.expense_date} onChange={(e) => setData('expense_date', e.target.value)} />
-                    </div>
-
-                    {isAdmin && (
-                        <div className="space-y-1.5">
-                            <Label>Sucursal</Label>
-                            <Select value={data.branch_id} onValueChange={(v) => setData('branch_id', v)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona una sucursal" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {branches.map((b) => (
-                                        <SelectItem key={b.id} value={String(b.id)}>
-                                            {b.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.branch_id && <p className="text-xs text-red-600">{errors.branch_id}</p>}
-                        </div>
-                    )}
-
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={handleClose} disabled={processing}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Guardando...' : isEdit ? 'Guardar' : 'Registrar'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-// ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FinancesIndex({
     period,
@@ -356,6 +119,8 @@ export default function FinancesIndex({
     activeCreditsCount,
 }: Props) {
     const { confirm, dialog } = useConfirm();
+    const onBrand = useOnBrandColor();
+    const isWide = useMediaQuery('(min-width: 768px)');
     usePolling(['revenue', 'netRevenue', 'grossProfit', 'netProfit', 'totalExpenses', 'expensesByCategory', 'receivables'], 120_000);
 
     const [localPeriod, setLocalPeriod] = useState<PeriodOption>(period);
@@ -392,33 +157,34 @@ export default function FinancesIndex({
         applyFilters(localPeriod, val);
     };
 
-    const handleDeleteExpense = async (id: number) => {
+    const handleDeleteExpense = async (expense: Expense) => {
         const accepted = await confirm({
             title: '¿Eliminar este gasto?',
             description: 'Esta acción no se puede deshacer.',
             confirmLabel: 'Eliminar',
         });
         if (!accepted) return;
-        router.delete(`/expenses/${id}`, { preserveScroll: true });
+        router.delete(`/expenses/${expense.id}`, { preserveScroll: true });
     };
 
     const netProfitPositive = netProfit >= 0;
     const showReceivables = receivables > 0 || activeCreditsCount > 0;
+    const tone = netProfitPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    const Trend = netProfitPositive ? TrendingUp : TrendingDown;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Finanzas" />
 
-            {/* Modals */}
             {showMonthlyModal && (
-                <RegisterMonthlyExpensesModal
+                <RegisterMonthlyExpensesDialog
                     open={showMonthlyModal}
                     onClose={() => setShowMonthlyModal(false)}
                     templates={pendingTemplates}
                     currentMonth={currentMonth}
                 />
             )}
-            <ExpenseFormModal
+            <ExpenseFormDialog
                 open={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 categories={categories}
@@ -426,7 +192,7 @@ export default function FinancesIndex({
                 userBranchId={userBranchId}
             />
             {editExpense && (
-                <ExpenseFormModal
+                <ExpenseFormDialog
                     open={true}
                     onClose={() => setEditExpense(null)}
                     categories={categories}
@@ -436,31 +202,17 @@ export default function FinancesIndex({
                 />
             )}
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header + period selector */}
-                <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold">Finanzas</h1>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Finanzas</h1>
                         <p className="text-sm text-muted-foreground">Resumen de ingresos, gastos y rentabilidad del negocio</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Period dropdown */}
-                        <Select value={localPeriod} onValueChange={(v) => handlePeriodChange(v as PeriodOption)}>
-                            <SelectTrigger className="w-44">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(Object.keys(PERIOD_LABELS) as PeriodOption[]).map((p) => (
-                                    <SelectItem key={p} value={p}>
-                                        {PERIOD_LABELS[p]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {/* Branch selector */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <PeriodChips value={localPeriod} onChange={handlePeriodChange} />
                         {branches.length > 0 && (
                             <Select value={localBranch} onValueChange={handleBranchChange}>
-                                <SelectTrigger className="w-44">
+                                <SelectTrigger aria-label="Sucursal" className={`${SELECT_TRIGGER} text-left sm:w-52 [&>span]:truncate`}>
                                     <SelectValue placeholder="Todas las sucursales" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -476,337 +228,254 @@ export default function FinancesIndex({
                     </div>
                 </div>
 
-                {/* Custom date range */}
                 {localPeriod === 'custom' && (
-                    <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-neutral-50 px-4 py-3 dark:bg-neutral-900">
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-muted-foreground">Desde</label>
-                            <Input type="date" value={dateFromLocal} onChange={(e) => setDateFromLocal(e.target.value)} className="w-40" />
+                    <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                        <div className="min-w-36 flex-1 space-y-1.5 sm:flex-none">
+                            <label htmlFor="finance-from" className="text-xs font-medium text-muted-foreground">
+                                Desde
+                            </label>
+                            <input
+                                id="finance-from"
+                                type="date"
+                                value={dateFromLocal}
+                                onChange={(e) => setDateFromLocal(e.target.value)}
+                                className={INPUT_CLASS}
+                            />
                         </div>
-                        <div>
-                            <label className="mb-1 block text-xs font-medium text-muted-foreground">Hasta</label>
-                            <Input type="date" value={dateToLocal} onChange={(e) => setDateToLocal(e.target.value)} className="w-40" />
+                        <div className="min-w-36 flex-1 space-y-1.5 sm:flex-none">
+                            <label htmlFor="finance-to" className="text-xs font-medium text-muted-foreground">
+                                Hasta
+                            </label>
+                            <input
+                                id="finance-to"
+                                type="date"
+                                value={dateToLocal}
+                                onChange={(e) => setDateToLocal(e.target.value)}
+                                className={INPUT_CLASS}
+                            />
                         </div>
-                        <Button size="sm" onClick={() => applyFilters()}>
+                        <button
+                            type="button"
+                            onClick={() => applyFilters()}
+                            className="flex h-11 w-full items-center justify-center rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold sm:h-9 sm:w-auto"
+                            style={{ color: onBrand.hex }}
+                        >
                             Aplicar
-                        </Button>
+                        </button>
                     </div>
                 )}
 
-                {/* COGS warning */}
                 {hasCOGSWarning && (
-                    <div className="flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <div className="flex items-start gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-200">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                         <p className="text-sm">Los datos de costo de productos pueden ser estimados en ventas anteriores.</p>
                     </div>
                 )}
 
-                {/* KPI Cards */}
-                <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${showReceivables ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4'}`}>
-                    <Card className="border-blue-100 dark:border-blue-900">
-                        <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Ingresos netos</p>
-                                    <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{cop(netRevenue)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Total de ventas menos devoluciones del período</p>
-                                </div>
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/40">
-                                    <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <section
+                    aria-label="Ganancia neta"
+                    className={cn(
+                        'rounded-2xl border-2 bg-card p-5',
+                        netProfitPositive ? 'border-green-300 dark:border-green-800' : 'border-red-300 dark:border-red-800',
+                    )}
+                >
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ganancia neta</p>
+                            <p className={cn('mt-1 text-4xl font-extrabold tracking-tight tabular-nums sm:text-5xl', tone)}>
+                                <RollingNumber value={netProfit} format={formatPesos} intro />
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">Lo que realmente ganaste luego de todos los costos y gastos</p>
+                        </div>
+                        <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-full bg-muted', tone)}>
+                            <Trend className="size-5" aria-hidden="true" />
+                        </span>
+                    </div>
+                    <div className="mt-5">
+                        <ProfitSplit netRevenue={netRevenue} cogs={cogs} expenses={totalExpenses} netProfit={netProfit} />
+                    </div>
+                </section>
 
-                    <Card className="border-green-100 dark:border-green-900">
-                        <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Ganancia bruta</p>
-                                    <p className="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{cop(grossProfit)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        Lo que queda después de descontar el costo de los productos vendidos
-                                    </p>
-                                    <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                                        {grossMarginPct.toFixed(1)}% de margen
-                                    </span>
-                                </div>
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 dark:bg-green-900/40">
-                                    <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-orange-100 dark:border-orange-900">
-                        <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Gastos</p>
-                                    <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{cop(totalExpenses)}</p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        Total registrado en gastos operativos &bull; {expenses.length} registro{expenses.length !== 1 ? 's' : ''}
-                                    </p>
-                                </div>
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/40">
-                                    <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card
-                        className={`border-2 ${netProfitPositive ? 'border-green-300 dark:border-green-700' : 'border-red-300 dark:border-red-700'}`}
+                <div className={cn('grid grid-cols-2 gap-3', showReceivables ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
+                    <Kpi label="Ingresos netos" tone="text-blue-600 dark:text-blue-400" hint="Ventas menos devoluciones del periodo">
+                        <RollingNumber value={netRevenue} format={formatPesos} intro />
+                    </Kpi>
+                    <Kpi
+                        label="Ganancia bruta"
+                        tone="text-green-600 dark:text-green-400"
+                        hint={
+                            <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-700 dark:bg-green-950/50 dark:text-green-300">
+                                {grossMarginPct.toFixed(1)}% de margen
+                            </span>
+                        }
                     >
-                        <CardContent className="pt-4">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">Ganancia neta</p>
-                                    <p
-                                        className={`mt-1 text-3xl font-extrabold ${netProfitPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
-                                    >
-                                        {cop(netProfit)}
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">Lo que realmente ganaste luego de todos los costos y gastos</p>
-                                </div>
-                                <div
-                                    className={`flex h-10 w-10 items-center justify-center rounded-full ${netProfitPositive ? 'bg-green-50 dark:bg-green-900/40' : 'bg-red-50 dark:bg-red-900/40'}`}
-                                >
-                                    {netProfitPositive ? (
-                                        <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                    ) : (
-                                        <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                                    )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Cartera por cobrar */}
+                        <RollingNumber value={grossProfit} format={formatPesos} intro />
+                    </Kpi>
+                    <Kpi
+                        label="Gastos"
+                        tone="text-orange-600 dark:text-orange-400"
+                        hint={`Gastos operativos • ${expenses.length} registro${expenses.length !== 1 ? 's' : ''}`}
+                    >
+                        <RollingNumber value={totalExpenses} format={formatPesos} intro />
+                    </Kpi>
                     {showReceivables && (
-                        <Card className="border-purple-100 dark:border-purple-900">
-                            <CardContent className="pt-4">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Cartera por cobrar</p>
-                                        <p className="mt-1 text-2xl font-bold text-purple-600 dark:text-purple-400">{cop(receivables)}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo
-                                            {activeCreditsCount !== 1 ? 's' : ''}
-                                            {' — '}
-                                            <a href="/credits" className="text-purple-600 hover:underline dark:text-purple-400">
-                                                Ver créditos
-                                            </a>
-                                        </p>
-                                    </div>
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-900/40">
-                                        <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <Kpi
+                            label="Cartera por cobrar"
+                            tone="text-purple-600 dark:text-purple-400"
+                            hint={
+                                <>
+                                    {activeCreditsCount} crédito{activeCreditsCount !== 1 ? 's' : ''} activo{activeCreditsCount !== 1 ? 's' : ''}
+                                    {' — '}
+                                    <a href="/credits" className="font-medium text-purple-600 hover:underline dark:text-purple-400">
+                                        Ver créditos
+                                    </a>
+                                </>
+                            }
+                        >
+                            <RollingNumber value={receivables} format={formatPesos} intro />
+                        </Kpi>
                     )}
                 </div>
 
-                {/* Main content: P&L + Expenses by category + Expenses list */}
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    {/* P&L Statement */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>¿Cómo le fue al negocio?</CardTitle>
-                            <CardDescription>Desglose de ingresos y gastos del período seleccionado</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <table className="w-full text-sm">
+                <div className="grid items-start gap-5 lg:grid-cols-2">
+                    <Section title="¿Cómo le fue al negocio?" description="Desglose de ingresos y gastos del período seleccionado">
+                        <div className="px-5 pb-3">
+                            <table aria-label="Estado de resultados" className="w-full text-sm">
                                 <tbody>
-                                    <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">
-                                            Ingresos por ventas <HelpTip text="Todo el dinero que ingresó por ventas en este período" />
-                                        </td>
-                                        <td className="py-2 text-right">{cop(revenue)}</td>
-                                    </tr>
+                                    <StatementRow
+                                        label="Ingresos por ventas"
+                                        hint="Todo el dinero que ingresó por ventas en este período"
+                                        value={revenue}
+                                    />
                                     {returnsTotal > 0 && (
-                                        <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                            <td className="py-2 text-muted-foreground">(-) Devoluciones</td>
-                                            <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(returnsTotal)}</td>
-                                        </tr>
+                                        <StatementRow label="(-) Devoluciones" value={returnsTotal} tone="text-red-600 dark:text-red-400" />
                                     )}
-                                    <tr className="border-b-2 border-neutral-200 dark:border-neutral-700">
-                                        <td className="py-2 font-semibold">= Ingresos netos</td>
-                                        <td className="py-2 text-right font-semibold">{cop(netRevenue)}</td>
-                                    </tr>
-                                    <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">
-                                            (-) Costo de lo vendido <HelpTip text="Lo que te costó el inventario que vendiste" />
-                                        </td>
-                                        <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(cogs)}</td>
-                                    </tr>
-                                    <tr className="border-b-2 border-neutral-200 dark:border-neutral-700">
-                                        <td className="py-2 font-semibold text-green-700 dark:text-green-400">
-                                            = Ganancia bruta <HelpTip text="Diferencia entre lo que vendiste y lo que te costaron los productos" />
-                                        </td>
-                                        <td className="py-2 text-right font-semibold text-green-700 dark:text-green-400">{cop(grossProfit)}</td>
-                                    </tr>
-                                    <tr className="border-b border-neutral-100 dark:border-neutral-800">
-                                        <td className="py-2 text-muted-foreground">
-                                            (-) Gastos del período <HelpTip text="Gastos operativos como arriendo, servicios, etc." />
-                                        </td>
-                                        <td className="py-2 text-right text-red-600 dark:text-red-400">{cop(totalExpenses)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td
-                                            className={`py-3 text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
-                                        >
-                                            = Ganancia neta <HelpTip text="Lo que realmente ganaste después de todos los costos" />
-                                        </td>
-                                        <td
-                                            className={`py-3 text-right text-base font-bold ${netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
-                                        >
-                                            {cop(netProfit)}
-                                        </td>
-                                    </tr>
+                                    <StatementRow label="= Ingresos netos" value={netRevenue} strong divider />
+                                    <StatementRow
+                                        label="(-) Costo de lo vendido"
+                                        hint="Lo que te costó el inventario que vendiste"
+                                        value={cogs}
+                                        tone="text-red-600 dark:text-red-400"
+                                    />
+                                    <StatementRow
+                                        label="= Ganancia bruta"
+                                        hint="Diferencia entre lo que vendiste y lo que te costaron los productos"
+                                        value={grossProfit}
+                                        tone="text-green-700 dark:text-green-400"
+                                        strong
+                                        divider
+                                    />
+                                    <StatementRow
+                                        label="(-) Gastos del período"
+                                        hint="Gastos operativos como arriendo, servicios, etc."
+                                        value={totalExpenses}
+                                        tone="text-red-600 dark:text-red-400"
+                                    />
+                                    <StatementRow
+                                        label="= Ganancia neta"
+                                        hint="Lo que realmente ganaste después de todos los costos"
+                                        value={netProfit}
+                                        tone={netProfitPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}
+                                        strong
+                                    />
                                 </tbody>
                             </table>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </Section>
 
-                    {/* Expenses by category */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gastos por categoría</CardTitle>
-                            <CardDescription>Distribución de gastos en el período</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                    <Section title="Gastos por categoría" description="Distribución de gastos en el período">
+                        <div className="px-5 pb-5">
                             {expensesByCategory.length > 0 ? (
-                                <div className="space-y-2">
+                                <ul className="flex flex-col gap-3.5">
                                     {expensesByCategory.map((row) => (
-                                        <div key={row.category}>
-                                            <div className="mb-0.5 flex items-center justify-between text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span
-                                                        className="inline-block h-2 w-2 rounded-full"
-                                                        style={{ backgroundColor: row.color ?? '#94a3b8' }}
-                                                    />
-                                                    <span>{row.category}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">{cop(row.amount)}</span>
-                                                    <span className="w-8 text-right text-xs text-muted-foreground">{row.pct.toFixed(0)}%</span>
-                                                </div>
+                                        <li key={row.category}>
+                                            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                                                <span className="flex min-w-0 items-center gap-2">
+                                                    <ColorDot color={row.color} className="size-2" />
+                                                    <span className="truncate">{row.category}</span>
+                                                </span>
+                                                <span className="flex shrink-0 items-center gap-2">
+                                                    <span className="font-medium tabular-nums">{formatPesos(row.amount)}</span>
+                                                    <span className="w-9 text-right text-xs text-muted-foreground tabular-nums">
+                                                        {row.pct.toFixed(0)}%
+                                                    </span>
+                                                </span>
                                             </div>
-                                            <div className="h-1 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                                                 <div
-                                                    className="h-1 rounded-full"
+                                                    className="h-full rounded-full"
                                                     style={{ width: `${Math.min(row.pct, 100)}%`, backgroundColor: row.color ?? '#94a3b8' }}
                                                 />
                                             </div>
-                                        </div>
+                                        </li>
                                     ))}
-                                </div>
+                                </ul>
                             ) : (
                                 <p className="py-6 text-center text-sm text-muted-foreground">Sin gastos registrados en este período</p>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Expenses section */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle>Gastos del período</CardTitle>
-                                <Button size="sm" onClick={() => setShowCreateModal(true)}>
-                                    <Plus className="mr-1.5 h-4 w-4" />
-                                    Agregar
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {/* Pending templates banner */}
-                            {pendingTemplates.length > 0 && (
-                                <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-700 dark:bg-amber-900/30">
-                                    <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
-                                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                                        <span>
-                                            Tienes <strong>{pendingTemplates.length}</strong> gasto{pendingTemplates.length > 1 ? 's' : ''} fijo
-                                            {pendingTemplates.length > 1 ? 's' : ''} sin registrar este mes ({currentMonth})
-                                        </span>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-200"
-                                        onClick={() => setShowMonthlyModal(true)}
-                                    >
-                                        Registrar
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* Expenses list */}
-                            {expenses.length === 0 ? (
-                                <div className="py-8 text-center">
-                                    <p className="text-sm text-muted-foreground">Sin gastos en este período.</p>
-                                    <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowCreateModal(true)}>
-                                        <Plus className="mr-1.5 h-4 w-4" />
-                                        Registrar primer gasto
-                                    </Button>
-                                </div>
-                            ) : (
-                                <>
-                                    <p className="mb-3 text-sm text-muted-foreground">
-                                        {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} · Total:{' '}
-                                        <span className="font-semibold text-foreground">{cop(totalExpenses)}</span>
-                                    </p>
-                                    <div className="max-h-[520px] space-y-1 overflow-y-auto">
-                                        {expenses.map((expense) => (
-                                            <div
-                                                key={expense.id}
-                                                className="flex items-center justify-between gap-2 rounded-md px-2 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-                                            >
-                                                <div className="flex min-w-0 items-center gap-2.5">
-                                                    <span
-                                                        className="inline-block h-2.5 w-2.5 flex-shrink-0 rounded-full"
-                                                        style={{ backgroundColor: expense.category?.color ?? '#94a3b8' }}
-                                                    />
-                                                    <div className="min-w-0">
-                                                        <p className="truncate text-sm font-medium">
-                                                            {expense.description || expense.category?.name || 'Sin descripción'}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {format(new Date(expense.expense_date), 'dd MMM', { locale: es })}
-                                                            {expense.category && ` · ${expense.category.name}`}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-shrink-0 items-center gap-1">
-                                                    <span className="text-sm font-semibold">{cop(expense.amount)}</span>
-                                                    <Button
-                                                        aria-label="Editar"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                                        onClick={() => setEditExpense(expense)}
-                                                    >
-                                                        <Pencil className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                    <Button
-                                                        aria-label="Eliminar"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-7 w-7 text-muted-foreground hover:text-red-600"
-                                                        onClick={() => handleDeleteExpense(expense.id)}
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </Section>
                 </div>
+
+                <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                    <header className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+                        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Gastos del período</h2>
+                        <button
+                            type="button"
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex h-11 items-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-9"
+                            style={{ color: onBrand.hex }}
+                        >
+                            <Plus className="size-4" aria-hidden="true" />
+                            Agregar
+                        </button>
+                    </header>
+
+                    {pendingTemplates.length > 0 && (
+                        <div className="mx-5 mb-3 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-amber-800 dark:bg-amber-950/30">
+                            <div className="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+                                <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                                <span>
+                                    Tienes <strong>{pendingTemplates.length}</strong> gasto{pendingTemplates.length > 1 ? 's' : ''} fijo
+                                    {pendingTemplates.length > 1 ? 's' : ''} sin registrar este mes ({currentMonth})
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowMonthlyModal(true)}
+                                className="flex h-11 items-center justify-center rounded-xl border border-amber-300 px-4 text-sm font-medium text-amber-800 hover:bg-amber-100 sm:h-9 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                            >
+                                Registrar
+                            </button>
+                        </div>
+                    )}
+
+                    {expenses.length === 0 ? (
+                        <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+                            <p className="text-sm text-muted-foreground">Sin gastos en este período.</p>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(true)}
+                                className="flex h-11 items-center gap-2 rounded-xl border border-border/60 px-4 text-sm font-medium hover:bg-muted sm:h-9"
+                            >
+                                <Plus className="size-4" aria-hidden="true" />
+                                Registrar primer gasto
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="border-t border-border/60 px-5 py-3 text-sm text-muted-foreground">
+                                {expenses.length} gasto{expenses.length !== 1 ? 's' : ''} · Total:{' '}
+                                <span className="font-semibold text-foreground">{formatPesos(totalExpenses)}</span>
+                            </p>
+                            {isWide ? (
+                                <ExpenseTable expenses={expenses} onEdit={setEditExpense} onDelete={handleDeleteExpense} />
+                            ) : (
+                                <ExpenseCards expenses={expenses} onEdit={setEditExpense} onDelete={handleDeleteExpense} />
+                            )}
+                        </>
+                    )}
+                </section>
             </div>
             {dialog}
         </AppLayout>
