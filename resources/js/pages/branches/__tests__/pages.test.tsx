@@ -15,6 +15,7 @@ const env = vi.hoisted(() => ({
     errors: {} as Record<string, string>,
     processing: false,
     permissions: ['branches.create', 'branches.delete'] as string[],
+    wide: true,
 }));
 
 vi.mock('@inertiajs/react', async () => {
@@ -61,6 +62,17 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
 });
 
@@ -69,6 +81,7 @@ beforeEach(() => {
     env.errors = {};
     env.processing = false;
     env.permissions = ['branches.create', 'branches.delete'];
+    env.wide = true;
     window.history.replaceState({}, '', '/branches');
 });
 
@@ -124,25 +137,37 @@ const rows = [
 ];
 
 describe('Branches list', () => {
-    it('lists the branches with state, manager and how many sellers they have, in the table and in the phone cards', () => {
+    it('lists the branches with state, manager and how many sellers they have in the table on a wide screen', () => {
         render(<Branches branches={page(rows) as never} />);
 
-        expect(screen.getAllByText('Centro').length).toBe(2);
-        expect(screen.getAllByText('Activa').length).toBe(2);
-        expect(screen.getAllByText('Inactiva').length).toBe(2);
-        expect(screen.getAllByText('Berta Jefa').length).toBe(2);
-        expect(screen.getAllByText(/2 vendedor\(es\)/).length).toBe(2);
-        expect(screen.getAllByText(/Sin vendedores/).length).toBe(2);
+        const table = screen.getByRole('table', { name: 'Sucursales' });
+        expect(within(table).getByText('Centro')).toBeInTheDocument();
+        expect(within(table).getByText('Activa')).toBeInTheDocument();
+        expect(within(table).getByText('Inactiva')).toBeInTheDocument();
+        expect(within(table).getByText('Berta Jefa')).toBeInTheDocument();
+        expect(within(table).getByText('2 vendedor(es)')).toBeInTheDocument();
+        expect(within(table).getByText('Sin vendedores')).toBeInTheDocument();
+    });
+
+    it('lists them as rows on a phone, marking only the inactive ones', () => {
+        env.wide = false;
+        render(<Branches branches={page(rows) as never} />);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(screen.getByText('Centro')).toBeInTheDocument();
+        expect(screen.getByText(/Berta Jefa · 2 vendedor\(es\)/)).toBeInTheDocument();
+        expect(screen.getAllByText('Inactiva').length).toBe(1);
+        expect(screen.queryByText('Activa')).not.toBeInTheDocument();
     });
 
     it('counts only sellers other than the manager', () => {
         const sameAsManager = branch(3, { manager: person(20, 'vendedor'), employees: [person(20, 'vendedor')] });
         render(<Branches branches={page([sameAsManager]) as never} />);
 
-        expect(screen.getAllByText(/Sin vendedores/).length).toBe(2);
+        expect(screen.getByText('Sin vendedores')).toBeInTheDocument();
     });
 
-    it('says so on a phone when there are no branches', () => {
+    it('says so when there are no branches', () => {
         render(<Branches branches={page([]) as never} />);
 
         expect(screen.getByText('No se encontraron sucursales')).toBeInTheDocument();
@@ -163,37 +188,37 @@ describe('Branches list', () => {
     it('links each branch to its detail', () => {
         render(<Branches branches={page(rows) as never} />);
 
-        expect(screen.getAllByLabelText('Ver detalle')[1].closest('a')).toHaveAttribute('href', '/branches/2');
-        expect(screen.getAllByTitle('Ver Sucursal')[0].closest('a')).toHaveAttribute('href', '/branches/1');
+        expect(screen.getByLabelText('Ver sucursal Norte')).toHaveAttribute('href', '/branches/2');
+        expect(screen.getByLabelText('Ver sucursal Centro')).toHaveAttribute('href', '/branches/1');
     });
 
     it('searches on submit and filters by state keeping the search', () => {
         render(<Branches branches={page(rows) as never} />);
 
-        const input = screen.getByPlaceholderText('Buscar por código, cliente o vendedor');
+        const input = screen.getByPlaceholderText('Buscar por nombre, dirección o gerente');
         fireEvent.change(input, { target: { value: 'cen' } });
         fireEvent.submit(input.closest('form') as HTMLFormElement);
         expect(router.visit).toHaveBeenCalledWith('/branches?search=cen', expect.objectContaining({ only: ['branches'], preserveState: true }));
 
-        fireEvent.change(screen.getByRole('combobox'), { target: { value: '0' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Inactivas' }));
         expect(router.visit).toHaveBeenLastCalledWith('/branches?search=cen&status=0', expect.objectContaining({ only: ['branches'] }));
     });
 
     it('starts from the filters it receives and resets them when the search is emptied', () => {
         window.history.replaceState({}, '', '/branches?search=cen&status=1');
         render(<Branches branches={page(rows) as never} filters={{ search: 'cen', status: '1' }} />);
-        expect(screen.getByRole('combobox')).toHaveValue('1');
+        expect(screen.getByRole('button', { name: 'Activas' })).toHaveAttribute('aria-pressed', 'true');
 
-        fireEvent.change(screen.getByPlaceholderText('Buscar por código, cliente o vendedor'), { target: { value: '' } });
+        fireEvent.change(screen.getByPlaceholderText('Buscar por nombre, dirección o gerente'), { target: { value: '' } });
 
         expect(router.visit).toHaveBeenCalledWith('/branches?', expect.objectContaining({ only: ['branches'] }));
-        expect(screen.getByRole('combobox')).toHaveValue('all');
+        expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    it('titles the filter card for products (a copy leftover) and never opens its own delete dialog', () => {
+    it('no longer has the filter card titled "Filtrar Productos" nor the delete dialog that was never opened', () => {
         render(<Branches branches={page(rows) as never} />);
 
-        expect(screen.getByText('Filtrar Productos')).toBeInTheDocument();
+        expect(screen.queryByText('Filtrar Productos')).not.toBeInTheDocument();
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });
@@ -368,19 +393,28 @@ describe('Deleted branches', () => {
         branch(8, { name: 'Antigua', deleted_at: '2026-08-01T10:30:00Z' }),
     ];
 
-    it('lists the deleted branches with their manager and date, in the table and the phone cards', () => {
+    it('lists the deleted branches with their manager and date in the table on a wide screen', () => {
         render(<TrashedBranches branches={page(trashed) as never} />);
 
-        expect(screen.getAllByText('Vieja').length).toBe(2);
-        expect(screen.getAllByText('Berta Jefa').length).toBe(2);
-        expect(screen.getAllByText('Eliminada').length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/09\/2026|01\/09\/2026|1\/9\/2026/).length).toBeGreaterThan(0);
+        const table = screen.getByRole('table', { name: 'Sucursales eliminadas' });
+        expect(within(table).getByText('Vieja')).toBeInTheDocument();
+        expect(within(table).getByText('Berta Jefa')).toBeInTheDocument();
+        expect(within(table).getAllByText(/09\/2026|01\/09\/2026|1\/9\/2026/).length).toBeGreaterThan(0);
+    });
+
+    it('lists them as cards on a phone, with the "Eliminada" tag', () => {
+        env.wide = false;
+        render(<TrashedBranches branches={page(trashed) as never} />);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(screen.getAllByText('Eliminada').length).toBe(2);
+        expect(screen.getAllByLabelText('Restaurar').length).toBe(2);
     });
 
     it('says so when nothing is deleted', () => {
         render(<TrashedBranches branches={page([]) as never} />);
 
-        expect(screen.getAllByText('No hay sucursales eliminadas').length).toBe(2);
+        expect(screen.getByText('No hay sucursales eliminadas')).toBeInTheDocument();
     });
 
     it('goes back to the branches', () => {

@@ -1,20 +1,18 @@
-import EyeButton from '@/components/common/EyeButton';
+import { BranchCards, BranchTable } from '@/components/branches/branch-list';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchField } from '@/components/common/search-field';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { AlertTriangle, Eye, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Building2, Plus, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface BranchesPageProps {
     branches: {
@@ -39,17 +37,23 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const STATUS_CHIPS = [
+    { value: 'all', label: 'Todas' },
+    { value: '1', label: 'Activas' },
+    { value: '0', label: 'Inactivas' },
+];
+
+const formatCount = (value: number): string => String(value);
+
 export default function Branches({ branches, filters = { search: '', status: 'all' } }: BranchesPageProps) {
     const { can } = usePermissions();
     usePolling(['branches'], 120_000);
+    const isWide = useMediaQuery('(min-width: 768px)');
+    const onBrand = useOnBrandColor();
 
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || 'all');
-
-    const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
-    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
 
     const hasResetRef = useRef(false);
     useEffect(() => {
@@ -88,11 +92,6 @@ export default function Branches({ branches, filters = { search: '', status: 'al
         });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
-
     const handleStatusChange = (newStatus: string) => {
         setStatus(newStatus);
         const params = new URLSearchParams();
@@ -105,227 +104,104 @@ export default function Branches({ branches, filters = { search: '', status: 'al
         });
     };
 
-    const handleDelete = () => {
-        if (branchToDelete) {
-            router.delete(`/branches/${branchToDelete.id}`, {
-                onSuccess: () => {
-                    setDeleteModalOpen(false);
-                    setBranchToDelete(null);
-                },
-            });
-        }
-    };
-
-    const columns: Column<Branch & { actions: null }>[] = [
-        { key: 'name', title: 'Nombre', render: (_: unknown, row: Branch) => <span className="font-medium">{row.name}</span> },
-        { key: 'address', title: 'Dirección' },
-        { key: 'phone', title: 'Teléfono' },
-        {
-            key: 'status',
-            title: 'Estado',
-            render: (_: unknown, row: Branch) => <Badge variant={row.status ? 'default' : 'destructive'}>{row.status ? 'Activa' : 'Inactiva'}</Badge>,
-        },
-        {
-            key: 'manager',
-            title: 'Gerente',
-            render: (_: unknown, row: Branch) => (row.manager ? <span>{row.manager.name}</span> : '-'),
-        },
-        {
-            key: 'employees',
-            title: 'Empleados',
-            render: (_: unknown, row: Branch) => {
-                const managerId = row.manager?.id;
-                const employeesCount = row.employees ? row.employees.filter((emp) => emp.id !== managerId && emp.role === 'vendedor').length : 0;
-                return employeesCount > 0 ? (
-                    <span className="text-xs text-muted-foreground">{employeesCount} vendedor(es)</span>
-                ) : (
-                    <span className="text-xs text-muted-foreground">Sin vendedores</span>
-                );
-            },
-        },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Branch) => (
-                <div className="flex gap-1">
-                    <Link href={`/branches/${row.id}`}>
-                        <EyeButton text="Ver Sucursal" />
-                    </Link>
-                </div>
-            ),
-        },
-    ];
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['branches'], onFinish: () => resolve() });
+            }),
+        [],
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Sucursales" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-center text-2xl font-bold sm:text-left">Gestión de Sucursales</h1>
-                    <div className="flex flex-row justify-center gap-2">
-                        {can('branches.create') && (
-                            <Button asChild className="flex gap-1">
-                                <Link href="/branches/create">
-                                    <Plus className="size-4" />
-                                    <span>Nueva Sucursal</span>
-                                </Link>
-                            </Button>
-                        )}
-                        {can('branches.delete') && (
-                            <Button variant="outline" asChild>
-                                <Link href="/branches/trashed">
-                                    <Trash2 className="mr-2 size-4" />
-                                    <span>Sucursales Eliminadas</span>
-                                </Link>
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Productos</CardTitle>
-                            <CardDescription>Busca productos por código, nombre, estado, categoría o sucursal</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="branch-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    id="branch-search"
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por código, cliente o vendedor"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Estado
-                                    </Label>
-                                    <Select value={status} onValueChange={handleStatusChange}>
-                                        <SelectTrigger id="status-filter" className="h-8 text-sm">
-                                            <SelectValue placeholder="Estado" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos</SelectItem>
-                                            <SelectItem value="1">Activos</SelectItem>
-                                            <SelectItem value="0">Inactivos</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
-                    <div className="hidden w-full overflow-x-auto md:block">
-                        <Table aria-label="Sucursales" columns={columns} data={branches.data.map((branch) => ({ ...branch, actions: null }))} />
-                    </div>
-
-                    {/* Tarjetas para móvil */}
-                    <div className="block md:hidden">
-                        {branches?.data?.length > 0 ? (
-                            <div className="flex flex-col gap-4 p-2">
-                                {branches.data.map((branch: Branch) => (
-                                    <div key={branch.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{branch.name}</div>
-                                            <Link href={`/branches/${branch.id}`}>
-                                                <Button aria-label="Ver detalle" variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                                    <Eye className="size-4" />
-                                                </Button>
-                                            </Link>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Dirección:</span> {branch.address}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Teléfono:</span> {branch.phone}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Estado:</span>{' '}
-                                            <Badge variant={branch.status ? 'default' : 'destructive'}>{branch.status ? 'Activa' : 'Inactiva'}</Badge>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Gerente:</span> {branch.manager ? branch.manager.name : '-'}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Empleados:</span>{' '}
-                                            {branch.employees
-                                                ? (() => {
-                                                      const managerId = branch.manager?.id;
-                                                      const employeesCount = branch.employees.filter(
-                                                          (emp) => emp.id !== managerId && emp.role === 'vendedor',
-                                                      ).length;
-                                                      return employeesCount > 0 ? `${employeesCount} vendedor(es)` : 'Sin vendedores';
-                                                  })()
-                                                : 'Sin vendedores'}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron sucursales</div>
-                        )}
-                    </div>
-
-                    {/* Pagination */}
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <PaginationFooter
-                            data={{
-                                ...branches,
-                                resourceLabel: 'sucursales',
-                            }}
-                        />
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Gestión de Sucursales</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={branches.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {branches.total === 1 ? 'sucursal' : 'sucursales'} de tu negocio
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:flex">
+                        {can('branches.delete') && (
+                            <Link
+                                href="/branches/trashed"
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10"
+                            >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                <span>Sucursales Eliminadas</span>
+                            </Link>
+                        )}
+                        {can('branches.create') && (
+                            <Link
+                                href="/branches/create"
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Plus className="size-4" aria-hidden="true" />
+                                <span>Nueva Sucursal</span>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
-                <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="size-5 text-destructive" />
-                                Confirmar eliminación
-                            </DialogTitle>
-                        </DialogHeader>
-                        <DialogDescription>
-                            {branchToDelete && (
-                                <p>
-                                    ¿Está seguro de eliminar la sucursal <strong>{branchToDelete.name}</strong>? Esta acción puede ser revertida
-                                    posteriormente.
-                                </p>
-                            )}
-                        </DialogDescription>
-                        <DialogFooter>
-                            <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
-                                Cancelar
-                            </Button>
-                            <Button variant="destructive" onClick={handleDelete}>
-                                Eliminar
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <div className="flex flex-col gap-3">
+                    <SearchField
+                        id="branch-search"
+                        label="Buscar sucursales"
+                        placeholder="Buscar por nombre, dirección o gerente"
+                        value={search}
+                        onChange={setSearch}
+                        onSubmit={() => applyFilters()}
+                    />
+                    <div
+                        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+                        role="group"
+                        aria-label="Estado"
+                    >
+                        {STATUS_CHIPS.map((chip) => (
+                            <button
+                                key={chip.value}
+                                type="button"
+                                aria-pressed={status === chip.value}
+                                onClick={() => handleStatusChange(chip.value)}
+                                className={cn(
+                                    'inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+                                    status === chip.value
+                                        ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                                        : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+                                )}
+                            >
+                                {chip.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
+                    )}
+                >
+                    {branches.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <Building2 className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No se encontraron sucursales</p>
+                            <p className="text-sm text-muted-foreground">Prueba con otra búsqueda o crea una sucursal nueva.</p>
+                        </div>
+                    ) : isWide ? (
+                        <BranchTable branches={branches.data} />
+                    ) : (
+                        <PullToRefresh onRefresh={refresh}>{() => <BranchCards branches={branches.data} />}</PullToRefresh>
+                    )}
+                    <PaginationFooter data={{ ...branches, resourceLabel: 'sucursales' }} />
+                </div>
             </div>
         </AppLayout>
     );
