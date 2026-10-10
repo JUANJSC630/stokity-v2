@@ -1,4 +1,6 @@
+import { initialsOf } from '@/components/admin/tenant-badges';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RoleBadge, UserStatusPill } from '@/components/users/user-meta';
 import AppLayout from '@/layouts/app-layout';
 import { formatDateTime } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
@@ -36,24 +38,7 @@ interface PageProps {
     [key: string]: unknown;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-    administrador: 'Administrador',
-    encargado: 'Encargado',
-    vendedor: 'Vendedor',
-};
-
-const ROLE_PILL_CLASS: Record<string, string> = {
-    administrador: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400',
-    encargado: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400',
-    vendedor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400',
-};
-
-function initials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-    const first = parts[0]?.[0] ?? '';
-    const second = parts[1]?.[0] ?? '';
-    return (first + second).toUpperCase();
-}
+const initials = (name: string): string => initialsOf(name);
 
 export default function ShowUser({ user }: Props) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -90,94 +75,79 @@ export default function ShowUser({ user }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Usuario: ${user.name}`} />
-            <div className="grid h-full flex-1 gap-5 p-6 lg:grid-cols-[260px_1fr]">
-                {/* Rail: identidad + acciones */}
-                <aside className="h-fit rounded-2xl border border-border/60 bg-card px-6 py-7 text-center">
+            <div className="mx-auto grid w-full max-w-5xl items-start gap-5 p-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:p-6">
+                <aside className="rounded-2xl border border-border/60 bg-card p-5 text-center sm:p-6">
                     {user.uploaded_photo_url && !photoFailed ? (
                         <img
                             src={user.uploaded_photo_url}
                             alt={user.name}
                             onError={() => setPhotoFailed(true)}
-                            className="mx-auto mb-4 h-[84px] w-[84px] rounded-full border border-border/60 object-cover"
+                            className="mx-auto mb-4 size-24 rounded-full border border-border/60 object-cover"
                         />
                     ) : (
-                        <div className="mx-auto mb-4 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-orange-500 text-xl font-bold text-white">
+                        <div className="mx-auto mb-4 flex size-24 items-center justify-center rounded-full bg-[var(--brand-primary-soft)] text-2xl font-bold text-[var(--brand-primary)]">
                             {initials(user.name)}
                         </div>
                     )}
-                    <h1 className="truncate text-base font-bold">{user.name}</h1>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
+                    <h1 className="truncate text-lg font-bold">{user.name}</h1>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{user.email}</p>
 
-                    <div className="mt-4 flex flex-col gap-2">
-                        <span
-                            className={`rounded-full px-3 py-1.5 text-xs font-medium ${ROLE_PILL_CLASS[user.role] ?? 'bg-muted text-muted-foreground'}`}
-                        >
-                            {ROLE_LABELS[user.role] ?? user.role}
-                        </span>
-                        <span
-                            className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${
-                                user.status
-                                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400'
-                                    : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400'
-                            }`}
-                        >
-                            <span className={`h-1.5 w-1.5 rounded-full ${user.status ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                            {user.status ? 'Activo' : 'Inactivo'}
-                        </span>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <RoleBadge role={user.role} className="px-3 py-1.5" />
+                        <UserStatusPill active={user.status} className="px-3 py-1.5" />
                     </div>
 
-                    <div className="mt-5 flex flex-col gap-2">
+                    <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-1">
                         <Link
                             href={`/users/${user.id}/edit`}
-                            className="flex items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-3 text-sm font-medium transition-colors hover:bg-muted"
                         >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Pencil className="size-4" aria-hidden="true" />
                             Editar usuario
                         </Link>
-                        {/* Botón de eliminar solo si el usuario mostrado NO es el auth */}
                         {user.id !== authUserId && (
                             <button
+                                type="button"
                                 onClick={() => setIsDeleteDialogOpen(true)}
-                                className="flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-card px-3 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-card px-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="size-4" aria-hidden="true" />
                                 Eliminar
                             </button>
                         )}
                     </div>
                 </aside>
 
-                {/* Contenido principal */}
-                <div className="flex flex-col gap-4">
-                    <div className="rounded-2xl border border-border/60 bg-card px-6 py-5">
-                        <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Información</p>
+                <div className="flex flex-col gap-5">
+                    <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+                        <h2 className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Información</h2>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {user.branch && (
-                                <div className="flex items-start gap-2.5">
-                                    <Building2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+                                <div className="flex items-start gap-3">
+                                    <Building2 className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
                                     <div className="min-w-0">
                                         <p className="text-[11px] text-muted-foreground">Sucursal</p>
                                         <p className="truncate text-sm font-medium">{user.branch.name}</p>
                                     </div>
                                 </div>
                             )}
-                            <div className="flex items-start gap-2.5">
-                                <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground/60" />
+                            <div className="flex items-start gap-3">
+                                <Mail className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
                                 <div className="min-w-0">
                                     <p className="text-[11px] text-muted-foreground">Correo</p>
                                     <p className="truncate text-sm font-medium">{user.email}</p>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="rounded-2xl border border-border/60 bg-card px-6 py-5">
-                        <p className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Actividad de la cuenta</p>
+                    <section className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
+                        <h2 className="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">Actividad de la cuenta</h2>
                         <div className="divide-y divide-border/40">
                             {activity.map(({ icon: Icon, label, value }) => (
                                 <div key={label} className="flex items-center gap-3 py-3">
-                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-[var(--brand-primary)]">
-                                        <Icon className="h-4 w-4" />
+                                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[var(--brand-primary)]">
+                                        <Icon className="size-4" aria-hidden="true" />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium">{label}</p>
@@ -186,10 +156,9 @@ export default function ShowUser({ user }: Props) {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </section>
                 </div>
 
-                {/* Delete Dialog */}
                 <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
@@ -200,30 +169,33 @@ export default function ShowUser({ user }: Props) {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-sm font-medium">Razón de eliminación (opcional)</label>
-                                <textarea
-                                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                                    value={form.data.reason}
-                                    onChange={(e) => form.setData('reason', e.target.value)}
-                                    rows={3}
-                                />
-                            </div>
+                        <div>
+                            <label htmlFor="delete-reason" className="text-sm font-medium">
+                                Razón de eliminación (opcional)
+                            </label>
+                            <textarea
+                                id="delete-reason"
+                                className="mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-base sm:text-sm"
+                                value={form.data.reason}
+                                onChange={(e) => form.setData('reason', e.target.value)}
+                                rows={3}
+                            />
                         </div>
 
                         <DialogFooter>
                             <button
+                                type="button"
                                 onClick={() => setIsDeleteDialogOpen(false)}
                                 disabled={form.processing}
-                                className="rounded-lg border border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                                className="h-11 rounded-xl border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50 sm:h-10"
                             >
                                 Cancelar
                             </button>
                             <button
+                                type="button"
                                 onClick={handleDelete}
                                 disabled={form.processing}
-                                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                                className="h-11 rounded-xl bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50 sm:h-10"
                             >
                                 {form.processing ? 'Eliminando...' : 'Eliminar usuario'}
                             </button>

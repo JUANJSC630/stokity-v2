@@ -15,6 +15,7 @@ const env = vi.hoisted(() => ({
     errors: {} as Record<string, string>,
     processing: false,
     authUserId: 1,
+    wide: true,
 }));
 
 vi.mock('@inertiajs/react', async () => {
@@ -52,6 +53,17 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
@@ -59,6 +71,7 @@ beforeEach(() => {
     env.errors = {};
     env.processing = false;
     env.authUserId = 1;
+    env.wide = true;
     window.history.replaceState({}, '', '/users');
 });
 
@@ -109,16 +122,28 @@ describe('Users list', () => {
         user(3, { name: 'Carla Vendedora', status: false }),
     ];
 
-    it('lists the users with role, state and branch, in the table and in the phone cards', () => {
+    it('lists the users with role, state and branch in the table on a wide screen', () => {
         render(<Users users={page(rows) as never} />);
 
-        expect(screen.getAllByText('Ana Admin').length).toBe(2);
-        expect(screen.getAllByText('Administrador').length).toBe(2);
-        expect(screen.getAllByText('Encargado').length).toBe(2);
-        expect(screen.getAllByText('Vendedor').length).toBe(2);
-        expect(screen.getAllByText('Activo').length).toBe(4);
-        expect(screen.getAllByText('Inactivo').length).toBe(2);
-        expect(within(screen.getByRole('table', { name: 'Usuarios' })).getAllByText('-').length).toBe(1);
+        const table = screen.getByRole('table', { name: 'Usuarios' });
+        expect(within(table).getByText('Ana Admin')).toBeInTheDocument();
+        expect(within(table).getByText('Administrador')).toBeInTheDocument();
+        expect(within(table).getByText('Encargado')).toBeInTheDocument();
+        expect(within(table).getByText('Vendedor')).toBeInTheDocument();
+        expect(within(table).getAllByText('Activo').length).toBe(2);
+        expect(within(table).getByText('Inactivo')).toBeInTheDocument();
+        expect(within(table).getAllByText('-').length).toBe(1);
+    });
+
+    it('lists them as rows on a phone, marking only the inactive ones and the missing branch', () => {
+        env.wide = false;
+        render(<Users users={page(rows) as never} />);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(screen.getByText('Ana Admin')).toBeInTheDocument();
+        expect(screen.getByText('Sin sucursal')).toBeInTheDocument();
+        expect(screen.getAllByText('Inactivo').length).toBe(1);
+        expect(screen.queryByText('Activo')).not.toBeInTheDocument();
     });
 
     it('shows a role that it does not know as it comes', () => {
@@ -127,7 +152,7 @@ describe('Users list', () => {
         expect(screen.getAllByText('contador').length).toBeGreaterThan(0);
     });
 
-    it('says so on a phone when there are no users', () => {
+    it('says so when there are no users', () => {
         render(<Users users={page([]) as never} />);
 
         expect(screen.getByText('No se encontraron usuarios')).toBeInTheDocument();
@@ -137,8 +162,8 @@ describe('Users list', () => {
         render(<Users users={page(rows) as never} />);
 
         expect(screen.getByText('Nuevo Usuario').closest('a')).toHaveAttribute('href', '/users/create');
-        expect(screen.getAllByLabelText('Ver detalle')[1].closest('a')).toHaveAttribute('href', '/users/2');
-        expect(screen.getAllByTitle('Ver Usuario')[0].closest('a')).toHaveAttribute('href', '/users/1');
+        expect(screen.getByLabelText('Ver usuario Beto Encargado')).toHaveAttribute('href', '/users/2');
+        expect(screen.getByLabelText('Ver usuario Ana Admin')).toHaveAttribute('href', '/users/1');
     });
 
     it('searches on submit with the term and without the "all" state', () => {
@@ -154,10 +179,10 @@ describe('Users list', () => {
         );
     });
 
-    it('filters by state right away, keeping the search', () => {
+    it('filters by state right away with the chips, keeping the search', () => {
         render(<Users users={page(rows) as never} filters={{ search: 'ana', status: 'all' }} />);
 
-        fireEvent.change(screen.getByLabelText('Estado'), { target: { value: '0' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }));
 
         expect(router.visit).toHaveBeenCalledWith('/users?search=ana&status=0', expect.objectContaining({ only: ['users'] }));
     });
@@ -166,7 +191,7 @@ describe('Users list', () => {
         render(<Users users={page(rows) as never} filters={{ search: 'beto', status: '1' }} />);
 
         expect(screen.getByPlaceholderText('Buscar por nombre, email o sucursal')).toHaveValue('beto');
-        expect(screen.getByLabelText('Estado')).toHaveValue('1');
+        expect(screen.getByRole('button', { name: 'Activos' })).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('clears the filters by itself when the search box is emptied while the url still has filters', () => {
@@ -176,7 +201,7 @@ describe('Users list', () => {
         fireEvent.change(screen.getByPlaceholderText('Buscar por nombre, email o sucursal'), { target: { value: '' } });
 
         expect(router.visit).toHaveBeenCalledWith('/users?', expect.objectContaining({ only: ['users'] }));
-        expect(screen.getByLabelText('Estado')).toHaveValue('all');
+        expect(screen.getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
     });
 });
 

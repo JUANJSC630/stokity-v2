@@ -1,17 +1,17 @@
-import EyeButton from '@/components/common/EyeButton';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/common/search-field';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { UserCards, UserTable } from '@/components/users/user-list';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { Eye, Plus, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Plus, Users as UsersIcon } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UsersPageProps {
     users: {
@@ -36,6 +36,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const STATUS_CHIPS = [
+    { value: 'all', label: 'Todos' },
+    { value: '1', label: 'Activos' },
+    { value: '0', label: 'Inactivos' },
+];
+
+const formatCount = (value: number): string => String(value);
+
 export default function Users({ users, filters = { search: '', status: 'all' } }: UsersPageProps) {
     usePolling(['users'], 120_000);
 
@@ -43,7 +51,8 @@ export default function Users({ users, filters = { search: '', status: 'all' } }
     const [status, setStatus] = useState(filters.status || 'all');
 
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
+    const isWide = useMediaQuery('(min-width: 768px)');
+    const onBrand = useOnBrandColor();
 
     const hasResetRef = useRef(false);
     useEffect(() => {
@@ -81,11 +90,6 @@ export default function Users({ users, filters = { search: '', status: 'all' } }
         });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
-
     const handleStatusChange = (newStatus: string) => {
         setStatus(newStatus);
         const params = new URLSearchParams();
@@ -98,167 +102,90 @@ export default function Users({ users, filters = { search: '', status: 'all' } }
         });
     };
 
-    const getRoleBadge = (role: string) => {
-        switch (role) {
-            case 'administrador':
-                return <Badge className="bg-blue-500 hover:bg-blue-600">Administrador</Badge>;
-            case 'encargado':
-                return <Badge className="bg-green-500 hover:bg-green-600">Encargado</Badge>;
-            case 'vendedor':
-                return <Badge className="bg-amber-500 hover:bg-amber-600">Vendedor</Badge>;
-            default:
-                return <Badge>{role}</Badge>;
-        }
-    };
-
-    const getStatusBadge = (status: User['status']) => {
-        return status ? (
-            <Badge className="bg-green-500 hover:bg-green-600">Activo</Badge>
-        ) : (
-            <Badge className="bg-red-500 hover:bg-red-600">Inactivo</Badge>
-        );
-    };
-    const columns: Column<User & { actions: null }>[] = [
-        { key: 'id', title: 'ID' },
-        { key: 'name', title: 'Usuario' },
-        { key: 'email', title: 'Email' },
-        { key: 'role', title: 'Rol', render: (_: unknown, row: User) => getRoleBadge(row.role) },
-        { key: 'status', title: 'Estado', render: (_: unknown, row: User) => getStatusBadge(row.status) },
-        { key: 'branch', title: 'Sucursal', render: (_: unknown, row: User) => row.branch?.name || '-' },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: User) => (
-                <Link href={`/users/${row.id}`}>
-                    <EyeButton text="Ver Usuario" />
-                </Link>
-            ),
-        },
-    ];
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['users'], onFinish: () => resolve() });
+            }),
+        [],
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Usuarios" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-                    <div className="flex flex-row justify-center gap-2">
-                        <Button asChild className="flex gap-1">
-                            <Link href="/users/create">
-                                <Plus className="size-4" />
-                                <span>Nuevo Usuario</span>
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-                {/* Filtro en Card */}
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Usuarios</CardTitle>
-                            <CardDescription>Busca usuarios por nombre, email, estado o sucursal</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="user-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por nombre, email o sucursal"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="status-filter" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Estado
-                                    </Label>
-                                    <select
-                                        id="status-filter"
-                                        value={status}
-                                        onChange={(e) => handleStatusChange(e.target.value)}
-                                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-                                    >
-                                        <option value="all">Todos</option>
-                                        <option value="1">Activos</option>
-                                        <option value="0">Inactivos</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Tabla y Cards */}
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
-                    {/* Tabla desktop */}
-                    <div className="hidden w-full overflow-x-auto md:block">
-                        <Table aria-label="Usuarios" columns={columns} data={users.data.map((user) => ({ ...user, actions: null }))} />
-                    </div>
-
-                    {/* Tarjetas móvil */}
-                    <div className="block md:hidden">
-                        {users.data.length === 0 ? (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron usuarios</div>
-                        ) : (
-                            <div className="flex flex-col gap-4 p-2">
-                                {users.data.map((user) => (
-                                    <div key={user.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{user.name}</div>
-                                            <Link href={`/users/${user.id}`}>
-                                                <Button aria-label="Ver detalle" variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                                    <Eye className="size-4" />
-                                                </Button>
-                                            </Link>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">ID:</span> {user.id}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Email:</span> {user.email}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Rol:</span> {getRoleBadge(user.role)}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Estado:</span> {getStatusBadge(user.status)}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Sucursal:</span> {user.branch?.name || '-'}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Paginación */}
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <PaginationFooter
-                            data={{
-                                ...users,
-                                resourceLabel: 'usuarios',
-                            }}
-                        />
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Gestión de Usuarios</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={users.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {users.total === 1 ? 'persona' : 'personas'} con acceso a tu negocio
+                        </p>
                     </div>
+                    <Link
+                        href="/users/create"
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                        style={{ color: onBrand.hex }}
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        <span>Nuevo Usuario</span>
+                    </Link>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    <SearchField
+                        id="user-search"
+                        label="Buscar usuarios"
+                        placeholder="Buscar por nombre, email o sucursal"
+                        value={search}
+                        onChange={setSearch}
+                        onSubmit={() => applyFilters()}
+                    />
+                    <div
+                        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+                        role="group"
+                        aria-label="Estado"
+                    >
+                        {STATUS_CHIPS.map((chip) => (
+                            <button
+                                key={chip.value}
+                                type="button"
+                                aria-pressed={status === chip.value}
+                                onClick={() => handleStatusChange(chip.value)}
+                                className={cn(
+                                    'inline-flex h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+                                    status === chip.value
+                                        ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                                        : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+                                )}
+                            >
+                                {chip.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
+                    )}
+                >
+                    {users.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <UsersIcon className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No se encontraron usuarios</p>
+                            <p className="text-sm text-muted-foreground">Prueba con otra búsqueda o crea un usuario nuevo.</p>
+                        </div>
+                    ) : isWide ? (
+                        <UserTable users={users.data} />
+                    ) : (
+                        <PullToRefresh onRefresh={refresh}>{() => <UserCards users={users.data} />}</PullToRefresh>
+                    )}
+                    <PaginationFooter data={{ ...users, resourceLabel: 'usuarios' }} />
                 </div>
             </div>
         </AppLayout>
