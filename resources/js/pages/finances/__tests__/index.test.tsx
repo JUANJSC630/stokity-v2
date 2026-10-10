@@ -110,7 +110,8 @@ const baseProps = {
     activeCreditsCount: 0,
 };
 
-const renderPage = (overrides: Record<string, unknown> = {}) => render(<FinancesIndex {...({ ...baseProps, ...overrides } as never)} />);
+const renderPage = (overrides: Record<string, unknown> = {}) =>
+    render(<FinancesIndex {...({ ...baseProps, ...overrides } as unknown as Parameters<typeof FinancesIndex>[0])} />);
 
 beforeAll(() => {
     class NoopObserver {
