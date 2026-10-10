@@ -118,6 +118,17 @@ describe('Settings layout', () => {
     });
 });
 
+describe('Settings layout navigation (redesign)', () => {
+    it('is a labelled navigation that marks the current page for assistive tech', () => {
+        window.history.replaceState({}, '', '/settings/password');
+        render(<SettingsLayout>x</SettingsLayout>);
+
+        const nav = screen.getByRole('navigation', { name: 'Secciones de configuración' });
+        expect(nav.querySelector('[aria-current="page"]')?.textContent).toBe('Contraseña');
+        expect(nav.querySelectorAll('[aria-current]').length).toBe(1);
+    });
+});
+
 describe('Profile', () => {
     it('loads the user, with the current photo', () => {
         render(<Profile mustVerifyEmail={false} />);
@@ -151,7 +162,7 @@ describe('Profile', () => {
         render(<Profile mustVerifyEmail={false} />);
         const file = new File([new Uint8Array(2048)], 'foto.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('', { selector: '#photo' }), { target: { files: [file] } });
+        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [file] } });
 
         await waitFor(() => expect(screen.getByText('2.0 KB')).toBeInTheDocument());
         expect(env.clearErrors).toHaveBeenCalledWith('photo');
@@ -162,7 +173,7 @@ describe('Profile', () => {
         render(<Profile mustVerifyEmail={false} />);
         const big = new File([new Uint8Array(5 * 1024 * 1024)], 'grande.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('', { selector: '#photo' }), { target: { files: [big] } });
+        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [big] } });
 
         await waitFor(() => expect(env.setError).toHaveBeenCalledWith('photo', 'El archivo no debe pesar más de 2MB'));
         expect(screen.getByText('JPG, PNG, GIF, WebP. Máx 4MB')).toBeInTheDocument();
@@ -171,7 +182,7 @@ describe('Profile', () => {
     it('does not post when the chosen photo is too big', async () => {
         render(<Profile mustVerifyEmail={false} />);
         const big = new File([new Uint8Array(5 * 1024 * 1024)], 'grande.png', { type: 'image/png' });
-        fireEvent.change(screen.getByLabelText('', { selector: '#photo' }), { target: { files: [big] } });
+        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [big] } });
         await waitFor(() => expect(env.setError).toHaveBeenCalled());
 
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));

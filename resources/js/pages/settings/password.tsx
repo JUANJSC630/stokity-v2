@@ -1,15 +1,12 @@
 import InputError from '@/components/input-error';
+import { INPUT_CLASS } from '@/components/sales/form-fields';
+import { BrandSubmit, SaveBar, SettingsSection } from '@/components/settings/settings-section';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
-
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -53,78 +50,78 @@ export default function Password() {
             <Head title="Configuración de contraseña" />
 
             <SettingsLayout>
-                <div className="space-y-6">
-                    <HeadingSmall
-                        title="Actualizar contraseña"
-                        description="Asegúrate de que tu cuenta use una contraseña larga y aleatoria para mantenerla segura"
-                    />
-
-                    <form onSubmit={updatePassword} className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="current_password">Contraseña actual</Label>
-
-                            <Input
+                <SettingsSection
+                    title="Actualizar contraseña"
+                    description="Asegúrate de que tu cuenta use una contraseña larga y aleatoria para mantenerla segura"
+                >
+                    <form onSubmit={updatePassword} className="flex flex-col gap-5">
+                        <div className="space-y-1.5">
+                            <label htmlFor="current_password" className="text-xs font-medium">
+                                Contraseña actual
+                            </label>
+                            <input
                                 id="current_password"
                                 ref={currentPasswordInput}
                                 value={data.current_password}
                                 onChange={(e) => setData('current_password', e.target.value)}
                                 type="password"
-                                className="mt-1 block w-full"
+                                className={INPUT_CLASS}
                                 autoComplete="current-password"
                                 placeholder="Contraseña actual"
                             />
-
                             <InputError message={errors.current_password} />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="password">Nueva contraseña</Label>
-
-                            <Input
+                        <div className="space-y-1.5">
+                            <label htmlFor="password" className="text-xs font-medium">
+                                Nueva contraseña
+                            </label>
+                            <input
                                 id="password"
                                 ref={passwordInput}
                                 value={data.password}
                                 onChange={(e) => setData('password', e.target.value)}
                                 type="password"
-                                className="mt-1 block w-full"
+                                className={INPUT_CLASS}
                                 autoComplete="new-password"
                                 placeholder="Nueva contraseña"
                             />
-
                             <InputError message={errors.password} />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="password_confirmation">Confirmar contraseña</Label>
-
-                            <Input
+                        <div className="space-y-1.5">
+                            <label htmlFor="password_confirmation" className="text-xs font-medium">
+                                Confirmar contraseña
+                            </label>
+                            <input
                                 id="password_confirmation"
                                 value={data.password_confirmation}
                                 onChange={(e) => setData('password_confirmation', e.target.value)}
                                 type="password"
-                                className="mt-1 block w-full"
+                                className={INPUT_CLASS}
                                 autoComplete="new-password"
                                 placeholder="Confirmar contraseña"
                             />
-
                             <InputError message={errors.password_confirmation} />
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <Button disabled={processing}>Guardar contraseña</Button>
-
-                            <Transition
-                                show={recentlySuccessful}
-                                enter="transition ease-in-out"
-                                enterFrom="opacity-0"
-                                leave="transition ease-in-out"
-                                leaveTo="opacity-0"
-                            >
-                                <p className="text-sm text-neutral-600">Guardado</p>
-                            </Transition>
-                        </div>
+                        <SaveBar
+                            saved={
+                                <Transition
+                                    show={recentlySuccessful}
+                                    enter="transition ease-in-out"
+                                    enterFrom="opacity-0"
+                                    leave="transition ease-in-out"
+                                    leaveTo="opacity-0"
+                                >
+                                    <p className="text-sm text-muted-foreground">Guardado</p>
+                                </Transition>
+                            }
+                        >
+                            <BrandSubmit disabled={processing}>Guardar contraseña</BrandSubmit>
+                        </SaveBar>
                     </form>
-                </div>
+                </SettingsSection>
             </SettingsLayout>
         </AppLayout>
     );
