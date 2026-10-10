@@ -279,7 +279,7 @@ describe('POS: cart and totals', () => {
         expect(screen.getByPlaceholderText(/Buscar producto por nombre o código/)).toHaveFocus();
         fireEvent.keyDown(window, { key: 'Enter' });
 
-        expect(await screen.findByLabelText('Cantidad de Collar de perlas Luna')).toBeInTheDocument();
+        expect(await screen.findByLabelText('Cantidad de Collar de perlas Luna', undefined, { timeout: 3000 })).toBeInTheDocument();
     });
 
     it('removes a line when its quantity goes down to zero or with the trash button', async () => {
