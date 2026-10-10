@@ -1,15 +1,14 @@
-import HeadingSmall from '@/components/heading-small';
+import { SettingsSection } from '@/components/settings/settings-section';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { CheckCircle, Download, ExternalLink, Monitor, PowerOff, Printer, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, Download, ExternalLink, PowerOff, Printer, Wifi, WifiOff } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -128,234 +127,205 @@ export default function PrinterSettings() {
         }
     };
 
+    const chip = (selected: boolean) =>
+        cn(
+            'flex h-11 items-center justify-center gap-1.5 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+            selected
+                ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+                : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+        );
+    const actionButton =
+        'flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 sm:h-9';
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Configuración de impresora" />
 
             <SettingsLayout>
-                <div className="space-y-6">
-                    <HeadingSmall title="Impresora térmica" description="Configura la impresión ESC/POS para tu impresora local" />
-
-                    {/* Estado actual */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Monitor className="size-4" /> Estado de QZ Tray
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Agente QZ Tray</p>
-                                    <p className="text-xs text-muted-foreground/70">
-                                        Solo indica si el programa está corriendo en este equipo, no el estado de la impresora.
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {statusBadge()}
-                                    {printer.status === 'connected' && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 gap-1 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                            onClick={async () => {
-                                                await printer.disconnect();
-                                                toast.success('Desconectado de QZ Tray.');
-                                            }}
-                                        >
-                                            <PowerOff className="size-3" />
-                                            Desconectar
-                                        </Button>
-                                    )}
-                                    {(printer.status === 'idle' || printer.status === 'unavailable') && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 gap-1 text-xs"
-                                            onClick={async () => {
-                                                await printer.connect();
-                                            }}
-                                        >
-                                            <Wifi className="size-3" />
-                                            Conectar
-                                        </Button>
-                                    )}
-                                </div>
+                <SettingsSection title="Impresora térmica" description="Configura la impresión ESC/POS para tu impresora local">
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm font-medium">Estado de QZ Tray</p>
+                                <p className="text-sm text-muted-foreground">Agente QZ Tray</p>
+                                <p className="text-xs text-muted-foreground/70">
+                                    Solo indica si el programa está corriendo en este equipo, no el estado de la impresora.
+                                </p>
                             </div>
-
-                            <Separator />
-
-                            {/* Toggle auto-print */}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium">Impresión automática</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Al desactivar, las ventas no se envían a la impresora. Úsalo cuando la impresora esté desconectada para evitar
-                                        que los trabajos se encolen.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    aria-checked={printer.autoPrint}
-                                    onClick={() => {
-                                        printer.setAutoPrint(!printer.autoPrint);
-                                        toast.success(printer.autoPrint ? 'Impresión automática desactivada.' : 'Impresión automática activada.');
-                                    }}
-                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${printer.autoPrint ? 'bg-green-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}
-                                >
-                                    <span
-                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${printer.autoPrint ? 'translate-x-5' : 'translate-x-0'}`}
-                                    />
-                                </button>
+                            <div className="flex flex-wrap items-center gap-2">
+                                {statusBadge()}
+                                {printer.status === 'connected' && (
+                                    <button
+                                        type="button"
+                                        className={cn(actionButton, 'text-destructive hover:bg-destructive/10 hover:text-destructive')}
+                                        onClick={async () => {
+                                            await printer.disconnect();
+                                            toast.success('Desconectado de QZ Tray.');
+                                        }}
+                                    >
+                                        <PowerOff className="size-3.5" aria-hidden="true" />
+                                        Desconectar
+                                    </button>
+                                )}
+                                {(printer.status === 'idle' || printer.status === 'unavailable') && (
+                                    <button
+                                        type="button"
+                                        className={actionButton}
+                                        onClick={async () => {
+                                            await printer.connect();
+                                        }}
+                                    >
+                                        <Wifi className="size-3.5" aria-hidden="true" />
+                                        Conectar
+                                    </button>
+                                )}
                             </div>
+                        </div>
 
-                            {printer.status === 'connected' && (
-                                <>
-                                    <Separator />
-                                    <Alert>
-                                        <AlertDescription className="text-xs text-muted-foreground">
-                                            QZ Tray está activo. La lista de impresoras proviene del sistema operativo — incluye impresoras apagadas o
-                                            desconectadas. Asegúrate de que la impresora esté
-                                            <strong> encendida y conectada</strong> antes de imprimir.
-                                        </AlertDescription>
-                                    </Alert>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-muted-foreground">Impresora seleccionada</span>
-                                            <span className="text-sm font-medium">
-                                                {printer.selectedPrinter ?? <span className="text-muted-foreground italic">Ninguna</span>}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-muted-foreground">Ancho de papel</span>
-                                            <span className="text-sm font-medium">{printer.paperWidth} mm</span>
-                                        </div>
-                                    </div>
+                        <div className="flex items-start justify-between gap-4 rounded-xl border border-border/60 p-4">
+                            <label htmlFor="auto-print" className="min-w-0 flex-1 cursor-pointer">
+                                <p className="text-sm font-medium">Impresión automática</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Al desactivar, las ventas no se envían a la impresora. Úsalo cuando la impresora esté desconectada para evitar que
+                                    los trabajos se encolen.
+                                </p>
+                            </label>
+                            <Switch
+                                id="auto-print"
+                                checked={printer.autoPrint}
+                                onCheckedChange={() => {
+                                    printer.setAutoPrint(!printer.autoPrint);
+                                    toast.success(printer.autoPrint ? 'Impresión automática desactivada.' : 'Impresión automática activada.');
+                                }}
+                            />
+                        </div>
 
-                                    {printer.printers.length > 0 && (
-                                        <>
-                                            <Separator />
-                                            <div className="space-y-2">
-                                                <p className="text-sm font-medium">Impresoras disponibles</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {printer.printers.map((name) => (
-                                                        <Button
-                                                            key={name}
-                                                            size="sm"
-                                                            variant={printer.selectedPrinter === name ? 'default' : 'outline'}
-                                                            className="h-7 text-xs"
-                                                            onClick={() => printer.setSelectedPrinter(name)}
-                                                        >
-                                                            <Printer className="mr-1 size-3" />
-                                                            {name}
-                                                            {printer.selectedPrinter === name && <CheckCircle className="ml-1 size-3" />}
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant={printer.paperWidth === 58 ? 'default' : 'outline'}
-                                                    className="h-7 text-xs"
-                                                    onClick={() => printer.setPaperWidth(58)}
-                                                >
-                                                    58 mm
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant={printer.paperWidth === 80 ? 'default' : 'outline'}
-                                                    className="h-7 text-xs"
-                                                    onClick={() => printer.setPaperWidth(80)}
-                                                >
-                                                    80 mm
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="ml-auto h-7 gap-1 text-xs"
-                                                    onClick={handleTestPrint}
-                                                    disabled={testing || !printer.selectedPrinter}
-                                                >
-                                                    <Printer className="size-3" />
-                                                    {testing ? 'Imprimiendo…' : 'Probar impresora'}
-                                                </Button>
-                                            </div>
-                                        </>
-                                    )}
-                                </>
-                            )}
-
-                            {printer.status === 'unavailable' && (
+                        {printer.status === 'connected' && (
+                            <>
                                 <Alert>
-                                    <AlertDescription className="text-sm">
-                                        QZ Tray no está ejecutándose en este equipo. Instálalo y ábrelo para habilitar la impresión térmica. Sigue la
-                                        guía de configuración a continuación.
+                                    <AlertDescription className="text-xs text-muted-foreground">
+                                        QZ Tray está activo. La lista de impresoras proviene del sistema operativo — incluye impresoras apagadas o
+                                        desconectadas. Asegúrate de que la impresora esté
+                                        <strong> encendida y conectada</strong> antes de imprimir.
                                     </AlertDescription>
                                 </Alert>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <dl className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-sm text-muted-foreground">Impresora seleccionada</dt>
+                                        <dd className="text-sm font-medium">
+                                            {printer.selectedPrinter ?? <span className="text-muted-foreground italic">Ninguna</span>}
+                                        </dd>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-sm text-muted-foreground">Ancho de papel</dt>
+                                        <dd className="text-sm font-medium">
+                                            <span>{printer.paperWidth} mm</span>
+                                        </dd>
+                                    </div>
+                                </dl>
 
-                    {/* Descargar certificado */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center gap-2 text-base">
-                                <Download className="size-4" /> Certificado de seguridad
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <p className="text-sm text-muted-foreground">
-                                QZ Tray requiere un certificado para autorizar a Stokity a enviar trabajos de impresión. Descarga este archivo y
-                                agrégalo una sola vez en el Site Manager de QZ Tray (ver guía abajo).
-                            </p>
-                            <a href="/qz/certificate/download" download="stokity-qztray.pem">
-                                <Button variant="outline" className="gap-2">
-                                    <Download className="size-4" />
-                                    Descargar certificado (.pem)
-                                </Button>
-                            </a>
-                            <p className="text-xs text-muted-foreground">
-                                Este archivo es el mismo para todos los equipos. Solo necesitas descargarlo una vez por computadora.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Guía paso a paso */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base">Guía de configuración</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ol className="space-y-5">
-                                {steps.map((step) => {
-                                    // Auto-detect completion for steps 1 and 5
-                                    const isComplete =
-                                        (step.number === 1 && printer.status === 'connected') ||
-                                        (step.number === 5 && printer.status === 'connected' && !!printer.selectedPrinter);
-                                    return (
-                                        <li key={step.number} className="flex gap-4">
-                                            <div
-                                                className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isComplete ? 'bg-green-500 text-white' : 'bg-primary text-primary-foreground'}`}
-                                            >
-                                                {isComplete ? <CheckCircle className="size-4" /> : step.number}
+                                {printer.printers.length > 0 && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-medium">Impresoras disponibles</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {printer.printers.map((name) => (
+                                                    <button
+                                                        key={name}
+                                                        type="button"
+                                                        aria-pressed={printer.selectedPrinter === name}
+                                                        className={chip(printer.selectedPrinter === name)}
+                                                        onClick={() => printer.setSelectedPrinter(name)}
+                                                    >
+                                                        <Printer className="size-3.5" aria-hidden="true" />
+                                                        {name}
+                                                        {printer.selectedPrinter === name && <CheckCircle className="size-3.5" aria-hidden="true" />}
+                                                    </button>
+                                                ))}
                                             </div>
-                                            <div className="space-y-1 pt-0.5">
-                                                <p
-                                                    className={`text-sm font-semibold ${isComplete ? 'text-green-600 line-through dark:text-green-400' : ''}`}
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {([58, 80] as const).map((width) => (
+                                                <button
+                                                    key={width}
+                                                    type="button"
+                                                    aria-pressed={printer.paperWidth === width}
+                                                    className={chip(printer.paperWidth === width)}
+                                                    onClick={() => printer.setPaperWidth(width)}
                                                 >
-                                                    {step.title}
-                                                </p>
-                                                <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
-                                            </div>
-                                        </li>
-                                    );
-                                })}
-                            </ol>
-                        </CardContent>
-                    </Card>
-                </div>
+                                                    {width} mm
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                className={cn(actionButton, 'sm:ml-auto')}
+                                                onClick={handleTestPrint}
+                                                disabled={testing || !printer.selectedPrinter}
+                                            >
+                                                <Printer className="size-3.5" aria-hidden="true" />
+                                                {testing ? 'Imprimiendo…' : 'Probar impresora'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {printer.status === 'unavailable' && (
+                            <Alert>
+                                <AlertDescription className="text-sm">
+                                    QZ Tray no está ejecutándose en este equipo. Instálalo y ábrelo para habilitar la impresión térmica. Sigue la guía
+                                    de configuración a continuación.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </div>
+                </SettingsSection>
+
+                <SettingsSection title="Certificado de seguridad">
+                    <div className="flex flex-col gap-3">
+                        <p className="text-sm text-muted-foreground">
+                            QZ Tray requiere un certificado para autorizar a Stokity a enviar trabajos de impresión. Descarga este archivo y agrégalo
+                            una sola vez en el Site Manager de QZ Tray (ver guía abajo).
+                        </p>
+                        <a href="/qz/certificate/download" download="stokity-qztray.pem" className={cn(actionButton, 'w-full sm:w-fit')}>
+                            <Download className="size-4" aria-hidden="true" />
+                            Descargar certificado (.pem)
+                        </a>
+                        <p className="text-xs text-muted-foreground">
+                            Este archivo es el mismo para todos los equipos. Solo necesitas descargarlo una vez por computadora.
+                        </p>
+                    </div>
+                </SettingsSection>
+
+                <SettingsSection title="Guía de configuración">
+                    <ol className="flex flex-col gap-5">
+                        {steps.map((step) => {
+                            // Auto-detect completion for steps 1 and 5
+                            const isComplete =
+                                (step.number === 1 && printer.status === 'connected') ||
+                                (step.number === 5 && printer.status === 'connected' && !!printer.selectedPrinter);
+                            return (
+                                <li key={step.number} className="flex gap-4">
+                                    <div
+                                        className={cn(
+                                            'flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold',
+                                            isComplete ? 'bg-green-500 text-white' : 'bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]',
+                                        )}
+                                    >
+                                        {isComplete ? <CheckCircle className="size-4" aria-hidden="true" /> : step.number}
+                                    </div>
+                                    <div className="min-w-0 space-y-1 pt-0.5">
+                                        <p className={cn('text-sm font-semibold', isComplete && 'text-green-600 line-through dark:text-green-400')}>
+                                            {step.title}
+                                        </p>
+                                        <p className="text-sm leading-relaxed text-muted-foreground">{step.description}</p>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ol>
+                </SettingsSection>
             </SettingsLayout>
         </AppLayout>
     );
