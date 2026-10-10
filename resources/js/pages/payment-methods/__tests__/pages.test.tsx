@@ -12,6 +12,7 @@ const env = vi.hoisted(() => ({
     put: vi.fn(),
     errors: {} as Record<string, string>,
     processing: false,
+    wide: true,
 }));
 
 vi.mock('@inertiajs/react', async () => {
@@ -20,6 +21,7 @@ vi.mock('@inertiajs/react', async () => {
         router: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), patch: vi.fn() },
         Head: () => null,
         Link: 'a',
+        usePage: () => ({ props: { business: { brand_color: '#C4686F' } } }),
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
             const snapshot = React.useRef(data);
@@ -45,6 +47,17 @@ beforeAll(() => {
         disconnect() {}
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
     vi.stubGlobal('route', (name: string) => `/${name}`);
 });
 
@@ -52,6 +65,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     env.errors = {};
     env.processing = false;
+    env.wide = true;
 });
 
 const method = (id: number, overrides: Record<string, unknown> = {}) => ({
@@ -79,8 +93,8 @@ describe('Payment methods list', () => {
         expect(screen.getAllByText('Efectivo').length).toBeGreaterThan(0);
         expect(screen.getAllByText('cash').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Billetes y monedas').length).toBeGreaterThan(0);
-        expect(screen.getAllByText('Activo').length).toBe(4);
-        expect(screen.getAllByText('Inactivo').length).toBe(2);
+        expect(screen.getAllByText('Activo').length).toBe(2);
+        expect(screen.getAllByText('Inactivo').length).toBe(1);
     });
 
     it('says so when there are no methods', () => {
@@ -108,7 +122,7 @@ describe('Payment methods list', () => {
         fireEvent.click(screen.getAllByTitle('Desactivar')[0]);
 
         expect(router.patch).toHaveBeenCalledWith('/payment-methods/1/toggle', {}, { preserveScroll: true });
-        expect(screen.getAllByText('Inactivo').length).toBe(4);
+        expect(screen.getAllByText('Inactivo').length).toBe(2);
     });
 
     it('offers to activate an inactive method', () => {
@@ -161,6 +175,39 @@ describe('Payment methods list', () => {
             },
             { preserveScroll: true },
         );
+    });
+
+    it('on a phone, reorders with the arrows instead of dragging, and the ends cannot move past the list', () => {
+        env.wide = false;
+        render(<PaymentMethodsIndex paymentMethods={methods as never} />);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Subir Efectivo' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Bajar Tarjeta' })).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: 'Bajar Efectivo' }));
+
+        expect(router.post).toHaveBeenCalledWith(
+            '/payment-methods.reorder',
+            {
+                order: [
+                    { id: 2, sort_order: 0 },
+                    { id: 1, sort_order: 1 },
+                    { id: 3, sort_order: 2 },
+                ],
+            },
+            { preserveScroll: true },
+        );
+    });
+
+    it('on a phone, toggles with the switch and deletes through the same dialog', () => {
+        env.wide = false;
+        render(<PaymentMethodsIndex paymentMethods={methods as never} />);
+
+        fireEvent.click(screen.getAllByRole('switch')[0]);
+        expect(router.patch).toHaveBeenCalledWith('/payment-methods/1/toggle', {}, { preserveScroll: true });
+        fireEvent.click(screen.getByRole('button', { name: 'Eliminar Nequi' }));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+        expect(router.delete).toHaveBeenCalledWith('/payment-methods/2');
     });
 
     it('does not reorder when a row is dropped on itself', () => {
@@ -230,12 +277,10 @@ describe('Create payment method', () => {
         expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
     });
 
-    it('goes back to the list on cancel', () => {
+    it('goes back to the list on cancel, now through a link', () => {
         render(<PaymentMethodsCreate />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-
-        expect(router.get).toHaveBeenCalledWith('/payment-methods');
+        expect(screen.getByRole('button', { name: 'Cancelar' }).closest('a')).toHaveAttribute('href', '/payment-methods');
     });
 });
 
