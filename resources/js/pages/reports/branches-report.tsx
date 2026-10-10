@@ -1,27 +1,16 @@
+import { DateField, FilterSelect, ReportFilterPanel, ReportHeader, ReportKpi, ReportTable } from '@/components/reports/report-parts';
+import { type ReportFilters, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Award, Building, Calendar, Download, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head } from '@inertiajs/react';
+import { Award, Building, TrendingUp } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-    {
-        title: 'Reporte de Sucursales',
-        href: '/reports/branches',
-    },
+    { title: 'Reportes', href: '/reports' },
+    { title: 'Reporte de Sucursales', href: '/reports/branches' },
 ];
 
 interface BranchPerformance {
@@ -53,25 +42,18 @@ interface BranchByRegion {
     total_amount: number;
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
-
 interface Props {
     branchesData?: {
         branches_performance: BranchPerformance[];
         branches_comparison: BranchComparison[];
         branches_by_region: BranchByRegion[];
     };
-    filters: Filters;
+    filters: ReportFilters;
     branches?: Array<{ id: number; name: string; business_name?: string }>;
     categories?: Array<{ id: number; name: string }>;
 }
+
+const formatNumber = (num: number) => new Intl.NumberFormat('es-CO').format(num);
 
 export default function BranchesReport({
     branchesData = { branches_performance: [], branches_comparison: [], branches_by_region: [] },
@@ -79,377 +61,120 @@ export default function BranchesReport({
     branches = [],
     categories = [],
 }: Props) {
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const { localFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports/branches',
+        exportBase: '/reports/branches/export',
+        filters,
     });
-
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        router.get('/reports/branches', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        const url = new URL(`/reports/branches/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
-
-    const formatNumber = (num: number) => {
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
 
     const totalBranches = branchesData?.branches_performance?.length || 0;
     const totalSales = branchesData?.branches_performance?.reduce((sum, branch) => sum + branch.total_sales, 0) || 0;
     const totalRevenue = branchesData?.branches_performance?.reduce((sum, branch) => sum + branch.total_amount, 0) || 0;
+    const regions = branchesData?.branches_by_region ?? [];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Sucursales" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Reporte de Sucursales</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
-                    </div>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader title="Reporte de Sucursales" subtitle="Qué sucursal vende más y cómo se comparan entre sí" onExport={exportReport} />
+
+                <ReportFilterPanel
+                    description="Configura los filtros para el análisis de sucursales"
+                    onApply={applyFilters}
+                    activeCount={activeCount}
+                >
+                    <DateField
+                        id="date_from"
+                        label="Fecha Desde"
+                        value={dateRange.from}
+                        onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                    />
+                    <DateField id="date_to" label="Fecha Hasta" value={dateRange.to} onChange={(to) => setDateRange((prev) => ({ ...prev, to }))} />
+                    <FilterSelect
+                        id="branch"
+                        label="Sucursal"
+                        value={localFilters.branch_id || 'all'}
+                        onChange={(value) => setFilter('branch_id', value)}
+                        allLabel="Todas las sucursales"
+                        options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                    />
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                </ReportFilterPanel>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                    <ReportKpi label="Sucursales Activas" icon={<Building className="size-4" />} hint="Sucursales con ventas">
+                        {formatNumber(totalBranches)}
+                    </ReportKpi>
+                    <ReportKpi label="Total Ventas" icon={<TrendingUp className="size-4" />} hint="Ventas realizadas">
+                        {formatNumber(totalSales)}
+                    </ReportKpi>
+                    <ReportKpi label="Ingresos Totales" icon={<Award className="size-4" />} hint="Ingresos generados">
+                        {formatCurrency(totalRevenue)}
+                    </ReportKpi>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros</CardTitle>
-                            <CardDescription>Configura los filtros para el análisis de sucursales</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Desde
-                                    </Label>
-                                    <Input
-                                        id="date_from"
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Hasta
-                                    </Label>
-                                    <Input
-                                        id="date_to"
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Sucursal
-                                    </Label>
-                                    <Select
-                                        value={localFilters.branch_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="branch" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las sucursales" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las sucursales</SelectItem>
-                                            {branches?.map((branch) => (
-                                                <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                    {branch.business_name || branch.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="category" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las categorías" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las categorías</SelectItem>
-                                            {categories?.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <Section title="Rendimiento de Sucursales" description="Análisis detallado por sucursal">
+                    <ReportTable
+                        caption="Rendimiento de sucursales"
+                        rows={branchesData?.branches_performance ?? []}
+                        rowKey={(branch) => branch.id}
+                        columns={[
+                            { key: 'name', header: 'Sucursal', cell: (b) => b.name, mobile: 'title' },
+                            { key: 'business', header: 'Nombre Comercial', cell: (b) => b.business_name, mobile: 'subtitle' },
+                            { key: 'address', header: 'Dirección', cell: (b) => b.address, mobile: 'detail' },
+                            { key: 'sales', header: 'Ventas', cell: (b) => formatNumber(b.total_sales), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (b) => formatCurrency(b.total_amount), align: 'right', mobile: 'value' },
+                            { key: 'avg', header: 'Promedio', cell: (b) => formatCurrency(b.average_sale), align: 'right', mobile: 'detail' },
+                            { key: 'sellers', header: 'Vendedores', cell: (b) => formatNumber(b.active_sellers), align: 'right', mobile: 'detail' },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Resumen */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Sucursales Activas</CardTitle>
-                                <Building className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(totalBranches)}</div>
-                                <p className="text-xs text-muted-foreground">Sucursales con ventas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Ventas</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(totalSales)}</div>
-                                <p className="text-xs text-muted-foreground">Ventas realizadas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                                <Award className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-                                <p className="text-xs text-muted-foreground">Ingresos generados</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                <Section title="Comparación de Sucursales" description="Métricas comparativas entre sucursales">
+                    <ReportTable
+                        caption="Comparación de sucursales"
+                        rows={branchesData?.branches_comparison ?? []}
+                        rowKey={(branch) => branch.id}
+                        columns={[
+                            { key: 'name', header: 'Sucursal', cell: (b) => b.name, mobile: 'title' },
+                            { key: 'sales', header: 'Ventas', cell: (b) => formatNumber(b.sales_count), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (b) => formatCurrency(b.total_amount), align: 'right', mobile: 'value' },
+                            { key: 'avg', header: 'Promedio', cell: (b) => formatCurrency(b.average_sale), align: 'right', mobile: 'detail' },
+                            { key: 'days', header: 'Días Activos', cell: (b) => formatNumber(b.active_days), align: 'right', mobile: 'detail' },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Rendimiento de sucursales */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Rendimiento de Sucursales</CardTitle>
-                            <CardDescription>Análisis detallado por sucursal</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {branchesData?.branches_performance?.map((branch) => (
-                                    <div key={branch.id} className="flex items-start justify-between gap-2 px-4 py-3">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium">{branch.name}</p>
-                                            {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
-                                            {branch.address && <p className="text-xs text-muted-foreground">{branch.address}</p>}
-                                            <p className="mt-0.5 text-xs text-muted-foreground">{formatNumber(branch.active_sellers)} vendedores</p>
-                                        </div>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatNumber(branch.total_sales)} ventas · prom {formatCurrency(branch.average_sale)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Sucursal</th>
-                                            <th className="p-2 text-left">Nombre Comercial</th>
-                                            <th className="p-2 text-left">Dirección</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Promedio</th>
-                                            <th className="p-2 text-right">Vendedores</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {branchesData?.branches_performance?.map((branch) => (
-                                            <tr
-                                                key={branch.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2 font-medium">{branch.name}</td>
-                                                <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
-                                                <td className="p-2 text-sm text-muted-foreground">{branch.address}</td>
-                                                <td className="p-2 text-right">{formatNumber(branch.total_sales)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(branch.average_sale)}</td>
-                                                <td className="p-2 text-right">{formatNumber(branch.active_sellers)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Comparación de sucursales */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Comparación de Sucursales</CardTitle>
-                            <CardDescription>Métricas comparativas entre sucursales</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {branchesData?.branches_comparison?.map((branch) => (
-                                    <div key={branch.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium">{branch.name}</p>
-                                            <p className="text-xs text-muted-foreground">{formatNumber(branch.active_days)} días activos</p>
-                                        </div>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatNumber(branch.sales_count)} ventas · prom {formatCurrency(branch.average_sale)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Sucursal</th>
-                                            <th className="p-2 text-right">Ventas</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Promedio</th>
-                                            <th className="p-2 text-right">Días Activos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {branchesData?.branches_comparison?.map((branch) => (
-                                            <tr
-                                                key={branch.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2 font-medium">{branch.name}</td>
-                                                <td className="p-2 text-right">{formatNumber(branch.sales_count)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
-                                                <td className="p-2 text-right">{formatCurrency(branch.average_sale)}</td>
-                                                <td className="p-2 text-right">{formatNumber(branch.active_days)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Sucursales por región */}
-                    {branchesData?.branches_by_region?.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Sucursales por Región</CardTitle>
-                                <CardDescription>Desglose de sucursales por región geográfica</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {/* Mobile */}
-                                <div className="divide-y md:hidden">
-                                    {branchesData?.branches_by_region?.map((branch) => (
-                                        <div key={branch.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium">{branch.name}</p>
-                                                {branch.business_name && <p className="text-xs text-muted-foreground">{branch.business_name}</p>}
-                                                <Badge variant="outline" className="mt-1 text-xs">
-                                                    {branch.region}
-                                                </Badge>
-                                            </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="font-semibold">{formatCurrency(branch.total_amount)}</p>
-                                                <p className="text-xs text-muted-foreground">{formatNumber(branch.total_sales)} ventas</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Desktop */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                                <th className="p-2 text-left">Sucursal</th>
-                                                <th className="p-2 text-left">Nombre Comercial</th>
-                                                <th className="p-2 text-left">Región</th>
-                                                <th className="p-2 text-right">Ventas</th>
-                                                <th className="p-2 text-right">Monto Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {branchesData?.branches_by_region?.map((branch) => (
-                                                <tr
-                                                    key={branch.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2 font-medium">{branch.name}</td>
-                                                    <td className="p-2 text-sm text-muted-foreground">{branch.business_name}</td>
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{branch.region}</Badge>
-                                                    </td>
-                                                    <td className="p-2 text-right">{formatNumber(branch.total_sales)}</td>
-                                                    <td className="p-2 text-right font-medium">{formatCurrency(branch.total_amount)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
+                {regions.length > 0 && (
+                    <Section title="Sucursales por Región" description="Desglose de sucursales por región geográfica">
+                        <ReportTable
+                            caption="Sucursales por región"
+                            rows={regions}
+                            rowKey={(branch) => branch.id}
+                            columns={[
+                                { key: 'name', header: 'Sucursal', cell: (b) => b.name, mobile: 'title' },
+                                { key: 'business', header: 'Nombre Comercial', cell: (b) => b.business_name, mobile: 'subtitle' },
+                                { key: 'region', header: 'Región', cell: (b) => <Badge variant="outline">{b.region}</Badge>, mobile: 'detail' },
+                                { key: 'sales', header: 'Ventas', cell: (b) => formatNumber(b.total_sales), align: 'right', mobile: 'detail' },
+                                {
+                                    key: 'amount',
+                                    header: 'Monto Total',
+                                    cell: (b) => formatCurrency(b.total_amount),
+                                    align: 'right',
+                                    mobile: 'value',
+                                },
+                            ]}
+                        />
+                    </Section>
+                )}
             </div>
         </AppLayout>
     );

@@ -1,25 +1,19 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { DateField, FilterSelect, ReportFilterPanel, ReportHeader, ReportKpi } from '@/components/reports/report-parts';
+import { type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import { Activity, ArrowDownRight, ArrowUpRight, Calendar, DollarSign, Download, Package, ShoppingCart, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head } from '@inertiajs/react';
+import { Activity, ArrowDownRight, ArrowUpRight, CalendarCheck, DollarSign, Package, ShoppingCart, TrendingUp } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reportes', href: '/reports' }];
 
 interface DashboardData {
     sales_summary: {
@@ -76,86 +70,90 @@ interface DashboardData {
     }>;
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
-
 interface Props {
     dashboardData: DashboardData;
-    filters: Filters;
+    filters: ReportFilters;
     branches: Array<{ id: number; name: string; business_name?: string }>;
     categories: Array<{ id: number; name: string }>;
-    user?: {
-        is_admin: boolean;
-        branch_id?: number;
-        branch_name?: string;
-    };
+    user?: ReportUser;
 }
+
+const formatNumber = (num: number | null | undefined) => {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '0';
+    }
+    return new Intl.NumberFormat('es-CO').format(num);
+};
+
+const getGrowthColor = (growth: number) => {
+    if (growth > 0) return 'text-green-600 dark:text-green-400';
+    if (growth < 0) return 'text-red-600 dark:text-red-400';
+    return 'text-neutral-600 dark:text-neutral-400';
+};
+
+const getPaymentMethodLabel = (method: string) => {
+    // Mapeo de códigos a nombres para compatibilidad con datos existentes
+    const methodLabels: Record<string, string> = {
+        cash: 'Efectivo',
+        transfer: 'Transferencia',
+        credit_card: 'Tarjeta de Crédito',
+        debit_card: 'Tarjeta de Débito',
+        bank_transfer: 'Transferencia Bancaria',
+        nequi: 'Nequi',
+        daviplata: 'DaviPlata',
+        pse: 'PSE (Pagos Seguros en Línea)',
+        addi: 'Addi',
+        bipi: 'Bipi',
+        check: 'Cheque',
+    };
+    return methodLabels[method] || method;
+};
+
+function RankRow({ title, subtitle, value, detail, icon }: { title: string; subtitle: string; value: string; detail: string; icon?: ReactNode }) {
+    return (
+        <li className="flex items-center justify-between gap-3 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+                {icon && (
+                    <span className="text-muted-foreground" aria-hidden="true">
+                        {icon}
+                    </span>
+                )}
+                <div className="min-w-0">
+                    <p className="truncate font-medium">{title}</p>
+                    <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+                </div>
+            </div>
+            <div className="shrink-0 text-right">
+                <p className="font-medium tabular-nums">{value}</p>
+                <p className="text-sm text-muted-foreground">{detail}</p>
+            </div>
+        </li>
+    );
+}
+
+function RankList({ children }: { children: ReactNode }) {
+    return <ul className="divide-y divide-border/60 px-4 sm:px-5">{children}</ul>;
+}
+
+const STATUS_OPTIONS = [
+    { value: 'completed', label: 'Completadas' },
+    { value: 'pending', label: 'Pendientes' },
+    { value: 'credit_pending', label: 'Crédito Pendiente' },
+    { value: 'cancelled', label: 'Canceladas' },
+    { value: 'all', label: 'Todas' },
+];
 
 export default function ReportsIndex({ dashboardData, filters, branches, categories, user }: Props) {
     usePolling(['dashboardData'], 120_000);
-
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const onBrand = useOnBrandColor();
+    const { localFilters, setLocalFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports',
+        exportBase: '/reports/export',
+        filters,
+        user,
     });
     const [reportMonth, setReportMonth] = useState('current');
     const [customMonth, setCustomMonth] = useState('');
-
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        // Para usuarios no administradores, forzar el filtro de sucursal
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        router.get('/reports', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        const url = new URL(`/reports/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
 
     const applyMonthFilter = () => {
         let fromDate = '';
@@ -187,474 +185,260 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
         applyFilters();
     };
 
-    const formatNumber = (num: number | null | undefined) => {
-        if (num === null || num === undefined || isNaN(num)) {
-            return '0';
-        }
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
-
-    const getGrowthIcon = (growth: number) => {
-        return growth >= 0 ? <ArrowUpRight className="h-4 w-4 text-green-500" /> : <ArrowDownRight className="h-4 w-4 text-red-500" />;
-    };
-
-    const getGrowthColor = (growth: number) => {
-        if (growth > 0) return 'text-green-600 dark:text-green-400';
-        if (growth < 0) return 'text-red-600 dark:text-red-400';
-        return 'text-neutral-600 dark:text-neutral-400';
-    };
-
-    const getPaymentMethodLabel = (method: string) => {
-        // Mapeo de códigos a nombres para compatibilidad con datos existentes
-        const methodLabels: Record<string, string> = {
-            cash: 'Efectivo',
-            transfer: 'Transferencia',
-            credit_card: 'Tarjeta de Crédito',
-            debit_card: 'Tarjeta de Débito',
-            bank_transfer: 'Transferencia Bancaria',
-            nequi: 'Nequi',
-            daviplata: 'DaviPlata',
-            pse: 'PSE (Pagos Seguros en Línea)',
-            addi: 'Addi',
-            bipi: 'Bipi',
-            check: 'Cheque',
-        };
-
-        return methodLabels[method] || method;
-    };
+    const { current, growth } = dashboardData.sales_summary;
+    const GrowthIcon = growth.sales_count >= 0 ? ArrowUpRight : ArrowDownRight;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reportes de Ventas" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Reportes de Ventas</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader title="Reportes de Ventas" subtitle="El pulso de tu negocio en el periodo que elijas" onExport={exportReport} />
+
+                <section aria-label="Período del reporte" className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
+                    <div>
+                        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Período del Reporte</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">Selecciona el período para generar el reporte</p>
                     </div>
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros y Período del Reporte</CardTitle>
-                            <CardDescription>Configura los filtros y selecciona el período para generar el reporte</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-6">
-                                {/* Selector de período */}
-                                <div className="border-b border-neutral-200 pb-4 dark:border-neutral-700">
-                                    <Label className="mb-3 block text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                                        Período del Reporte
-                                    </Label>
-                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                                        <div className="flex-1">
-                                            <Select value={reportMonth} onValueChange={setReportMonth}>
-                                                <SelectTrigger id="report-month">
-                                                    <SelectValue placeholder="Selecciona un período" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="current">Mes Actual</SelectItem>
-                                                    <SelectItem value="last">Mes Anterior</SelectItem>
-                                                    <SelectItem value="custom">Mes Personalizado</SelectItem>
-                                                    <SelectItem value="manual">Fechas Manuales</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-
-                                        {reportMonth === 'custom' && (
-                                            <div className="flex-1">
-                                                <input
-                                                    type="month"
-                                                    value={customMonth}
-                                                    onChange={(e) => setCustomMonth(e.target.value)}
-                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                                                />
-                                            </div>
-                                        )}
-
-                                        <Button onClick={applyMonthFilter} variant="outline" size="sm" className="flex items-center gap-1">
-                                            <Calendar className="h-4 w-4" />
-                                            Aplicar Período
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Filtros de fechas manuales */}
-                                {reportMonth === 'manual' && (
-                                    <div className="border-b border-neutral-200 pb-4 dark:border-neutral-700">
-                                        <Label className="mb-3 block text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                                            Fechas Específicas
-                                        </Label>
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                    Fecha Desde
-                                                </Label>
-                                                <Input
-                                                    id="date_from"
-                                                    type="date"
-                                                    value={dateRange.from}
-                                                    onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                                    className="h-8 text-sm"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                    Fecha Hasta
-                                                </Label>
-                                                <Input
-                                                    id="date_to"
-                                                    type="date"
-                                                    value={dateRange.to}
-                                                    onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                                    className="h-8 text-sm"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Filtros adicionales */}
-                                <div>
-                                    <Label className="mb-3 block text-sm font-medium text-neutral-500 dark:text-neutral-400">
-                                        Filtros Adicionales
-                                    </Label>
-                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                        {user?.is_admin && (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                    Sucursal
-                                                </Label>
-                                                <Select
-                                                    value={localFilters.branch_id || 'all'}
-                                                    onValueChange={(value) =>
-                                                        setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                                    }
-                                                >
-                                                    <SelectTrigger id="branch" className="h-8 text-sm">
-                                                        <SelectValue placeholder="Todas las sucursales" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">Todas las sucursales</SelectItem>
-                                                        {branches.map((branch) => (
-                                                            <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                                {branch.business_name || branch.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        )}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Categoría
-                                            </Label>
-                                            <Select
-                                                value={localFilters.category_id || 'all'}
-                                                onValueChange={(value) =>
-                                                    setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                                }
-                                            >
-                                                <SelectTrigger id="category" className="h-8 text-sm">
-                                                    <SelectValue placeholder="Todas las categorías" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Todas las categorías</SelectItem>
-                                                    {categories.map((category) => (
-                                                        <SelectItem key={category.id} value={category.id.toString()}>
-                                                            {category.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="status" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Estado
-                                            </Label>
-                                            <Select
-                                                value={localFilters.status || 'completed'}
-                                                onValueChange={(value) => setLocalFilters((prev) => ({ ...prev, status: value }))}
-                                            >
-                                                <SelectTrigger id="status" className="h-8 text-sm">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="completed">Completadas</SelectItem>
-                                                    <SelectItem value="pending">Pendientes</SelectItem>
-                                                    <SelectItem value="credit_pending">Crédito Pendiente</SelectItem>
-                                                    <SelectItem value="cancelled">Canceladas</SelectItem>
-                                                    <SelectItem value="all">Todas</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Resumen de ventas */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Ventas</CardTitle>
-                                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(dashboardData.sales_summary.current.total_sales)}</div>
-                                <p className="text-xs text-muted-foreground">Ventas realizadas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(dashboardData.sales_summary.current.total_amount)}</div>
-                                <p className="text-xs text-muted-foreground">Ingresos generados</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Promedio por Venta</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(dashboardData.sales_summary.current.average_sale)}</div>
-                                <p className="text-xs text-muted-foreground">Promedio por venta</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Crecimiento</CardTitle>
-                                <Activity className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex items-center gap-2">
-                                    {getGrowthIcon(dashboardData.sales_summary.growth.sales_count)}
-                                    <span className={`text-2xl font-bold ${getGrowthColor(dashboardData.sales_summary.growth.sales_count)}`}>
-                                        {dashboardData.sales_summary.growth.sales_count > 0 ? '+' : ''}
-                                        {dashboardData.sales_summary.growth.sales_count}%
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">vs mes anterior</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Tabs de reportes */}
-                    <Tabs defaultValue="overview" className="w-full">
-                        <div className="overflow-x-auto">
-                            <TabsList className="flex w-max min-w-full gap-1 p-1">
-                                <TabsTrigger value="overview" className="px-3 py-2 text-xs whitespace-nowrap">
-                                    Resumen
-                                </TabsTrigger>
-                                <TabsTrigger value="products" className="px-3 py-2 text-xs whitespace-nowrap">
-                                    Productos
-                                </TabsTrigger>
-                                <TabsTrigger value="branches" className="px-3 py-2 text-xs whitespace-nowrap">
-                                    Sucursales
-                                </TabsTrigger>
-                                <TabsTrigger value="sellers" className="px-3 py-2 text-xs whitespace-nowrap">
-                                    Vendedores
-                                </TabsTrigger>
-                                <TabsTrigger value="payments" className="px-3 py-2 text-xs whitespace-nowrap">
-                                    Pagos
-                                </TabsTrigger>
-                            </TabsList>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                        <div className="space-y-1.5">
+                            <label htmlFor="report-month" className="text-xs font-medium text-muted-foreground">
+                                Período
+                            </label>
+                            <Select value={reportMonth} onValueChange={setReportMonth}>
+                                <SelectTrigger id="report-month" className="h-11 w-full rounded-xl text-left sm:h-10">
+                                    <SelectValue placeholder="Selecciona un período" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="current">Mes Actual</SelectItem>
+                                    <SelectItem value="last">Mes Anterior</SelectItem>
+                                    <SelectItem value="custom">Mes Personalizado</SelectItem>
+                                    <SelectItem value="manual">Fechas Manuales</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-
-                        <TabsContent value="overview" className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Productos Más Vendidos</CardTitle>
-                                        <CardDescription>Top productos por volumen de ventas</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4">
-                                            {dashboardData.top_products.slice(0, 5).map((product) => (
-                                                <div key={product.id} className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3">
-                                                        <Package className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="font-medium">{product.name}</p>
-                                                            <p className="text-sm text-muted-foreground">{product.code}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="font-medium">{formatCurrency(product.total_amount)}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {formatNumber(product.total_quantity)} unidades
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Devoluciones</CardTitle>
-                                        <CardDescription>Resumen de devoluciones</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium">Total Devoluciones</span>
-                                                <span className="text-2xl font-bold">
-                                                    {formatNumber(dashboardData.returns_summary.total_returns)}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium">Ventas con Devolución</span>
-                                                <span className="text-lg font-medium">
-                                                    {formatNumber(dashboardData.returns_summary.unique_sales_returned)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                        {reportMonth === 'custom' && (
+                            <div className="space-y-1.5">
+                                <label htmlFor="custom-month" className="text-xs font-medium text-muted-foreground">
+                                    Mes
+                                </label>
+                                <input
+                                    id="custom-month"
+                                    type="month"
+                                    value={customMonth}
+                                    onChange={(e) => setCustomMonth(e.target.value)}
+                                    className="flex h-11 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-10"
+                                />
                             </div>
-                        </TabsContent>
+                        )}
+                        <button
+                            type="button"
+                            onClick={applyMonthFilter}
+                            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold transition-opacity hover:opacity-90 sm:col-start-3 sm:h-10"
+                            style={{ color: onBrand.hex }}
+                        >
+                            <CalendarCheck className="size-4" aria-hidden="true" />
+                            Aplicar Período
+                        </button>
+                    </div>
+                    {reportMonth === 'manual' && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <DateField
+                                id="date_from"
+                                label="Fecha Desde"
+                                value={dateRange.from}
+                                onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                            />
+                            <DateField
+                                id="date_to"
+                                label="Fecha Hasta"
+                                value={dateRange.to}
+                                onChange={(to) => setDateRange((prev) => ({ ...prev, to }))}
+                            />
+                        </div>
+                    )}
+                </section>
 
-                        <TabsContent value="products" className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Productos Más Vendidos</CardTitle>
-                                    <CardDescription>Top 20 productos con mayor volumen de ventas</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {dashboardData.top_products.map((product) => (
-                                            <div
-                                                key={product.id}
-                                                className="flex items-center justify-between border-b border-neutral-200 pb-2 dark:border-neutral-700"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <Package className="h-4 w-4 text-muted-foreground" />
-                                                    <div>
-                                                        <p className="font-medium">{product.name}</p>
-                                                        <p className="text-sm text-muted-foreground">{product.code}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-medium">{formatCurrency(product.total_amount)}</p>
-                                                    <p className="text-sm text-muted-foreground">{formatNumber(product.total_quantity)} unidades</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
+                <ReportFilterPanel
+                    title="Filtros y Período del Reporte"
+                    description="Configura los filtros adicionales del reporte"
+                    onApply={applyFilters}
+                    activeCount={activeCount}
+                >
+                    {user?.is_admin && (
+                        <FilterSelect
+                            id="branch"
+                            label="Sucursal"
+                            value={localFilters.branch_id || 'all'}
+                            onChange={(value) => setFilter('branch_id', value)}
+                            allLabel="Todas las sucursales"
+                            options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                        />
+                    )}
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                    <FilterSelect
+                        id="status"
+                        label="Estado"
+                        value={localFilters.status || 'completed'}
+                        onChange={(value) => setLocalFilters((prev) => ({ ...prev, status: value }))}
+                        options={STATUS_OPTIONS}
+                    />
+                </ReportFilterPanel>
 
-                        <TabsContent value="branches" className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Ventas por Sucursal</CardTitle>
-                                    <CardDescription>Rendimiento de ventas por sucursal</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {dashboardData.sales_by_branch.map((branch) => (
-                                            <div
-                                                key={branch.id}
-                                                className="flex items-center justify-between border-b border-neutral-200 pb-2 dark:border-neutral-700"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">{branch.business_name || branch.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{formatNumber(branch.total_sales)} ventas</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-medium">{formatCurrency(branch.total_amount)}</p>
-                                                    <p className="text-sm text-muted-foreground">Promedio: {formatCurrency(branch.average_sale)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="sellers" className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Vendedores</CardTitle>
-                                    <CardDescription>Rendimiento de vendedores</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {dashboardData.sales_by_seller.map((seller) => (
-                                            <div
-                                                key={seller.id}
-                                                className="flex items-center justify-between border-b border-neutral-200 pb-2 dark:border-neutral-700"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">{seller.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{seller.email}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-medium">{formatCurrency(seller.total_amount)}</p>
-                                                    <p className="text-sm text-muted-foreground">{formatNumber(seller.total_sales)} ventas</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="payments" className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Métodos de Pago</CardTitle>
-                                    <CardDescription>Análisis de métodos de pago</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {dashboardData.payment_methods.map((method, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-between border-b border-neutral-200 pb-2 dark:border-neutral-700"
-                                            >
-                                                <div>
-                                                    <p className="font-medium">{getPaymentMethodLabel(method.payment_method)}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {formatNumber(method.transaction_count)} transacciones
-                                                    </p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-medium">{formatCurrency(method.total_amount)}</p>
-                                                    <p className="text-sm text-muted-foreground">Promedio: {formatCurrency(method.average_amount)}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <ReportKpi label="Total Ventas" icon={<ShoppingCart className="size-4" />} hint="Ventas realizadas">
+                        {formatNumber(current.total_sales)}
+                    </ReportKpi>
+                    <ReportKpi label="Ingresos Totales" icon={<DollarSign className="size-4" />} hint="Ingresos generados">
+                        {formatCurrency(current.total_amount)}
+                    </ReportKpi>
+                    <ReportKpi label="Promedio por Venta" icon={<TrendingUp className="size-4" />} hint="Promedio por venta">
+                        {formatCurrency(current.average_sale)}
+                    </ReportKpi>
+                    <ReportKpi
+                        label="Crecimiento"
+                        icon={<Activity className="size-4" />}
+                        hint="vs mes anterior"
+                        tone={getGrowthColor(growth.sales_count)}
+                    >
+                        <span className="inline-flex items-center gap-1">
+                            <GrowthIcon className="size-5" aria-hidden="true" />
+                            <span>
+                                {growth.sales_count > 0 ? '+' : ''}
+                                {growth.sales_count}%
+                            </span>
+                        </span>
+                    </ReportKpi>
                 </div>
+
+                <Tabs defaultValue="overview" className="w-full gap-4">
+                    <div className="overflow-x-auto">
+                        <TabsList className="flex w-max min-w-full gap-1 p-1">
+                            <TabsTrigger value="overview" className="px-3 py-2 text-xs whitespace-nowrap">
+                                Resumen
+                            </TabsTrigger>
+                            <TabsTrigger value="products" className="px-3 py-2 text-xs whitespace-nowrap">
+                                Productos
+                            </TabsTrigger>
+                            <TabsTrigger value="branches" className="px-3 py-2 text-xs whitespace-nowrap">
+                                Sucursales
+                            </TabsTrigger>
+                            <TabsTrigger value="sellers" className="px-3 py-2 text-xs whitespace-nowrap">
+                                Vendedores
+                            </TabsTrigger>
+                            <TabsTrigger value="payments" className="px-3 py-2 text-xs whitespace-nowrap">
+                                Pagos
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="overview">
+                        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                            <Section title="Productos Más Vendidos" description="Top productos por volumen de ventas">
+                                <RankList>
+                                    {dashboardData.top_products.slice(0, 5).map((product) => (
+                                        <RankRow
+                                            key={product.id}
+                                            icon={<Package className="size-4" />}
+                                            title={product.name}
+                                            subtitle={product.code}
+                                            value={formatCurrency(product.total_amount)}
+                                            detail={`${formatNumber(product.total_quantity)} unidades`}
+                                        />
+                                    ))}
+                                </RankList>
+                            </Section>
+                            <Section title="Devoluciones" description="Resumen de devoluciones">
+                                <dl className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-sm font-medium">Total Devoluciones</dt>
+                                        <dd className="text-2xl font-bold tabular-nums">
+                                            {formatNumber(dashboardData.returns_summary.total_returns)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-sm font-medium">Ventas con Devolución</dt>
+                                        <dd className={cn('text-lg font-medium tabular-nums')}>
+                                            {formatNumber(dashboardData.returns_summary.unique_sales_returned)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </Section>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="products">
+                        <Section title="Productos Más Vendidos" description="Top 20 productos con mayor volumen de ventas">
+                            <RankList>
+                                {dashboardData.top_products.map((product) => (
+                                    <RankRow
+                                        key={product.id}
+                                        icon={<Package className="size-4" />}
+                                        title={product.name}
+                                        subtitle={product.code}
+                                        value={formatCurrency(product.total_amount)}
+                                        detail={`${formatNumber(product.total_quantity)} unidades`}
+                                    />
+                                ))}
+                            </RankList>
+                        </Section>
+                    </TabsContent>
+
+                    <TabsContent value="branches">
+                        <Section title="Ventas por Sucursal" description="Rendimiento de ventas por sucursal">
+                            <RankList>
+                                {dashboardData.sales_by_branch.map((branch) => (
+                                    <RankRow
+                                        key={branch.id}
+                                        title={branch.business_name || branch.name}
+                                        subtitle={`${formatNumber(branch.total_sales)} ventas`}
+                                        value={formatCurrency(branch.total_amount)}
+                                        detail={`Promedio: ${formatCurrency(branch.average_sale)}`}
+                                    />
+                                ))}
+                            </RankList>
+                        </Section>
+                    </TabsContent>
+
+                    <TabsContent value="sellers">
+                        <Section title="Vendedores" description="Rendimiento de vendedores">
+                            <RankList>
+                                {dashboardData.sales_by_seller.map((seller) => (
+                                    <RankRow
+                                        key={seller.id}
+                                        title={seller.name}
+                                        subtitle={seller.email}
+                                        value={formatCurrency(seller.total_amount)}
+                                        detail={`${formatNumber(seller.total_sales)} ventas`}
+                                    />
+                                ))}
+                            </RankList>
+                        </Section>
+                    </TabsContent>
+
+                    <TabsContent value="payments">
+                        <Section title="Métodos de Pago" description="Análisis de métodos de pago">
+                            <RankList>
+                                {dashboardData.payment_methods.map((method, index) => (
+                                    <RankRow
+                                        key={index}
+                                        title={getPaymentMethodLabel(method.payment_method)}
+                                        subtitle={`${formatNumber(method.transaction_count)} transacciones`}
+                                        value={formatCurrency(method.total_amount)}
+                                        detail={`Promedio: ${formatCurrency(method.average_amount)}`}
+                                    />
+                                ))}
+                            </RankList>
+                        </Section>
+                    </TabsContent>
+                </Tabs>
             </div>
         </AppLayout>
     );

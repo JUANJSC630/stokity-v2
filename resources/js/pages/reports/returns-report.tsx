@@ -1,27 +1,16 @@
+import { DateField, FilterSelect, ReportFilterPanel, ReportHeader, ReportKpi, ReportTable } from '@/components/reports/report-parts';
+import { type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
+import { Section } from '@/components/sales/form-fields';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
-import { downloadFile } from '@/lib/download';
 import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, Calendar, Download, RotateCcw, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { Head, Link } from '@inertiajs/react';
+import { AlertTriangle, RotateCcw, TrendingUp } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Reportes',
-        href: '/reports',
-    },
-    {
-        title: 'Reporte de Devoluciones',
-        href: '/reports/returns',
-    },
+    { title: 'Reportes', href: '/reports' },
+    { title: 'Reporte de Devoluciones', href: '/reports/returns' },
 ];
 
 interface ReturnSummary {
@@ -91,15 +80,6 @@ function SaleLinkCell({ ret }: { ret: ReturnDetail }) {
     );
 }
 
-interface Filters {
-    date_from?: string;
-    date_to?: string;
-    branch_id?: string;
-    seller_id?: string;
-    category_id?: string;
-    status?: string;
-}
-
 interface Props {
     returnsData?: {
         returns_summary: ReturnSummary;
@@ -108,15 +88,32 @@ interface Props {
         returns_trend: ReturnTrend[];
         returns_detail: ReturnDetail[];
     };
-    filters: Filters;
+    filters: ReportFilters;
     branches?: Array<{ id: number; name: string; business_name?: string }>;
     categories?: Array<{ id: number; name: string }>;
-    user?: {
-        is_admin: boolean;
-        branch_id?: number;
-        branch_name?: string;
-    };
+    user?: ReportUser;
 }
+
+const formatNumber = (num: number) => new Intl.NumberFormat('es-CO').format(num);
+
+const formatPercentage = (value: number) => {
+    if (value === undefined || value === null) return '0.00%';
+    return `${value.toFixed(2)}%`;
+};
+
+const getReturnRateColor = (rate: number) => {
+    if (rate > 10) return 'text-red-600 dark:text-red-400';
+    if (rate > 5) return 'text-orange-600 dark:text-orange-400';
+    return 'text-green-600 dark:text-green-400';
+};
+
+const getReturnRateBadge = (rate: number) => {
+    if (rate > 10) return <Badge variant="destructive">Alto</Badge>;
+    if (rate > 5) return <Badge variant="secondary">Medio</Badge>;
+    return <Badge variant="default">Bajo</Badge>;
+};
+
+const productsLabel = (ret: ReturnDetail) => ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ');
 
 export default function ReturnsReport({
     returnsData = {
@@ -131,473 +128,170 @@ export default function ReturnsReport({
     categories = [],
     user,
 }: Props) {
-    const [localFilters, setLocalFilters] = useState<Filters>(filters);
-    const [dateRange, setDateRange] = useState({
-        from: filters.date_from || '',
-        to: filters.date_to || '',
+    const { localFilters, setFilter, dateRange, setDateRange, applyFilters, exportReport, activeCount } = useReportFilters({
+        path: '/reports/returns',
+        exportBase: '/reports/returns/export',
+        filters,
+        user,
     });
 
-    const applyFilters = () => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        // Para usuarios no administradores, forzar el filtro de sucursal
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        router.get('/reports/returns', filters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
-
-    const exportReport = async (type: 'excel' | 'pdf' = 'excel') => {
-        const filters = {
-            ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
-        };
-
-        if (filters.branch_id === 'all') delete filters.branch_id;
-        if (filters.category_id === 'all') delete filters.category_id;
-
-        if (!user?.is_admin && user?.branch_id) {
-            filters.branch_id = user.branch_id.toString();
-        }
-
-        const url = new URL(`/reports/returns/export/${type}`, window.location.origin);
-        Object.keys(filters).forEach((key) => {
-            if (filters[key as keyof typeof filters]) {
-                url.searchParams.append(key, filters[key as keyof typeof filters]!);
-            }
-        });
-
-        try {
-            await downloadFile(url.toString());
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error al generar el archivo');
-        }
-    };
-
-    const formatNumber = (num: number) => {
-        return new Intl.NumberFormat('es-CO').format(num);
-    };
-
-    const formatPercentage = (value: number) => {
-        if (value === undefined || value === null) return '0.00%';
-        return `${value.toFixed(2)}%`;
-    };
-
-    const getReturnRateColor = (rate: number) => {
-        if (rate > 10) return 'text-red-600 dark:text-red-400';
-        if (rate > 5) return 'text-orange-600 dark:text-orange-400';
-        return 'text-green-600 dark:text-green-400';
-    };
-
-    const getReturnRateBadge = (rate: number) => {
-        if (rate > 10) return <Badge variant="destructive">Alto</Badge>;
-        if (rate > 5) return <Badge variant="secondary">Medio</Badge>;
-        return <Badge variant="default">Bajo</Badge>;
-    };
-
     const summary = returnsData?.returns_summary || { total_returns: 0, total_amount: 0, average_return: 0, return_rate: 0 };
+    const detail = returnsData?.returns_detail ?? [];
+    const trend = returnsData?.returns_trend ?? [];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Reporte de Devoluciones" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                <div className="flex flex-col items-start justify-between gap-4 md:flex-row">
-                    <h1 className="text-3xl font-bold">Reporte de Devoluciones</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => exportReport('excel')}>
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1" onClick={() => exportReport('pdf')}>
-                            <Download className="h-4 w-4" />
-                            Exportar PDF
-                        </Button>
-                    </div>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <ReportHeader
+                    title="Reporte de Devoluciones"
+                    subtitle="Qué se devuelve, por qué y cuánto pesa en tus ventas"
+                    onExport={exportReport}
+                />
+
+                <ReportFilterPanel
+                    description="Configura los filtros para el análisis de devoluciones"
+                    onApply={applyFilters}
+                    activeCount={activeCount}
+                >
+                    <DateField
+                        id="date_from"
+                        label="Fecha Desde"
+                        value={dateRange.from}
+                        onChange={(from) => setDateRange((prev) => ({ ...prev, from }))}
+                    />
+                    <DateField id="date_to" label="Fecha Hasta" value={dateRange.to} onChange={(to) => setDateRange((prev) => ({ ...prev, to }))} />
+                    {user?.is_admin && (
+                        <FilterSelect
+                            id="branch"
+                            label="Sucursal"
+                            value={localFilters.branch_id || 'all'}
+                            onChange={(value) => setFilter('branch_id', value)}
+                            allLabel="Todas las sucursales"
+                            options={branches.map((branch) => ({ value: branch.id.toString(), label: branch.business_name || branch.name }))}
+                        />
+                    )}
+                    <FilterSelect
+                        id="category"
+                        label="Categoría"
+                        value={localFilters.category_id || 'all'}
+                        onChange={(value) => setFilter('category_id', value)}
+                        allLabel="Todas las categorías"
+                        options={categories.map((category) => ({ value: category.id.toString(), label: category.name }))}
+                    />
+                </ReportFilterPanel>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <ReportKpi label="Total Devoluciones" icon={<RotateCcw className="size-4" />} hint="Devoluciones realizadas">
+                        {formatNumber(summary.total_returns)}
+                    </ReportKpi>
+                    <ReportKpi label="Monto Total" icon={<AlertTriangle className="size-4" />} hint="Valor de devoluciones">
+                        {formatCurrency(summary.total_amount)}
+                    </ReportKpi>
+                    <ReportKpi label="Promedio por Devolución" icon={<TrendingUp className="size-4" />} hint="Valor promedio">
+                        {formatCurrency(summary.average_return)}
+                    </ReportKpi>
+                    <ReportKpi
+                        label="Tasa de Devolución"
+                        icon={<AlertTriangle className="size-4" />}
+                        hint="Porcentaje de devoluciones"
+                        tone={getReturnRateColor(summary.return_rate)}
+                    >
+                        {formatPercentage(summary.return_rate)}
+                    </ReportKpi>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtros</CardTitle>
-                            <CardDescription>Configura los filtros para el análisis de devoluciones</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_from" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Desde
-                                    </Label>
-                                    <Input
-                                        id="date_from"
-                                        type="date"
-                                        value={dateRange.from}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, from: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date_to" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Fecha Hasta
-                                    </Label>
-                                    <Input
-                                        id="date_to"
-                                        type="date"
-                                        value={dateRange.to}
-                                        onChange={(e) => setDateRange((prev) => ({ ...prev, to: e.target.value }))}
-                                        className="h-8 text-sm"
-                                    />
-                                </div>
-                                {user?.is_admin && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="branch" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                            Sucursal
-                                        </Label>
-                                        <Select
-                                            value={localFilters.branch_id || 'all'}
-                                            onValueChange={(value) =>
-                                                setLocalFilters((prev) => ({ ...prev, branch_id: value === 'all' ? undefined : value }))
-                                            }
-                                        >
-                                            <SelectTrigger id="branch" className="h-8 text-sm">
-                                                <SelectValue placeholder="Todas las sucursales" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Todas las sucursales</SelectItem>
-                                                {branches?.map((branch) => (
-                                                    <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                        {branch.business_name || branch.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Categoría
-                                    </Label>
-                                    <Select
-                                        value={localFilters.category_id || 'all'}
-                                        onValueChange={(value) =>
-                                            setLocalFilters((prev) => ({ ...prev, category_id: value === 'all' ? undefined : value }))
-                                        }
-                                    >
-                                        <SelectTrigger id="category" className="h-8 text-sm">
-                                            <SelectValue placeholder="Todas las categorías" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todas las categorías</SelectItem>
-                                            {categories?.map((category) => (
-                                                <SelectItem key={category.id} value={category.id.toString()}>
-                                                    {category.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end">
-                                <Button onClick={applyFilters} variant="outline" size="sm" className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    Aplicar Filtros
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                <Section title="Devoluciones por Producto" description="Productos con mayor tasa de devolución">
+                    <ReportTable
+                        caption="Devoluciones por producto"
+                        rows={returnsData?.returns_by_product ?? []}
+                        rowKey={(product) => product.id}
+                        columns={[
+                            {
+                                key: 'code',
+                                header: 'Código',
+                                cell: (p) => <Badge variant="outline">{p.code}</Badge>,
+                                mobile: 'subtitle',
+                            },
+                            { key: 'name', header: 'Producto', cell: (p) => p.name, mobile: 'title' },
+                            { key: 'returns', header: 'Devoluciones', cell: (p) => formatNumber(p.total_returns), align: 'right', mobile: 'detail' },
+                            { key: 'qty', header: 'Cantidad', cell: (p) => formatNumber(p.total_quantity), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (p) => formatCurrency(p.total_amount), align: 'right', mobile: 'value' },
+                            {
+                                key: 'rate',
+                                header: 'Tasa',
+                                cell: (p) => (
+                                    <span className="inline-flex items-center justify-end gap-2">
+                                        {getReturnRateBadge(p.return_rate)}
+                                        <span className={getReturnRateColor(p.return_rate)}>{formatPercentage(p.return_rate)}</span>
+                                    </span>
+                                ),
+                                align: 'right',
+                                mobile: 'detail',
+                            },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Resumen */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Devoluciones</CardTitle>
-                                <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatNumber(summary.total_returns)}</div>
-                                <p className="text-xs text-muted-foreground">Devoluciones realizadas</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Monto Total</CardTitle>
-                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(summary.total_amount)}</div>
-                                <p className="text-xs text-muted-foreground">Valor de devoluciones</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Promedio por Devolución</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(summary.average_return)}</div>
-                                <p className="text-xs text-muted-foreground">Valor promedio</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Tasa de Devolución</CardTitle>
-                                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className={`text-2xl font-bold ${getReturnRateColor(summary.return_rate)}`}>
-                                    {formatPercentage(summary.return_rate)}
-                                </div>
-                                <p className="text-xs text-muted-foreground">Porcentaje de devoluciones</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                <Section title="Devoluciones por Razón" description="Análisis de motivos de devolución">
+                    <ReportTable
+                        caption="Devoluciones por razón"
+                        rows={returnsData?.returns_by_reason ?? []}
+                        rowKey={(_reason, index) => index}
+                        columns={[
+                            { key: 'reason', header: 'Razón', cell: (r) => r.reason || 'Sin especificar', mobile: 'title' },
+                            { key: 'count', header: 'Cantidad', cell: (r) => formatNumber(r.count), align: 'right', mobile: 'detail' },
+                            { key: 'amount', header: 'Monto Total', cell: (r) => formatCurrency(r.total_amount), align: 'right', mobile: 'value' },
+                            { key: 'pct', header: 'Porcentaje', cell: (r) => formatPercentage(r.percentage), align: 'right', mobile: 'detail' },
+                        ]}
+                    />
+                </Section>
 
-                    {/* Devoluciones por producto */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Devoluciones por Producto</CardTitle>
-                            <CardDescription>Productos con mayor tasa de devolución</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {returnsData?.returns_by_product?.map((product) => (
-                                    <div key={product.id} className="flex items-center justify-between gap-2 px-4 py-3">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate font-medium">{product.name}</p>
-                                            <p className="text-xs text-muted-foreground">{product.code}</p>
-                                            <p className="mt-0.5 text-xs text-muted-foreground">
-                                                {formatNumber(product.total_returns)} dev. · {formatNumber(product.total_quantity)} uds
-                                            </p>
-                                        </div>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(product.total_amount)}</p>
-                                            <div className="mt-0.5 flex items-center justify-end gap-1">
-                                                {getReturnRateBadge(product.return_rate)}
-                                                <span className={`text-xs ${getReturnRateColor(product.return_rate)}`}>
-                                                    {formatPercentage(product.return_rate)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Código</th>
-                                            <th className="p-2 text-left">Producto</th>
-                                            <th className="p-2 text-right">Devoluciones</th>
-                                            <th className="p-2 text-right">Cantidad</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Tasa</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {returnsData?.returns_by_product?.map((product) => (
-                                            <tr
-                                                key={product.id}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2">
-                                                    <Badge variant="outline">{product.code}</Badge>
-                                                </td>
-                                                <td className="p-2 font-medium">{product.name}</td>
-                                                <td className="p-2 text-right">{formatNumber(product.total_returns)}</td>
-                                                <td className="p-2 text-right">{formatNumber(product.total_quantity)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(product.total_amount)}</td>
-                                                <td className="p-2 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        {getReturnRateBadge(product.return_rate)}
-                                                        <span className={getReturnRateColor(product.return_rate)}>
-                                                            {formatPercentage(product.return_rate)}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {detail.length > 0 && (
+                    <Section title="Historial de Devoluciones" description="Cada devolución con enlace a la venta original">
+                        <ReportTable
+                            caption="Historial de devoluciones"
+                            rows={detail}
+                            rowKey={(ret) => ret.id}
+                            columns={[
+                                { key: 'date', header: 'Fecha', cell: (r) => r.created_at, mobile: 'subtitle' },
+                                { key: 'sale', header: 'Venta origen', cell: (r) => <SaleLinkCell ret={r} />, mobile: 'title' },
+                                { key: 'products', header: 'Productos devueltos', cell: productsLabel, mobile: 'detail' },
+                                { key: 'reason', header: 'Razón', cell: (r) => r.reason || '—', mobile: 'detail' },
+                                { key: 'user', header: 'Procesado por', cell: (r) => r.user || '—', mobile: 'hide' },
+                                { key: 'total', header: 'Monto', cell: (r) => formatCurrency(r.total), align: 'right', mobile: 'value' },
+                            ]}
+                        />
+                    </Section>
+                )}
 
-                    {/* Devoluciones por razón */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Devoluciones por Razón</CardTitle>
-                            <CardDescription>Análisis de motivos de devolución</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {/* Mobile */}
-                            <div className="divide-y md:hidden">
-                                {returnsData?.returns_by_reason?.map((reason, index) => (
-                                    <div key={index} className="flex items-center justify-between gap-2 px-4 py-3">
-                                        <p className="font-medium">{reason.reason || 'Sin especificar'}</p>
-                                        <div className="flex-shrink-0 text-right">
-                                            <p className="font-semibold">{formatCurrency(reason.total_amount)}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {formatNumber(reason.count)} dev. · {formatPercentage(reason.percentage)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Desktop */}
-                            <div className="hidden overflow-x-auto md:block">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                            <th className="p-2 text-left">Razón</th>
-                                            <th className="p-2 text-right">Cantidad</th>
-                                            <th className="p-2 text-right">Monto Total</th>
-                                            <th className="p-2 text-right">Porcentaje</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {returnsData?.returns_by_reason?.map((reason, index) => (
-                                            <tr
-                                                key={index}
-                                                className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                            >
-                                                <td className="p-2 font-medium">{reason.reason || 'Sin especificar'}</td>
-                                                <td className="p-2 text-right">{formatNumber(reason.count)}</td>
-                                                <td className="p-2 text-right font-medium">{formatCurrency(reason.total_amount)}</td>
-                                                <td className="p-2 text-right">{formatPercentage(reason.percentage)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Historial detallado de devoluciones */}
-                    {returnsData?.returns_detail?.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Historial de Devoluciones</CardTitle>
-                                <CardDescription>Cada devolución con enlace a la venta original</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {/* Mobile */}
-                                <div className="divide-y md:hidden">
-                                    {returnsData.returns_detail.map((ret) => (
-                                        <div key={ret.id} className="flex items-start justify-between gap-2 px-4 py-3">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                    <SaleLinkCell ret={ret} />
-                                                </div>
-                                                <p className="mt-0.5 text-xs text-muted-foreground">{ret.created_at}</p>
-                                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    {ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}
-                                                </p>
-                                                {ret.reason && <p className="mt-0.5 text-xs text-muted-foreground italic">"{ret.reason}"</p>}
-                                            </div>
-                                            <p className="flex-shrink-0 font-semibold">{formatCurrency(ret.total)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Desktop */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                                <th className="p-2 text-left">Fecha</th>
-                                                <th className="p-2 text-left">Venta origen</th>
-                                                <th className="p-2 text-left">Productos devueltos</th>
-                                                <th className="p-2 text-left">Razón</th>
-                                                <th className="p-2 text-left">Procesado por</th>
-                                                <th className="p-2 text-right">Monto</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {returnsData.returns_detail.map((ret) => (
-                                                <tr
-                                                    key={ret.id}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2 text-sm text-muted-foreground">{ret.created_at}</td>
-                                                    <td className="p-2">
-                                                        <SaleLinkCell ret={ret} />
-                                                    </td>
-                                                    <td className="p-2 text-sm">{ret.products.map((p) => `${p.quantity}× ${p.name}`).join(', ')}</td>
-                                                    <td className="p-2 text-sm text-muted-foreground italic">{ret.reason || '—'}</td>
-                                                    <td className="p-2 text-sm text-muted-foreground">{ret.user || '—'}</td>
-                                                    <td className="p-2 text-right font-medium">{formatCurrency(ret.total)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Tendencia de devoluciones */}
-                    {returnsData?.returns_trend?.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Tendencia de Devoluciones</CardTitle>
-                                <CardDescription>Evolución de devoluciones en el tiempo</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {/* Mobile */}
-                                <div className="divide-y md:hidden">
-                                    {returnsData?.returns_trend?.map((trend, index) => (
-                                        <div key={index} className="flex items-center justify-between gap-2 px-4 py-3">
-                                            <Badge variant="outline">{trend.date}</Badge>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="font-semibold">{formatCurrency(trend.returns_amount)}</p>
-                                                <p className="text-xs text-muted-foreground">{formatNumber(trend.returns_count)} devoluciones</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Desktop */}
-                                <div className="hidden overflow-x-auto md:block">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                                                <th className="p-2 text-left">Fecha</th>
-                                                <th className="p-2 text-right">Devoluciones</th>
-                                                <th className="p-2 text-right">Monto Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {returnsData?.returns_trend?.map((trend, index) => (
-                                                <tr
-                                                    key={index}
-                                                    className="border-b border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
-                                                >
-                                                    <td className="p-2">
-                                                        <Badge variant="outline">{trend.date}</Badge>
-                                                    </td>
-                                                    <td className="p-2 text-right">{formatNumber(trend.returns_count)}</td>
-                                                    <td className="p-2 text-right font-medium">{formatCurrency(trend.returns_amount)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
+                {trend.length > 0 && (
+                    <Section title="Tendencia de Devoluciones" description="Evolución de devoluciones en el tiempo">
+                        <ReportTable
+                            caption="Tendencia de devoluciones"
+                            rows={trend}
+                            rowKey={(_t, index) => index}
+                            columns={[
+                                { key: 'date', header: 'Fecha', cell: (t) => <Badge variant="outline">{t.date}</Badge>, mobile: 'title' },
+                                {
+                                    key: 'count',
+                                    header: 'Devoluciones',
+                                    cell: (t) => formatNumber(t.returns_count),
+                                    align: 'right',
+                                    mobile: 'detail',
+                                },
+                                {
+                                    key: 'amount',
+                                    header: 'Monto Total',
+                                    cell: (t) => formatCurrency(t.returns_amount),
+                                    align: 'right',
+                                    mobile: 'value',
+                                },
+                            ]}
+                        />
+                    </Section>
+                )}
             </div>
         </AppLayout>
     );
