@@ -9,6 +9,7 @@ import Index from '../index';
 import Show from '../show';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     post: vi.fn(),
     put: vi.fn(),
     errors: {} as Record<string, string>,
@@ -84,10 +85,22 @@ beforeAll(() => {
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.errors = {};
     window.history.replaceState({}, '', '/suppliers');
 });
@@ -118,14 +131,24 @@ describe('Suppliers list', () => {
 
         const row = text(within(screen.getByRole('table')).getAllByRole('row')[1]);
         expect(row).toContain('Inactivo');
-        expect(row.match(/-/g)?.length).toBeGreaterThanOrEqual(4);
+        expect(row.match(/—/g)?.length).toBeGreaterThanOrEqual(4);
     });
 
-    it('shows cards on phones with the NIT only when there is one', () => {
+    it('shows cards on phones with the NIT, contact, phone and email, and marks the inactive ones', () => {
+        env.wide = false;
         renderIndex([supplier(1), supplier(2, { nit: null, status: false })]);
 
-        expect(screen.getAllByText('NIT:').length).toBe(1);
-        expect(screen.getAllByText('Contacto:').length).toBe(2);
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 proveedor(es)' });
+        const [first, second] = within(list).getAllByRole('listitem');
+        expect(text(first)).toContain('Proveedor 1');
+        expect(text(first)).toContain('NIT 900123456 · Juan Pérez');
+        expect(text(first)).toContain('3101234567');
+        expect(text(first)).toContain('ventas@proveedor.co');
+        expect(text(first)).not.toContain('Inactivo');
+        expect(text(second)).toContain('Sin NIT');
+        expect(text(second)).toContain('Inactivo');
+        expect(within(first).getByRole('link', { name: /Proveedor 1/ })).toHaveAttribute('href', '/suppliers.show/1');
     });
 
     it('says so when there are no suppliers', () => {
@@ -164,23 +187,23 @@ describe('Suppliers list', () => {
 
     it('filters by state and by branch, and the filters add up', () => {
         renderIndex([supplier(1)]);
-        const [status, branch] = combos();
 
-        fireEvent.change(status, { target: { value: 'active' } });
+        expect(screen.getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(screen.getByRole('button', { name: 'Activos' }));
         expect(vi.mocked(router.visit).mock.lastCall?.[0]).toBe('/suppliers?status=active');
 
-        fireEvent.change(branch, { target: { value: '2' } });
+        fireEvent.change(combos()[0], { target: { value: '2' } });
         expect(vi.mocked(router.visit).mock.lastCall?.[0]).toBe('/suppliers?status=active&branch=2');
     });
 
     it('keeps the search text when a filter changes and shows the branch filter only with branches', () => {
         const { unmount } = renderIndex([supplier(1)], {}, []);
-        expect(combos()).toHaveLength(1);
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
         unmount();
 
         renderIndex([supplier(1)]);
         fireEvent.change(screen.getByPlaceholderText('Nombre, NIT, contacto, correo...'), { target: { value: 'cueros' } });
-        fireEvent.change(combos()[0], { target: { value: 'inactive' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }));
 
         expect(vi.mocked(router.visit).mock.lastCall?.[0]).toBe('/suppliers?search=cueros&status=inactive');
     });
@@ -224,7 +247,8 @@ describe('Supplier detail', () => {
     it('shows the supplier with its data, and only the data it has', () => {
         const { unmount } = renderShow({ notes: 'Pago a 30 días' });
         const page = text(document.body);
-        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Detalle del Proveedor');
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Proveedor 9');
+        expect(page).toContain('Detalle del Proveedor');
         expect(page).toContain('Proveedor 9');
         expect(page).toContain('NIT: 900123456');
         expect(page).toContain('Juan Pérez');
@@ -282,12 +306,13 @@ describe('Supplier detail', () => {
         expect(text(rows[1])).toContain('5 de oct de 2026');
         expect(text(rows[1])).toContain('Ingreso');
         expect(text(rows[1])).toContain('Collar 1');
-        expect(text(rows[1])).toContain('24');
+        expect(text(rows[1])).toContain('+24');
         expect(text(rows[1])).toContain('$ 18.000');
         expect(text(rows[1])).toContain('Factura #001');
-        expect(text(rows[2])).toContain('Dev. a proveedor');
+        expect(text(rows[2])).toContain('Dev. Proveedor');
         expect(text(rows[2])).toContain('#5');
-        expect(text(document.body)).toContain('Total compras: $ 432.000');
+        expect(text(document.body)).toContain('Total compras');
+        expect(text(document.body)).toContain('$ 432.000');
     });
 
     it('hides the total of purchases when there is none, and says so when there are no movements', () => {
