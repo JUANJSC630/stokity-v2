@@ -1,15 +1,14 @@
+import { CategoryConfirmDialog } from '@/components/categories/category-dialogs';
+import { CategoryCards, CategoryTable, type CategoryAction } from '@/components/categories/category-list';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Column, Table } from '@/components/common/Table';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/common/search-field';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { AlertTriangle, ArrowLeft, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Recycle, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface TrashedCategoriesPageProps {
@@ -28,26 +27,20 @@ interface TrashedCategoriesPageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Categorías',
-        href: '/categories',
-    },
-    {
-        title: 'Eliminadas',
-        href: '/categories/trashed',
-    },
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Categorías', href: '/categories' },
+    { title: 'Eliminadas', href: '/categories/trashed' },
 ];
 
 export default function TrashedCategories({ categories, filters = { search: '' } }: TrashedCategoriesPageProps) {
     const { can } = usePermissions();
+    const isWide = useMediaQuery('(min-width: 768px)');
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
     const [categoryToForceDelete, setCategoryToForceDelete] = useState<Category | null>(null);
     const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
     const [restoreModalOpen, setRestoreModalOpen] = useState(false);
     const [categoryToRestore, setCategoryToRestore] = useState<Category | null>(null);
-
-    const searchRef = useRef<HTMLInputElement>(null);
 
     const hasResetRef = useRef(false);
     useEffect(() => {
@@ -81,11 +74,6 @@ export default function TrashedCategories({ categories, filters = { search: '' }
         });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
-
     // Handle force delete confirmation
     const handleForceDelete = () => {
         if (categoryToForceDelete) {
@@ -114,212 +102,134 @@ export default function TrashedCategories({ categories, filters = { search: '' }
         }
     };
 
-    // Table columns for desktop
-    const columns: Column<Category & { actions: null }>[] = [
-        { key: 'name', title: 'Nombre', render: (_: unknown, row: Category) => <span className="font-medium">{row.name}</span> },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, category: Category) => (
-                <div className="flex items-center gap-2">
-                    {can('categories.restore') && (
-                        <Button
-                            aria-label="Restaurar"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                                setCategoryToRestore(category);
-                                setRestoreModalOpen(true);
-                            }}
-                        >
-                            <ArrowLeft className="size-4" />
-                        </Button>
-                    )}
-                    {can('categories.delete') && (
-                        <Button
-                            aria-label="Eliminar permanentemente"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 p-0 text-red-500"
-                            onClick={() => {
-                                setCategoryToForceDelete(category);
-                                setForceDeleteModalOpen(true);
-                            }}
-                        >
-                            <Trash2 className="size-4" />
-                        </Button>
-                    )}
-                </div>
-            ),
-        },
+    const actionsFor = (category: Category): CategoryAction[] => [
+        ...(can('categories.restore')
+            ? [
+                  {
+                      label: 'Restaurar',
+                      icon: <Recycle />,
+                      tone: 'accent' as const,
+                      onSelect: () => {
+                          setCategoryToRestore(category);
+                          setRestoreModalOpen(true);
+                      },
+                  },
+              ]
+            : []),
+        ...(can('categories.delete')
+            ? [
+                  {
+                      label: 'Eliminar permanentemente',
+                      icon: <Trash2 />,
+                      tone: 'danger' as const,
+                      onSelect: () => {
+                          setCategoryToForceDelete(category);
+                          setForceDeleteModalOpen(true);
+                      },
+                  },
+              ]
+            : []),
     ];
+
+    const listProps = {
+        categories: categories.data,
+        actions: actionsFor,
+        dateLabel: 'Eliminada',
+        dateOf: (category: Category) => category.deleted_at,
+        showStatus: false,
+    };
+
+    const blocked = categoryToForceDelete !== null && (categoryToForceDelete.products_count ?? 0) > 0;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías Eliminadas" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Título y botón volver alineados a la derecha */}
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-3xl font-bold">Categorías Eliminadas</h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" className="flex gap-2" asChild>
-                            <Link href="/categories">
-                                <ArrowLeft className="size-4" />
-                                <span>Volver a Categorías</span>
-                            </Link>
-                        </Button>
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start gap-3">
+                    <Link
+                        href="/categories"
+                        aria-label="Volver a Categorías"
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                    </Link>
+                    <div className="min-w-0">
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Categorías Eliminadas</h1>
+                        <p className="text-sm text-muted-foreground">Restaura una categoría o elimínala para siempre.</p>
                     </div>
                 </div>
 
-                {/* Filtro en Card */}
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Categorías</CardTitle>
-                            <CardDescription>Busca categorías por nombre</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="category-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por nombre de categoría"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <SearchField
+                    id="category-search"
+                    label="Buscar categorías eliminadas"
+                    placeholder="Buscar por nombre de categoría"
+                    value={search}
+                    onChange={setSearch}
+                    onSubmit={() => applyFilters()}
+                />
 
-                {/* Tabla y Cards */}
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
                     )}
-
-                    {/* Tabla reutilizable en desktop y mobile */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table
-                            aria-label="Categorías eliminadas"
-                            columns={columns}
-                            data={categories.data.map((category) => ({ ...category, actions: null }))}
-                        />
-                    </div>
-                    <div className="block md:hidden">
-                        <Table
-                            aria-label="Categorías eliminadas"
-                            columns={columns}
-                            data={categories.data.map((category) => ({ ...category, actions: null }))}
-                        />
-                    </div>
-
-                    {/* Pagination */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...categories,
-                                resourceLabel: 'categorías',
-                            }}
-                        />
-                    </div>
+                >
+                    {categories.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <Trash2 className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No hay categorías eliminadas</p>
+                            <p className="text-sm text-muted-foreground">Lo que elimines aparecerá aquí.</p>
+                        </div>
+                    ) : isWide ? (
+                        <CategoryTable {...listProps} />
+                    ) : (
+                        <CategoryCards {...listProps} visibleActions />
+                    )}
+                    <PaginationFooter data={{ ...categories, resourceLabel: 'categorías' }} />
                 </div>
 
-                {/* Force Delete Confirmation Dialog */}
-                <Dialog open={forceDeleteModalOpen} onOpenChange={setForceDeleteModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-neutral-700 dark:bg-neutral-900">
-                        <DialogHeader className="pb-2">
-                            <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-neutral-100">
-                                <AlertTriangle className="size-5 text-red-500" />
-                                {categoryToForceDelete && (categoryToForceDelete.products_count ?? 0) > 0
-                                    ? 'No se puede eliminar'
-                                    : 'Confirmar eliminación permanente'}
-                            </DialogTitle>
-                        </DialogHeader>
-                        <DialogDescription className="py-4 text-neutral-600 dark:text-neutral-300">
-                            {categoryToForceDelete &&
-                                ((categoryToForceDelete.products_count ?? 0) > 0 ? (
-                                    <p>
-                                        La categoría <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>{' '}
-                                        tiene <strong className="text-red-600">{categoryToForceDelete.products_count} producto(s) asociado(s)</strong>{' '}
-                                        (incluyendo eliminados). Debes cambiar la categoría de esos productos o eliminarlos permanentemente primero.
-                                    </p>
-                                ) : (
-                                    <p>
-                                        ¿Está seguro de eliminar permanentemente la categoría{' '}
-                                        <strong className="text-neutral-900 dark:text-neutral-100">{categoryToForceDelete.name}</strong>? Esta acción
-                                        no se puede deshacer.
-                                    </p>
-                                ))}
-                        </DialogDescription>
-                        <DialogFooter className="flex gap-3 pt-2">
-                            <Button
-                                variant="ghost"
-                                className="rounded-lg border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                onClick={() => setForceDeleteModalOpen(false)}
-                            >
-                                Cerrar
-                            </Button>
-                            {categoryToForceDelete && (categoryToForceDelete.products_count ?? 0) === 0 && (
-                                <Button
-                                    variant="destructive"
-                                    className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
-                                    onClick={handleForceDelete}
-                                >
-                                    Eliminar Permanentemente
-                                </Button>
-                            )}
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <CategoryConfirmDialog
+                    open={forceDeleteModalOpen}
+                    onOpenChange={setForceDeleteModalOpen}
+                    title={blocked ? 'No se puede eliminar' : 'Confirmar eliminación permanente'}
+                    tone="danger"
+                    cancelLabel="Cerrar"
+                    confirmLabel={categoryToForceDelete && !blocked ? 'Eliminar Permanentemente' : undefined}
+                    onConfirm={handleForceDelete}
+                >
+                    {categoryToForceDelete &&
+                        (blocked ? (
+                            <p>
+                                La categoría <strong className="text-foreground">{categoryToForceDelete.name}</strong> tiene{' '}
+                                <strong className="text-red-600">{categoryToForceDelete.products_count} producto(s) asociado(s)</strong> (incluyendo
+                                eliminados). Debes cambiar la categoría de esos productos o eliminarlos permanentemente primero.
+                            </p>
+                        ) : (
+                            <p>
+                                ¿Está seguro de eliminar permanentemente la categoría{' '}
+                                <strong className="text-foreground">{categoryToForceDelete.name}</strong>? Esta acción no se puede deshacer.
+                            </p>
+                        ))}
+                </CategoryConfirmDialog>
 
-                {/* Restore Confirmation Dialog */}
-                <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-neutral-700 dark:bg-neutral-900">
-                        <DialogHeader className="pb-2">
-                            <DialogTitle className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Restaurar Categoría</DialogTitle>
-                        </DialogHeader>
-                        <DialogDescription className="py-4 text-neutral-600 dark:text-neutral-300">
-                            {categoryToRestore && (
-                                <p>
-                                    ¿Desea restaurar la categoría{' '}
-                                    <strong className="text-neutral-900 dark:text-neutral-100">{categoryToRestore.name}</strong>?
-                                </p>
-                            )}
-                        </DialogDescription>
-                        <DialogFooter className="flex gap-3 pt-2">
-                            <Button
-                                variant="ghost"
-                                className="rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-                                onClick={() => setRestoreModalOpen(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                className="rounded-lg bg-black font-medium hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
-                                onClick={handleRestore}
-                            >
-                                Restaurar
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <CategoryConfirmDialog
+                    open={restoreModalOpen}
+                    onOpenChange={setRestoreModalOpen}
+                    title="Restaurar Categoría"
+                    tone="restore"
+                    cancelLabel="Cancelar"
+                    confirmLabel="Restaurar"
+                    onConfirm={handleRestore}
+                >
+                    {categoryToRestore && (
+                        <p>
+                            ¿Desea restaurar la categoría <strong className="text-foreground">{categoryToRestore.name}</strong>?
+                        </p>
+                    )}
+                </CategoryConfirmDialog>
             </div>
         </AppLayout>
     );

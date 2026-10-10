@@ -8,6 +8,7 @@ import Categories from '../index';
 import TrashedCategories from '../trashed';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     granted: [] as string[],
     post: vi.fn(),
     put: vi.fn(),
@@ -66,10 +67,22 @@ beforeAll(() => {
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.granted = [];
     env.errors = {};
     window.history.replaceState({}, '', '/categories');
@@ -84,6 +97,20 @@ describe('Categories list', () => {
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Gestión de Categorías');
         expect(screen.getAllByText('Categoría 1').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Categoría 2').length).toBeGreaterThan(0);
+    });
+
+    it('lists cards on phones with the name, the date and an inactive mark, opening the actions from the row menu', () => {
+        env.wide = false;
+        env.granted = ['categories.update'];
+        renderIndex([category(1, { description: 'Para el cuello' }), category(2, { status: false })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 categoría(s)' });
+        expect(text(list)).toContain('Categoría 1');
+        expect(text(list)).toContain('Para el cuello');
+        expect(text(list)).toContain('Creada 1 de sept de 2026');
+        expect(text(list)).toContain('Inactiva');
+        expect(within(list).getAllByRole('button', { name: /Más acciones|More actions/ }).length).toBe(2);
     });
 
     it('says so when there are no categories', () => {
@@ -285,6 +312,17 @@ describe('Deleted categories', () => {
         expect(text(dialog)).toContain('4 producto(s) asociado(s)');
         expect(within(dialog).queryByRole('button', { name: 'Eliminar Permanentemente' })).not.toBeInTheDocument();
         expect(within(dialog).getByRole('button', { name: 'Cerrar' })).toBeInTheDocument();
+    });
+
+    it('keeps restore and delete visible under each card on phones', () => {
+        env.wide = false;
+        env.granted = ['categories.restore', 'categories.delete'];
+        renderTrashed([category(3, { name: 'Antiguos', deleted_at: '2026-10-02T10:00:00Z' })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        expect(text(screen.getByRole('list'))).toContain('Eliminada 2 de oct de 2026');
+        fireEvent.click(buttonsNamed('Restaurar')[0]);
+        expect(screen.getByRole('dialog', { name: 'Restaurar Categoría' })).toBeInTheDocument();
     });
 
     it('searches by name on submit within the trash', () => {
