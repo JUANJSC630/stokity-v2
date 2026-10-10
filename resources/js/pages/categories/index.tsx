@@ -1,17 +1,19 @@
+import { CategoryConfirmDialog, CategoryNameDialog } from '@/components/categories/category-dialogs';
+import { CategoryCards, CategoryTable, type CategoryAction } from '@/components/categories/category-list';
 import PaginationFooter from '@/components/common/PaginationFooter';
-import { Table, type Column } from '@/components/common/Table';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/common/search-field';
+import { PullToRefresh } from '@/components/ui/bencho/pull-to-refresh';
+import { RollingNumber } from '@/components/ui/bencho/rolling-number';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type Category } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Label } from '@radix-ui/react-label';
-import { AlertTriangle, Edit2, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Pencil, Plus, Tags, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface CategoriesPageProps {
     categories: {
@@ -29,19 +31,20 @@ interface CategoriesPageProps {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Categorías',
-        href: '/categories',
-    },
+    { title: 'Inicio', href: '/dashboard' },
+    { title: 'Categorías', href: '/categories' },
 ];
+
+const formatCount = (value: number): string => String(value);
 
 export default function Categories({ categories, filters = { search: '' } }: CategoriesPageProps) {
     const { can } = usePermissions();
+    const onBrand = useOnBrandColor();
+    const isWide = useMediaQuery('(min-width: 768px)');
     usePolling(['categories'], 120_000);
 
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
-    const searchRef = useRef<HTMLInputElement>(null);
     const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -82,11 +85,6 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
             only: ['categories'],
             onFinish: () => setIsSearching(false),
         });
-    };
-
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
     };
 
     // Handle delete confirmation
@@ -139,292 +137,153 @@ export default function Categories({ categories, filters = { search: '' } }: Cat
         setCreateModalOpen(true);
     };
 
-    // Table columns for desktop
-    const columns: Column<Category & { actions: null }>[] = [
-        { key: 'name', title: 'Nombre', render: (_: unknown, row: Category) => <span className="font-medium">{row.name}</span> },
-        {
-            key: 'actions',
-            title: 'Acciones',
-            render: (_: unknown, row: Category) => (
-                <div className="flex items-center justify-end gap-2">
-                    {can('categories.update') && (
-                        <Button aria-label="Editar" variant="ghost" size="icon" onClick={() => openEditModal(row)}>
-                            <Edit2 className="size-4" />
-                        </Button>
-                    )}
-                    {can('categories.delete') && (
-                        <Button
-                            aria-label="Eliminar"
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500"
-                            onClick={() => {
-                                setCategoryToDelete(row);
-                                setDeleteModalOpen(true);
-                            }}
-                        >
-                            <Trash2 className="size-4" />
-                        </Button>
-                    )}
-                </div>
-            ),
-        },
+    const refresh = useCallback(
+        () =>
+            new Promise<void>((resolve) => {
+                router.reload({ only: ['categories'], onFinish: () => resolve() });
+            }),
+        [],
+    );
+
+    const actionsFor = (category: Category): CategoryAction[] => [
+        ...(can('categories.update')
+            ? [{ label: 'Editar', icon: <Pencil />, tone: 'neutral' as const, onSelect: () => openEditModal(category) }]
+            : []),
+        ...(can('categories.delete')
+            ? [
+                  {
+                      label: 'Eliminar',
+                      icon: <Trash2 />,
+                      tone: 'danger' as const,
+                      onSelect: () => {
+                          setCategoryToDelete(category);
+                          setDeleteModalOpen(true);
+                      },
+                  },
+              ]
+            : []),
     ];
+
+    const listProps = {
+        categories: categories.data,
+        actions: actionsFor,
+        dateLabel: 'Creada',
+        dateOf: (category: Category) => category.created_at,
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Categorías" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Título y botones juntos alineados a la derecha */}
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <h1 className="text-3xl font-bold">Gestión de Categorías</h1>
-                    <div className="flex gap-2">
-                        {can('categories.create') && (
-                            <Button className="flex gap-1" onClick={openCreateModal}>
-                                <Plus className="mr-1 size-4" />
-                                Nueva Categoría
-                            </Button>
-                        )}
+            <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Gestión de Categorías</h1>
+                        <p className="text-sm text-muted-foreground">
+                            <RollingNumber value={categories.total} format={formatCount} intro className="font-medium text-foreground tabular-nums" />{' '}
+                            {categories.total === 1 ? 'categoría' : 'categorías'} para organizar tu catálogo
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
                         {can('categories.delete') && (
-                            <Link href="/categories/trashed">
-                                <Button variant="outline" className="flex gap-2">
-                                    <Trash2 className="size-4" />
-                                    Categorías Eliminadas
-                                </Button>
+                            <Link
+                                href="/categories/trashed"
+                                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10"
+                            >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                <span className="hidden sm:inline">Categorías Eliminadas</span>
+                                <span className="sr-only sm:hidden">Categorías Eliminadas</span>
                             </Link>
                         )}
-                    </div>
-                </div>
-
-                {/* Filtro en Card */}
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Categorías</CardTitle>
-                            <CardDescription>Busca categorías por nombre</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="category-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </Label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por nombre de categoría"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Tabla y Cards */}
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
-                    )}
-
-                    {/* Desktop table */}
-                    <div className="hidden overflow-x-auto md:block">
-                        <Table aria-label="Categorías" columns={columns} data={categories.data.map((category) => ({ ...category, actions: null }))} />
-                    </div>
-
-                    {/* Mobile cards */}
-                    <div className="block md:hidden">
-                        {categories.data.length === 0 ? (
-                            <div className="p-4 text-center text-muted-foreground">No se encontraron categorías</div>
-                        ) : (
-                            <div className="flex flex-col gap-4 p-2">
-                                {categories.data.map((category) => (
-                                    <div key={category.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{category.name}</div>
-                                            <div className="flex items-center gap-1">
-                                                {can('categories.update') && (
-                                                    <Button
-                                                        aria-label="Editar"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 p-0"
-                                                        onClick={() => openEditModal(category)}
-                                                    >
-                                                        <Edit2 className="size-4" />
-                                                    </Button>
-                                                )}
-                                                {can('categories.delete') && (
-                                                    <Button
-                                                        aria-label="Eliminar"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 p-0 text-red-500"
-                                                        onClick={() => {
-                                                            setCategoryToDelete(category);
-                                                            setDeleteModalOpen(true);
-                                                        }}
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                        {can('categories.create') && (
+                            <button
+                                type="button"
+                                onClick={openCreateModal}
+                                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10 sm:flex-none"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Plus className="size-4" aria-hidden="true" />
+                                Nueva Categoría
+                            </button>
                         )}
                     </div>
-
-                    {/* Pagination */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...categories,
-                                resourceLabel: 'categorías',
-                            }}
-                        />
-                    </div>
                 </div>
 
-                {/* Delete Confirmation Dialog */}
-                <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900/50">
-                        <DialogHeader className="pb-2">
-                            <DialogTitle className="flex items-center gap-2 text-lg font-semibold dark:text-gray-100">
-                                <AlertTriangle className="size-5 text-red-500" />
-                                Confirmar eliminación
-                            </DialogTitle>
-                        </DialogHeader>
-                        <DialogDescription className="py-4 text-gray-600 dark:text-gray-300">
-                            {categoryToDelete && (
-                                <p>
-                                    ¿Está seguro de eliminar la categoría{' '}
-                                    <strong className="text-gray-900 dark:text-gray-100">{categoryToDelete.name}</strong>? Esta acción puede ser
-                                    revertida posteriormente.
-                                </p>
-                            )}
-                        </DialogDescription>
-                        <DialogFooter className="flex gap-3 pt-2">
-                            <Button
-                                variant="ghost"
-                                className="rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                                onClick={() => setDeleteModalOpen(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                className="rounded-lg bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800"
-                                onClick={handleDelete}
-                            >
-                                Eliminar
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <SearchField
+                    id="category-search"
+                    label="Buscar categorías"
+                    placeholder="Buscar por nombre de categoría"
+                    value={search}
+                    onChange={setSearch}
+                    onSubmit={() => applyFilters()}
+                />
 
-                {/* Edit Category Dialog */}
-                <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900">
-                        <DialogHeader className="pb-2">
-                            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Editar Categoría</DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
-                                Actualiza el nombre de la categoría y haz clic en guardar cuando termines.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
-                            <div className="space-y-4">
-                                <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                    Nombre
-                                </label>
-                                <Input
-                                    id="name"
-                                    placeholder="Nombre de la categoría"
-                                    value={editForm.data.name}
-                                    onChange={(e) => editForm.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
-                                    required
-                                />
-                                {editForm.errors.name && <p className="text-xs text-red-500">{editForm.errors.name}</p>}
-                            </div>
-                            <DialogFooter className="flex gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    type="button"
-                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                                    onClick={() => setEditModalOpen(false)}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={editForm.processing}
-                                    className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-                                >
-                                    Guardar cambios
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
+                    )}
+                >
+                    {categories.data.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                            <span className="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                                <Tags className="size-7" aria-hidden="true" />
+                            </span>
+                            <p className="font-semibold">No se encontraron categorías</p>
+                            <p className="text-sm text-muted-foreground">Prueba con otro nombre o crea una nueva.</p>
+                        </div>
+                    ) : isWide ? (
+                        <CategoryTable {...listProps} />
+                    ) : (
+                        <PullToRefresh onRefresh={refresh}>{() => <CategoryCards {...listProps} />}</PullToRefresh>
+                    )}
+                    <PaginationFooter data={{ ...categories, resourceLabel: 'categorías' }} />
+                </div>
 
-                {/* Create Category Dialog */}
-                <Dialog open={createModalOpen} onOpenChange={setCreateModalOpen}>
-                    <DialogContent className="rounded-lg p-6 shadow-lg sm:max-w-md dark:border-gray-700 dark:bg-neutral-900">
-                        <DialogHeader className="pb-2">
-                            <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">Crear Nueva Categoría</DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500 dark:text-gray-300">
-                                Ingresa el nombre de la nueva categoría y haz clic en guardar.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
-                            <div className="space-y-4">
-                                <label htmlFor="create-name" className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                    Nombre
-                                </label>
-                                <Input
-                                    id="create-name"
-                                    placeholder="Nombre de la categoría"
-                                    value={createForm.data.name}
-                                    onChange={(e) => createForm.setData('name', e.target.value)}
-                                    className="rounded-md border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus:border-gray-500 dark:focus:ring-gray-600"
-                                    autoFocus
-                                    required
-                                />
-                                {createForm.errors.name && <p className="text-xs text-red-500">{createForm.errors.name}</p>}
-                            </div>
-                            <DialogFooter className="flex gap-3 pt-2">
-                                <Button
-                                    variant="ghost"
-                                    type="button"
-                                    className="rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                                    onClick={() => setCreateModalOpen(false)}
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    disabled={createForm.processing}
-                                    className="rounded-lg bg-black font-medium hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-                                >
-                                    Crear Categoría
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <CategoryConfirmDialog
+                    open={deleteModalOpen}
+                    onOpenChange={setDeleteModalOpen}
+                    title="Confirmar eliminación"
+                    tone="danger"
+                    cancelLabel="Cancelar"
+                    confirmLabel="Eliminar"
+                    onConfirm={handleDelete}
+                >
+                    {categoryToDelete && (
+                        <p>
+                            ¿Está seguro de eliminar la categoría <strong className="text-foreground">{categoryToDelete.name}</strong>? Esta acción
+                            puede ser revertida posteriormente.
+                        </p>
+                    )}
+                </CategoryConfirmDialog>
+
+                <CategoryNameDialog
+                    open={editModalOpen}
+                    onOpenChange={setEditModalOpen}
+                    title="Editar Categoría"
+                    description="Actualiza el nombre de la categoría y haz clic en guardar cuando termines."
+                    submitLabel="Guardar cambios"
+                    idPrefix="edit-"
+                    value={editForm.data.name}
+                    onChange={(value) => editForm.setData('name', value)}
+                    error={editForm.errors.name}
+                    processing={editForm.processing}
+                    onSubmit={handleEditSubmit}
+                />
+
+                <CategoryNameDialog
+                    open={createModalOpen}
+                    onOpenChange={setCreateModalOpen}
+                    title="Crear Nueva Categoría"
+                    description="Ingresa el nombre de la nueva categoría y haz clic en guardar."
+                    submitLabel="Crear Categoría"
+                    idPrefix="create-"
+                    value={createForm.data.name}
+                    onChange={(value) => createForm.setData('name', value)}
+                    error={createForm.errors.name}
+                    processing={createForm.processing}
+                    onSubmit={handleCreateSubmit}
+                />
             </div>
         </AppLayout>
     );
