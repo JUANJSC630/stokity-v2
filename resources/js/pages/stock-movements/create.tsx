@@ -1,19 +1,18 @@
+import { StickyActions } from '@/components/admin/sticky-actions';
+import { FormPanel, INPUT_CLASS, LabeledField, SELECT_TRIGGER } from '@/components/sales/form-fields';
+import { MovementTypePicker, ProductPicker, QuantityField, StockPreview } from '@/components/stock/movement-form-fields';
+import { MovementTypePill, signedQuantity, type MovementType } from '@/components/stock/stock-meta';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem, type Product, type Supplier } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import axios from 'axios';
-import { ArrowLeft, Loader2, Package, Save, Search, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-
-type MovementType = 'ingreso' | 'out' | 'adjustment' | 'write_off' | 'supplier_return';
+import { ArrowLeft, Loader2, Package, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Props {
     branches: Branch[];
@@ -25,32 +24,15 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Inicio', href: '/dashboard' },
     { title: 'Movimientos de Stock', href: '/stock-movements' },
     { title: 'Nuevo Movimiento', href: '/stock-movements/create' },
 ];
 
 export default function StockMovementCreate({ suppliers = [], selectedProduct, selectedType = 'in', now }: Props) {
+    const onBrand = useOnBrandColor();
     const [selectedProductData, setSelectedProductData] = useState<Product | null>(selectedProduct || null);
     const [movementType, setMovementType] = useState<MovementType>((selectedType as MovementType) || 'ingreso');
-
-    // Product search state
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<Product[]>([]);
-    const [searching, setSearching] = useState(false);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const searchRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, []);
 
     useEffect(() => {
         const preventWheel = (e: WheelEvent) => {
@@ -74,42 +56,14 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
 
     useScrollToError(errors);
 
-    const handleSearchChange = (value: string) => {
-        setSearchQuery(value);
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (!value.trim()) {
-            setSearchResults([]);
-            setShowDropdown(false);
-            return;
-        }
-        debounceRef.current = setTimeout(async () => {
-            setSearching(true);
-            try {
-                const res = await axios.get('/api/products/search', { params: { q: value.trim() } });
-                setSearchResults(res.data);
-                setShowDropdown(true);
-            } catch {
-                setSearchResults([]);
-            } finally {
-                setSearching(false);
-            }
-        }, 250);
-    };
-
     const selectProduct = (product: Product) => {
         setSelectedProductData(product);
         setData('product_id', product.id.toString());
-        setSearchQuery('');
-        setSearchResults([]);
-        setShowDropdown(false);
     };
 
     const clearProduct = () => {
         setSelectedProductData(null);
         setData('product_id', '');
-        setSearchQuery('');
-        setSearchResults([]);
-        setTimeout(() => inputRef.current?.focus(), 0);
     };
 
     const showSupplier = ['ingreso', 'supplier_return'].includes(movementType);
@@ -125,290 +79,211 @@ export default function StockMovementCreate({ suppliers = [], selectedProduct, s
                 : 'Cantidad';
 
     const quantityHelp = selectedProductData ? `Stock actual: ${(selectedProductData.stock ?? 0).toLocaleString()}` : '';
+    const hasQuantity = data.quantity !== '' && !Number.isNaN(Number(data.quantity));
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Nuevo Movimiento de Stock" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold">Nuevo Movimiento de Stock</h1>
-                    <Button variant="outline" size="sm" className="gap-1" onClick={() => window.history.back()}>
-                        <ArrowLeft className="h-4 w-4" />
-                        Volver
-                    </Button>
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex items-start gap-3">
+                    <button
+                        type="button"
+                        aria-label="Volver"
+                        onClick={() => window.history.back()}
+                        className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        <ArrowLeft className="size-4" aria-hidden="true" />
+                    </button>
+                    <div className="min-w-0">
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Nuevo Movimiento de Stock</h1>
+                        <p className="text-sm text-muted-foreground">Registra una entrada, salida, baja, devolución o ajuste del inventario.</p>
+                    </div>
                 </div>
 
-                <div className="mx-auto w-full max-w-2xl">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Información del Movimiento</CardTitle>
-                            <CardDescription>Complete los datos del movimiento de stock</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <form
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    post('/stock-movements');
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        post('/stock-movements');
+                    }}
+                    className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_21rem]"
+                >
+                    <div className="flex flex-col gap-5">
+                        <FormPanel title="Producto">
+                            <ProductPicker selected={selectedProductData} onSelect={selectProduct} onClear={clearProduct} error={errors.product_id} />
+
+                            {selectedProductData && (
+                                <dl className="grid grid-cols-3 gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm sm:col-span-2">
+                                    <div>
+                                        <dt className="text-xs text-muted-foreground">Código</dt>
+                                        <dd className="font-medium">{selectedProductData.code}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-xs text-muted-foreground">Categoría</dt>
+                                        <dd className="font-medium">{selectedProductData.category?.name || '—'}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-xs text-muted-foreground">Sucursal</dt>
+                                        <dd className="font-medium">{selectedProductData.branch?.name || '—'}</dd>
+                                    </div>
+                                </dl>
+                            )}
+                        </FormPanel>
+
+                        <FormPanel title="Movimiento">
+                            <MovementTypePicker
+                                value={data.type}
+                                onChange={(type) => {
+                                    setMovementType(type);
+                                    setData('type', type);
                                 }}
-                                className="space-y-5"
-                            >
-                                {/* ── Buscador de producto ── */}
-                                <div className="space-y-1.5">
-                                    <Label>Producto *</Label>
-                                    <div ref={searchRef} className="relative">
-                                        {selectedProductData ? (
-                                            <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2.5">
-                                                <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                <span className="flex-1 truncate text-sm">
-                                                    <span className="font-mono text-xs text-muted-foreground">{selectedProductData.code}</span>
-                                                    <span className="mx-1 text-muted-foreground">—</span>
-                                                    <span className="font-medium">{selectedProductData.name}</span>
-                                                </span>
-                                                <span
-                                                    className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                                                        (selectedProductData.stock ?? 0) <= 0
-                                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                    }`}
-                                                >
-                                                    Stock: {(selectedProductData.stock ?? 0).toLocaleString()}
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    onClick={clearProduct}
-                                                    className="ml-1 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                    title="Cambiar producto"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="relative">
-                                                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                                <Input
-                                                    ref={inputRef}
-                                                    placeholder="Buscar por nombre o código..."
-                                                    className="pr-9 pl-9"
-                                                    value={searchQuery}
-                                                    onChange={(e) => handleSearchChange(e.target.value)}
-                                                    onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                                                    autoComplete="off"
-                                                />
-                                                {searching && (
-                                                    <Loader2 className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                                                )}
-                                            </div>
-                                        )}
+                            />
+                            {errors.type && (
+                                <p role="alert" className="text-xs text-red-500 sm:col-span-2">
+                                    {errors.type}
+                                </p>
+                            )}
 
-                                        {showDropdown && searchResults.length > 0 && (
-                                            <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
-                                                <ul className="max-h-60 overflow-y-auto py-1">
-                                                    {searchResults.map((p) => (
-                                                        <li key={p.id}>
-                                                            <button
-                                                                type="button"
-                                                                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
-                                                                onClick={() => selectProduct(p)}
-                                                            >
-                                                                <span className="w-20 shrink-0 truncate font-mono text-xs text-muted-foreground">
-                                                                    {p.code}
-                                                                </span>
-                                                                <span className="flex-1 truncate font-medium">{p.name}</span>
-                                                                <span
-                                                                    className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                                                                        (p.stock ?? 0) <= 0
-                                                                            ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-                                                                            : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-                                                                    }`}
-                                                                >
-                                                                    {(p.stock ?? 0).toLocaleString()}
-                                                                </span>
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                            {showSupplier && (
+                                <LabeledField id="supplier_id" label="Proveedor" error={errors.supplier_id}>
+                                    <Select
+                                        value={data.supplier_id || '__none__'}
+                                        onValueChange={(v) => setData('supplier_id', v === '__none__' ? '' : v)}
+                                    >
+                                        <SelectTrigger id="supplier_id" className={SELECT_TRIGGER}>
+                                            <SelectValue placeholder="Sin proveedor" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">Sin proveedor</SelectItem>
+                                            {suppliers.map((s) => (
+                                                <SelectItem key={s.id} value={s.id.toString()}>
+                                                    {s.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </LabeledField>
+                            )}
 
-                                        {showDropdown && !searching && searchQuery.length > 0 && searchResults.length === 0 && (
-                                            <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover px-3 py-4 text-center text-sm text-muted-foreground shadow-md">
-                                                Sin resultados para "{searchQuery}"
-                                            </div>
-                                        )}
-                                    </div>
-                                    {errors.product_id && <p className="text-sm text-red-600">{errors.product_id}</p>}
-                                </div>
+                            <QuantityField
+                                id="quantity"
+                                label={quantityLabel}
+                                value={data.quantity}
+                                onChange={(value) => setData('quantity', value)}
+                                min={movementType === 'adjustment' ? 0 : 1}
+                                hint={quantityHelp}
+                                error={errors.quantity}
+                            />
 
-                                {/* Info del producto */}
-                                {selectedProductData && (
-                                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-md border bg-muted/30 px-4 py-3 text-sm md:grid-cols-4">
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Código</p>
-                                            <p className="font-medium">{selectedProductData.code}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Categoría</p>
-                                            <p className="font-medium">{selectedProductData.category?.name || '—'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Sucursal</p>
-                                            <p className="font-medium">{selectedProductData.branch?.name || '—'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Stock actual</p>
-                                            <p className="font-semibold">{(selectedProductData.stock ?? 0).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Tipo + Proveedor en la misma fila cuando aplica */}
-                                <div className={`grid gap-4 ${showSupplier ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="type">Tipo de Movimiento *</Label>
-                                        <Select
-                                            value={data.type}
-                                            onValueChange={(v) => {
-                                                setMovementType(v as MovementType);
-                                                setData('type', v as MovementType);
-                                            }}
-                                        >
-                                            <SelectTrigger id="type">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ingreso">Ingreso</SelectItem>
-                                                <SelectItem value="out">Salida</SelectItem>
-                                                <SelectItem value="write_off">Baja de Inventario</SelectItem>
-                                                <SelectItem value="supplier_return">Devolución a Proveedor</SelectItem>
-                                                <SelectItem value="adjustment">Ajuste de Stock</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {errors.type && <p className="text-sm text-red-600">{errors.type}</p>}
-                                    </div>
-
-                                    {showSupplier && (
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="supplier_id">Proveedor</Label>
-                                            <Select
-                                                value={data.supplier_id || '__none__'}
-                                                onValueChange={(v) => setData('supplier_id', v === '__none__' ? '' : v)}
-                                            >
-                                                <SelectTrigger id="supplier_id">
-                                                    <SelectValue placeholder="Sin proveedor" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="__none__">Sin proveedor</SelectItem>
-                                                    {suppliers.map((s) => (
-                                                        <SelectItem key={s.id} value={s.id.toString()}>
-                                                            {s.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.supplier_id && <p className="text-sm text-red-600">{errors.supplier_id}</p>}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Cantidad + Costo unitario en la misma fila cuando aplica */}
-                                <div className={`grid gap-4 ${showUnitCost ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="quantity">{quantityLabel} *</Label>
-                                        <Input
-                                            id="quantity"
-                                            type="number"
-                                            min={movementType === 'adjustment' ? '0' : '1'}
-                                            step="1"
-                                            inputMode="numeric"
+                            {showUnitCost && (
+                                <LabeledField id="unit_cost" label="Costo Unitario" error={errors.unit_cost}>
+                                    <div className="relative">
+                                        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground">$</span>
+                                        <CurrencyInput
+                                            id="unit_cost"
                                             autoComplete="off"
-                                            value={data.quantity}
-                                            onChange={(e) => setData('quantity', e.target.value)}
+                                            className={`${INPUT_CLASS} pl-7`}
+                                            value={Number(data.unit_cost) || 0}
+                                            onChange={(v) => setData('unit_cost', v > 0 ? String(v) : '')}
                                             placeholder="0"
                                         />
-                                        {quantityHelp && <p className="text-xs text-muted-foreground">{quantityHelp}</p>}
-                                        {errors.quantity && <p className="text-sm text-red-600">{errors.quantity}</p>}
                                     </div>
+                                    <p className="text-xs text-muted-foreground">Precio de compra por unidad</p>
+                                </LabeledField>
+                            )}
+                        </FormPanel>
 
-                                    {showUnitCost && (
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="unit_cost">Costo Unitario</Label>
-                                            <CurrencyInput
-                                                id="unit_cost"
-                                                autoComplete="off"
-                                                value={Number(data.unit_cost) || 0}
-                                                onChange={(v) => setData('unit_cost', v > 0 ? String(v) : '')}
-                                                placeholder="0"
-                                            />
-                                            <p className="text-xs text-muted-foreground">Precio de compra por unidad</p>
-                                            {errors.unit_cost && <p className="text-sm text-red-600">{errors.unit_cost}</p>}
-                                        </div>
-                                    )}
+                        <FormPanel title="Detalles">
+                            <LabeledField id="reference" label="Referencia" error={errors.reference}>
+                                <input
+                                    id="reference"
+                                    value={data.reference}
+                                    onChange={(e) => setData('reference', e.target.value)}
+                                    placeholder={
+                                        movementType === 'ingreso'
+                                            ? 'Ej: Compra proveedor, Factura #001, Transferencia...'
+                                            : 'Ej: Factura #001, Ajuste mensual...'
+                                    }
+                                    className={INPUT_CLASS}
+                                />
+                            </LabeledField>
+
+                            <LabeledField id="movement_date" label="Fecha y hora" required error={errors.movement_date}>
+                                <input
+                                    id="movement_date"
+                                    type="datetime-local"
+                                    value={data.movement_date}
+                                    onChange={(e) => setData('movement_date', e.target.value)}
+                                    className={INPUT_CLASS}
+                                />
+                            </LabeledField>
+
+                            <LabeledField id="notes" label="Notas" error={errors.notes} className="sm:col-span-2">
+                                <Textarea
+                                    id="notes"
+                                    value={data.notes}
+                                    onChange={(e) => setData('notes', e.target.value)}
+                                    placeholder="Notas adicionales sobre el movimiento..."
+                                    rows={3}
+                                    className="text-base sm:text-sm"
+                                />
+                            </LabeledField>
+                        </FormPanel>
+                    </div>
+
+                    <aside
+                        aria-label="Resumen del movimiento"
+                        className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5 lg:sticky lg:top-4"
+                    >
+                        <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Resumen</h2>
+                        {selectedProductData ? (
+                            <div className="flex items-center gap-3">
+                                <Package className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                <div className="min-w-0">
+                                    <p className="truncate text-sm font-semibold">{selectedProductData.name}</p>
+                                    <p className="font-mono text-xs text-muted-foreground">{selectedProductData.code}</p>
                                 </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Elige un producto para ver cómo quedará su stock.</p>
+                        )}
+                        <div className="flex items-center justify-between gap-3">
+                            <MovementTypePill type={movementType} />
+                            {hasQuantity && (
+                                <span className="text-lg font-bold tabular-nums">{signedQuantity(movementType, Number(data.quantity))}</span>
+                            )}
+                        </div>
+                        {selectedProductData && (
+                            <StockPreview type={movementType} current={selectedProductData.stock ?? 0} quantity={data.quantity} />
+                        )}
+                    </aside>
 
-                                {/* Referencia + Fecha en la misma fila */}
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="reference">Referencia</Label>
-                                        <Input
-                                            id="reference"
-                                            value={data.reference}
-                                            onChange={(e) => setData('reference', e.target.value)}
-                                            placeholder={
-                                                movementType === 'ingreso'
-                                                    ? 'Ej: Compra proveedor, Factura #001, Transferencia...'
-                                                    : 'Ej: Factura #001, Ajuste mensual...'
-                                            }
-                                        />
-                                        {errors.reference && <p className="text-sm text-red-600">{errors.reference}</p>}
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="movement_date">Fecha y hora *</Label>
-                                        <Input
-                                            id="movement_date"
-                                            type="datetime-local"
-                                            value={data.movement_date}
-                                            onChange={(e) => setData('movement_date', e.target.value)}
-                                        />
-                                        {errors.movement_date && <p className="text-sm text-red-600">{errors.movement_date}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Notas */}
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="notes">Notas</Label>
-                                    <Textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(e) => setData('notes', e.target.value)}
-                                        placeholder="Notas adicionales sobre el movimiento..."
-                                        rows={3}
-                                    />
-                                    {errors.notes && <p className="text-sm text-red-600">{errors.notes}</p>}
-                                </div>
-
-                                {/* Submit */}
-                                <div className="flex justify-end pt-2">
-                                    <Button type="submit" disabled={processing} className="gap-2">
-                                        {processing ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Guardando...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Save className="h-4 w-4" />
-                                                Guardar Movimiento
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-                </div>
+                    <div className="lg:col-span-2">
+                        <StickyActions>
+                            <Button type="button" variant="outline" className="h-11 sm:h-10" onClick={() => window.history.back()}>
+                                Cancelar
+                            </Button>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                {processing ? (
+                                    <>
+                                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                                        Guardando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="size-4" aria-hidden="true" />
+                                        Guardar Movimiento
+                                    </>
+                                )}
+                            </button>
+                        </StickyActions>
+                    </div>
+                </form>
             </div>
         </AppLayout>
     );

@@ -9,6 +9,7 @@ import StockMovementsIndex from '../index';
 import ProductMovements from '../product-movements';
 
 const env = vi.hoisted(() => ({
+    wide: true,
     post: vi.fn(),
     errors: {} as Record<string, string>,
 }));
@@ -81,10 +82,22 @@ beforeAll(() => {
     }
     vi.stubGlobal('ResizeObserver', NoopObserver);
     vi.stubGlobal('route', (name: string, id?: number) => `/${name}${id ? `/${id}` : ''}`);
+    vi.stubGlobal(
+        'matchMedia',
+        vi.fn().mockImplementation((query: string) => ({
+            matches: env.wide,
+            media: query,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+        })),
+    );
 });
 
 beforeEach(() => {
     vi.clearAllMocks();
+    env.wide = true;
     env.errors = {};
 });
 
@@ -117,7 +130,7 @@ describe('Stock movements list', () => {
         expect(row).toContain('Carlos');
         expect(row).toContain('Centro');
         expect(screen.getAllByRole('link', { name: 'COL-001 - Collar Luna' })[0]).toHaveAttribute('href', '/products/4');
-        expect(screen.getByText('Movimientos (1)')).toBeInTheDocument();
+        expect(text(screen.getByText(/cada entrada y salida/))).toContain('movimiento registrado');
     });
 
     it.each([
@@ -212,10 +225,38 @@ describe('Stock movements list', () => {
         expect(screen.getByText('Sucursal', { selector: 'label' })).toBeInTheDocument();
     });
 
-    it('opens the product from a card on phones', () => {
-        renderIndex([movement(1)]);
+    it('folds the filter fields on phones, counts the active ones, and unfolds them on demand', () => {
+        env.wide = false;
+        renderIndex([movement(1)], { type: 'out', start_date: '2026-10-01' });
 
-        expect(screen.getByRole('button', { name: 'Ver producto' }).closest('a')).toHaveAttribute('href', '/products/4');
+        expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+        const toggle = screen.getByRole('button', { name: /Filtros/ });
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        expect(text(toggle)).toContain('2');
+
+        fireEvent.click(toggle);
+
+        expect(toggle).toHaveAttribute('aria-expanded', 'true');
+        expect(combos()[0].value).toBe('out');
+        expect(screen.getByRole('button', { name: /Filtrar/ })).toBeInTheDocument();
+    });
+
+    it('lists cards on phones with the signed quantity, the stock before and after, and the reference', () => {
+        env.wide = false;
+        renderIndex([movement(1, { notes: 'Pedido mensual' }), movement(2, { type: 'write_off', quantity: 2, previous_stock: 15, new_stock: 13 })]);
+
+        expect(screen.queryByRole('table')).not.toBeInTheDocument();
+        const list = screen.getByRole('list', { name: '2 movimiento(s)' });
+        const [first, second] = within(list).getAllByRole('listitem');
+        expect(text(first)).toContain('COL-001 - Collar Luna');
+        expect(text(first)).toContain('+12');
+        expect(text(first)).toContain('3');
+        expect(text(first)).toContain('15');
+        expect(text(first)).toContain('Referencia: Factura #001');
+        expect(text(first)).toContain('Costo unitario: $ 8.000');
+        expect(text(first)).toContain('Pedido mensual');
+        expect(text(second)).toContain('−2');
+        expect(within(first).getByRole('link', { name: 'COL-001 - Collar Luna' })).toHaveAttribute('href', '/products/4');
     });
 });
 
@@ -249,19 +290,19 @@ describe('New stock movement', () => {
         renderCreate();
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Nuevo Movimiento de Stock');
-        expect(combos()[0].value).toBe('ingreso');
-        expect(screen.getByText('Cantidad a ingresar *')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Ingreso' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByText('Cantidad a ingresar')).toBeInTheDocument();
         expect(screen.getByText('Proveedor')).toBeInTheDocument();
         expect(field('unit_cost')).not.toBeNull();
         expect(field('movement_date').value).toBe('2026-10-10T09:15');
     });
 
     it.each([
-        ['ingreso', 'Cantidad a ingresar *', true, true],
-        ['out', 'Cantidad a retirar *', false, false],
-        ['write_off', 'Cantidad a retirar *', false, false],
-        ['supplier_return', 'Cantidad a retirar *', true, false],
-        ['adjustment', 'Nuevo stock total *', false, false],
+        ['ingreso', 'Cantidad a ingresar', true, true],
+        ['out', 'Cantidad a retirar', false, false],
+        ['write_off', 'Cantidad a retirar', false, false],
+        ['supplier_return', 'Cantidad a retirar', true, false],
+        ['adjustment', 'Nuevo stock total', false, false],
     ])('for %s it asks "%s", supplier: %s, unit cost: %s', (type, label, supplier, cost) => {
         renderCreate({ selectedType: type });
 
@@ -324,7 +365,7 @@ describe('New stock movement', () => {
 
     it('posts the movement with every field the server expects', () => {
         renderCreate({ selectedProduct: product });
-        fireEvent.change(combos()[1], { target: { value: '11' } });
+        fireEvent.change(combos()[0], { target: { value: '11' } });
         fireEvent.change(field('quantity'), { target: { value: '5' } });
         fireEvent.change(field('unit_cost'), { target: { value: '8000' } });
         fireEvent.change(field('reference'), { target: { value: 'Factura #9' } });
@@ -353,10 +394,40 @@ describe('New stock movement', () => {
         expect(env.post.mock.calls[0][2]).toMatchObject({ product_id: '', from_product: '' });
     });
 
+    it('changes the type from the buttons and posts it, hiding what does not apply', () => {
+        renderCreate({ selectedProduct: product });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Baja de Inventario' }));
+        fireEvent.change(field('quantity'), { target: { value: '2' } });
+        fireEvent.submit(screen.getByRole('button', { name: /Guardar Movimiento/ }).closest('form') as HTMLFormElement);
+
+        expect(env.post.mock.calls[0][2]).toMatchObject({ type: 'write_off', quantity: '2' });
+        expect(document.getElementById('unit_cost')).toBeNull();
+        expect(screen.queryByText('Proveedor')).not.toBeInTheDocument();
+    });
+
+    it('previews the stock the product will have, and signs the quantity in the summary', () => {
+        renderCreate({ selectedProduct: product, selectedType: 'out' });
+
+        fireEvent.change(field('quantity'), { target: { value: '5' } });
+
+        const summary = screen.getByRole('complementary', { name: 'Resumen del movimiento' });
+        expect(text(summary)).toContain('Collar Luna');
+        expect(text(summary)).toContain('−5');
+        expect(text(summary)).toContain('12');
+        expect(text(summary)).toContain('7');
+    });
+
+    it('invites to choose a product when none is selected yet', () => {
+        renderCreate();
+
+        expect(screen.getByText('Elige un producto para ver cómo quedará su stock.')).toBeInTheDocument();
+    });
+
     it('turns the supplier choice "Sin proveedor" into an empty value', () => {
         renderCreate({ selectedProduct: product });
-        fireEvent.change(combos()[1], { target: { value: '11' } });
-        fireEvent.change(combos()[1], { target: { value: '__none__' } });
+        fireEvent.change(combos()[0], { target: { value: '11' } });
+        fireEvent.change(combos()[0], { target: { value: '__none__' } });
 
         fireEvent.submit(screen.getByRole('button', { name: /Guardar Movimiento/ }).closest('form') as HTMLFormElement);
 
