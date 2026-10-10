@@ -1,18 +1,15 @@
-// Components
 import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Lock } from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
 export default function ConfirmPassword() {
     const { data, setData, post, processing, errors, reset } = useForm<Required<{ password: string }>>({
         password: '',
     });
+    const [showPassword, setShowPassword] = useState(false);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -23,36 +20,47 @@ export default function ConfirmPassword() {
     };
 
     return (
-        <AuthLayout
-            title="Confirm your password"
-            description="This is a secure area of the application. Please confirm your password before continuing."
-        >
-            <Head title="Confirm password" />
+        <AuthLayout description="Esta es un área segura. Confirma tu contraseña antes de continuar.">
+            <Head title="Confirmar contraseña" />
 
-            <form onSubmit={submit}>
-                <div className="space-y-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
+            <form className="flex flex-col gap-4" onSubmit={submit}>
+                <div className="welcome-animate welcome-d5 flex flex-col gap-2">
+                    <label htmlFor="password" className="text-sm font-medium" style={{ color: 'oklch(0.28 0.02 30)' }}>
+                        Contraseña
+                    </label>
+                    <div className="auth-input-wrapper">
+                        <Lock className="auth-input-icon" />
+                        <input
                             id="password"
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             name="password"
-                            placeholder="Password"
+                            className="auth-input has-toggle"
+                            placeholder="••••••••"
                             autoComplete="current-password"
-                            value={data.password}
                             autoFocus
+                            required
+                            value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
                         />
-
-                        <InputError message={errors.password} />
+                        <button
+                            type="button"
+                            className="auth-toggle-btn"
+                            tabIndex={-1}
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                     </div>
+                    <InputError message={errors.password} />
+                </div>
 
-                    <div className="flex items-center">
-                        <Button className="w-full" disabled={processing}>
-                            {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                            Confirm password
-                        </Button>
-                    </div>
+                <div className="welcome-animate welcome-d6 mt-1">
+                    <button type="submit" className="btn-auth group" disabled={processing}>
+                        {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+                        Confirmar contraseña
+                        {!processing && <ArrowRight className="btn-arrow h-4 w-4" />}
+                    </button>
                 </div>
             </form>
         </AuthLayout>
