@@ -1,3 +1,4 @@
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { prepareImageForUpload } from '@/lib/image-upload';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
@@ -5,11 +6,9 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Camera } from 'lucide-react';
 import { FormEventHandler, useEffect, useState } from 'react';
 
-import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { INPUT_CLASS } from '@/components/sales/form-fields';
+import { BrandSubmit, SaveBar, SettingsSection } from '@/components/settings/settings-section';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
@@ -24,6 +23,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
+    const onBrand = useOnBrandColor();
 
     // Usar useForm de Inertia con datos iniciales, siguiendo el patrón de edición de usuarios
     const form = useForm({
@@ -109,23 +109,21 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Configuración de perfil" />
             <SettingsLayout>
-                <div className="mx-auto max-w-lg space-y-8">
-                    <HeadingSmall title="Información de perfil" description="Actualiza tu nombre, correo y foto de perfil" />
-
-                    {/* Avatar y cambio de imagen */}
-                    <div className="flex flex-col items-center gap-3 pb-2">
+                <SettingsSection title="Información de perfil" description="Actualiza tu nombre, correo y foto de perfil">
+                    <div className="flex flex-col items-center gap-3 pb-6">
                         <div className="relative">
                             <img
                                 src={imagePreview || '/stokity-icon.png'}
                                 alt={form.data.name}
-                                className={`h-28 w-28 rounded-full border-2 object-cover ${form.errors.photo ? 'border-red-500' : 'border-neutral-200 dark:border-neutral-700'} bg-muted shadow`}
+                                className={`size-28 rounded-full border-2 object-cover ${form.errors.photo ? 'border-red-500' : 'border-border/60'} bg-muted`}
                             />
                             <label
                                 htmlFor="photo"
-                                className="absolute right-1 bottom-1 flex cursor-pointer items-center justify-center rounded-full border-2 border-white bg-primary p-2 text-white shadow-lg transition-colors hover:bg-primary/90 dark:border-neutral-900 dark:text-black"
-                                style={{ width: 38, height: 38 }}
+                                className="absolute right-0 bottom-0 flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-[var(--brand-primary)] shadow-lg transition-opacity hover:opacity-90"
+                                style={{ color: onBrand.hex }}
                             >
-                                <Camera className="h-5 w-5" />
+                                <Camera className="size-5" aria-hidden="true" />
+                                <span className="sr-only">Cambiar foto</span>
                                 <input id="photo" type="file" accept="image/*" className="sr-only" onChange={handleImageChange} />
                             </label>
                         </div>
@@ -140,37 +138,42 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                         </div>
                     </div>
 
-                    <form onSubmit={submit} className="space-y-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Nombre</Label>
-                            <Input
+                    <form onSubmit={submit} className="flex flex-col gap-5">
+                        <div className="space-y-1.5">
+                            <label htmlFor="name" className="text-xs font-medium">
+                                Nombre
+                            </label>
+                            <input
                                 id="name"
-                                className="mt-1 block w-full"
+                                className={INPUT_CLASS}
                                 value={form.data.name}
                                 onChange={(e) => form.setData('name', e.target.value)}
                                 required
                                 autoComplete="name"
                                 placeholder="Nombre completo"
                             />
-                            <InputError className="mt-2" message={form.errors.name} />
+                            <InputError message={form.errors.name} />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Correo electrónico</Label>
-                            <Input
+                        <div className="space-y-1.5">
+                            <label htmlFor="email" className="text-xs font-medium">
+                                Correo electrónico
+                            </label>
+                            <input
                                 id="email"
                                 type="email"
-                                className="mt-1 block w-full"
+                                inputMode="email"
+                                className={INPUT_CLASS}
                                 value={form.data.email}
                                 onChange={(e) => form.setData('email', e.target.value)}
                                 required
                                 autoComplete="username"
                                 placeholder="Correo electrónico"
                             />
-                            <InputError className="mt-2" message={form.errors.email} />
+                            <InputError message={form.errors.email} />
                         </div>
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
-                            <div>
-                                <p className="-mt-4 text-sm text-muted-foreground">
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+                                <p className="text-sm text-muted-foreground">
                                     Tu correo electrónico no está verificado.{' '}
                                     <Link
                                         href={route('verification.send')}
@@ -188,21 +191,23 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 )}
                             </div>
                         )}
-                        <div className="flex items-center gap-4">
-                            <Button disabled={form.processing}>Guardar</Button>
-                            <Transition
-                                show={form.recentlySuccessful}
-                                enter="transition ease-in-out"
-                                enterFrom="opacity-0"
-                                leave="transition ease-in-out"
-                                leaveTo="opacity-0"
-                            >
-                                <p className="text-sm text-neutral-600">Guardado</p>
-                            </Transition>
-                        </div>
+                        <SaveBar
+                            saved={
+                                <Transition
+                                    show={form.recentlySuccessful}
+                                    enter="transition ease-in-out"
+                                    enterFrom="opacity-0"
+                                    leave="transition ease-in-out"
+                                    leaveTo="opacity-0"
+                                >
+                                    <p className="text-sm text-muted-foreground">Guardado</p>
+                                </Transition>
+                            }
+                        >
+                            <BrandSubmit disabled={form.processing}>Guardar</BrandSubmit>
+                        </SaveBar>
                     </form>
-                </div>
-                {/* <DeleteUser /> */}
+                </SettingsSection>
             </SettingsLayout>
         </AppLayout>
     );

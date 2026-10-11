@@ -1,6 +1,4 @@
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { BrandSubmit, SettingsSection } from '@/components/settings/settings-section';
 import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -28,20 +26,18 @@ export default function ModuleSettings({ moduleConfig }: { moduleConfig: Record<
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Módulos" />
             <SettingsLayout>
-                <div className="space-y-6">
-                    <HeadingSmall
-                        title="Módulos del negocio"
-                        description="Apaga por completo las secciones que este negocio no usa — se ocultan del menú y dejan de ser accesibles, sin borrar nada de lo que ya exista"
-                    />
-
-                    <form onSubmit={submit} className="space-y-6">
-                        <div className="divide-y rounded-md border">
+                <SettingsSection
+                    title="Módulos del negocio"
+                    description="Apaga por completo las secciones que este negocio no usa — se ocultan del menú y dejan de ser accesibles, sin borrar nada de lo que ya exista"
+                >
+                    <form onSubmit={submit} className="flex flex-col gap-5">
+                        <ul className="divide-y divide-border/60 rounded-xl border border-border/60">
                             {MODULES.map((m) => (
-                                <div key={m.key} className="flex items-center justify-between gap-4 p-4">
-                                    <div>
-                                        <Label htmlFor={`module-${m.key}`} className="font-medium">
+                                <li key={m.key} className="flex min-h-16 items-center justify-between gap-4 p-4">
+                                    <div className="min-w-0">
+                                        <label htmlFor={`module-${m.key}`} className="text-sm font-medium">
                                             {m.label}
-                                        </Label>
+                                        </label>
                                         <p className="text-sm text-muted-foreground">{m.description}</p>
                                     </div>
                                     <Switch
@@ -50,17 +46,15 @@ export default function ModuleSettings({ moduleConfig }: { moduleConfig: Record<
                                         onCheckedChange={(checked) => form.setData('modules', { ...form.data.modules, [m.key]: checked })}
                                         disabled={form.processing}
                                     />
-                                </div>
+                                </li>
                             ))}
-                        </div>
+                        </ul>
 
-                        <div className="flex justify-end">
-                            <Button type="submit" disabled={form.processing}>
-                                {form.processing ? 'Guardando...' : 'Guardar cambios'}
-                            </Button>
+                        <div className="flex sm:justify-end">
+                            <BrandSubmit disabled={form.processing}>{form.processing ? 'Guardando...' : 'Guardar cambios'}</BrandSubmit>
                         </div>
                     </form>
-                </div>
+                </SettingsSection>
             </SettingsLayout>
         </AppLayout>
     );

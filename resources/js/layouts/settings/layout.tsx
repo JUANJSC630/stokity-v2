@@ -1,6 +1,3 @@
-import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { usePermissions } from '@/hooks/use-permissions';
 import { filterNavItemsByPermission } from '@/lib/nav-permissions';
 import { cn } from '@/lib/utils';
@@ -73,34 +70,41 @@ export default function SettingsLayout({ children, wide = false }: PropsWithChil
     const navItems = filterNavItemsByPermission(sidebarNavItems, can);
 
     return (
-        <div className="px-4 py-6">
-            <Heading title="Configuración" description="Administra tu perfil y la configuración de tu cuenta" />
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-4 lg:p-6">
+            <div>
+                <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Configuración</h2>
+                <p className="text-sm text-muted-foreground">Administra tu perfil y la configuración de tu cuenta</p>
+            </div>
 
-            <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
-                <aside className="w-full max-w-xl lg:w-48">
-                    <nav className="flex flex-col space-y-1 space-x-0">
-                        {navItems.map((item, index) => (
-                            <Button
-                                key={`${item.href}-${index}`}
-                                size="sm"
-                                variant="ghost"
-                                asChild
-                                className={cn('w-full justify-start', {
-                                    'bg-muted': currentPath === item.href,
-                                })}
-                            >
-                                <Link href={item.href} prefetch>
-                                    {item.title}
-                                </Link>
-                            </Button>
-                        ))}
-                    </nav>
-                </aside>
+            <div className="flex flex-col gap-5 lg:flex-row lg:gap-10">
+                <nav aria-label="Secciones de configuración" className="-mx-4 lg:mx-0 lg:w-52 lg:shrink-0">
+                    <ul className="flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
+                        {navItems.map((item, index) => {
+                            const active = currentPath === item.href;
 
-                <Separator className="my-6 md:hidden" />
+                            return (
+                                <li key={`${item.href}-${index}`} className="shrink-0 lg:shrink">
+                                    <Link
+                                        href={item.href}
+                                        prefetch
+                                        aria-current={active ? 'page' : undefined}
+                                        className={cn(
+                                            'flex h-11 items-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors lg:h-9 lg:rounded-lg lg:border-transparent',
+                                            active
+                                                ? 'border-[var(--brand-primary)]/40 bg-muted text-[var(--brand-primary)]'
+                                                : 'border-border/60 bg-card text-muted-foreground hover:text-foreground lg:bg-transparent lg:hover:bg-accent',
+                                        )}
+                                    >
+                                        {item.title}
+                                    </Link>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </nav>
 
-                <div className={cn('flex-1', wide ? 'md:max-w-5xl' : 'md:max-w-2xl')}>
-                    <section className={cn('space-y-12', wide ? 'max-w-5xl' : 'max-w-xl')}>{children}</section>
+                <div className={cn('min-w-0 flex-1', wide ? 'lg:max-w-5xl' : 'lg:max-w-2xl')}>
+                    <section className="flex flex-col gap-5">{children}</section>
                 </div>
             </div>
         </div>

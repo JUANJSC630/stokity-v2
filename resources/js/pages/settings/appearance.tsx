@@ -2,15 +2,13 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
-import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
+import { BrandSubmit, SettingsSection } from '@/components/settings/settings-section';
 import { usePermissions } from '@/hooks/use-permissions';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import { Upload, UserCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -83,129 +81,104 @@ export default function Appearance() {
             <Head title="Configuración de apariencia" />
 
             <SettingsLayout>
-                <div className="space-y-6">
-                    <HeadingSmall title="Configuración de apariencia" description="Actualiza la apariencia de tu cuenta" />
-                    <AppearanceTabs />
+                <SettingsSection title="Configuración de apariencia" description="Actualiza la apariencia de tu cuenta">
+                    <AppearanceTabs className="w-full sm:w-auto" />
+                </SettingsSection>
 
-                    {isAdmin && (
-                        <>
-                            {/* ── Brand colors ── */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Colores del sistema</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="mb-4 text-sm text-muted-foreground">
-                                        Personaliza los colores del sidebar, login y botones principales.
-                                    </p>
-                                    <form onSubmit={handleColorSubmit} className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-sm font-medium">Color principal</label>
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="color"
-                                                        value={colorsForm.data.brand_color}
-                                                        onChange={(e) => colorsForm.setData('brand_color', e.target.value)}
-                                                        className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
-                                                    />
-                                                    <span className="font-mono text-sm text-muted-foreground">{colorsForm.data.brand_color}</span>
-                                                </div>
-                                                <InputError message={colorsForm.errors.brand_color} />
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-sm font-medium">Color de acento</label>
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="color"
-                                                        value={colorsForm.data.brand_color_secondary}
-                                                        onChange={(e) => colorsForm.setData('brand_color_secondary', e.target.value)}
-                                                        className="h-10 w-14 cursor-pointer rounded border border-neutral-200 p-0.5 dark:border-neutral-700"
-                                                    />
-                                                    <span className="font-mono text-sm text-muted-foreground">
-                                                        {colorsForm.data.brand_color_secondary}
-                                                    </span>
-                                                </div>
-                                                <InputError message={colorsForm.errors.brand_color_secondary} />
-                                            </div>
-                                        </div>
+                {isAdmin && (
+                    <>
+                        <SettingsSection title="Colores del sistema" description="Personaliza los colores del sidebar, login y botones principales.">
+                            <form onSubmit={handleColorSubmit} className="flex flex-col gap-5">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="flex flex-col gap-2">
+                                        <label htmlFor="brand_color" className="text-xs font-medium">
+                                            Color principal
+                                        </label>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-xs text-muted-foreground">Vista previa:</span>
-                                            <div
-                                                className="h-5 w-28 rounded-full"
-                                                style={{
-                                                    background: colorsForm.data.brand_color,
-                                                }}
+                                            <input
+                                                id="brand_color"
+                                                type="color"
+                                                value={colorsForm.data.brand_color}
+                                                onChange={(e) => colorsForm.setData('brand_color', e.target.value)}
+                                                className="h-11 w-16 cursor-pointer rounded-xl border border-border/60 bg-card p-1"
                                             />
+                                            <span className="font-mono text-sm text-muted-foreground">{colorsForm.data.brand_color}</span>
                                         </div>
-                                        <button
-                                            type="submit"
-                                            disabled={colorsForm.processing}
-                                            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-60 dark:text-black"
-                                        >
-                                            {colorsForm.processing ? 'Guardando...' : 'Guardar colores'}
-                                        </button>
-                                    </form>
-                                </CardContent>
-                            </Card>
+                                        <InputError message={colorsForm.errors.brand_color} />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <label htmlFor="brand_color_secondary" className="text-xs font-medium">
+                                            Color de acento
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                id="brand_color_secondary"
+                                                type="color"
+                                                value={colorsForm.data.brand_color_secondary}
+                                                onChange={(e) => colorsForm.setData('brand_color_secondary', e.target.value)}
+                                                className="h-11 w-16 cursor-pointer rounded-xl border border-border/60 bg-card p-1"
+                                            />
+                                            <span className="font-mono text-sm text-muted-foreground">{colorsForm.data.brand_color_secondary}</span>
+                                        </div>
+                                        <InputError message={colorsForm.errors.brand_color_secondary} />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-muted-foreground">Vista previa:</span>
+                                    <div className="h-5 w-28 rounded-full" style={{ background: colorsForm.data.brand_color }} />
+                                </div>
+                                <div className="flex sm:justify-start">
+                                    <BrandSubmit disabled={colorsForm.processing}>
+                                        {colorsForm.processing ? 'Guardando...' : 'Guardar colores'}
+                                    </BrandSubmit>
+                                </div>
+                            </form>
+                        </SettingsSection>
 
-                            <div>
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Imagen por defecto</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <form onSubmit={handleSubmit} className="space-y-4">
-                                            <div className="flex flex-col items-center gap-4">
-                                                <div className="group relative aspect-square w-full max-w-[160px] overflow-hidden rounded-md border-2 border-sidebar-border bg-muted transition-all duration-200 hover:border-primary">
-                                                    {imagePreview ? (
-                                                        <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
-                                                    ) : business.default_product_image_url ? (
-                                                        <img
-                                                            src={business.default_product_image_url}
-                                                            alt="Imagen por defecto actual"
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
-                                                            <UserCircle className="size-12" strokeWidth={1.5} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <label
-                                                    htmlFor="image"
-                                                    className="flex cursor-pointer items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-primary/90 dark:text-black"
-                                                >
-                                                    <Upload className="size-4" />
-                                                    Subir imagen
-                                                    <input
-                                                        id="image"
-                                                        type="file"
-                                                        className="sr-only"
-                                                        accept="image/jpeg,image/png,image/gif,image/webp"
-                                                        onChange={handleImageChange}
-                                                    />
-                                                </label>
-                                                {form.errors.image && <p className="mt-1 text-xs text-red-500">{form.errors.image}</p>}
-                                                <p className="text-center text-xs text-muted-foreground">
-                                                    Formatos permitidos: JPG, PNG, GIF, WebP. Tamaño máximo: 2MB
-                                                </p>
+                        <SettingsSection title="Imagen por defecto" description="Se muestra en los productos que no tienen foto.">
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="relative aspect-square w-full max-w-[160px] overflow-hidden rounded-2xl border-2 border-border/60 bg-muted">
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Vista previa" className="size-full object-cover" />
+                                        ) : business.default_product_image_url ? (
+                                            <img
+                                                src={business.default_product_image_url}
+                                                alt="Imagen por defecto actual"
+                                                className="size-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex size-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
+                                                <UserCircle className="size-12" strokeWidth={1.5} aria-hidden="true" />
                                             </div>
-                                            <button
-                                                type="submit"
-                                                className="w-full rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/90 disabled:opacity-60 dark:text-black"
-                                                disabled={isUploading || !form.data.image}
-                                            >
-                                                {isUploading ? 'Cambiando...' : 'Cambiar imagen por defecto'}
-                                            </button>
-                                            {/* Los toasts ahora se muestran con react-hot-toast */}
-                                        </form>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </>
-                    )}
-                </div>
+                                        )}
+                                    </div>
+                                    <label
+                                        htmlFor="image"
+                                        className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10"
+                                    >
+                                        <Upload className="size-4" aria-hidden="true" />
+                                        Subir imagen
+                                        <input
+                                            id="image"
+                                            type="file"
+                                            className="sr-only"
+                                            accept="image/jpeg,image/png,image/gif,image/webp"
+                                            onChange={handleImageChange}
+                                        />
+                                    </label>
+                                    {form.errors.image && <p className="text-xs text-red-500">{form.errors.image}</p>}
+                                    <p className="text-center text-xs text-muted-foreground">
+                                        Formatos permitidos: JPG, PNG, GIF, WebP. Tamaño máximo: 2MB
+                                    </p>
+                                </div>
+                                <BrandSubmit fullWidth disabled={isUploading || !form.data.image}>
+                                    {isUploading ? 'Cambiando...' : 'Cambiar imagen por defecto'}
+                                </BrandSubmit>
+                            </form>
+                        </SettingsSection>
+                    </>
+                )}
             </SettingsLayout>
         </AppLayout>
     );
