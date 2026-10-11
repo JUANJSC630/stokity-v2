@@ -1,12 +1,14 @@
+import { BranchAvatar } from '@/components/branches/branch-meta';
 import PaginationFooter from '@/components/common/PaginationFooter';
+import { SearchField } from '@/components/common/search-field';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, ChevronLeft, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, RefreshCcw, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 interface TrashedBranchesPageProps {
@@ -35,16 +37,26 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
+const formattedDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
 export default function TrashedBranches({ branches, filters = { search: '' } }: TrashedBranchesPageProps) {
+    const isWide = useMediaQuery('(min-width: 768px)');
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
-
     const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [restoreModalOpen, setRestoreModalOpen] = useState(false);
     const [branchToRestore, setBranchToRestore] = useState<Branch | null>(null);
-
-    const searchRef = useRef<HTMLInputElement>(null);
 
     const hasResetRef = useRef(false);
     useEffect(() => {
@@ -78,11 +90,6 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
         });
     };
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        applyFilters();
-    };
-
     const handleForceDelete = () => {
         if (branchToDelete) {
             router.delete(`/branches/${branchToDelete.id}/force-delete`, {
@@ -107,208 +114,148 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
         }
     };
 
-    const formattedDate = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
+    const askRestore = (branch: Branch) => {
+        setBranchToRestore(branch);
+        setRestoreModalOpen(true);
     };
+
+    const askForceDelete = (branch: Branch) => {
+        setBranchToDelete(branch);
+        setDeleteModalOpen(true);
+    };
+
+    const actionButton = 'flex size-11 items-center justify-center rounded-xl border border-border/60 transition-colors hover:bg-muted sm:size-9';
+
+    const Actions = ({ branch }: { branch: Branch }) => (
+        <div className="flex items-center justify-end gap-2">
+            <button type="button" aria-label="Restaurar" title="Restaurar" onClick={() => askRestore(branch)} className={actionButton}>
+                <RefreshCcw className="size-4" />
+            </button>
+            <button
+                type="button"
+                aria-label="Eliminar permanentemente"
+                title="Eliminar permanentemente"
+                onClick={() => askForceDelete(branch)}
+                className={cn(
+                    actionButton,
+                    'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30',
+                )}
+            >
+                <Trash2 className="size-4" />
+            </button>
+        </div>
+    );
+
+    const isEmpty = !(branches?.data?.length > 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Sucursales Eliminadas" />
-            <div className="flex h-full flex-1 flex-col gap-4 p-4">
-                {/* Encabezado y botón volver */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-2xl font-bold">Sucursales Eliminadas</h1>
-                    <Button asChild variant="outline" className="flex gap-2">
-                        <Link href="/branches">
-                            <ChevronLeft className="size-4" />
-                            <span>Volver a Sucursales</span>
-                        </Link>
-                    </Button>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 lg:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Sucursales Eliminadas</h1>
+                        <p className="text-sm text-muted-foreground">Restáuralas o elimínalas para siempre</p>
+                    </div>
+                    <Link
+                        href="/branches"
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10"
+                    >
+                        <ChevronLeft className="size-4" aria-hidden="true" />
+                        <span>Volver a Sucursales</span>
+                    </Link>
                 </div>
 
-                {/* Filtro en Card */}
-                <div className="flex flex-col gap-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Filtrar Sucursales Eliminadas</CardTitle>
-                            <CardDescription>Busca sucursales eliminadas por nombre, dirección o gerente</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                                <div className="col-span-2">
-                                    <form onSubmit={handleSearch}>
-                                        <div className="space-y-1.5">
-                                            <label htmlFor="branch-search" className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                                Buscar
-                                            </label>
-                                            <div className="relative">
-                                                <Search className="absolute top-1.5 left-2.5 h-3.5 w-3.5 text-neutral-500 dark:text-neutral-400" />
-                                                <Input
-                                                    ref={searchRef}
-                                                    type="search"
-                                                    placeholder="Buscar por nombre, dirección o gerente"
-                                                    className="h-8 pl-8 text-sm"
-                                                    value={search}
-                                                    onChange={(e) => setSearch(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <SearchField
+                    id="branch-search"
+                    label="Buscar sucursales eliminadas"
+                    placeholder="Buscar por nombre, dirección o gerente"
+                    value={search}
+                    onChange={setSearch}
+                    onSubmit={() => applyFilters()}
+                />
 
-                {/* Tabla y Cards */}
-                <div className="relative overflow-hidden rounded-md bg-card shadow">
-                    {isSearching && (
-                        <div className="bg-opacity-60 absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-neutral-900">
-                            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-neutral-900 dark:border-neutral-100"></div>
-                        </div>
+                <div
+                    aria-busy={isSearching}
+                    className={cn(
+                        'overflow-hidden rounded-2xl border border-border/60 bg-card transition-opacity',
+                        isSearching && 'pointer-events-none opacity-60',
                     )}
-
-                    {/* Desktop table */}
-                    <div className="hidden w-full overflow-x-auto md:block">
-                        <table className="min-w-full table-auto">
+                >
+                    {isEmpty ? (
+                        <div className="px-6 py-16 text-center text-muted-foreground">No hay sucursales eliminadas</div>
+                    ) : isWide ? (
+                        <table className="w-full text-sm" aria-label="Sucursales eliminadas">
                             <thead>
-                                <tr>
-                                    <th className="px-6 py-3 text-left font-medium text-neutral-700 dark:text-neutral-200">Nombre</th>
-                                    <th className="px-6 py-3 text-left font-medium text-neutral-700 dark:text-neutral-200">Dirección</th>
-                                    <th className="px-6 py-3 text-left font-medium text-neutral-700 dark:text-neutral-200">Teléfono</th>
-                                    <th className="px-6 py-3 text-left font-medium text-neutral-700 dark:text-neutral-200">Gerente</th>
-                                    <th className="px-6 py-3 text-left font-medium text-neutral-700 dark:text-neutral-200">Eliminada</th>
-                                    <th className="px-6 py-3 text-right font-medium text-neutral-700 dark:text-neutral-200">Acciones</th>
+                                <tr className="border-b border-border/60 text-left text-[11px] tracking-wide text-muted-foreground uppercase">
+                                    <th scope="col" className="px-6 py-3 font-medium">
+                                        Nombre
+                                    </th>
+                                    <th scope="col" className="px-3 py-3 font-medium">
+                                        Dirección
+                                    </th>
+                                    <th scope="col" className="px-3 py-3 font-medium">
+                                        Teléfono
+                                    </th>
+                                    <th scope="col" className="px-3 py-3 font-medium">
+                                        Gerente
+                                    </th>
+                                    <th scope="col" className="px-3 py-3 font-medium">
+                                        Eliminada
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-right font-medium">
+                                        Acciones
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {branches?.data?.length > 0 ? (
-                                    branches.data.map((branch: Branch) => (
-                                        <tr key={branch.id} className="border-b last:border-b-0 dark:border-neutral-700">
-                                            <td className="px-6 py-2 font-medium">{branch.name}</td>
-                                            <td className="px-6 py-2">{branch.address}</td>
-                                            <td className="px-6 py-2">{branch.phone}</td>
-                                            <td className="px-6 py-2">{branch.manager ? branch.manager.name : '-'}</td>
-                                            <td className="px-6 py-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</td>
-                                            <td className="px-6 py-2 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        aria-label="Restaurar"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => {
-                                                            setBranchToRestore(branch);
-                                                            setRestoreModalOpen(true);
-                                                        }}
-                                                        title="Restaurar"
-                                                    >
-                                                        <RefreshCcw className="size-4" />
-                                                    </Button>
-                                                    <Button
-                                                        aria-label="Eliminar permanentemente"
-                                                        variant="destructive"
-                                                        size="icon"
-                                                        onClick={() => {
-                                                            setBranchToDelete(branch);
-                                                            setDeleteModalOpen(true);
-                                                        }}
-                                                        title="Eliminar permanentemente"
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                            No hay sucursales eliminadas
+                            <tbody className="divide-y divide-border/40">
+                                {branches.data.map((branch: Branch) => (
+                                    <tr key={branch.id}>
+                                        <td className="px-6 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <BranchAvatar />
+                                                <span className="font-medium">{branch.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3 text-muted-foreground">{branch.address}</td>
+                                        <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">{branch.phone}</td>
+                                        <td className="px-3 py-3 text-muted-foreground">{branch.manager ? branch.manager.name : '-'}</td>
+                                        <td className="px-3 py-3 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</td>
+                                        <td className="px-6 py-3">
+                                            <Actions branch={branch} />
                                         </td>
                                     </tr>
-                                )}
+                                ))}
                             </tbody>
                         </table>
-                    </div>
-
-                    {/* Mobile cards */}
-                    <div className="block md:hidden">
-                        {branches?.data?.length > 0 ? (
-                            <div className="flex flex-col gap-4 p-2">
-                                {branches.data.map((branch: Branch) => (
-                                    <div key={branch.id} className="rounded-lg border bg-card p-4 shadow-sm">
-                                        <div className="mb-2 flex items-center justify-between">
-                                            <div className="text-base font-semibold">{branch.name}</div>
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    aria-label="Restaurar"
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className="h-8 w-8 p-0"
-                                                    onClick={() => {
-                                                        setBranchToRestore(branch);
-                                                        setRestoreModalOpen(true);
-                                                    }}
-                                                    title="Restaurar"
-                                                >
-                                                    <RefreshCcw className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    aria-label="Eliminar permanentemente"
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="h-8 w-8 p-0"
-                                                    onClick={() => {
-                                                        setBranchToDelete(branch);
-                                                        setDeleteModalOpen(true);
-                                                    }}
-                                                    title="Eliminar permanentemente"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Dirección:</span> {branch.address}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Teléfono:</span> {branch.phone}
-                                        </div>
-                                        <div className="mb-1 text-sm text-muted-foreground">
-                                            <span className="font-medium">Gerente:</span> {branch.manager ? branch.manager.name : '-'}
-                                        </div>
-                                        <div className="mb-1 text-xs">
-                                            <span className="inline-block rounded bg-red-100 px-2 py-0.5 font-semibold text-red-700">Eliminada</span>
-                                            <span className="ml-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</span>
+                    ) : (
+                        <ul className="divide-y divide-border/60">
+                            {branches.data.map((branch: Branch) => (
+                                <li key={branch.id} className="flex flex-col gap-3 p-4">
+                                    <div className="flex items-start gap-3">
+                                        <BranchAvatar />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-semibold">{branch.name}</p>
+                                            <p className="truncate text-xs text-muted-foreground">{branch.address}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {branch.phone} · {branch.manager ? branch.manager.name : '-'}
+                                            </p>
+                                            <p className="mt-1 text-xs">
+                                                <span className="inline-block rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                                                    Eliminada
+                                                </span>
+                                                <span className="ml-2 text-muted-foreground">{formattedDate(branch.deleted_at || '')}</span>
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-4 text-center text-muted-foreground">No hay sucursales eliminadas</div>
-                        )}
-                    </div>
-
-                    {/* Pagination */}
-                    <div>
-                        <PaginationFooter
-                            data={{
-                                ...branches,
-                                resourceLabel: 'sucursales eliminadas',
-                            }}
-                        />
-                    </div>
+                                    <Actions branch={branch} />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <PaginationFooter data={{ ...branches, resourceLabel: 'sucursales eliminadas' }} />
                 </div>
 
-                {/* Diálogo de confirmación para eliminación permanente */}
                 <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
                     <DialogContent>
                         <DialogHeader>
@@ -336,7 +283,6 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
                     </DialogContent>
                 </Dialog>
 
-                {/* Diálogo de confirmación para restauración */}
                 <Dialog open={restoreModalOpen} onOpenChange={setRestoreModalOpen}>
                     <DialogContent>
                         <DialogHeader>
