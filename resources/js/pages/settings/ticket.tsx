@@ -1,13 +1,12 @@
-import HeadingSmall from '@/components/heading-small';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { INPUT_CLASS } from '@/components/sales/form-fields';
+import { SettingsSection } from '@/components/settings/settings-section';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
 import { Printer, Save } from 'lucide-react';
@@ -454,6 +453,14 @@ function ReturnTicketPreview({ config, business }: { config: TicketConfig; busin
     );
 }
 
+const chip = (selected: boolean) =>
+    cn(
+        'flex h-11 items-center justify-center rounded-full border px-4 text-sm font-medium whitespace-nowrap transition-colors sm:h-9',
+        selected
+            ? 'border-[var(--brand-primary)]/40 bg-[var(--brand-primary-soft)] text-[var(--brand-primary)]'
+            : 'border-border/60 bg-card text-muted-foreground hover:bg-muted',
+    );
+
 // ── Code graphic selector ──────────────────────────────────────────────────────
 function CodeGraphicSelector({ value, onChange }: { value: 'none' | 'qr' | 'barcode'; onChange: (v: 'none' | 'qr' | 'barcode') => void }) {
     const options = [
@@ -464,17 +471,59 @@ function CodeGraphicSelector({ value, onChange }: { value: 'none' | 'qr' | 'barc
     return (
         <div className="flex flex-wrap gap-2">
             {options.map((o) => (
-                <Button key={o.value} type="button" size="sm" variant={value === o.value ? 'default' : 'outline'} onClick={() => onChange(o.value)}>
+                <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={value === o.value}
+                    className={chip(value === o.value)}
+                    onClick={() => onChange(o.value)}
+                >
                     {o.label}
-                </Button>
+                </button>
             ))}
         </div>
+    );
+}
+
+function SwitchField({
+    id,
+    label,
+    checked,
+    onChange,
+    disabled,
+    note,
+}: {
+    id: string;
+    label: string;
+    checked: boolean;
+    onChange: () => void;
+    disabled?: boolean;
+    note?: string;
+}) {
+    return (
+        <div className="flex min-h-11 items-center justify-between gap-3">
+            <label htmlFor={id} className="text-sm">
+                {label}
+                {note && <span className="ml-1 text-xs text-muted-foreground">{note}</span>}
+            </label>
+            <Switch id={id} checked={checked} onCheckedChange={onChange} disabled={disabled} />
+        </div>
+    );
+}
+
+function TextLine({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
+    return (
+        <label className="block space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+            <input value={value} maxLength={60} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={INPUT_CLASS} />
+        </label>
     );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function TicketSettings({ config, business }: Props) {
     const printer = usePrinter();
+    const onBrand = useOnBrandColor();
     const [printing, setPrinting] = useState(false);
     const [activeTab, setActiveTab] = useState<'sale' | 'return'>('sale');
 
@@ -532,49 +581,43 @@ export default function TicketSettings({ config, business }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Plantilla del ticket" />
-            <SettingsLayout>
-                <HeadingSmall title="Plantilla del ticket" description="Personaliza el diseño del recibo térmico de venta y devolución" />
+            <SettingsLayout wide>
+                <div>
+                    <h3 className="text-base font-semibold">Plantilla del ticket</h3>
+                    <p className="text-sm text-muted-foreground">Personaliza el diseño del recibo térmico de venta y devolución</p>
+                </div>
 
-                <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
-                    {/* ── Left: config panel ── */}
-                    <form onSubmit={handleSave} className="space-y-4">
-                        {/* ── Shared: Paper width ── */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Ancho de papel</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex gap-2">
+                <div className="grid items-start gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
+                    <form onSubmit={handleSave} className="flex flex-col gap-5">
+                        <SettingsSection title="Ancho de papel">
+                            <div className="flex gap-2">
                                 {([58, 80] as const).map((w) => (
-                                    <Button
+                                    <button
                                         key={w}
                                         type="button"
-                                        size="sm"
-                                        variant={data.paper_width === w ? 'default' : 'outline'}
+                                        aria-pressed={data.paper_width === w}
+                                        className={chip(data.paper_width === w)}
                                         onClick={() => setData('paper_width', w)}
                                     >
                                         {w} mm
-                                    </Button>
+                                    </button>
                                 ))}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </SettingsSection>
 
-                        {/* ── Shared: Header ── */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Encabezado</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="flex gap-2">
-                                    {(['normal', 'large'] as const).map((s) => (
-                                        <Button
-                                            key={s}
+                        <SettingsSection title="Encabezado">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex flex-wrap gap-2">
+                                    {(['normal', 'large'] as const).map((size) => (
+                                        <button
+                                            key={size}
                                             type="button"
-                                            size="sm"
-                                            variant={data.header_size === s ? 'default' : 'outline'}
-                                            onClick={() => setData('header_size', s)}
+                                            aria-pressed={data.header_size === size}
+                                            className={chip(data.header_size === size)}
+                                            onClick={() => setData('header_size', size)}
                                         >
-                                            {s === 'large' ? 'Título grande (2×)' : 'Título normal'}
-                                        </Button>
+                                            {size === 'large' ? 'Título grande (2×)' : 'Título normal'}
+                                        </button>
                                     ))}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -584,29 +627,11 @@ export default function TicketSettings({ config, business }: Props) {
                                     </a>
                                     .
                                 </p>
-                                {/* {[
-                                    { key: 'show_logo', label: 'Mostrar logo' },
-                                    { key: 'show_nit', label: 'Mostrar NIT' },
-                                    { key: 'show_address', label: 'Mostrar dirección' },
-                                    { key: 'show_phone', label: 'Mostrar teléfono' },
-                                ].map(({ key, label }) => (
-                                    <div key={key} className="flex items-center justify-between">
-                                        <Label htmlFor={key} className="text-sm">
-                                            {label}
-                                        </Label>
-                                        <Switch
-                                            id={key}
-                                            checked={data[key as keyof TicketConfig] as boolean}
-                                            onCheckedChange={toggle(key as keyof TicketConfig)}
-                                        />
-                                    </div>
-                                ))} */}
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </SettingsSection>
 
-                        {/* ── Tabs: Sale / Return ── */}
-                        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'sale' | 'return')}>
-                            <TabsList className="w-full">
+                        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'sale' | 'return')} className="gap-5">
+                            <TabsList className="h-11 w-full sm:h-10">
                                 <TabsTrigger value="sale" className="flex-1">
                                     Ticket de venta
                                 </TabsTrigger>
@@ -615,166 +640,116 @@ export default function TicketSettings({ config, business }: Props) {
                                 </TabsTrigger>
                             </TabsList>
 
-                            {/* ── Sale tab ── */}
-                            <TabsContent value="sale" className="mt-4 space-y-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Cuerpo</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        {[
-                                            { key: 'show_seller', label: 'Mostrar vendedor' },
-                                            { key: 'show_branch', label: 'Mostrar sucursal' },
-                                            { key: 'show_tax', label: 'Mostrar impuesto' },
-                                        ].map(({ key, label }) => (
-                                            <div key={key} className="flex items-center justify-between">
-                                                <Label htmlFor={`sale_${key}`} className="text-sm">
-                                                    {label}
-                                                </Label>
-                                                <Switch
-                                                    id={`sale_${key}`}
-                                                    checked={data[key as keyof TicketConfig] as boolean}
-                                                    onCheckedChange={toggle(key as keyof TicketConfig)}
-                                                />
-                                            </div>
-                                        ))}
-                                    </CardContent>
-                                </Card>
+                            <TabsContent value="sale" className="flex flex-col gap-5">
+                                <SettingsSection title="Cuerpo">
+                                    {[
+                                        { key: 'show_seller', label: 'Mostrar vendedor' },
+                                        { key: 'show_branch', label: 'Mostrar sucursal' },
+                                        { key: 'show_tax', label: 'Mostrar impuesto' },
+                                    ].map(({ key, label }) => (
+                                        <SwitchField
+                                            key={key}
+                                            id={`sale_${key}`}
+                                            label={label}
+                                            checked={data[key as keyof TicketConfig] as boolean}
+                                            onChange={toggle(key as keyof TicketConfig)}
+                                        />
+                                    ))}
+                                </SettingsSection>
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Código visual</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <p className="text-xs text-muted-foreground">
-                                            Imprime un QR o código de barras con el número de venta para buscarlo rápidamente.
-                                        </p>
-                                        <CodeGraphicSelector value={data.sale_code_graphic} onChange={(v) => setData('sale_code_graphic', v)} />
-                                    </CardContent>
-                                </Card>
+                                <SettingsSection
+                                    title="Código visual"
+                                    description="Imprime un QR o código de barras con el número de venta para buscarlo rápidamente."
+                                >
+                                    <CodeGraphicSelector value={data.sale_code_graphic} onChange={(v) => setData('sale_code_graphic', v)} />
+                                </SettingsSection>
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Mensaje de pie</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <Label htmlFor="show_social_media" className="text-sm">
-                                                Mostrar red social
-                                                {!business.social_media && (
-                                                    <span className="ml-1 text-xs text-muted-foreground">(no configurada)</span>
-                                                )}
-                                            </Label>
-                                            <Switch
-                                                id="show_social_media"
-                                                checked={data.show_social_media}
-                                                onCheckedChange={toggle('show_social_media')}
-                                                disabled={!business.social_media}
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Línea 1</Label>
-                                            <Input
-                                                value={data.footer_line1}
-                                                maxLength={60}
-                                                onChange={(e) => setData('footer_line1', e.target.value)}
-                                                placeholder="¡Gracias por su compra!"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Línea 2</Label>
-                                            <Input
-                                                value={data.footer_line2}
-                                                maxLength={60}
-                                                onChange={(e) => setData('footer_line2', e.target.value)}
-                                                placeholder="Vuelva pronto"
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <SettingsSection title="Mensaje de pie">
+                                    <div className="flex flex-col gap-3">
+                                        <SwitchField
+                                            id="show_social_media"
+                                            label="Mostrar red social"
+                                            note={!business.social_media ? '(no configurada)' : undefined}
+                                            checked={data.show_social_media}
+                                            onChange={toggle('show_social_media')}
+                                            disabled={!business.social_media}
+                                        />
+                                        <TextLine
+                                            label="Línea 1"
+                                            value={data.footer_line1}
+                                            onChange={(v) => setData('footer_line1', v)}
+                                            placeholder="¡Gracias por su compra!"
+                                        />
+                                        <TextLine
+                                            label="Línea 2"
+                                            value={data.footer_line2}
+                                            onChange={(v) => setData('footer_line2', v)}
+                                            placeholder="Vuelva pronto"
+                                        />
+                                    </div>
+                                </SettingsSection>
                             </TabsContent>
 
-                            {/* ── Return tab ── */}
-                            <TabsContent value="return" className="mt-4 space-y-4">
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Cuerpo</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        {[
-                                            { key: 'return_show_seller', label: 'Mostrar vendedor' },
-                                            { key: 'return_show_branch', label: 'Mostrar sucursal' },
-                                            { key: 'return_show_reason', label: 'Mostrar motivo de devolución' },
-                                        ].map(({ key, label }) => (
-                                            <div key={key} className="flex items-center justify-between">
-                                                <Label htmlFor={key} className="text-sm">
-                                                    {label}
-                                                </Label>
-                                                <Switch
-                                                    id={key}
-                                                    checked={data[key as keyof TicketConfig] as boolean}
-                                                    onCheckedChange={toggle(key as keyof TicketConfig)}
-                                                />
-                                            </div>
-                                        ))}
-                                    </CardContent>
-                                </Card>
+                            <TabsContent value="return" className="flex flex-col gap-5">
+                                <SettingsSection title="Cuerpo">
+                                    {[
+                                        { key: 'return_show_seller', label: 'Mostrar vendedor' },
+                                        { key: 'return_show_branch', label: 'Mostrar sucursal' },
+                                        { key: 'return_show_reason', label: 'Mostrar motivo de devolución' },
+                                    ].map(({ key, label }) => (
+                                        <SwitchField
+                                            key={key}
+                                            id={key}
+                                            label={label}
+                                            checked={data[key as keyof TicketConfig] as boolean}
+                                            onChange={toggle(key as keyof TicketConfig)}
+                                        />
+                                    ))}
+                                </SettingsSection>
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Código visual</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <p className="text-xs text-muted-foreground">Imprime un QR o código de barras con el número de devolución.</p>
-                                        <CodeGraphicSelector value={data.return_code_graphic} onChange={(v) => setData('return_code_graphic', v)} />
-                                    </CardContent>
-                                </Card>
+                                <SettingsSection title="Código visual" description="Imprime un QR o código de barras con el número de devolución.">
+                                    <CodeGraphicSelector value={data.return_code_graphic} onChange={(v) => setData('return_code_graphic', v)} />
+                                </SettingsSection>
 
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Mensaje de pie</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Línea 1</Label>
-                                            <Input
-                                                value={data.return_footer_line1}
-                                                maxLength={60}
-                                                onChange={(e) => setData('return_footer_line1', e.target.value)}
-                                                placeholder="Devolución procesada."
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Línea 2</Label>
-                                            <Input
-                                                value={data.return_footer_line2}
-                                                maxLength={60}
-                                                onChange={(e) => setData('return_footer_line2', e.target.value)}
-                                                placeholder="Gracias por su preferencia."
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <SettingsSection title="Mensaje de pie">
+                                    <div className="flex flex-col gap-3">
+                                        <TextLine
+                                            label="Línea 1"
+                                            value={data.return_footer_line1}
+                                            onChange={(v) => setData('return_footer_line1', v)}
+                                            placeholder="Devolución procesada."
+                                        />
+                                        <TextLine
+                                            label="Línea 2"
+                                            value={data.return_footer_line2}
+                                            onChange={(v) => setData('return_footer_line2', v)}
+                                            placeholder="Gracias por su preferencia."
+                                        />
+                                    </div>
+                                </SettingsSection>
                             </TabsContent>
                         </Tabs>
 
-                        {/* ── Actions ── */}
                         <div className="flex gap-2">
-                            <Button type="submit" disabled={processing} className="flex-1 gap-2">
-                                <Save className="size-4" />
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Save className="size-4" aria-hidden="true" />
                                 {processing ? 'Guardando…' : 'Guardar'}
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 type="button"
-                                variant="outline"
                                 disabled={printing || printer.status !== 'connected'}
                                 onClick={handleTestPrint}
-                                className="gap-2"
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 sm:h-10"
                                 title={printer.status !== 'connected' ? 'QZ Tray no conectado' : undefined}
                             >
-                                <Printer className="size-4" />
+                                <Printer className="size-4" aria-hidden="true" />
                                 {printing ? 'Imprimiendo…' : 'Prueba'}
-                            </Button>
+                            </button>
                         </div>
                         {printer.status !== 'connected' && (
                             <p className="text-xs text-muted-foreground">
@@ -787,19 +762,20 @@ export default function TicketSettings({ config, business }: Props) {
                         )}
                     </form>
 
-                    {/* ── Right: live preview ── */}
-                    <div className="flex flex-col items-center gap-3">
+                    <div className="flex flex-col items-center gap-3 xl:sticky xl:top-4">
                         <p className="text-center text-sm text-muted-foreground">
                             Vista previa ·{' '}
                             <span className="font-medium text-foreground">{activeTab === 'sale' ? 'Ticket de venta' : 'Ticket de devolución'}</span>
                             <span className="text-xs"> · datos de muestra</span>
                         </p>
-                        <div className="overflow-x-auto rounded-lg bg-muted/40 p-6">
-                            {activeTab === 'sale' ? (
-                                <SaleTicketPreview config={data} business={business} />
-                            ) : (
-                                <ReturnTicketPreview config={data} business={business} />
-                            )}
+                        <div className="w-full overflow-x-auto rounded-2xl bg-muted/40 p-4 sm:p-6">
+                            <div className="mx-auto w-fit">
+                                {activeTab === 'sale' ? (
+                                    <SaleTicketPreview config={data} business={business} />
+                                ) : (
+                                    <ReturnTicketPreview config={data} business={business} />
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

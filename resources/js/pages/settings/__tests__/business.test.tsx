@@ -152,7 +152,7 @@ describe('Business settings', () => {
         render(<BusinessSettings business={business as never} />);
         const file = new File(['x'], 'logo.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('', { selector: '#logo' }), { target: { files: [file] } });
+        fireEvent.change(screen.getByLabelText('Cambiar logo'), { target: { files: [file] } });
         await waitFor(() => expect(screen.getByAltText('Logo del negocio').getAttribute('src')).toContain('data:'));
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
