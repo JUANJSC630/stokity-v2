@@ -574,7 +574,8 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                                     <SelectContent>
                                                         {[1, 2, 3, 4, 5, 6, 8, 10, 12, 18, 24].map((n) => (
                                                             <SelectItem key={n} value={String(n)}>
-                                                                {n} {n === 1 ? 'cuota' : 'cuotas'} — {cop(Math.round(cartTotal / n))} c/u
+                                                                {n} {n === 1 ? 'cuota' : 'cuotas'} —{' '}
+                                                                {cop(Math.round(Math.max(cartTotal - initialPayment, 0) / n))} c/u
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -671,7 +672,8 @@ export default function CreditCreate({ clients, products, branchId }: Props) {
                                             <div>
                                                 <p className="text-sm text-muted-foreground">Cuotas</p>
                                                 <p className="font-medium">
-                                                    {installmentsCount} x {cop(Math.round((cartTotal - initialPayment) / installmentsCount))}
+                                                    {installmentsCount} x{' '}
+                                                    {cop(Math.round(Math.max(cartTotal - initialPayment, 0) / installmentsCount))}
                                                 </p>
                                             </div>
                                         )}

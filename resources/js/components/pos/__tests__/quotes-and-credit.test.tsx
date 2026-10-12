@@ -127,6 +127,19 @@ describe('CreditSaleDialog', () => {
         expect(screen.getByRole('option', { name: /3 cuotas — \$\s30\.000 c\/u/ })).toBeInTheDocument();
     });
 
+    it('shows each installment on what is left after the down payment, never below zero', () => {
+        credit({ type: 'installments', total: 90000, initialPayment: 30000 });
+
+        expect(screen.getByRole('option', { name: /3 cuotas — \$\s20\.000 c\/u/ })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: /1 cuota — \$\s60\.000 c\/u/ })).toBeInTheDocument();
+    });
+
+    it('shows zero per installment if the down payment is above the total (the form blocks it anyway)', () => {
+        credit({ type: 'installments', total: 90000, initialPayment: 120000 });
+
+        expect(screen.getByRole('option', { name: /3 cuotas — \$\s0 c\/u/ })).toBeInTheDocument();
+    });
+
     it('asks for a payment deadline for an agreed date and nothing extra for a layaway', () => {
         const { unmount } = render(<div />);
         unmount();
