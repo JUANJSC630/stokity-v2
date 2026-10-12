@@ -10,7 +10,7 @@ import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type CashMovement, type CashSession } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { FormEventHandler, useCallback, useState } from 'react';
 
 interface SalesSummary {
@@ -70,11 +70,6 @@ export default function CashSessionClose({
         setDenomCounts((prev) => ({ ...prev, [denom]: Math.max(0, val) }));
     }, []);
 
-    // Sync denomination total to form
-    const syncDenomToForm = useCallback(() => {
-        form.setData('closing_amount_declared', String(denomTotal));
-    }, [denomTotal, form]);
-
     const openedAt = new Date(session.opened_at);
     const duration = Math.round((Date.now() - openedAt.getTime()) / 60000);
     const hours = Math.floor(duration / 60);
@@ -83,14 +78,17 @@ export default function CashSessionClose({
     const cashMovementsIn = movements.filter((m) => m.type === 'cash_in').reduce((s, m) => s + Number(m.amount), 0);
     const cashMovementsOut = movements.filter((m) => m.type === 'cash_out').reduce((s, m) => s + Number(m.amount), 0);
 
+    // While counting by denomination, the counted total IS the declared amount: nothing has to be "used" first.
+    const declared = useDenominations ? denomTotal : Number(form.data.closing_amount_declared) || 0;
+    const hasDeclared = useDenominations ? denomTotal > 0 : form.data.closing_amount_declared !== '';
+    const nothingCounted = useDenominations && denomTotal === 0;
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        if (nothingCounted) return;
+        form.transform((data) => ({ ...data, closing_amount_declared: useDenominations ? String(denomTotal) : data.closing_amount_declared }));
         form.post(route('cash-sessions.close', session.id));
     };
-
-    const declared = Number(form.data.closing_amount_declared) || 0;
-    const hasDeclared = form.data.closing_amount_declared !== '';
-    const countNotUsed = useDenominations && denomTotal > 0 && String(denomTotal) !== form.data.closing_amount_declared;
     const showCredit = isBlind ? creditPaymentsCount > 0 : (creditPaymentsTotal ?? 0) > 0;
 
     return (
@@ -194,28 +192,13 @@ export default function CashSessionClose({
                                             {formatCOP(denomTotal)}
                                         </span>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={syncDenomToForm}
-                                        className="flex h-11 w-full items-center justify-center rounded-xl border border-green-300 bg-green-50 px-3 text-sm font-medium text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-950/30 dark:text-green-300"
-                                    >
-                                        Usar {formatCOP(denomTotal)} como monto contado
-                                    </button>
-                                    {countNotUsed && (
-                                        <p
-                                            role="status"
-                                            className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"
-                                        >
-                                            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                                            <span>
-                                                Contaste {formatCOP(denomTotal)}, pero aún no lo usas como monto contado. Pulsa «Usar{' '}
-                                                {formatCOP(denomTotal)} como monto contado» antes de confirmar.
-                                            </span>
-                                        </p>
-                                    )}
-                                    {hasDeclared && (
+                                    {hasDeclared ? (
                                         <p className="text-center text-xs text-muted-foreground">
                                             Monto a declarar: <strong>{formatCOP(declared)}</strong>
+                                        </p>
+                                    ) : (
+                                        <p role="status" className="text-center text-xs text-muted-foreground">
+                                            Cuenta al menos un billete o moneda, o cambia a «Monto directo».
                                         </p>
                                     )}
                                 </div>
@@ -273,7 +256,7 @@ export default function CashSessionClose({
                             </button>
                             <button
                                 type="submit"
-                                disabled={form.processing}
+                                disabled={form.processing || nothingCounted}
                                 className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-bold transition-opacity hover:opacity-90 disabled:opacity-50 sm:h-10"
                                 style={{ color: onBrand.hex }}
                             >

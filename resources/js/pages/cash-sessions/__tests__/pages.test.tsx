@@ -28,13 +28,18 @@ vi.mock('@inertiajs/react', async () => {
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
             const snapshot = React.useRef(data);
+            const transformer = React.useRef<((d: Record<string, unknown>) => Record<string, unknown>) | null>(null);
             snapshot.current = data;
             return {
                 data,
                 errors: env.errors,
                 processing: false,
                 setData: (key: string, value: unknown) => setAll((previous) => ({ ...previous, [key]: value })),
-                post: (url: string, options?: unknown) => env.post(url, options, snapshot.current),
+                transform: (fn: (d: Record<string, unknown>) => Record<string, unknown>) => {
+                    transformer.current = fn;
+                },
+                post: (url: string, options?: unknown) =>
+                    env.post(url, options, transformer.current ? transformer.current(snapshot.current) : snapshot.current),
             };
         },
     };
@@ -503,7 +508,7 @@ describe('Close cash session', () => {
         });
     });
 
-    it('counts by denomination and uses the total as the declared amount', () => {
+    it('counts by denomination and declares the counted total without any extra step', () => {
         renderClose();
 
         fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
@@ -515,11 +520,45 @@ describe('Close cash session', () => {
         fireEvent.change(coins, { target: { value: '2500' } });
 
         expect(text(document.body)).toContain('Total contado:$ 357.500');
-        fireEvent.click(screen.getByRole('button', { name: /Usar \$\s357\.500 como monto contado/ }));
-
         expect(text(document.body)).toContain('Monto a declarar: $ 357.500');
+        expect(text(document.body)).toContain('A declarar$ 357.500');
+        expect(screen.queryByRole('button', { name: /como monto contado/ })).not.toBeInTheDocument();
         fireEvent.submit(screen.getByRole('button', { name: 'Confirmar cierre de caja' }).closest('form') as HTMLFormElement);
         expect(env.post.mock.calls[0][2]).toMatchObject({ closing_amount_declared: '357500' });
+    });
+
+    it('sends the latest count even if it changed right before confirming', () => {
+        renderClose();
+        fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '4' } });
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '5' } });
+
+        fireEvent.submit(screen.getByRole('button', { name: 'Confirmar cierre de caja' }).closest('form') as HTMLFormElement);
+
+        expect(env.post.mock.calls[0][2]).toMatchObject({ closing_amount_declared: '50000' });
+    });
+
+    it('does not let the cash be confirmed while nothing has been counted by denomination', () => {
+        renderClose();
+        fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
+
+        expect(screen.getByRole('button', { name: 'Confirmar cierre de caja' })).toBeDisabled();
+        expect(screen.getByRole('status')).toHaveTextContent('Cuenta al menos un billete o moneda');
+        fireEvent.submit(screen.getByRole('button', { name: 'Confirmar cierre de caja' }).closest('form') as HTMLFormElement);
+        expect(env.post).not.toHaveBeenCalled();
+    });
+
+    it('declares the typed amount, not an old count, after going back to "Monto directo"', () => {
+        renderClose();
+        fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '4' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Monto directo' }));
+        const amount = screen.getByText('Efectivo contado físicamente *').parentElement?.querySelector('input') as HTMLInputElement;
+        fireEvent.change(amount, { target: { value: '123000' } });
+
+        fireEvent.submit(screen.getByRole('button', { name: 'Confirmar cierre de caja' }).closest('form') as HTMLFormElement);
+
+        expect(env.post.mock.calls[0][2]).toMatchObject({ closing_amount_declared: '123000' });
     });
 
     it('does not let a negative count reduce the total and can go back to the direct amount', () => {
@@ -533,18 +572,16 @@ describe('Close cash session', () => {
         expect(screen.getByText('Efectivo contado físicamente *')).toBeInTheDocument();
     });
 
-    it('always shows what will be declared, and warns when a count has not been used yet', () => {
+    it('always shows what will be declared, following the count as it is made', () => {
         renderClose();
         expect(text(document.body)).toContain('A declarar—');
 
         fireEvent.click(screen.getByRole('button', { name: 'Contar por denominación' }));
-        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '4' } });
-        expect(screen.getByRole('status')).toHaveTextContent(/Contaste \$\s40\.000, pero aún no lo usas/);
         expect(text(document.body)).toContain('A declarar—');
+        fireEvent.change(screen.getByLabelText(/^Billetes de \$\s10\.000$/), { target: { value: '4' } });
 
-        fireEvent.click(screen.getByRole('button', { name: /Usar \$\s40\.000 como monto contado/ }));
-        expect(screen.queryByRole('status')).not.toBeInTheDocument();
         expect(text(document.body)).toContain('A declarar$ 40.000');
+        expect(screen.queryByText(/aún no lo usas/)).not.toBeInTheDocument();
     });
 
     it('shows the server error of the declared amount', () => {
