@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { type Branch, type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -45,6 +46,7 @@ function Panel({ title, icon, aside, children }: { title: string; icon: ReactNod
 export default function BranchDetail({ branch }: Props) {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const onBrand = useOnBrandColor();
+    const { can } = usePermissions();
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -84,22 +86,26 @@ export default function BranchDetail({ branch }: Props) {
                         <BranchStatusPill active={branch.status} />
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:flex">
-                        <Link
-                            href={`/branches/${branch.id}/edit`}
-                            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
-                            style={{ color: onBrand.hex }}
-                        >
-                            <Edit className="size-4" aria-hidden="true" />
-                            <span>Editar</span>
-                        </Link>
-                        <button
-                            type="button"
-                            onClick={() => setDeleteModalOpen(true)}
-                            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-card px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:h-10 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
-                        >
-                            <Trash2 className="size-4" aria-hidden="true" />
-                            <span>Eliminar</span>
-                        </button>
+                        {can('branches.update') && (
+                            <Link
+                                href={`/branches/${branch.id}/edit`}
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                                style={{ color: onBrand.hex }}
+                            >
+                                <Edit className="size-4" aria-hidden="true" />
+                                <span>Editar</span>
+                            </Link>
+                        )}
+                        {can('branches.delete') && (
+                            <button
+                                type="button"
+                                onClick={() => setDeleteModalOpen(true)}
+                                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-card px-4 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:h-10 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+                            >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                <span>Eliminar</span>
+                            </button>
+                        )}
                     </div>
                 </div>
 

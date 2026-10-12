@@ -14,7 +14,7 @@ const env = vi.hoisted(() => ({
     put: vi.fn(),
     errors: {} as Record<string, string>,
     processing: false,
-    permissions: ['branches.create', 'branches.delete'] as string[],
+    permissions: ['branches.create', 'branches.delete', 'branches.update', 'branches.restore'] as string[],
     wide: true,
 }));
 
@@ -80,7 +80,7 @@ beforeEach(() => {
     vi.clearAllMocks();
     env.errors = {};
     env.processing = false;
-    env.permissions = ['branches.create', 'branches.delete'];
+    env.permissions = ['branches.create', 'branches.delete', 'branches.update', 'branches.restore'];
     env.wide = true;
     window.history.replaceState({}, '', '/branches');
 });
@@ -363,8 +363,7 @@ describe('Branch detail', () => {
         expect(screen.queryByText('Email')).not.toBeInTheDocument();
     });
 
-    it('always offers edit and delete (not gated by permissions) and deletes only after confirming', () => {
-        env.permissions = [];
+    it('offers edit and delete with their permissions and deletes only after confirming', () => {
         render(<BranchDetail branch={full as never} />);
 
         expect(screen.getByText('Editar').closest('a')).toHaveAttribute('href', '/branches/1/edit');
@@ -374,6 +373,27 @@ describe('Branch detail', () => {
         fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
 
         expect(router.delete).toHaveBeenCalledWith('/branches/1', expect.any(Object));
+    });
+
+    it('hides edit and delete when the user has neither permission (the server would answer 403)', () => {
+        env.permissions = [];
+        render(<BranchDetail branch={full as never} />);
+
+        expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Eliminar/ })).not.toBeInTheDocument();
+    });
+
+    it('shows only what each permission allows', () => {
+        env.permissions = ['branches.update'];
+        const { unmount } = render(<BranchDetail branch={full as never} />);
+        expect(screen.getByText('Editar')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Eliminar/ })).not.toBeInTheDocument();
+        unmount();
+
+        env.permissions = ['branches.delete'];
+        render(<BranchDetail branch={full as never} />);
+        expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Eliminar/ })).toBeInTheDocument();
     });
 
     it('closes the dialog on cancel', () => {
@@ -458,6 +478,19 @@ describe('Deleted branches', () => {
         fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar permanentemente' }));
 
         expect(router.delete).toHaveBeenCalledWith('/branches/8/force-delete', { preserveScroll: true });
+    });
+
+    it('only offers restore and permanent delete to those who hold those permissions', () => {
+        env.permissions = ['branches.restore'];
+        const { unmount } = render(<TrashedBranches branches={page(trashed) as never} />);
+        expect(screen.getAllByLabelText('Restaurar').length).toBeGreaterThan(0);
+        expect(screen.queryByLabelText('Eliminar permanentemente')).not.toBeInTheDocument();
+        unmount();
+
+        env.permissions = ['branches.delete'];
+        render(<TrashedBranches branches={page(trashed) as never} />);
+        expect(screen.queryByLabelText('Restaurar')).not.toBeInTheDocument();
+        expect(screen.getAllByLabelText('Eliminar permanentemente').length).toBeGreaterThan(0);
     });
 
     it('does nothing when the dialogs are cancelled', () => {
