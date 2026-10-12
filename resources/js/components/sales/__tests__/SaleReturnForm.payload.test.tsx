@@ -16,7 +16,7 @@ const products = [
 
 const setup = (overrides: Record<string, unknown> = {}) => {
     const props = { saleId: 100, products, open: true, onClose: vi.fn(), onSuccess: vi.fn(), ...overrides };
-    render(<SaleReturnForm {...(props as never)} />);
+    render(<SaleReturnForm {...(props as unknown as React.ComponentProps<typeof SaleReturnForm>)} />);
     return props;
 };
 
@@ -45,12 +45,14 @@ describe('SaleReturnForm payload', () => {
         );
     });
 
-    it('caps a typed quantity at what can still be returned and never goes below zero', () => {
+    it('caps a typed quantity at what can still be returned and never goes below zero (once the field is left)', () => {
         setup();
 
         fireEvent.change(quantityOf(0), { target: { value: '99' } });
+        fireEvent.blur(quantityOf(0));
         expect(quantityOf(0)).toHaveValue(4);
         fireEvent.change(quantityOf(0), { target: { value: '-3' } });
+        fireEvent.blur(quantityOf(0));
         expect(quantityOf(0)).toHaveValue(0);
     });
 

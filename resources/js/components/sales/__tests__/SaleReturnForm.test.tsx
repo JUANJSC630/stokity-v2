@@ -43,12 +43,12 @@ describe('SaleReturnForm', () => {
         expect(screen.getByText('Máx: 0')).toBeInTheDocument();
     });
 
-    it('disables input for fully returned products', () => {
+    it('gives no quantity control to fully returned products and says why', () => {
         render(<SaleReturnForm {...defaultProps} />);
         const inputs = screen.getAllByRole('spinbutton');
-        // Product C (index 2) has max 0 → disabled
-        expect(inputs[2]).toBeDisabled();
-        // Product A and B are not disabled
+        // Product C has max 0 → no control, only the note (it used to be a disabled input)
+        expect(inputs.length).toBe(2);
+        expect(screen.getByText('Ya se devolvió por completo.')).toBeInTheDocument();
         expect(inputs[0]).not.toBeDisabled();
         expect(inputs[1]).not.toBeDisabled();
     });
@@ -73,7 +73,7 @@ describe('SaleReturnForm', () => {
         const inputs = screen.getAllByRole('spinbutton');
         expect(inputs[0]).toHaveValue(4); // 5 - 1
         expect(inputs[1]).toHaveValue(3); // 3 - 0
-        expect(inputs[2]).toHaveValue(0); // 2 - 2
+        expect(inputs.length).toBe(2); // 2 - 2 = 0: nothing to return
     });
 
     it('"Limpiar todo" resets quantities to 0', async () => {
