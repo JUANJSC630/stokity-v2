@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
+import { DragStepper } from '@/components/ui/bencho/drag-stepper';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { router } from '@inertiajs/react';
 import React, { useState } from 'react';
@@ -116,74 +116,95 @@ export default function SaleReturnForm({ saleId, products, open, onClose, onSucc
         onClose();
     };
 
+    const canReturnSomething = formProducts.some((p) => p.quantity - p.alreadyReturned > 0);
+
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent>
+            <DialogContent className="max-h-[90svh] gap-4 overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Registrar devolución</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="mb-2 block font-medium">Productos a devolver</label>
-                        <div className="space-y-2">
+                        <label className="mb-2 block text-sm font-medium">Productos a devolver</label>
+                        <ul className="space-y-2">
                             {formProducts.map((product) => {
                                 const maxReturn = product.quantity - product.alreadyReturned;
                                 return (
-                                    <div key={product.id} className="flex items-center gap-2">
-                                        <span className="flex-1">
-                                            {product.name}
-                                            {product.isService && (
-                                                <Badge variant="secondary" className="ml-2 text-xs">
-                                                    Servicio
-                                                </Badge>
-                                            )}
-                                        </span>
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            max={maxReturn}
-                                            value={product.returnQuantity}
-                                            onChange={(e) =>
-                                                handleQuantityChange(product.id, Math.max(0, Math.min(Number(e.target.value), maxReturn)))
-                                            }
-                                            className="w-20"
-                                            disabled={maxReturn === 0}
-                                        />
-                                        <span className="text-xs text-muted-foreground">Máx: {maxReturn}</span>
-                                    </div>
+                                    <li key={product.id} className="flex flex-col gap-2 rounded-xl border border-border/60 p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <span className="min-w-0 flex-1 text-sm font-medium">
+                                                {product.name}
+                                                {product.isService && (
+                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                        Servicio
+                                                    </Badge>
+                                                )}
+                                            </span>
+                                            <span className="shrink-0 text-xs text-muted-foreground">Máx: {maxReturn}</span>
+                                        </div>
+                                        {maxReturn > 0 ? (
+                                            <DragStepper
+                                                value={product.returnQuantity}
+                                                onChange={(value) => handleQuantityChange(product.id, value)}
+                                                min={0}
+                                                max={maxReturn}
+                                                sweepRange={Math.max(maxReturn, 1)}
+                                                label={`Cantidad a devolver de ${product.name}`}
+                                            />
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">Ya se devolvió por completo.</p>
+                                        )}
+                                    </li>
                                 );
                             })}
-                        </div>
-                        {formProducts.some((p) => p.quantity - p.alreadyReturned > 0) && (
-                            <div className="flex justify-end gap-2">
+                        </ul>
+                        {canReturnSomething && (
+                            <div className="mt-3 flex flex-wrap justify-end gap-2">
                                 {formProducts.some((p) => p.returnQuantity > 0) && (
-                                    <Button type="button" variant="outline" size="sm" onClick={handleClearAll} disabled={loading}>
+                                    <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={handleClearAll} disabled={loading}>
                                         Limpiar todo
                                     </Button>
                                 )}
-                                <Button type="button" variant="outline" size="sm" onClick={handleReturnAll} disabled={loading}>
+                                <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={handleReturnAll} disabled={loading}>
                                     Devolver todo
                                 </Button>
                             </div>
                         )}
                     </div>
                     <div>
-                        <label className="mb-2 block font-medium">Motivo (opcional)</label>
-                        <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+                        <label htmlFor="return-reason" className="mb-2 block text-sm font-medium">
+                            Motivo (opcional)
+                        </label>
+                        <Textarea
+                            id="return-reason"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            rows={2}
+                            className="text-base sm:text-sm"
+                        />
                     </div>
-                    {error && <div className="text-sm text-red-600">{error}</div>}
-                    {success && <div className="text-sm text-green-600">{success}</div>}
-                    <DialogFooter>
+                    {error && (
+                        <div role="alert" className="text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+                    {success && (
+                        <div role="status" className="text-sm text-green-600">
+                            {success}
+                        </div>
+                    )}
+                    <DialogFooter className="gap-2 sm:gap-2">
                         {success ? (
-                            <Button type="button" variant="outline" onClick={handleClose}>
+                            <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={handleClose}>
                                 Cerrar
                             </Button>
                         ) : (
                             <>
-                                <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
+                                <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={handleClose} disabled={loading}>
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={loading}>
+                                <Button type="submit" className="h-11 sm:h-9" disabled={loading}>
                                     Registrar devolución
                                 </Button>
                             </>
