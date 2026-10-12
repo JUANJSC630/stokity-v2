@@ -45,8 +45,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
             // Validar tamaño antes de continuar
             if (file.size > 4 * 1024 * 1024) {
-                // 2MB en bytes
-                form.setError('photo', 'El archivo no debe pesar más de 2MB');
+                form.setError('photo', 'El archivo no debe pesar más de 4MB');
             }
 
             form.setData('photo', file);
@@ -69,9 +68,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
         // Validación previa de tamaño de imagen
         if (form.data.photo && form.data.photo.size > 4 * 1024 * 1024) {
-            // 2MB en bytes
             // Mostrar error de tamaño manualmente
-            form.setError('photo', 'El archivo no debe pesar más de 2MB');
+            form.setError('photo', 'El archivo no debe pesar más de 4MB');
             return;
         }
 

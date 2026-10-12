@@ -169,13 +169,13 @@ describe('Profile', () => {
         expect(env.setError).not.toHaveBeenCalled();
     });
 
-    it('rejects a photo over 4 MB, with a message that says 2 MB (a copy mismatch)', async () => {
+    it('rejects a photo over 4 MB and says 4 MB, the same limit the server enforces', async () => {
         render(<Profile mustVerifyEmail={false} />);
         const big = new File([new Uint8Array(5 * 1024 * 1024)], 'grande.png', { type: 'image/png' });
 
         fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [big] } });
 
-        await waitFor(() => expect(env.setError).toHaveBeenCalledWith('photo', 'El archivo no debe pesar más de 2MB'));
+        await waitFor(() => expect(env.setError).toHaveBeenCalledWith('photo', 'El archivo no debe pesar más de 4MB'));
         expect(screen.getByText('JPG, PNG, GIF, WebP. Máx 4MB')).toBeInTheDocument();
     });
 

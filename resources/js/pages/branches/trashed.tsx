@@ -4,6 +4,7 @@ import { SearchField } from '@/components/common/search-field';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { usePermissions } from '@/hooks/use-permissions';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem } from '@/types';
@@ -51,6 +52,7 @@ const formattedDate = (dateString: string) => {
 
 export default function TrashedBranches({ branches, filters = { search: '' } }: TrashedBranchesPageProps) {
     const isWide = useMediaQuery('(min-width: 768px)');
+    const { can } = usePermissions();
     const [search, setSearch] = useState(filters.search || '');
     const [isSearching, setIsSearching] = useState(false);
     const [branchToDelete, setBranchToDelete] = useState<Branch | null>(null);
@@ -128,21 +130,25 @@ export default function TrashedBranches({ branches, filters = { search: '' } }: 
 
     const Actions = ({ branch }: { branch: Branch }) => (
         <div className="flex items-center justify-end gap-2">
-            <button type="button" aria-label="Restaurar" title="Restaurar" onClick={() => askRestore(branch)} className={actionButton}>
-                <RefreshCcw className="size-4" />
-            </button>
-            <button
-                type="button"
-                aria-label="Eliminar permanentemente"
-                title="Eliminar permanentemente"
-                onClick={() => askForceDelete(branch)}
-                className={cn(
-                    actionButton,
-                    'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30',
-                )}
-            >
-                <Trash2 className="size-4" />
-            </button>
+            {can('branches.restore') && (
+                <button type="button" aria-label="Restaurar" title="Restaurar" onClick={() => askRestore(branch)} className={actionButton}>
+                    <RefreshCcw className="size-4" />
+                </button>
+            )}
+            {can('branches.delete') && (
+                <button
+                    type="button"
+                    aria-label="Eliminar permanentemente"
+                    title="Eliminar permanentemente"
+                    onClick={() => askForceDelete(branch)}
+                    className={cn(
+                        actionButton,
+                        'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30',
+                    )}
+                >
+                    <Trash2 className="size-4" />
+                </button>
+            )}
         </div>
     );
 
