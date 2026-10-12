@@ -24,10 +24,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Clients routes are defined in clients.php file
 
-    Route::get('report-sales', function () {
-        return Inertia::render('report-sales/index');
-    })->name('report-sales');
-
 });
 
 require __DIR__.'/settings.php';
