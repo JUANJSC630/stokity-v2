@@ -13,6 +13,11 @@ export interface ReportFilters {
     status?: string;
 }
 
+export interface DateRange {
+    from: string;
+    to: string;
+}
+
 export interface ReportUser {
     is_admin: boolean;
     branch_id?: number;
@@ -37,11 +42,11 @@ export function useReportFilters({ path, exportBase, filters, user }: Options) {
         to: filters.date_to || '',
     });
 
-    const build = (): ReportFilters => {
+    const build = (range: DateRange = dateRange): ReportFilters => {
         const next = {
             ...localFilters,
-            date_from: dateRange.from,
-            date_to: dateRange.to,
+            date_from: range.from,
+            date_to: range.to,
         };
 
         if (next.branch_id === 'all') delete next.branch_id;
@@ -55,8 +60,9 @@ export function useReportFilters({ path, exportBase, filters, user }: Options) {
         return next;
     };
 
-    const applyFilters = () => {
-        router.get(path, build(), {
+    /** Applies the filters; pass `range` when the dates were chosen in this same event, before React re-renders with them. */
+    const applyFilters = (range?: DateRange) => {
+        router.get(path, build(range), {
             preserveState: true,
             preserveScroll: true,
         });

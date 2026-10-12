@@ -95,7 +95,7 @@ export function ReportFilterPanel({
                     <div className="flex sm:justify-end">
                         <button
                             type="button"
-                            onClick={onApply}
+                            onClick={() => onApply()}
                             className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-5 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
                             style={{ color: onBrand.hex }}
                         >

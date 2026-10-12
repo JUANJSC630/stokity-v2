@@ -4,7 +4,7 @@ import { router } from '@inertiajs/react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { ComponentType, ReactNode } from 'react';
 import toast from 'react-hot-toast';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import BranchesReport from '../branches-report';
 import CashBalance from '../cash-balance';
 import ReportsIndex from '../index';
@@ -366,15 +366,72 @@ describe('Reports dashboard', () => {
         expect(vi.mocked(router.get).mock.calls[0][1]).toMatchObject({ status: 'cancelled' });
     });
 
-    it('applies a period with its own button (finding: it reads the dates of the previous render, so the first press sends the old range)', () => {
-        renderDashboard();
+    describe('applying a period with its own button', () => {
+        const applyPeriod = (choice: string | null) => {
+            if (choice) fireEvent.change(selectWith('Mes Actual'), { target: { value: choice } });
+            fireEvent.click(screen.getByRole('button', { name: /Aplicar Período/ }));
+        };
+        const sent = () => vi.mocked(router.get).mock.calls[0][1];
 
-        fireEvent.change(selectWith('Mes Actual'), { target: { value: 'last' } });
-        fireEvent.click(screen.getByRole('button', { name: /Aplicar Período/ }));
+        beforeEach(() => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date(2026, 9, 15, 10, 0, 0));
+        });
 
-        expect(router.get).toHaveBeenCalledWith('/reports', expect.objectContaining({ date_from: '', date_to: '' }), {
-            preserveState: true,
-            preserveScroll: true,
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('sends the dates of the chosen month on the very first press (it used to send the previous ones)', () => {
+            renderDashboard();
+
+            applyPeriod('last');
+
+            expect(sent()).toMatchObject({ date_from: '2026-09-01', date_to: '2026-09-30' });
+            expect(router.get).toHaveBeenCalledWith('/reports', expect.any(Object), { preserveState: true, preserveScroll: true });
+        });
+
+        it('sends the current month', () => {
+            renderDashboard();
+
+            applyPeriod(null);
+
+            expect(sent()).toMatchObject({ date_from: '2026-10-01', date_to: '2026-10-31' });
+        });
+
+        it('sends the month picked as "Mes Personalizado" and, without one, keeps the dates it already had', () => {
+            renderDashboard();
+            fireEvent.change(selectWith('Mes Actual'), { target: { value: 'custom' } });
+            fireEvent.click(screen.getByRole('button', { name: /Aplicar Período/ }));
+            expect(sent()).toMatchObject({ date_from: '', date_to: '' });
+            vi.mocked(router.get).mockClear();
+
+            fireEvent.change(screen.getByLabelText('Mes'), { target: { value: '2026-02' } });
+            fireEvent.click(screen.getByRole('button', { name: /Aplicar Período/ }));
+
+            expect(sent()).toMatchObject({ date_from: '2026-02-01', date_to: '2026-02-28' });
+        });
+
+        it('applies the typed dates of "Fechas Manuales" and does not wipe them', () => {
+            renderDashboard();
+            fireEvent.change(selectWith('Mes Actual'), { target: { value: 'manual' } });
+            fireEvent.change(field('date_from'), { target: { value: '2026-08-05' } });
+            fireEvent.change(field('date_to'), { target: { value: '2026-08-20' } });
+
+            fireEvent.click(screen.getByRole('button', { name: /Aplicar Período/ }));
+
+            expect(sent()).toMatchObject({ date_from: '2026-08-05', date_to: '2026-08-20' });
+            expect(field('date_from')).toHaveValue('2026-08-05');
+            expect(field('date_to')).toHaveValue('2026-08-20');
+        });
+
+        it('keeps the other filters when it applies a period', () => {
+            renderDashboard();
+            fireEvent.change(selectWith('Completadas'), { target: { value: 'cancelled' } });
+
+            applyPeriod('last');
+
+            expect(sent()).toMatchObject({ status: 'cancelled', date_from: '2026-09-01' });
         });
     });
 });

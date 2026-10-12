@@ -1,5 +1,5 @@
 import { DateField, FilterSelect, ReportFilterPanel, ReportHeader, ReportKpi } from '@/components/reports/report-parts';
-import { type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
+import { type DateRange, type ReportFilters, type ReportUser, useReportFilters } from '@/components/reports/use-report-filters';
 import { Section } from '@/components/sales/form-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -135,6 +135,14 @@ function RankList({ children }: { children: ReactNode }) {
     return <ul className="divide-y divide-border/60 px-4 sm:px-5">{children}</ul>;
 }
 
+/** yyyy-mm-dd of a local calendar day (toISOString would shift it by the time-zone offset). */
+const localDate = (year: number, month: number, day: number): string => {
+    const date = new Date(year, month, day);
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
 const STATUS_OPTIONS = [
     { value: 'completed', label: 'Completadas' },
     { value: 'pending', label: 'Pendientes' },
@@ -155,34 +163,36 @@ export default function ReportsIndex({ dashboardData, filters, branches, categor
     const [reportMonth, setReportMonth] = useState('current');
     const [customMonth, setCustomMonth] = useState('');
 
-    const applyMonthFilter = () => {
-        let fromDate = '';
-        let toDate = '';
-
+    /** The dates of the chosen period, or null when the dates already typed (or no month yet) are the ones to apply. */
+    const periodRange = (): DateRange | null => {
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth();
 
         switch (reportMonth) {
             case 'current':
-                fromDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0];
-                toDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
-                break;
+                return { from: localDate(currentYear, currentMonth, 1), to: localDate(currentYear, currentMonth + 1, 0) };
             case 'last':
-                fromDate = new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0];
-                toDate = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
-                break;
-            case 'custom':
-                if (customMonth) {
-                    const [year, month] = customMonth.split('-');
-                    fromDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString().split('T')[0];
-                    toDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
-                }
-                break;
+                return { from: localDate(currentYear, currentMonth - 1, 1), to: localDate(currentYear, currentMonth, 0) };
+            case 'custom': {
+                if (!customMonth) return null;
+                const [year, month] = customMonth.split('-');
+                return { from: localDate(parseInt(year), parseInt(month) - 1, 1), to: localDate(parseInt(year), parseInt(month), 0) };
+            }
+            default:
+                return null;
         }
+    };
 
-        setDateRange({ from: fromDate, to: toDate });
-        applyFilters();
+    const applyMonthFilter = () => {
+        const range = periodRange();
+
+        if (range) {
+            setDateRange(range);
+            applyFilters(range);
+        } else {
+            applyFilters();
+        }
     };
 
     const { current, growth } = dashboardData.sales_summary;
