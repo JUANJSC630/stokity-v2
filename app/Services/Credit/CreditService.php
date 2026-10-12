@@ -49,10 +49,11 @@ class CreditService
             // Generate code
             $code = CreditSale::generateCode($data['branch_id']);
 
-            // Calculate installment amount if applicable
+            // Installments split what is still owed, so a down payment lowers each one.
             $installmentAmount = null;
             if ($data['type'] === CreditSale::TYPE_INSTALLMENTS && ! empty($data['installments_count'])) {
-                $installmentAmount = round($totalAmount / $data['installments_count'], 2);
+                $downPayment = min(max((float) ($data['initial_payment'] ?? 0), 0), (float) $totalAmount);
+                $installmentAmount = round(($totalAmount - $downPayment) / $data['installments_count'], 2);
             }
 
             $credit = CreditSale::create([

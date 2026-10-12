@@ -102,7 +102,7 @@ export function CreditSaleDialog({
                             >
                                 {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
                                     <option key={n} value={n}>
-                                        {n} {n === 1 ? 'cuota' : 'cuotas'} — {formatCurrency(Math.round(total / n))} c/u
+                                        {n} {n === 1 ? 'cuota' : 'cuotas'} — {formatCurrency(Math.round(Math.max(total - initialPayment, 0) / n))} c/u
                                     </option>
                                 ))}
                             </select>

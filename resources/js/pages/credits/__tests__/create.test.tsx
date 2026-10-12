@@ -271,6 +271,16 @@ describe('New credit: step 2 (conditions)', () => {
         expect(screen.queryByText('Abono inicial (opcional)')).not.toBeInTheDocument();
     });
 
+    it('lists each installment on what is left after the down payment, the same figure the summary shows', () => {
+        renderWizard();
+        toConditions('installments');
+
+        expect(screen.getByRole('option', { name: /3 cuotas — \$\s33\.333 c\/u/ })).toBeInTheDocument();
+        fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: '40000' } });
+
+        expect(screen.getByRole('option', { name: /3 cuotas — \$\s20\.000 c\/u/ })).toBeInTheDocument();
+    });
+
     it('starts the initial payment method as "efectivo" and blocks an initial payment above the total', () => {
         renderWizard();
         toConditions('layaway');
