@@ -13,3 +13,9 @@ test('authenticated users can visit the dashboard', function () {
 
     $this->get('/dashboard')->assertOk();
 });
+
+test('the old placeholder report page with made-up figures no longer exists', function () {
+    $this->actingAs(User::factory()->create());
+
+    $this->get('/report-sales')->assertNotFound();
+});
