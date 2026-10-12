@@ -1,4 +1,4 @@
-import { DEFAULT_BRAND_PRIMARY as DEFAULT_PRIMARY, DEFAULT_BRAND_SECONDARY as DEFAULT_SECONDARY } from '@/lib/brand';
+import { DEFAULT_BRAND_PRIMARY as DEFAULT_PRIMARY, DEFAULT_BRAND_SECONDARY as DEFAULT_SECONDARY, getReadableTextColor } from '@/lib/brand';
 import { type SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 
@@ -21,12 +21,14 @@ export default function BrandColors() {
     const secondary = business.brand_color_secondary || DEFAULT_SECONDARY;
     const primaryRgb = hexToRgb(primary);
     const secondaryRgb = hexToRgb(secondary);
+    const onPrimary = getReadableTextColor(primary).hex;
 
     return (
         <style>{`
             :root {
                 --brand-primary: ${primary};
                 --brand-primary-rgb: ${primaryRgb};
+                --brand-on-primary: ${onPrimary};
                 --brand-secondary: ${secondary};
                 --brand-secondary-rgb: ${secondaryRgb};
             }

@@ -232,7 +232,7 @@
     width: 100%;
     padding: 0.875rem 2rem;
     background: var(--brand-primary);
-    color: white;
+    color: var(--brand-on-primary, white);
     font-weight: 500;
     border-radius: 0.75rem;
     border: none;
@@ -304,6 +304,13 @@
     outline: none;
     transition: all 200ms;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 16 px on phones so iOS does not zoom the page when a field is focused. */
+@media (max-width: 639px) {
+    .auth-input {
+        font-size: 1rem;
+    }
 }
 
 .auth-input:focus {
