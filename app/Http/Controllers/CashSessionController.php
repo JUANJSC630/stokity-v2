@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnProduct;
+use App\Support\PaymentMethodGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,11 +18,11 @@ use Inertia\Inertia;
 class CashSessionController extends Controller
 {
     // Payment method code groupings
-    private const CASH_CODES = ['cash', 'efectivo'];
+    private const CASH_CODES = PaymentMethodGroup::CASH_CODES;
 
-    private const CARD_CODES = ['credit_card', 'debit_card', 'tarjeta_credito', 'tarjeta_debito'];
+    private const CARD_CODES = PaymentMethodGroup::CARD_CODES;
 
-    private const TRANSFER_CODES = ['nequi', 'daviplata', 'addi', 'transfer', 'transferencia', 'pse', 'bancolombia'];
+    private const TRANSFER_CODES = PaymentMethodGroup::TRANSFER_CODES;
 
     /**
      * GET /cash-sessions/current — JSON for POS
