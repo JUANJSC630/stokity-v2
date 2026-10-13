@@ -144,8 +144,10 @@ describe('Dashboard', () => {
     });
 
     it('shows the cash status next to the greeting only when it applies', () => {
-        const { unmount } = render(<Dashboard {...props} cashSession={{ required: true, open: { id: 1, opened_at: '2026-10-13T08:02:00' } }} />);
-        expect(screen.getByText(/Caja abierta · desde/)).toBeInTheDocument();
+        const { unmount } = render(
+            <Dashboard {...props} cashSession={{ required: true, open: { id: 1, opened_at: '2026-10-13T08:02:00-05:00' } }} />,
+        );
+        expect(screen.getByText(/Caja abierta · desde 08:02/)).toBeInTheDocument();
         unmount();
 
         render(<Dashboard {...props} cashSession={{ required: false, open: null }} />);

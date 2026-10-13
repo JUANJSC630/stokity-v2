@@ -38,9 +38,9 @@ describe('PaymentMix', () => {
 
 describe('CashStatus', () => {
     it('says the till is open and since when', () => {
-        render(<CashStatus cashSession={{ required: false, open: { id: 4, opened_at: '2026-10-13T08:02:00' } }} />);
+        render(<CashStatus cashSession={{ required: false, open: { id: 4, opened_at: '2026-10-13T08:02:00-05:00' } }} />);
 
-        expect(screen.getByText(/Caja abierta · desde 8:02/)).toBeInTheDocument();
+        expect(screen.getByText(/Caja abierta · desde 08:02/)).toBeInTheDocument();
     });
 
     it('warns, with a way to open it, when a required session is closed', () => {

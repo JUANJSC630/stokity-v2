@@ -14,7 +14,10 @@ export function AttentionPanel({ count, children }: AttentionPanelProps) {
             <div className="flex items-center justify-between gap-2">
                 <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Para atender</h2>
                 {count > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 tabular-nums dark:bg-amber-950/50 dark:text-amber-300">
+                    <span
+                        aria-label={`${count} ${count === 1 ? 'asunto' : 'asuntos'} por atender`}
+                        className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 tabular-nums dark:bg-amber-950/50 dark:text-amber-300"
+                    >
                         {count}
                     </span>
                 )}

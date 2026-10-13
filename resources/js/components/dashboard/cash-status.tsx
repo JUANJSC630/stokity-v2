@@ -1,7 +1,6 @@
+import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Link } from '@inertiajs/react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Vault } from 'lucide-react';
 
 export interface CashSessionState {
@@ -30,7 +29,7 @@ export function CashStatus({ cashSession, openHref }: CashStatusProps) {
                 )}
             >
                 <span aria-hidden="true" className="size-2 rounded-full bg-emerald-500" />
-                Caja abierta · desde {format(new Date(cashSession.open.opened_at), 'h:mm a', { locale: es })}
+                Caja abierta · desde {formatTime(cashSession.open.opened_at)}
             </span>
         );
     }
