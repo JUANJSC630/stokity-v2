@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Branch;
+use App\Models\BusinessSetting;
+use App\Models\CashSession;
 use App\Models\Client;
+use App\Models\CreditSale;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Support\PaymentMethodGroup;
 use App\Tenancy\TenantManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,8 +36,8 @@ class DashboardController extends Controller
         $currentDate = Carbon::now();
         $startOfMonth = $currentDate->copy()->startOfMonth();
         $endOfMonth = $currentDate->copy()->endOfMonth();
-        $startOfPreviousMonth = $currentDate->copy()->subMonth()->startOfMonth();
-        $endOfPreviousMonth = $currentDate->copy()->subMonth()->endOfMonth();
+        $startOfPreviousMonth = $currentDate->copy()->subMonthNoOverflow()->startOfMonth();
+        $endOfPreviousMonth = $currentDate->copy()->subMonthNoOverflow()->endOfMonth();
 
         // Filtros por sucursal si el usuario no es administrador
         $branchFilter = null;
@@ -69,6 +72,10 @@ class DashboardController extends Controller
             'total_sales' => $prevMonthAgg->count,
             'total_revenue' => $prevMonthAgg->revenue,
         ];
+
+        // The previous month up to the same day of the month, so a month in progress is compared fairly.
+        $samePeriodEnd = $startOfPreviousMonth->copy()->addDays($currentDate->day - 1)->endOfDay();
+        $prevSamePeriodAgg = $this->getSalesAggregates($startOfPreviousMonth, $samePeriodEnd->min($endOfPreviousMonth), $branchFilter);
 
         // Comparación con día anterior (1 query instead of 2)
         $previousDay = $currentDate->copy()->subDay();
@@ -118,7 +125,88 @@ class DashboardController extends Controller
             'pendingSales' => $pendingSales,
             'dailySales' => $dailySales,
             'userName' => $user->name,
+            'paymentBreakdown' => $this->getPaymentBreakdown($startOfDay, $endOfDay, $branchFilter),
+            'cashSession' => $this->getCashSessionState($user),
+            'overdueCredits' => $this->getOverdueCredits($user, $branchFilter),
+            'previousMonth' => [
+                'revenue' => $previousMonthMetrics['total_revenue'],
+                'revenue_same_period' => $prevSamePeriodAgg->revenue,
+            ],
         ]);
+    }
+
+    /**
+     * Today's completed sales split by payment method, with the family each belongs to.
+     * Uses the same filters as getSalesAggregates(), so the parts always add up to the day's revenue.
+     *
+     * @return list<array{method: string, group: string, count: int, total: float}>
+     */
+    private function getPaymentBreakdown($startDate, $endDate, $branchId = null): array
+    {
+        return DB::table('sales')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->where('status', 'completed')
+            ->whereNull('deleted_at')
+            ->when($this->currentTenantId(), fn ($q, $tid) => $q->where('sales.tenant_id', $tid))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->selectRaw("COALESCE(payment_method, '') as payment_method, COUNT(*) as count, COALESCE(SUM(total), 0) as total")
+            ->groupBy('payment_method')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => [
+                'method' => (string) $row->payment_method,
+                'group' => PaymentMethodGroup::of((string) $row->payment_method),
+                'count' => (int) $row->count,
+                'total' => (float) $row->total,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The user's own open cash session, for those who can sell or look at cash sessions (null for everyone else).
+     *
+     * @return array{required: bool, open: array{id: int, opened_at: string}|null}|null
+     */
+    private function getCashSessionState(User $user): ?array
+    {
+        if (! ($user->can('pos.access') || $user->can('cash_sessions.view'))) {
+            return null;
+        }
+
+        $session = $user->branch_id ? CashSession::getOpenForUser($user->id, (int) $user->branch_id) : null;
+
+        return [
+            'required' => (bool) BusinessSetting::getSettings()->require_cash_session,
+            'open' => $session ? ['id' => $session->id, 'opened_at' => $session->opened_at->toIso8601String()] : null,
+        ];
+    }
+
+    /**
+     * Credits that are overdue, counting also the active ones already past their due date (the same rule as the
+     * sidebar badge), or null when the credits module is off or the user cannot see credits.
+     *
+     * @return array{count: int, balance: float}|null
+     */
+    private function getOverdueCredits(User $user, $branchId = null): ?array
+    {
+        if (! BusinessSetting::moduleEnabled('credits') || ! $user->can('credits.view')) {
+            return null;
+        }
+
+        $row = CreditSale::query()
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where(fn ($q) => $q
+                ->where('status', CreditSale::STATUS_OVERDUE)
+                ->orWhere(fn ($active) => $active
+                    ->where('status', CreditSale::STATUS_ACTIVE)
+                    ->whereNotNull('due_date')
+                    ->where('due_date', '<', now())
+                    ->where('balance', '>', 0)))
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(balance), 0) as balance')
+            ->first();
+
+        return ['count' => (int) ($row->count ?? 0), 'balance' => (float) ($row->balance ?? 0)];
     }
 
     /**
