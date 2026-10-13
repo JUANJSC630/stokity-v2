@@ -70,7 +70,7 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
     const lowStock = products.filter((p) => p.stock > 0 && p.stock <= p.min_stock);
 
     return (
-        <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
+        <div className="@container overflow-hidden rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20">
             <div className="flex items-center">
                 <button
                     type="button"
@@ -115,17 +115,17 @@ export function LowStockProducts({ products }: LowStockProductsProps) {
                     onClick={exportCSV}
                     aria-label="Exportar lista de stock bajo como CSV"
                     title="Exportar lista de stock bajo como CSV"
-                    className="mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-100 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-200 sm:w-auto sm:px-3 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                    className="mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-100 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-200 @md:w-auto @md:px-3 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
                 >
                     <Download className="h-4 w-4" aria-hidden="true" />
-                    <span className="hidden sm:inline">Exportar</span>
+                    <span className="hidden @md:inline">Exportar</span>
                 </button>
             </div>
 
             {/* Product list */}
             {expanded && (
                 <div className="border-t border-amber-200 px-4 py-3 dark:border-amber-900/40">
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-2 @lg:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4">
                         {products.map((product) => (
                             <div
                                 key={product.id}
