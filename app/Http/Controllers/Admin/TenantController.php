@@ -27,15 +27,6 @@ class TenantController extends Controller
 {
     public function index(Request $request): Response
     {
-        // One grouped count per entity instead of 3 queries per tenant (no N+1).
-        $countByTenant = fn (string $model) => $model::allTenants()
-            ->selectRaw('tenant_id, COUNT(*) as aggregate')
-            ->groupBy('tenant_id')
-            ->pluck('aggregate', 'tenant_id');
-
-        $users = $countByTenant(User::class);
-        $sales = $countByTenant(Sale::class);
-
         // Latest sign-in among each tenant's users, to spot inactive customers.
         // Super admins have no tenant_id, so they never count toward a tenant.
         $lastActivity = User::allTenants()
@@ -43,35 +34,6 @@ class TenantController extends Controller
             ->selectRaw('tenant_id, MAX(last_login_at) as aggregate')
             ->groupBy('tenant_id')
             ->pluck('aggregate', 'tenant_id');
-
-        // allTenants()'s per-tenant aggregates above have no idea a tenant
-        // was later archived (soft-deleted) — their keys can include
-        // tenant_ids that no longer show up in $tenants below. Restrict the
-        // platform-wide sums to still-existing tenants so the cards don't
-        // keep counting an archived business's users/sales forever.
-        $activeTenantIds = Tenant::pluck('id');
-
-        $tenantStatusCounts = Tenant::selectRaw('status, COUNT(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
-
-        // Platform-wide summary — always reflects every (non-archived)
-        // tenant, independent of the search filter below (search narrows
-        // the table, not the cards).
-        $summary = [
-            'tenants_active' => (int) ($tenantStatusCounts[Tenant::STATUS_ACTIVE] ?? 0),
-            'tenants_suspended' => (int) ($tenantStatusCounts[Tenant::STATUS_SUSPENDED] ?? 0),
-            'tenants_trial' => (int) ($tenantStatusCounts[Tenant::STATUS_TRIAL] ?? 0),
-            'users_total' => (int) $users->only($activeTenantIds->all())->sum(),
-            'sales_total' => (int) $sales->only($activeTenantIds->all())->sum(),
-            // "Volumen de ventas" — total processed through the platform's
-            // POS, not platform revenue: there is no subscription billing in
-            // this system today. Only completed sales, matching every other
-            // revenue figure in the app (Dashboard/Finance/Report/CashSession
-            // controllers all filter status='completed' the same way).
-            'sales_volume' => (float) Sale::allTenants()
-                ->where('status', 'completed')
-                ->whereIn('tenant_id', $activeTenantIds)
-                ->sum('total'),
-        ];
 
         $search = trim((string) $request->string('search'));
 
@@ -118,7 +80,6 @@ class TenantController extends Controller
 
         return Inertia::render('admin/tenants/index', [
             'tenants' => $tenants,
-            'summary' => $summary,
             'search' => $search,
             'userMatches' => $userMatches,
         ]);

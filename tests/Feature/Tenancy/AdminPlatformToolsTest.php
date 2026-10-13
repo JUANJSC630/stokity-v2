@@ -9,8 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * PR 3 of the super-admin expansion plan: the platform-wide summary +
- * cross-tenant search on /admin/tenants, and /admin/super-admins for
+ * PR 3 of the super-admin expansion plan: the cross-tenant search on
+ * /admin/tenants, and /admin/super-admins for
  * managing other platform-owner accounts from the UI instead of only via
  * the tenancy:make-super-admin console command.
  */
@@ -32,67 +32,18 @@ function platformToolsSuperAdmin(): User
     ]);
 }
 
-it('summarizes tenants by status and totals users/sales across the platform', function () {
-    // A baseline "Stokity" tenant already exists from the historical
-    // create_default_tenant_and_backfill migration that every fresh test
-    // database runs — assert deltas against a snapshot, not exact totals.
-    $superAdmin = platformToolsSuperAdmin();
-    $before = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary'];
-
-    app(TenantProvisioner::class)->create([
-        'business_name' => 'Tienda A', 'admin_name' => 'Admin A', 'admin_email' => 'a@a.test', 'admin_password' => 'password123',
-    ]);
-    $tenantB = app(TenantProvisioner::class)->create([
-        'business_name' => 'Tienda B', 'admin_name' => 'Admin B', 'admin_email' => 'b@b.test', 'admin_password' => 'password123',
-    ]);
-    $tenantB->update(['status' => Tenant::STATUS_SUSPENDED]);
-    $tenantC = app(TenantProvisioner::class)->create([
-        'business_name' => 'Tienda C', 'admin_name' => 'Admin C', 'admin_email' => 'c@c.test', 'admin_password' => 'password123',
-    ]);
-    $tenantC->update(['status' => Tenant::STATUS_TRIAL]);
-
-    $after = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary'];
-
-    expect($after['tenants_active'] - $before['tenants_active'])->toBe(1)
-        ->and($after['tenants_suspended'] - $before['tenants_suspended'])->toBe(1)
-        ->and($after['tenants_trial'] - $before['tenants_trial'])->toBe(1)
-        ->and($after['users_total'] - $before['users_total'])->toBe(3);
-});
-
-it('only sums completed sales into sales_volume, matching every other revenue figure in the app', function () {
-    $superAdmin = platformToolsSuperAdmin();
-    $before = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary']['sales_volume'];
-
-    $tenant = app(TenantProvisioner::class)->create([
-        'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
-    ]);
-    app(TenantManager::class)->runAs($tenant, function () {
-        \App\Models\Sale::factory()->create(['status' => 'completed', 'total' => 100]);
-        \App\Models\Sale::factory()->create(['status' => 'pending', 'total' => 9000]);
-        \App\Models\Sale::factory()->create(['status' => 'cancelled', 'total' => 9000]);
-    });
-
-    $after = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary']['sales_volume'];
-
-    expect($after - $before)->toBe(100.0);
-});
-
-it('stops counting a tenant\'s users and sales in the platform totals once it is archived', function () {
+it('lists the tenants without computing platform-wide totals the page no longer shows', function () {
     $superAdmin = platformToolsSuperAdmin();
     $tenant = app(TenantProvisioner::class)->create([
         'business_name' => 'Café Central', 'admin_name' => 'Ana', 'admin_email' => 'ana@cafe.test', 'admin_password' => 'password123',
     ]);
-    app(TenantManager::class)->runAs($tenant, fn () => \App\Models\Sale::factory()->create(['status' => 'completed', 'total' => 500]));
 
-    $before = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary'];
+    $props = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props'];
 
-    $tenant->delete();
-
-    $after = $this->actingAs($superAdmin)->get('/admin/tenants')->viewData('page')['props']['summary'];
-
-    expect($after['users_total'])->toBe($before['users_total'] - 1);
-    expect($after['sales_total'])->toBe($before['sales_total'] - 1);
-    expect($after['sales_volume'])->toBe($before['sales_volume'] - 500.0);
+    expect($props)->not->toHaveKey('summary');
+    $row = collect($props['tenants'])->firstWhere('slug', $tenant->slug);
+    expect($row)->toMatchArray(['name' => 'Café Central', 'status' => $tenant->status])
+        ->and($row)->toHaveKeys(['id', 'slug', 'created_at', 'trial_ends_at', 'last_activity_at']);
 });
 
 it('still names an archived tenant in a cross-tenant user match, and surfaces the user\'s active status', function () {
