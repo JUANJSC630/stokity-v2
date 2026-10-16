@@ -19,7 +19,7 @@ Contrato técnico para quien consume la API (por ejemplo la tienda web de Lu Acc
 | `GET /products` | Listado de productos | lectura |
 | `GET /products/{slug}` | Detalle de un producto | lectura |
 | `PATCH /products/{identifier}` | Visibilidad y foto de portada | administración |
-| `POST /products/{identifier}/images` | Agregar imagen a la galería | administración |
+| `POST /products/{identifier}/images` | Agregar imagen a la galería (cuerpo: `image_url`, y `alt_text` opcional de hasta 255 caracteres) | administración |
 | `PUT /products/{identifier}/images/order` | Reordenar la galería | administración |
 | `DELETE /products/{identifier}/images/{imageId}` | Quitar imagen | administración |
 | `POST /order-reference` | Número de referencia de pedido | solo pedidos |
@@ -206,21 +206,30 @@ Si se envía `If-None-Match` con ese valor (o varios separados por coma, o `*`) 
 - Orden estable `updated_at ASC, id ASC`; pagina con `page` y `per_page` (hasta 100).
 - Un valor inválido responde `422`. Codifica el `+` del desfase como `%2B` en la URL (si llega como espacio, se interpreta como `+`). También se aceptan `Z`, sin zona (hora de Bogotá) y solo fecha.
 - `meta.synced_at`: hora del servidor al empezar la consulta. Úsala como siguiente `updated_since`; no dependas del reloj de la tienda.
-- Cada fila trae `visible: true` (producto completo) o es una de estas dos formas mínimas:
+- Cada fila tiene **exactamente una** de estas tres formas. El formato es deliberado: de un producto que dejó de ser público **nunca** se envía precio ni stock.
 
-Producto que dejó de ser público (inactivo o sacado de la tienda):
+**1. Producto visible: el producto completo (igual que en el listado normal) más `visible: true`.**
+
+```json
+{"code": "CAM-9457", "slug": "camiseta-polo", "name": "Camiseta Polo", "price": 75000, "available_stock": 97, "tags": [], "updated_at": "2026-10-16T14:33:56-05:00", "visible": true}
+```
+(recortado; trae todos los campos de la sección 4)
+
+**2. Producto que dejó de ser público (inactivo o sacado de la tienda): solo `code`, `slug`, `visible: false` y `updated_at`.** Sin nombre, precio, stock, etiquetas ni imágenes.
 
 ```json
 {"code": "CAM-9457", "slug": "camiseta-polo", "visible": false, "updated_at": "2026-10-16T11:00:00-05:00"}
 ```
 
-Producto eliminado:
+**3. Producto eliminado: solo `code`, `slug`, `deleted: true`, `deleted_at` y `updated_at`.**
 
 ```json
 {"code": "CAM-9457", "slug": "camiseta-polo", "deleted": true, "deleted_at": "2026-10-16T11:00:00-05:00", "updated_at": "2026-10-16T11:00:00-05:00"}
 ```
 
-Solo se informan como ocultos o eliminados los productos que alguna vez se publicaron (los que tienen `slug`). El precio y el stock de un producto oculto no se envían.
+La tienda debe tratar las formas 2 y 3 como «quitar este `code`». En el listado normal (sin `updated_since`) los productos ocultos y eliminados no aparecen y las filas no traen el campo `visible`.
+
+Solo se informan como ocultos o eliminados los productos que alguna vez se publicaron (los que tienen `slug`): un artículo interno que nunca llegó a la tienda no aparece en la sincronización.
 
 Qué cuenta como cambio (actualiza `updated_at`): cualquier edición del producto, ventas y devoluciones (stock), reservas y liberaciones de separados/créditos (`reserved_stock`), ajustes de inventario, cambios en la galería de imágenes (incluido su texto alternativo), asignar o quitar etiquetas (o renombrarlas/borrarlas), y renombrar o desactivar su categoría.
 
@@ -269,7 +278,15 @@ Si ya existen llaves activas con esos nombres, el comando se niega (usa `--rotat
 3. Comprueba que la tienda funciona con la nueva (`last_used_at` de la vieja deja de moverse).
 4. `php artisan store:keys:revoke <id-de-la-llave-vieja>`. Es reversible solo creando otra llave: revocar es definitivo.
 
-## 9. Errores
+## 9. Comprobaciones de despliegue
+
+Herramientas del repositorio para quien despliega (ninguna escribe en producción, salvo el número de pedido que consume el script de humo):
+
+- `php artisan store:preflight [--tenant=luaccesorios] [--expect-migrated]`: **solo lectura**. Imprime entorno, `APP_DEBUG`, caché (y si es compartido entre réplicas), versión y collation de la base, negocios, llaves por perfil (sin imprimir llaves, hashes ni prefijos) y migraciones pendientes. Termina con `PREFLIGHT OK` (código 0) o `PREFLIGHT ATENCION: …` (código 1). Úsalo antes de desplegar y, con `--expect-migrated`, después.
+- `scripts/store-api-smoke.sh`: humo posterior al despliegue. Lee `STORE_BASE_URL`, `STORE_READ_KEY`, `STORE_ORDERS_KEY` y `STORE_ADMIN_KEY` **solo del entorno** (nunca argumentos; las llaves no se imprimen ni aparecen en la línea de comandos de `curl`). Comprueba salud, permisos por perfil, `updated_since`, ETag/304, idempotencia y cabeceras `X-RateLimit-*`. **Consume un número de pedido** del entorno probado. Código 0 si todo pasa, 1 si algo falla, 2 si faltan variables. `STORE_INSECURE=1` acepta un certificado autofirmado (Herd).
+- `scripts/store-api-rehearsal.sh <respaldo.sql> [slug]`: ensayo del despliegue sobre una copia local de un respaldo (solo contra MySQL en esta máquina): restaura, migra con tiempos, comprueba datos y slugs, corre `store:preflight` y el script de humo contra un servidor temporal. Deja un registro en `~/store-api-rehearsal-<fecha>.log`.
+
+## 10. Errores
 
 | Código | Cuándo | Cuerpo |
 |---|---|---|
