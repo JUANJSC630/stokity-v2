@@ -1,10 +1,6 @@
 <?php
 
-use App\Models\Branch;
-use App\Models\Category;
-use App\Models\Product;
 use App\Models\StorefrontOrderCounter;
-use App\Models\Tenant;
 use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,33 +9,13 @@ uses(RefreshDatabase::class);
 
 afterEach(fn () => app(TenantManager::class)->forget());
 
-/**
- * @return array{tenant: Tenant, apiKey: TenantApiKey, plainKey: string, visibleProduct: Product}
- */
-function makeRateLimitWorld(string $slug, bool $canManageMedia = false, bool $canGenerateOrderReferences = false): array
-{
-    $tenant = Tenant::create(['name' => $slug, 'slug' => $slug, 'status' => 'active']);
-
-    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $canManageMedia, $canGenerateOrderReferences) {
-        $product = Product::factory()->create([
-            'branch_id' => Branch::factory()->create()->id,
-            'category_id' => Category::factory()->create()->id,
-            'show_in_storefront' => true,
-            'status' => true,
-        ]);
-        $generated = TenantApiKey::generate($tenant, 'test key', null, $canManageMedia, $canGenerateOrderReferences);
-
-        return ['tenant' => $tenant, 'apiKey' => $generated['key'], 'plainKey' => $generated['plainTextKey'], 'visibleProduct' => $product];
-    });
-}
-
 function storeGet(string $plainKey, string $path = '/api/v1/store/products')
 {
     return test()->withHeader('Authorization', 'Bearer '.$plainKey)->getJson($path);
 }
 
 it('defaults a key without a custom limit to 60 requests per minute', function () {
-    $world = makeRateLimitWorld('rl-default');
+    $world = makeStoreWorld('rl-default');
 
     expect($world['apiKey']->rate_limit_per_minute)->toBeNull()
         ->and($world['apiKey']->effectiveRateLimitPerMinute())->toBe(60);
@@ -56,7 +32,7 @@ it('defaults a key without a custom limit to 60 requests per minute', function (
 });
 
 it('answers 429 with Retry-After once a custom limit of 5 per minute is exceeded', function () {
-    $world = makeRateLimitWorld('rl-custom');
+    $world = makeStoreWorld('rl-custom');
     $world['apiKey']->update(['rate_limit_per_minute' => 5]);
 
     for ($i = 0; $i < 5; $i++) {
@@ -73,7 +49,7 @@ it('answers 429 with Retry-After once a custom limit of 5 per minute is exceeded
 });
 
 it('lets the orders key keep minting order references after the read bucket is exhausted', function () {
-    $reader = makeRateLimitWorld('rl-buckets');
+    $reader = makeStoreWorld('rl-buckets');
     $reader['apiKey']->update(['rate_limit_per_minute' => 3]);
 
     for ($i = 0; $i < 3; $i++) {
@@ -89,7 +65,7 @@ it('lets the orders key keep minting order references after the read bucket is e
 });
 
 it('keeps read, write and orders counters independent on the very same key', function () {
-    $world = makeRateLimitWorld('rl-same-key', true, true);
+    $world = makeStoreWorld('rl-same-key', true, true);
     $world['apiKey']->update(['rate_limit_per_minute' => 2]);
     $auth = ['Authorization' => 'Bearer '.$world['plainKey']];
 
@@ -107,7 +83,7 @@ it('keeps read, write and orders counters independent on the very same key', fun
 });
 
 it('does not let one key exhaust the limit of another key of the same tenant', function () {
-    $world = makeRateLimitWorld('rl-two-keys');
+    $world = makeStoreWorld('rl-two-keys');
     $world['apiKey']->update(['rate_limit_per_minute' => 1]);
     $other = TenantApiKey::generate($world['tenant'], 'other');
 
@@ -117,7 +93,7 @@ it('does not let one key exhaust the limit of another key of the same tenant', f
 });
 
 it('sends the rate-limit headers on error responses too', function () {
-    $world = makeRateLimitWorld('rl-headers');
+    $world = makeStoreWorld('rl-headers');
 
     $notFound = storeGet($world['plainKey'], '/api/v1/store/products/does-not-exist')->assertNotFound();
     expect($notFound->headers->get('X-RateLimit-Limit'))->toBe('60');
@@ -128,7 +104,7 @@ it('sends the rate-limit headers on error responses too', function () {
 });
 
 it('answers a 429 as JSON even when the client sends no Accept header', function () {
-    $world = makeRateLimitWorld('rl-json');
+    $world = makeStoreWorld('rl-json');
     $world['apiKey']->update(['rate_limit_per_minute' => 1]);
 
     $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])->get('/api/v1/store/products')->assertOk();

@@ -1,81 +1,15 @@
 <?php
 
-use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\StorefrontOrderCounter;
 use App\Models\Tenant;
-use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
-
-/**
- * Every image_url the tests below expect to be ACCEPTED must have a
- * matching Http::fake() entry returning 200 to a HEAD request —
- * ExistingHttpsBlobUrl (app/Rules/ExistingHttpsBlobUrl.php) verifies the
- * URL is actually reachable before saving it. Http::fake() with no
- * matching URL pattern 404s by default, which is also exactly what a test
- * asserting rejection wants — no explicit fake needed for those.
- */
-function fakeReachableImageUrl(string $url): void
-{
-    Http::fake([$url => Http::response('', 200)]);
-}
-
-/**
- * Mirrors tests/Feature/Tenancy/TenantIsolationTest.php's makeTenantWorld(),
- * but for the public storefront API: builds a tenant with one product
- * curated for the storefront (show_in_storefront=true, so it gets a slug)
- * and one that deliberately isn't, plus a live API key for that tenant.
- *
- * $canManageMedia and $canGenerateOrderReferences default to false to
- * match a real freshly-issued key's defaults — tests exercising either
- * write surface must opt in explicitly, same as a SuperAdmin checking the
- * corresponding box in the panel.
- *
- * @return array{tenant: Tenant, apiKey: TenantApiKey, plainKey: string, visibleProduct: Product, hiddenProduct: Product}
- */
-function makeStoreWorld(string $slug, bool $canManageMedia = false, bool $canGenerateOrderReferences = false): array
-{
-    $tenant = Tenant::create(['name' => $slug, 'slug' => $slug, 'status' => 'active']);
-
-    return app(TenantManager::class)->runAs($tenant, function () use ($tenant, $slug, $canManageMedia, $canGenerateOrderReferences) {
-        $branch = Branch::factory()->create();
-        $category = Category::factory()->create();
-
-        $visibleProduct = Product::factory()->create([
-            'branch_id' => $branch->id,
-            'category_id' => $category->id,
-            'code' => 'PUB-'.strtoupper($slug),
-            'name' => 'Producto público '.$slug,
-            'show_in_storefront' => true,
-            'status' => true,
-            'stock' => 10,
-        ]);
-
-        $hiddenProduct = Product::factory()->create([
-            'branch_id' => $branch->id,
-            'category_id' => $category->id,
-            'code' => 'PRIV-'.strtoupper($slug),
-            'show_in_storefront' => false,
-            'status' => true,
-        ]);
-
-        $generated = TenantApiKey::generate($tenant, 'test key', null, $canManageMedia, $canGenerateOrderReferences);
-
-        return [
-            'tenant' => $tenant,
-            'apiKey' => $generated['key'],
-            'plainKey' => $generated['plainTextKey'],
-            'visibleProduct' => $visibleProduct,
-            'hiddenProduct' => $hiddenProduct,
-        ];
-    });
-}
 
 afterEach(fn () => app(TenantManager::class)->forget());
 
@@ -137,10 +71,8 @@ it('throttles per tenant, not per IP — one tenant hitting its limit does not a
     $a = makeStoreWorld('throttle-a');
     $b = makeStoreWorld('throttle-b');
 
-    // 70, comfortably past the 60/min limit — not exactly 61, since
-    // Laravel's own limiter allows one extra hit right at the boundary
-    // before it starts rejecting (RateLimiter::tooManyAttempts()'s
-    // timer-key check), which isn't this app's behavior to pin down.
+    // 70, comfortably past the 60/min limit: the limiter is exact (the 61st
+    // request is the first 429), so this only needs enough requests to cross it.
     $statuses = [];
     for ($i = 0; $i < 70; $i++) {
         $statuses[] = $this->withHeader('Authorization', 'Bearer '.$a['plainKey'])
@@ -296,6 +228,55 @@ it('attaches an image the storefront already uploaded to its own blob store', fu
 
     app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
         expect(ProductImage::where('product_id', $world['visibleProduct']->id)->count())->toBe(1);
+    });
+});
+
+it('stores the optional alt_text sent with an attached image and returns it in the gallery', function () {
+    $world = makeStoreWorld('image-alt', canManageMedia: true);
+    fakeReachableImageUrl('https://example-storefront.public.blob.vercel-storage.com/img-alt.webp');
+
+    $created = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example-storefront.public.blob.vercel-storage.com/img-alt.webp',
+            'alt_text' => 'Pulsera dorada con dije de luna',
+        ])
+        ->assertCreated();
+
+    expect($created->json('data.alt_text'))->toBe('Pulsera dorada con dije de luna');
+
+    $gallery = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->getJson('/api/v1/store/products/'.$world['visibleProduct']->slug)
+        ->assertOk()->json('data.gallery');
+
+    expect($gallery[0]['alt_text'])->toBe('Pulsera dorada con dije de luna');
+});
+
+it('leaves alt_text null when none is sent with an attached image', function () {
+    $world = makeStoreWorld('image-no-alt', canManageMedia: true);
+    fakeReachableImageUrl('https://example-storefront.public.blob.vercel-storage.com/img-none.webp');
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example-storefront.public.blob.vercel-storage.com/img-none.webp',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.alt_text', null);
+});
+
+it('rejects an alt_text longer than 255 characters on an attached image', function () {
+    $world = makeStoreWorld('image-alt-long', canManageMedia: true);
+    fakeReachableImageUrl('https://example-storefront.public.blob.vercel-storage.com/img-long.webp');
+
+    $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
+        ->postJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images', [
+            'image_url' => 'https://example-storefront.public.blob.vercel-storage.com/img-long.webp',
+            'alt_text' => str_repeat('a', 256),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('alt_text');
+
+    app(TenantManager::class)->runAs($world['tenant'], function () use ($world) {
+        expect(ProductImage::where('product_id', $world['visibleProduct']->id)->count())->toBe(0);
     });
 });
 

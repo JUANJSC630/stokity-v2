@@ -42,6 +42,7 @@ class StoreProductImageController extends Controller
                 'url',
                 new ExistingHttpsBlobUrl,
             ],
+            'alt_text' => ['nullable', 'string', 'max:255'],
         ]);
 
         // lockForUpdate() on the product row serializes two concurrent
@@ -62,6 +63,7 @@ class StoreProductImageController extends Controller
 
             return $lockedProduct->images()->create([
                 'image' => $validated['image_url'],
+                'alt_text' => $validated['alt_text'] ?? null,
                 'sort_order' => $currentCount,
             ]);
         });
