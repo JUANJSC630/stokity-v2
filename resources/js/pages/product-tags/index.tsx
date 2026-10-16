@@ -77,7 +77,7 @@ export default function ProductTags({ tags, maxPerProduct }: ProductTagsPageProp
                     <button
                         type="button"
                         onClick={openCreate}
-                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold transition-opacity hover:opacity-90 sm:h-10"
+                        className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--brand-primary)] px-4 text-sm font-semibold whitespace-nowrap transition-opacity hover:opacity-90 sm:h-10"
                         style={{ color: onBrand.hex }}
                     >
                         <Plus className="size-4" aria-hidden="true" />

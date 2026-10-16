@@ -184,7 +184,10 @@ export default function Products({
             { product_ids: Array.from(selectedIds), tag_id: Number(bulkTagId), action },
             {
                 preserveScroll: true,
-                onSuccess: () => setSelectedIds(new Set()),
+                onSuccess: () => {
+                    setSelectedIds(new Set());
+                    toast.success(action === 'add' ? 'Etiqueta agregada' : 'Etiqueta quitada');
+                },
                 onError: (errors) => toast.error(Object.values(errors)[0] ?? 'No se pudo actualizar la etiqueta'),
                 onFinish: () => setTaggingBusy(false),
             },
