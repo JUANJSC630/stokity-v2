@@ -60,7 +60,7 @@ use Illuminate\Support\Facades\Route;
 | repo still has no orders table for the storefront to write to.
 */
 Route::middleware('store.api.key')->prefix('v1/store')->name('api.store.')->group(function () {
-    Route::middleware('throttle:store-api-read')->group(function () {
+    Route::middleware(['throttle:store-api-read', 'store.api.read_catalog'])->group(function () {
         Route::get('info', [StoreInfoController::class, 'show'])->name('info');
         Route::get('categories', [StoreCategoryController::class, 'index'])->name('categories.index');
         Route::get('branches', [StoreBranchController::class, 'index'])->name('branches.index');

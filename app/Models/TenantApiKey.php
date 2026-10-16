@@ -27,6 +27,7 @@ use Illuminate\Support\Str;
  * @property string $hashed_key
  * @property bool $can_manage_media
  * @property bool $can_generate_order_references
+ * @property bool $can_read_catalog
  * @property int|null $rate_limit_per_minute
  * @property int|null $created_by
  * @property \Illuminate\Support\Carbon|null $last_used_at
@@ -50,12 +51,14 @@ class TenantApiKey extends Model
         'created_by',
         'can_manage_media',
         'can_generate_order_references',
+        'can_read_catalog',
         'rate_limit_per_minute',
     ];
 
     protected $casts = [
         'can_manage_media' => 'boolean',
         'can_generate_order_references' => 'boolean',
+        'can_read_catalog' => 'boolean',
         'rate_limit_per_minute' => 'integer',
         'last_used_at' => 'datetime',
         'revoked_at' => 'datetime',
@@ -123,6 +126,7 @@ class TenantApiKey extends Model
         bool $canManageMedia = false,
         bool $canGenerateOrderReferences = false,
         ?int $rateLimitPerMinute = null,
+        bool $canReadCatalog = true,
     ): array {
         // 40 random chars of entropy is plenty for a bearer token looked up
         // by exact hash match (not brute-forceable at network-request
@@ -144,6 +148,7 @@ class TenantApiKey extends Model
             'created_by' => $creator?->id,
             'can_manage_media' => $canManageMedia,
             'can_generate_order_references' => $canGenerateOrderReferences,
+            'can_read_catalog' => $canReadCatalog,
             'rate_limit_per_minute' => $rateLimitPerMinute,
         ]);
 
