@@ -7,8 +7,12 @@ use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\TenantApiKey;
 use App\Rules\ExistingHttpsBlobUrl;
+use Carbon\CarbonImmutable;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class StoreProductController extends Controller
 {
@@ -40,21 +44,51 @@ class StoreProductController extends Controller
     {
         $request->validate([
             'q' => 'nullable|string|max:100',
+            'search' => 'nullable|string|max:80',
             'category_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
-            'per_page' => 'nullable|integer|min:1|max:50',
+            'per_page' => 'nullable|integer|min:1|max:100',
             'visibility' => 'nullable|string|in:all',
+            'tag' => 'nullable|string|max:200',
+            'updated_since' => ['nullable', 'string', function (string $attribute, mixed $value, Closure $fail) {
+                if ($this->parseUpdatedSince((string) $value) === null) {
+                    $fail('El parámetro updated_since debe ser una fecha ISO 8601, por ejemplo 2026-10-16T14:03:22-05:00 (codifica el + como %2B en la URL).');
+                }
+            }],
         ]);
+
+        $since = $request->filled('updated_since') ? $this->parseUpdatedSince($request->string('updated_since')->value()) : null;
 
         $showAll = $request->query('visibility') === 'all' && $this->canManageMedia($request);
 
-        $query = Product::query()
-            ->where('status', true)
-            ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
-            ->with(['category', 'images', 'branch'])
-            ->orderBy('name');
+        if ($since !== null) {
+            $syncedAt = now();
+            $request->attributes->set('storeSyncMode', true);
 
-        if ($request->filled('q')) {
+            $query = Product::query()
+                ->withTrashed()
+                ->where('updated_at', '>=', $since)
+                // Visible products, plus anything that was ever curated (has
+                // a slug) and has since been hidden or deleted — those the
+                // storefront must be told to take down. A product that never
+                // reached the storefront has no slug and stays out.
+                ->where(fn ($q) => $q
+                    ->where(fn ($visible) => $visible->where('status', true)->where('show_in_storefront', true))
+                    ->orWhereNotNull('slug'))
+                ->with(Product::STORE_RELATIONS)
+                ->orderBy('updated_at')
+                ->orderBy('id');
+        } else {
+            $query = Product::query()
+                ->where('status', true)
+                ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
+                ->with(Product::STORE_RELATIONS)
+                ->orderBy('name');
+        }
+
+        if ($request->filled('search')) {
+            $this->whereNameMatchesInsensitively($query, $request->string('search')->value());
+        } elseif ($request->filled('q')) {
             $query->where('name', 'like', '%'.$this->escapeLike($request->string('q')->value()).'%');
         }
 
@@ -66,9 +100,46 @@ class StoreProductController extends Controller
             $query->where('branch_id', $request->integer('branch_id'));
         }
 
+        // `?tag=a,b` matches products carrying ANY of the listed tags.
+        if ($request->filled('tag')) {
+            $slugs = collect(explode(',', $request->string('tag')->value()))->map(fn (string $slug) => trim($slug))->filter()->take(10)->all();
+
+            $query->whereHas('tags', fn ($tags) => $tags->whereIn('product_tags.slug', $slugs));
+        }
+
         $products = $query->paginate($request->integer('per_page', 24));
 
-        return StoreProductResource::collection($products);
+        $collection = StoreProductResource::collection($products);
+
+        if (isset($syncedAt)) {
+            $collection->additional(['meta' => ['synced_at' => $syncedAt->toIso8601String()]]);
+        }
+
+        return $collection;
+    }
+
+    /**
+     * Parses `updated_since` (ISO 8601, with or without zone) into the app
+     * timezone, which is how `updated_at` is stored. A "+" in a query string
+     * decodes to a space, so "…22 05:00" is read as "…22+05:00" — a client
+     * that forgot to URL-encode its offset still gets the right instant.
+     */
+    private function parseUpdatedSince(string $value): ?CarbonImmutable
+    {
+        $value = trim($value);
+        $value = preg_replace('/(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$/', '$1+$2', $value);
+
+        $iso8601 = '/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/';
+
+        if (! preg_match($iso8601, $value)) {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->setTimezone(config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -96,7 +167,7 @@ class StoreProductController extends Controller
                     $query->orWhere('code', $slug);
                 }
             })
-            ->with(['category', 'images', 'branch'])
+            ->with(Product::STORE_RELATIONS)
             ->firstOrFail();
 
         return new StoreProductResource($product);
@@ -153,7 +224,7 @@ class StoreProductController extends Controller
 
         $product->save();
 
-        return new StoreProductResource($product->load(['category', 'images', 'branch']));
+        return new StoreProductResource($product->load(Product::STORE_RELATIONS));
     }
 
     private function canManageMedia(Request $request): bool
@@ -162,6 +233,26 @@ class StoreProductController extends Controller
         $apiKey = $request->attributes->get('storeApiKey');
 
         return (bool) $apiKey?->can_manage_media;
+    }
+
+    /**
+     * `?search=` (max 80 chars): a contains-match on the product name that
+     * ignores case AND accents ("brazalete" finds "Brazaléte" and "BRAZALETE").
+     * On MySQL the comparison is forced to utf8mb4_unicode_ci instead of
+     * trusting whatever collation the column happens to have, so it behaves
+     * the same on every database. `?q=` is deliberately left as it was.
+     */
+    private function whereNameMatchesInsensitively(Builder $query, string $term): void
+    {
+        $pattern = '%'.$this->escapeLike($term).'%';
+
+        if (DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'mysql') {
+            $query->whereRaw('products.name COLLATE utf8mb4_unicode_ci like ?', [$pattern]);
+
+            return;
+        }
+
+        $query->where('name', 'like', $pattern);
     }
 
     /**

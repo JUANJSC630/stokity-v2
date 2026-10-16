@@ -21,7 +21,7 @@ vi.mock('@inertiajs/react', async () => {
         router: { post: vi.fn(), delete: vi.fn() },
         Head: () => null,
         Link: 'a',
-        usePage: () => ({ props: { flash: env.flash, business: { brand_color: '#C4686F' } } }),
+        usePage: () => ({ props: { flash: env.flash, business: { brand_color: '#C4686F' }, auth: { permissions: ['products.update'] } } }),
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
             const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -185,7 +185,52 @@ describe('New product', () => {
             branch_id: '2',
             status: true,
             image: null,
+            tag_ids: [],
+            material: '',
+            dimensions: '',
+            weight_grams: '',
+            origin: '',
+            manufacturing: '',
+            care_instructions: '',
+            color: '',
+            style: '',
+            seo_title: '',
+            seo_description: '',
         });
+    });
+
+    it('sends the storefront information the user fills in', () => {
+        renderCreate();
+        typeInto('name', 'Pulsera luna');
+        typeInto('code', 'PUL-1');
+        fireEvent.change(combos()[0], { target: { value: '1' } });
+        fireEvent.change(combos()[1], { target: { value: '2' } });
+        typeInto('sale_price', '45000');
+        typeInto('stock', '5');
+        typeInto('min_stock', '1');
+        typeInto('material', 'Acero dorado');
+        typeInto('dimensions', 'Largo 18 cm, dije 2 cm');
+        typeInto('weight_grams', '12');
+        typeInto('origin', 'Hecho a mano en Zarzal, Colombia');
+        fireEvent.change(combos()[2], { target: { value: 'handmade' } });
+        typeInto('seo_title', 'Pulsera luna dorada');
+        typeInto('seo_description', 'Pulsera artesanal con dije de luna');
+
+        submitForm(/Guardar Producto/);
+
+        expect(env.post).toHaveBeenCalledWith(
+            '/products',
+            expect.anything(),
+            expect.objectContaining({
+                material: 'Acero dorado',
+                dimensions: 'Largo 18 cm, dije 2 cm',
+                weight_grams: 12,
+                origin: 'Hecho a mano en Zarzal, Colombia',
+                manufacturing: 'handmade',
+                seo_title: 'Pulsera luna dorada',
+                seo_description: 'Pulsera artesanal con dije de luna',
+            }),
+        );
     });
 
     it('lets the user deactivate the product before saving', () => {
@@ -272,7 +317,7 @@ describe('Edit product', () => {
         suppliers: [{ id: 11, name: 'Cueros SAS', pivot: { purchase_price: '75000', supplier_code: 'CU-1', is_default: true } }],
     };
 
-    function renderEdit(overrides: Record<string, unknown> = {}, suppliers: unknown[] = suppliersList) {
+    function renderEdit(overrides: Record<string, unknown> = {}, suppliers: unknown[] = suppliersList, tags: unknown[] = []) {
         return render(
             <Tooltip.Provider>
                 <EditProduct
@@ -280,6 +325,7 @@ describe('Edit product', () => {
                     categories={categories as never}
                     branches={branches as never}
                     suppliers={suppliers as never}
+                    tags={tags as never}
                     userBranchId={null}
                 />
             </Tooltip.Provider>,
@@ -318,8 +364,33 @@ describe('Edit product', () => {
                 min_stock: 5,
                 tax: 19,
                 type: 'producto',
+                sync_tags: true,
             }),
         );
+    });
+
+    it('sends the ticked tags with the product, and an explicit sync flag even when none is left', () => {
+        renderEdit({ tags: [{ id: 2, name: 'Artesanal' }] }, suppliersList, [
+            { id: 1, name: 'Oro' },
+            { id: 2, name: 'Artesanal' },
+        ]);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Oro' }));
+        submitForm('Guardar Cambios');
+        expect(env.post).toHaveBeenLastCalledWith('/products/9', expect.anything(), expect.objectContaining({ tag_ids: [2, 1], sync_tags: true }));
+
+        fireEvent.click(screen.getByRole('button', { name: 'Oro' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Artesanal' }));
+        submitForm('Guardar Cambios');
+        expect(env.post).toHaveBeenLastCalledWith('/products/9', expect.anything(), expect.objectContaining({ tag_ids: [], sync_tags: true }));
+    });
+
+    it('stops offering more tags after the 10-per-product limit', () => {
+        const many = Array.from({ length: 11 }, (_, index) => ({ id: index + 1, name: `Etiqueta ${index + 1}` }));
+        renderEdit({ tags: many.slice(0, 10) }, suppliersList, many);
+
+        expect(screen.getByText(/10 de 10 etiquetas/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Etiqueta 11' })).toBeDisabled();
     });
 
     it('presents a service without stock, with the variable price option and without suppliers', () => {

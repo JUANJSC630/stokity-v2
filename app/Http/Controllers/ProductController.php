@@ -6,6 +6,8 @@ use App\Http\Requests\ProductRequest;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
+use App\Models\ProductTag;
 use App\Models\Supplier;
 use App\Rules\TenantExists;
 use App\Services\BlobStorageService;
@@ -15,6 +17,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class ProductController extends Controller
@@ -31,7 +34,7 @@ class ProductController extends Controller
     {
         $query = Product::query();
 
-        $with = ['branch', 'category'];
+        $with = ['branch', 'category', 'tags:product_tags.id,product_tags.name'];
 
         $query->with($with);
 
@@ -92,6 +95,7 @@ class ProductController extends Controller
             'products' => $products,
             'categories' => $categories,
             'branches' => $branches,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['search', 'status', 'category', 'branch', 'type']),
         ]);
     }
@@ -112,6 +116,7 @@ class ProductController extends Controller
         return Inertia::render('products/create', [
             'categories' => $categories,
             'branches' => $branches,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'userBranchId' => $user->branch_id,
         ]);
     }
@@ -133,7 +138,11 @@ class ProductController extends Controller
             $validated['image'] = $this->blob->upload($request->file('image'), 'products');
         }
 
+        $tagIds = $validated['tag_ids'] ?? [];
+        unset($validated['tag_ids'], $validated['sync_tags']);
+
         $product = Product::create($validated);
+        $product->tags()->sync($tagIds);
 
         // Registrar en log - podría implementarse un sistema de auditoría aquí
         // Log::info('Product created', ['product_id' => $product->id, 'user_id' => Auth::id()]);
@@ -182,10 +191,11 @@ class ProductController extends Controller
             ->get(['id', 'name', 'nit']);
 
         // Already linked suppliers with pivot data
-        $product->load('suppliers');
+        $product->load(['suppliers', 'tags:product_tags.id,product_tags.name', 'images']);
 
         return Inertia::render('products/edit', [
             'product' => $product,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'categories' => $categories,
             'branches' => $branches,
             'suppliers' => $suppliers,
@@ -223,12 +233,50 @@ class ProductController extends Controller
             unset($validated['image']);
         }
 
+        $syncTags = array_key_exists('tag_ids', $validated) || ($validated['sync_tags'] ?? false);
+        $tagIds = $validated['tag_ids'] ?? [];
+        unset($validated['tag_ids'], $validated['sync_tags']);
+
         // Actualizar el producto
         $product->update($validated);
+
+        if ($syncTags && collect($product->tags()->sync($tagIds))->flatten()->isNotEmpty()) {
+            // Changing only the tags leaves the product row itself untouched,
+            // but the storefront sees a changed product (updated_since sync).
+            $product->touch();
+        }
 
         // Redireccionar con mensaje de éxito
         return redirect()->route('products.show', $product)
             ->with('success', 'Producto actualizado exitosamente');
+    }
+
+    /**
+     * Saves the alternative text of the product's gallery images (the photos
+     * the web store uploads through the API). Every id must belong to THIS
+     * product; an empty text clears it.
+     */
+    public function updateImagesAltText(Request $request, Product $product): RedirectResponse
+    {
+        abort_unless($request->user()->can('products.update'), 403, 'No tienes permisos para editar productos.');
+        abort_if($request->user()->isRestrictedToOwnBranch() && $product->branch_id !== $request->user()->branch_id, 403);
+
+        $imageIds = $product->images()->pluck('id');
+
+        $validated = $request->validate([
+            'images' => ['required', 'array', 'max:'.ProductImage::MAX_PER_PRODUCT],
+            'images.*.id' => ['required', 'integer', Rule::in($imageIds)],
+            'images.*.alt_text' => ['nullable', 'string', 'max:255'],
+        ], [
+            'images.*.id.in' => 'Una de las imágenes no pertenece a este producto.',
+            'images.*.alt_text.max' => 'El texto alternativo no puede tener más de 255 caracteres.',
+        ]);
+
+        foreach ($validated['images'] as $row) {
+            $product->images()->whereKey($row['id'])->firstOrFail()->update(['alt_text' => $row['alt_text'] ?? null]);
+        }
+
+        return back()->with('success', 'Textos alternativos guardados.');
     }
 
     /**

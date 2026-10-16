@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\TenantApiKey;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
@@ -66,10 +67,28 @@ class AppServiceProvider extends ServiceProvider
         // tenants' rate-limit buckets. Hashing the token directly needs no
         // ordering guarantee at all: it's available straight off the
         // request, and one key maps to exactly one tenant anyway.
-        RateLimiter::for('store-api', function (Request $request) {
-            $token = $request->bearerToken();
+        //
+        // Three independent buckets per key — read (GET), write (PATCH /
+        // images) and orders (POST order-reference) — so a storefront
+        // exhausting its read budget on a cold cache can never starve the
+        // order-reference call. Each bucket uses the key's own
+        // `rate_limit_per_minute` (null = 60). The key row is looked up by
+        // hash here for the same reason the token is hashed directly: this
+        // closure runs before ResolveTenantFromApiKey. An unknown/revoked
+        // token falls back to the IP and the default limit, so garbage
+        // tokens can't mint their own buckets.
+        // Uptime-monitor endpoint: unauthenticated, so keyed by IP, with a
+        // generous budget of its own that never touches a key's buckets.
+        RateLimiter::for('store-health', fn (Request $request) => Limit::perMinute(120)->by('health:'.$request->ip()));
 
-            return Limit::perMinute(60)->by($token ? hash('sha256', $token) : $request->ip());
-        });
+        foreach (['read', 'write', 'orders'] as $bucket) {
+            RateLimiter::for("store-api-{$bucket}", function (Request $request) use ($bucket) {
+                $token = $request->bearerToken();
+                $apiKey = $token ? TenantApiKey::findActiveByPlainKey($token) : null;
+
+                return Limit::perMinute($apiKey?->effectiveRateLimitPerMinute() ?? TenantApiKey::DEFAULT_RATE_LIMIT_PER_MINUTE)
+                    ->by($apiKey ? $bucket.':'.$apiKey->hashed_key : $bucket.':ip:'.$request->ip());
+            });
+        }
     }
 }

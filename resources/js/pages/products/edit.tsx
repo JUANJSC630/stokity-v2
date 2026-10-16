@@ -1,5 +1,8 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
+import { GalleryAltText } from '@/components/products/gallery-alt-text';
 import { ImageField, MoneyField, NumberField, SwitchRow, TaxField } from '@/components/products/product-fields';
+import { emptyStorefrontInfo, StorefrontInfoFields } from '@/components/products/storefront-info-fields';
+import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect, Section } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -8,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { type Branch, type BreadcrumbItem, type Category, type Product, type Supplier, type SupplierProduct } from '@/types';
+import { type Branch, type BreadcrumbItem, type Category, type Product, type ProductTag, type Supplier, type SupplierProduct } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertTriangle, ArrowLeft, Loader2, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
@@ -30,10 +34,12 @@ interface EditProductProps {
     categories: Category[];
     branches: Branch[];
     suppliers?: Supplier[];
+    tags?: ProductTag[];
     userBranchId?: number | null;
 }
 
-export default function EditProduct({ product, categories = [], branches = [], suppliers = [], userBranchId = null }: EditProductProps) {
+export default function EditProduct({ product, categories = [], branches = [], suppliers = [], tags = [], userBranchId = null }: EditProductProps) {
+    const { can } = usePermissions();
     const isService = product.type === 'servicio';
     const onBrand = useOnBrandColor();
 
@@ -111,6 +117,9 @@ export default function EditProduct({ product, categories = [], branches = [], s
         type: product.type as 'producto' | 'servicio',
         variable_price: product.variable_price,
         image: null as File | null,
+        tag_ids: (product.tags ?? []).map((tag) => tag.id),
+        sync_tags: true,
+        ...emptyStorefrontInfo(product),
         _method: 'PUT',
     });
 
@@ -202,6 +211,16 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                 initialPreview={product.image_url || null}
                                 error={form.errors.image}
                                 onChange={(file) => form.setData('image', file)}
+                            />
+                        </FormPanel>
+                        <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
+                            <TagPicker
+                                tags={tags}
+                                selectedIds={form.data.tag_ids}
+                                onChange={(ids) => form.setData('tag_ids', ids)}
+                                max={10}
+                                error={form.errors.tag_ids}
+                                canManage={can('products.update')}
                             />
                         </FormPanel>
                         <div className="order-last">
@@ -368,6 +387,17 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </div>
                     )}
 
+                    <div className="lg:col-start-1">
+                        <StorefrontInfoFields
+                            data={form.data}
+                            errors={form.errors}
+                            onChange={(key, value) => {
+                                form.setData(key, value as never);
+                                form.clearErrors(key);
+                            }}
+                        />
+                    </div>
+
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>
                             <Link href="/products">
@@ -391,6 +421,8 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </StickyActions>
                     </div>
                 </form>
+
+                <GalleryAltText productId={product.id} images={product.images ?? []} />
 
                 {/* Proveedores — solo productos físicos */}
                 {!isService && suppliers.length > 0 && (

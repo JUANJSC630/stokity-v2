@@ -16,6 +16,12 @@ return [
     'name' => env('APP_NAME', 'Stokity'),
 
     /*
+    | Release identifier reported by GET /api/v1/store/health: an explicit
+    | APP_VERSION, else the short commit Railway deployed, else "dev".
+    */
+    'version' => env('APP_VERSION') ?: (env('RAILWAY_GIT_COMMIT_SHA') ? substr((string) env('RAILWAY_GIT_COMMIT_SHA'), 0, 7) : 'dev'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

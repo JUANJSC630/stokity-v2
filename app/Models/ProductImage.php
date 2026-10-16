@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $product_id
  * @property string $image
+ * @property string|null $alt_text
  * @property int $sort_order
  */
 class ProductImage extends Model
@@ -27,9 +28,18 @@ class ProductImage extends Model
      */
     public const MAX_PER_PRODUCT = 8;
 
+    /**
+     * A gallery change is a change to the product as the storefront sees it
+     * (`updated_since` sync), so it bumps the product's updated_at.
+     *
+     * @var list<string>
+     */
+    protected $touches = ['product'];
+
     protected $fillable = [
         'product_id',
         'image',
+        'alt_text',
         'sort_order',
     ];
 

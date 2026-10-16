@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductTagController;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,16 @@ Route::middleware(['auth', 'throttle:240,1'])->get('/api/products/search', [Prod
 Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     // Main index route - accessible to all authenticated users
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+
+    // Product tags (storefront labels). Gated by products.update like the rest of
+    // the catalog editing; static paths first so {product_tag} never swallows them.
+    Route::middleware('can:products.update')->group(function () {
+        Route::get('/product-tags', [ProductTagController::class, 'index'])->name('product-tags.index');
+        Route::post('/product-tags', [ProductTagController::class, 'store'])->name('product-tags.store');
+        Route::post('/product-tags/assign', [ProductTagController::class, 'assign'])->name('product-tags.assign');
+        Route::put('/product-tags/{product_tag}', [ProductTagController::class, 'update'])->name('product-tags.update');
+        Route::delete('/product-tags/{product_tag}', [ProductTagController::class, 'destroy'])->name('product-tags.destroy');
+    });
 
     // Admin and manager only routes
     Route::middleware('can:products.create')->group(function () {
@@ -25,6 +36,7 @@ Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
         // Routes with dynamic parameters
         Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::put('/products/{product}/images-alt-text', [ProductController::class, 'updateImagesAltText'])->name('products.images.alt-text');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
         Route::put('/products/{product}/restore', [ProductController::class, 'restore'])->name('products.restore');
         Route::delete('/products/{product}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');

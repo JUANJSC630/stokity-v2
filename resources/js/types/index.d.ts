@@ -192,6 +192,20 @@ export interface PaginatedData<T> {
     links: { url: string | null; label: string; active: boolean }[];
 }
 
+export interface ProductImage {
+    id: number;
+    image_url: string;
+    alt_text: string | null;
+    sort_order: number;
+}
+
+export interface ProductTag {
+    id: number;
+    name: string;
+    slug?: string;
+    products_count?: number;
+}
+
 export interface Product {
     id: number;
     name: string;
@@ -217,6 +231,18 @@ export interface Product {
     // Relations
     category?: Category;
     branch?: Branch;
+    tags?: ProductTag[];
+    images?: ProductImage[];
+    material?: string | null;
+    dimensions?: string | null;
+    weight_grams?: number | null;
+    origin?: string | null;
+    manufacturing?: 'handmade' | 'supplier' | 'mixed' | null;
+    care_instructions?: string | null;
+    color?: string | null;
+    style?: string | null;
+    seo_title?: string | null;
+    seo_description?: string | null;
 }
 
 export interface Sale {

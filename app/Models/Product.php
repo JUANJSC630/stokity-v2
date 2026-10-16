@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductManufacturing;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +34,13 @@ use Illuminate\Support\Str;
 class Product extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
+
+    /**
+     * Relations the public storefront resource renders.
+     *
+     * @var list<string>
+     */
+    public const STORE_RELATIONS = ['category', 'images', 'branch', 'tags'];
 
     protected static function booted(): void
     {
@@ -71,6 +79,16 @@ class Product extends Model
         'variable_price',
         'show_in_storefront',
         'slug',
+        'material',
+        'dimensions',
+        'weight_grams',
+        'origin',
+        'manufacturing',
+        'care_instructions',
+        'color',
+        'style',
+        'seo_title',
+        'seo_description',
     ];
 
     /**
@@ -88,6 +106,8 @@ class Product extends Model
         'min_stock' => 'integer',
         'variable_price' => 'boolean',
         'show_in_storefront' => 'boolean',
+        'weight_grams' => 'integer',
+        'manufacturing' => ProductManufacturing::class,
     ];
 
     /**
@@ -113,6 +133,14 @@ class Product extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * @return BelongsToMany<ProductTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductTag::class)->withTimestamps()->orderBy('product_tags.name');
     }
 
     /**

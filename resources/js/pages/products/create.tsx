@@ -1,14 +1,17 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
 import { ImageField, MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '@/components/products/product-fields';
+import { emptyStorefrontInfo, StorefrontInfoFields, type StorefrontInfoData } from '@/components/products/storefront-info-fields';
+import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
+import { usePermissions } from '@/hooks/use-permissions';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { type Branch, type BreadcrumbItem, type Category } from '@/types';
+import { type Branch, type BreadcrumbItem, type Category, type ProductTag } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import Cookies from 'js-cookie';
@@ -18,6 +21,7 @@ import { useState } from 'react';
 interface CreateProductProps {
     categories: Category[];
     branches: Branch[];
+    tags?: ProductTag[];
     userBranchId?: number | null;
 }
 
@@ -27,8 +31,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Crear', href: '/products/create' },
 ];
 
-export default function Create({ categories = [], branches = [], userBranchId = null }: CreateProductProps) {
+export default function Create({ categories = [], branches = [], tags = [], userBranchId = null }: CreateProductProps) {
     const onBrand = useOnBrandColor();
+    const { can } = usePermissions();
 
     // Rastrear si el usuario ingresó explícitamente el precio de venta
     const [salePriceTouched, setSalePriceTouched] = useState(false);
@@ -44,22 +49,25 @@ export default function Create({ categories = [], branches = [], userBranchId = 
     })();
 
     // Configurar formulario con Inertia
-    const form = useForm<{
-        name: string;
-        code: string;
-        description: string;
-        type: 'producto' | 'servicio';
-        variable_price: boolean;
-        purchase_price: number;
-        sale_price: number;
-        tax: number;
-        stock: number | '';
-        min_stock: number | '';
-        category_id: string;
-        branch_id: string;
-        status: boolean;
-        image: File | null;
-    }>({
+    const form = useForm<
+        {
+            name: string;
+            code: string;
+            description: string;
+            type: 'producto' | 'servicio';
+            variable_price: boolean;
+            purchase_price: number;
+            sale_price: number;
+            tax: number;
+            stock: number | '';
+            min_stock: number | '';
+            category_id: string;
+            branch_id: string;
+            status: boolean;
+            image: File | null;
+            tag_ids: number[];
+        } & StorefrontInfoData
+    >({
         name: '',
         code: '',
         description: '',
@@ -74,6 +82,8 @@ export default function Create({ categories = [], branches = [], userBranchId = 
         branch_id: userBranchId ? userBranchId.toString() : '',
         status: true,
         image: null as File | null,
+        tag_ids: [] as number[],
+        ...emptyStorefrontInfo(),
     });
 
     useScrollToError(form.errors);
@@ -161,6 +171,16 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                     <div className="contents lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:flex lg:flex-col lg:gap-5">
                         <FormPanel title="Imagen">
                             <ImageField error={form.errors.image} onChange={(file) => form.setData('image', file)} />
+                        </FormPanel>
+                        <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
+                            <TagPicker
+                                tags={tags}
+                                selectedIds={form.data.tag_ids}
+                                onChange={(ids) => form.setData('tag_ids', ids)}
+                                max={10}
+                                error={form.errors.tag_ids}
+                                canManage={can('products.update')}
+                            />
                         </FormPanel>
                         <div className="order-last">
                             <FormPanel title="Estado">
@@ -353,6 +373,17 @@ export default function Create({ categories = [], branches = [], userBranchId = 
                             </FormPanel>
                         </div>
                     )}
+
+                    <div className="lg:col-start-1">
+                        <StorefrontInfoFields
+                            data={form.data}
+                            errors={form.errors}
+                            onChange={(key, value) => {
+                                form.setData(key, value as never);
+                                form.clearErrors(key);
+                            }}
+                        />
+                    </div>
 
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>

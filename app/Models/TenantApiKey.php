@@ -27,6 +27,8 @@ use Illuminate\Support\Str;
  * @property string $hashed_key
  * @property bool $can_manage_media
  * @property bool $can_generate_order_references
+ * @property bool $can_read_catalog
+ * @property int|null $rate_limit_per_minute
  * @property int|null $created_by
  * @property \Illuminate\Support\Carbon|null $last_used_at
  * @property \Illuminate\Support\Carbon|null $revoked_at
@@ -34,6 +36,12 @@ use Illuminate\Support\Str;
 class TenantApiKey extends Model
 {
     use BelongsToTenant, HasFactory;
+
+    /**
+     * Requests per minute per rate-limit bucket when `rate_limit_per_minute`
+     * is null — the limit every key had before it became configurable.
+     */
+    public const DEFAULT_RATE_LIMIT_PER_MINUTE = 60;
 
     protected $fillable = [
         'tenant_id',
@@ -43,11 +51,15 @@ class TenantApiKey extends Model
         'created_by',
         'can_manage_media',
         'can_generate_order_references',
+        'can_read_catalog',
+        'rate_limit_per_minute',
     ];
 
     protected $casts = [
         'can_manage_media' => 'boolean',
         'can_generate_order_references' => 'boolean',
+        'can_read_catalog' => 'boolean',
+        'rate_limit_per_minute' => 'integer',
         'last_used_at' => 'datetime',
         'revoked_at' => 'datetime',
     ];
@@ -72,6 +84,11 @@ class TenantApiKey extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function effectiveRateLimitPerMinute(): int
+    {
+        return $this->rate_limit_per_minute ?? self::DEFAULT_RATE_LIMIT_PER_MINUTE;
     }
 
     public function isRevoked(): bool
@@ -108,6 +125,8 @@ class TenantApiKey extends Model
         ?User $creator = null,
         bool $canManageMedia = false,
         bool $canGenerateOrderReferences = false,
+        ?int $rateLimitPerMinute = null,
+        bool $canReadCatalog = true,
     ): array {
         // 40 random chars of entropy is plenty for a bearer token looked up
         // by exact hash match (not brute-forceable at network-request
@@ -129,6 +148,8 @@ class TenantApiKey extends Model
             'created_by' => $creator?->id,
             'can_manage_media' => $canManageMedia,
             'can_generate_order_references' => $canGenerateOrderReferences,
+            'can_read_catalog' => $canReadCatalog,
+            'rate_limit_per_minute' => $rateLimitPerMinute,
         ]);
 
         return ['key' => $key, 'plainTextKey' => $plainTextKey];
