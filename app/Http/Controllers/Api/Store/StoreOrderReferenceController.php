@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Api\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\StorefrontIdempotencyKey;
 use App\Models\StorefrontOrderCounter;
+use App\Models\Tenant;
+use App\Models\TenantApiKey;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 /**
@@ -21,14 +26,50 @@ use Illuminate\Support\Str;
  */
 class StoreOrderReferenceController extends Controller
 {
-    public function store(): JsonResponse
+    /**
+     * Optional `Idempotency-Key` header (8-64 chars of A-Z a-z 0-9 _ -): the
+     * same key from the same API key within 24 hours returns the SAME
+     * number (200 + `Idempotency-Replayed: true`) instead of consuming a
+     * new one (201). Without the header every call mints a new number, as
+     * before.
+     */
+    public function store(Request $request): JsonResponse
     {
         $tenant = app(TenantManager::class)->get();
 
-        $number = StorefrontOrderCounter::claimNext($tenant->id);
+        $idempotencyKey = $request->header('Idempotency-Key');
 
+        if ($idempotencyKey === null) {
+            return $this->respond($tenant, StorefrontOrderCounter::claimNext($tenant->id), 201);
+        }
+
+        Validator::make(
+            ['idempotency_key' => $idempotencyKey],
+            ['idempotency_key' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/']],
+            ['idempotency_key.regex' => 'La cabecera Idempotency-Key debe tener entre 8 y 64 caracteres (letras, números, guion y guion bajo).'],
+        )->validate();
+
+        /** @var TenantApiKey $apiKey */
+        $apiKey = $request->attributes->get('storeApiKey');
+
+        $result = StorefrontIdempotencyKey::claimOrReplay(
+            $tenant->id,
+            $apiKey->id,
+            $idempotencyKey,
+            fn (int $tenantId) => StorefrontOrderCounter::claimNext($tenantId),
+        );
+
+        return $this->respond($tenant, $result['number'], $result['replayed'] ? 200 : 201, $result['replayed']);
+    }
+
+    private function respond(Tenant $tenant, int $number, int $status, bool $replayed = false): JsonResponse
+    {
         $orderNumber = Str::upper($tenant->slug).'-'.str_pad((string) $number, 6, '0', STR_PAD_LEFT);
 
-        return response()->json(['order_number' => $orderNumber], 201);
+        return response()->json(
+            ['order_number' => $orderNumber],
+            $status,
+            $replayed ? ['Idempotency-Replayed' => 'true'] : [],
+        );
     }
 }
