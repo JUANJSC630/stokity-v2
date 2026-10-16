@@ -80,22 +80,90 @@ describe('Dashboard', () => {
         expect(within(screen.getByRole('region', { name: 'Ingresos' })).getByText('Ventas hoy')).toBeInTheDocument();
     });
 
-    it('keeps the month, clients and products cards, and links to finances when allowed', () => {
-        render(<Dashboard {...props} />);
+    it('shows the month with its pace, and links to finances when allowed', () => {
+        render(<Dashboard {...props} previousMonth={{ revenue: 20000000, revenue_same_period: 15000000 }} />);
 
-        expect(screen.getByText('Ingresos del Mes')).toBeInTheDocument();
-        expect(screen.getByText('$ 18.452.000')).toBeInTheDocument();
-        expect(screen.getByText('Clientes')).toBeInTheDocument();
-        expect(screen.getByText('Productos')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Ver en Finanzas' })).toHaveAttribute('href', '/finances.summary');
+        const month = screen.getByRole('region', { name: 'Este mes' });
+        expect(within(month).getByText('$ 18.452.000')).toBeInTheDocument();
+        expect(month).toHaveTextContent('312 transacciones');
+        expect(month).toHaveTextContent('+23%');
+        expect(within(month).getByRole('link', { name: 'Ver en Finanzas' })).toHaveAttribute('href', '/finances.summary');
     });
 
-    it('hides the products card and the finances link without those permissions', () => {
+    it('no longer spends cards on how many clients and products exist', () => {
+        render(<Dashboard {...props} />);
+
+        expect(screen.queryByText('Clientes')).not.toBeInTheDocument();
+        expect(screen.queryByText('Productos')).not.toBeInTheDocument();
+        expect(screen.queryByText('Registrados')).not.toBeInTheDocument();
+    });
+
+    it('hides the finances link without that permission', () => {
         mockPermissions([]);
         render(<Dashboard {...props} />);
 
-        expect(screen.queryByText('Productos')).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Ver en Finanzas' })).not.toBeInTheDocument();
+    });
+
+    it("splits today's revenue by how it was paid", () => {
+        render(
+            <Dashboard
+                {...props}
+                paymentBreakdown={[
+                    { method: 'cash', group: 'cash', count: 10, total: 700000 },
+                    { method: 'nequi', group: 'transfer', count: 4, total: 300000 },
+                ]}
+            />,
+        );
+
+        const hero = screen.getByRole('region', { name: 'Ingresos' });
+        expect(within(hero).getByRole('img', { name: /Formas de pago de hoy: Efectivo 70 %, Transferencia 30 %/ })).toBeInTheDocument();
+    });
+
+    it('says everything is in order when there is nothing to attend', () => {
+        render(<Dashboard {...props} />);
+
+        const panel = screen.getByRole('region', { name: 'Para atender' });
+        expect(within(panel).getByText('Todo al día')).toBeInTheDocument();
+    });
+
+    it('lists what needs attention, with the overdue credits linking to their tab', () => {
+        render(
+            <Dashboard
+                {...props}
+                lowStockProducts={[{ id: 1, name: 'Collar', code: 'C-1', stock: 1, min_stock: 5 }]}
+                pendingSales={{ total: 2, items: [] }}
+                overdueCredits={{ count: 3, balance: 450000 }}
+            />,
+        );
+
+        const panel = screen.getByRole('region', { name: 'Para atender' });
+        expect(within(panel).queryByText('Todo al día')).not.toBeInTheDocument();
+        expect(within(panel).getByText('3')).toBeInTheDocument();
+        expect(within(panel).getByRole('link', { name: /3 créditos vencidos/ })).toHaveAttribute('href', '/credits.index');
+    });
+
+    it('shows the cash status next to the greeting only when it applies', () => {
+        const { unmount } = render(
+            <Dashboard {...props} cashSession={{ required: true, open: { id: 1, opened_at: '2026-10-13T08:02:00-05:00' } }} />,
+        );
+        expect(screen.getByText(/Caja abierta · desde 08:02/)).toBeInTheDocument();
+        unmount();
+
+        render(<Dashboard {...props} cashSession={{ required: false, open: null }} />);
+        expect(screen.queryByText(/Caja/)).not.toBeInTheDocument();
+    });
+
+    it('sends a closed required cash session to the POS only to those who can open it', () => {
+        mockPermissions(['pos.access']);
+        const { unmount } = render(<Dashboard {...props} cashSession={{ required: true, open: null }} />);
+        expect(screen.getByRole('link', { name: /Caja cerrada · Abrir en el POS/ })).toHaveAttribute('href', '/pos.index');
+        unmount();
+
+        mockPermissions([]);
+        render(<Dashboard {...props} cashSession={{ required: true, open: null }} />);
+        expect(screen.queryByRole('link', { name: /Caja cerrada/ })).not.toBeInTheDocument();
+        expect(screen.getByText('Caja cerrada')).toBeInTheDocument();
     });
 
     it('reloads every dashboard prop, including the daily sales, when refreshed', async () => {
@@ -118,6 +186,10 @@ describe('Dashboard', () => {
                 'lowStockProducts',
                 'pendingSales',
                 'salesByBranch',
+                'paymentBreakdown',
+                'cashSession',
+                'overdueCredits',
+                'previousMonth',
             ]),
         );
     });

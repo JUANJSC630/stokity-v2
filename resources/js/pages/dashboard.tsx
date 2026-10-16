@@ -1,17 +1,43 @@
-import { LowStockProducts, MetricCard, PendingSalesAlert, RecentSales, RevenueHero, SalesByBranch, TopProducts } from '@/components/dashboard';
+import {
+    AttentionPanel,
+    CashStatus,
+    LowStockProducts,
+    MonthPace,
+    OverdueCreditsAlert,
+    PendingSalesAlert,
+    RecentSales,
+    RevenueHero,
+    SalesByBranch,
+    TopProducts,
+    type CashSessionState,
+    type OverdueCredits,
+    type PaymentRow,
+    type PreviousMonth,
+} from '@/components/dashboard';
 import { StaggerItem } from '@/components/ui/bencho/stagger-item';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import AppLayout from '@/layouts/app-layout';
-import { formatCurrency } from '@/lib/format';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DollarSign, Package, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-const DASHBOARD_PROPS = ['metrics', 'growth', 'topProducts', 'recentSales', 'lowStockProducts', 'pendingSales', 'salesByBranch', 'dailySales'];
+const DASHBOARD_PROPS = [
+    'metrics',
+    'growth',
+    'topProducts',
+    'recentSales',
+    'lowStockProducts',
+    'pendingSales',
+    'salesByBranch',
+    'dailySales',
+    'paymentBreakdown',
+    'cashSession',
+    'overdueCredits',
+    'previousMonth',
+];
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -97,10 +123,12 @@ interface DashboardProps {
         total_sales: number;
         total_amount: number;
     }>;
+    paymentBreakdown?: PaymentRow[];
+    cashSession?: CashSessionState | null;
+    overdueCredits?: OverdueCredits | null;
+    previousMonth?: PreviousMonth | null;
     userName: string;
 }
-
-const formatCount = (value: number): string => String(value);
 
 export default function Dashboard({
     metrics,
@@ -111,6 +139,10 @@ export default function Dashboard({
     lowStockProducts,
     pendingSales = { total: 0, items: [] },
     dailySales,
+    paymentBreakdown = [],
+    cashSession = null,
+    overdueCredits = null,
+    previousMonth = null,
     userName,
 }: DashboardProps) {
     // Polling: refresh dashboard data every 2 minutes
@@ -124,7 +156,6 @@ export default function Dashboard({
         [],
     );
     const { can } = usePermissions();
-    const canViewLowStock = can('dashboard.low_stock.view');
     const canViewBranchSales = can('dashboard.branch_sales.view');
 
     const [currentGreeting, setCurrentGreeting] = useState('');
@@ -142,87 +173,71 @@ export default function Dashboard({
         return () => clearInterval(interval);
     }, []);
 
+    const attentionCount =
+        (lowStockProducts.length > 0 ? 1 : 0) +
+        (pendingSales.total > 0 || pendingSales.items.length > 0 ? 1 : 0) +
+        (overdueCredits && overdueCredits.count > 0 ? 1 : 0);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inicio" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-hidden rounded-xl p-4 md:p-6">
-                {/* Header */}
-                <StaggerItem index={0}>
-                    <h1 className="text-2xl font-bold tracking-tight">
-                        {currentGreeting}, {userName}!
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
-                        {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
-                    </p>
+            <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 overflow-x-clip p-4 md:p-6">
+                <StaggerItem index={0} className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            {currentGreeting}, {userName}!
+                        </h1>
+                        <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">
+                            {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
+                        </p>
+                    </div>
+                    <CashStatus cashSession={cashSession} openHref={can('pos.access') ? route('pos.index') : undefined} />
                 </StaggerItem>
 
-                {/* Low-stock alert banner — shown only when there are affected products */}
-                <LowStockProducts products={lowStockProducts} />
-
-                {/* Pending sales alert — stock not yet deducted */}
-                <PendingSalesAlert sales={pendingSales.items} total={pendingSales.total} />
-
-                {/* Today's revenue (pull down to refresh) next to the month and the catalog */}
-                <div className="grid gap-4 lg:grid-cols-3">
-                    <StaggerItem index={1} className="lg:col-span-2">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_23rem]">
+                    <StaggerItem index={1} className="order-1 lg:col-start-1">
                         <RevenueHero
                             revenueToday={metrics.total_revenue_today}
                             revenueGrowth={growth.revenue_growth}
                             salesToday={metrics.total_sales_today}
                             averageSale={metrics.average_sale_today}
                             dailySales={dailySales ?? []}
+                            paymentBreakdown={paymentBreakdown}
                             onRefresh={refresh}
                         />
                     </StaggerItem>
-                    <StaggerItem index={2} className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-1">
-                        <MetricCard
-                            className="col-span-2 lg:col-span-1"
-                            title="Ingresos del Mes"
-                            value={metrics.total_revenue_month}
-                            format={formatCurrency}
-                            description={
-                                <span>
-                                    {metrics.total_sales_month} transacciones · bruto antes de devoluciones
-                                    {can('finances.view') && (
-                                        <>
-                                            {' · '}
-                                            <a href={route('finances.summary')} className="underline underline-offset-2 hover:text-foreground">
-                                                Ver en Finanzas
-                                            </a>
-                                        </>
-                                    )}
-                                </span>
-                            }
-                            icon={<DollarSign className="h-4 w-4" />}
+
+                    {/* On a phone these are ordinary items of the grid (so they interleave with the others); from lg up they stack in one right column. */}
+                    <div className="contents lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex lg:flex-col lg:gap-5">
+                        <StaggerItem index={2} className="order-2">
+                            <AttentionPanel count={attentionCount}>
+                                <LowStockProducts products={lowStockProducts} />
+                                <PendingSalesAlert sales={pendingSales.items} total={pendingSales.total} />
+                                <OverdueCreditsAlert overdue={overdueCredits} href={route('credits.index', { tab: 'overdue' })} />
+                            </AttentionPanel>
+                        </StaggerItem>
+                        <StaggerItem index={4} className="order-4">
+                            <RecentSales sales={recentSales} />
+                        </StaggerItem>
+                    </div>
+
+                    <StaggerItem index={3} className="order-3 lg:col-start-1">
+                        <MonthPace
+                            revenue={metrics.total_revenue_month}
+                            sales={metrics.total_sales_month}
+                            averageSale={metrics.average_sale_month}
+                            previous={previousMonth}
+                            financesHref={can('finances.view') ? route('finances.summary') : undefined}
                         />
-                        <MetricCard
-                            title="Clientes"
-                            value={metrics.total_clients}
-                            format={formatCount}
-                            description="Registrados"
-                            icon={<UserRound className="h-4 w-4" />}
-                        />
-                        {canViewLowStock && (
-                            <MetricCard
-                                title="Productos"
-                                value={metrics.total_products}
-                                format={formatCount}
-                                description="En inventario"
-                                icon={<Package className="h-4 w-4" />}
-                            />
-                        )}
+                    </StaggerItem>
+
+                    <StaggerItem index={5} className="order-5 lg:col-start-1">
+                        <TopProducts products={topProducts} />
                     </StaggerItem>
                 </div>
 
-                {/* Main content */}
-                <StaggerItem index={3} className="grid gap-6 lg:grid-cols-2">
-                    <RecentSales sales={recentSales} />
-                    <TopProducts products={topProducts} />
-                </StaggerItem>
-
-                {/* Ventas por sucursal — admins only */}
                 {canViewBranchSales && salesByBranch.length > 0 && (
-                    <StaggerItem index={4}>
+                    <StaggerItem index={6}>
                         <SalesByBranch branches={salesByBranch} />
                     </StaggerItem>
                 )}
