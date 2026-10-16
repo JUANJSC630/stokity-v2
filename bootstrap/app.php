@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -47,5 +48,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // The public storefront API is consumed by server-side integrations
+        // that don't reliably send `Accept: application/json`; without this
+        // a 429/404 would come back as an HTML error page.
+        $exceptions->shouldRenderJsonWhen(
+            fn (Request $request, Throwable $e) => $request->is('api/v1/store/*') || $request->expectsJson()
+        );
     })->create();

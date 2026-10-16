@@ -59,15 +59,17 @@ use Illuminate\Support\Facades\Route;
 | counter row: see StoreOrderReferenceController's docblock for why this
 | repo still has no orders table for the storefront to write to.
 */
-Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->name('api.store.')->group(function () {
-    Route::get('info', [StoreInfoController::class, 'show'])->name('info');
-    Route::get('categories', [StoreCategoryController::class, 'index'])->name('categories.index');
-    Route::get('branches', [StoreBranchController::class, 'index'])->name('branches.index');
-    Route::get('payment-methods', [StorePaymentMethodController::class, 'index'])->name('payment-methods.index');
-    Route::get('products', [StoreProductController::class, 'index'])->name('products.index');
-    Route::get('products/{slug}', [StoreProductController::class, 'show'])->name('products.show');
+Route::middleware('store.api.key')->prefix('v1/store')->name('api.store.')->group(function () {
+    Route::middleware('throttle:store-api-read')->group(function () {
+        Route::get('info', [StoreInfoController::class, 'show'])->name('info');
+        Route::get('categories', [StoreCategoryController::class, 'index'])->name('categories.index');
+        Route::get('branches', [StoreBranchController::class, 'index'])->name('branches.index');
+        Route::get('payment-methods', [StorePaymentMethodController::class, 'index'])->name('payment-methods.index');
+        Route::get('products', [StoreProductController::class, 'index'])->name('products.index');
+        Route::get('products/{slug}', [StoreProductController::class, 'show'])->name('products.show');
+    });
 
-    Route::middleware('store.api.manage_media')->group(function () {
+    Route::middleware(['throttle:store-api-write', 'store.api.manage_media'])->group(function () {
         Route::post('products/{identifier}/images', [StoreProductImageController::class, 'store'])->name('products.images.store');
         Route::put('products/{identifier}/images/order', [StoreProductImageController::class, 'updateOrder'])->name('products.images.update-order');
         Route::delete('products/{identifier}/images/{imageId}', [StoreProductImageController::class, 'destroy'])->name('products.images.destroy');
@@ -75,6 +77,6 @@ Route::middleware(['store.api.key', 'throttle:store-api'])->prefix('v1/store')->
     });
 
     Route::post('order-reference', [StoreOrderReferenceController::class, 'store'])
-        ->middleware('store.api.generate_order_references')
+        ->middleware(['throttle:store-api-orders', 'store.api.generate_order_references'])
         ->name('order-reference.store');
 });
