@@ -34,6 +34,13 @@ class Product extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
 
+    /**
+     * Relations the public storefront resource renders.
+     *
+     * @var list<string>
+     */
+    public const STORE_RELATIONS = ['category', 'images', 'branch', 'tags'];
+
     protected static function booted(): void
     {
         // Only products opted into the storefront need a public, SEO-friendly
@@ -113,6 +120,14 @@ class Product extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * @return BelongsToMany<ProductTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductTag::class)->withTimestamps()->orderBy('product_tags.name');
     }
 
     /**

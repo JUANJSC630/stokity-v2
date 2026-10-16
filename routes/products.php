@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductTagController;
 use App\Http\Middleware\BranchFilterMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,16 @@ Route::middleware(['auth', 'throttle:240,1'])->get('/api/products/search', [Prod
 Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
     // Main index route - accessible to all authenticated users
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+
+    // Product tags (storefront labels). Gated by products.update like the rest of
+    // the catalog editing; static paths first so {product_tag} never swallows them.
+    Route::middleware('can:products.update')->group(function () {
+        Route::get('/product-tags', [ProductTagController::class, 'index'])->name('product-tags.index');
+        Route::post('/product-tags', [ProductTagController::class, 'store'])->name('product-tags.store');
+        Route::post('/product-tags/assign', [ProductTagController::class, 'assign'])->name('product-tags.assign');
+        Route::put('/product-tags/{product_tag}', [ProductTagController::class, 'update'])->name('product-tags.update');
+        Route::delete('/product-tags/{product_tag}', [ProductTagController::class, 'destroy'])->name('product-tags.destroy');
+    });
 
     // Admin and manager only routes
     Route::middleware('can:products.create')->group(function () {

@@ -113,6 +113,6 @@ class StoreProductImageController extends Controller
             $product->touch();
         });
 
-        return new StoreProductResource($product->load(['category', 'branch', 'images']));
+        return new StoreProductResource($product->load(Product::STORE_RELATIONS));
     }
 }

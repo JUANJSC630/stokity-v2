@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ProductTag;
 use App\Rules\TenantExists;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
@@ -75,6 +76,11 @@ class ProductRequest extends FormRequest
             'category_id' => ['required', TenantExists::in('categories')],
             'branch_id' => ['required', TenantExists::in('branches')],
             'status' => 'boolean',
+            // A browser form sends nothing at all for an empty list, so the edit
+            // form adds `sync_tags` to say "these ARE all the tags, even if none".
+            'sync_tags' => ['sometimes', 'boolean'],
+            'tag_ids' => ['sometimes', 'array', 'max:'.ProductTag::MAX_PER_PRODUCT],
+            'tag_ids.*' => ['integer', 'distinct', TenantExists::in('product_tags')],
         ];
     }
 
@@ -98,6 +104,7 @@ class ProductRequest extends FormRequest
             'category_id' => 'categoría',
             'branch_id' => 'sucursal',
             'status' => 'estado',
+            'tag_ids' => 'etiquetas',
         ];
     }
 
@@ -110,6 +117,7 @@ class ProductRequest extends FormRequest
     {
         return [
             'code.max' => 'El código no puede tener más de 50 caracteres.',
+            'tag_ids.max' => 'Un producto puede tener hasta '.ProductTag::MAX_PER_PRODUCT.' etiquetas.',
         ];
     }
 }

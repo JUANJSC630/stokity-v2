@@ -6,6 +6,7 @@ use App\Http\Requests\ProductRequest;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductTag;
 use App\Models\Supplier;
 use App\Rules\TenantExists;
 use App\Services\BlobStorageService;
@@ -31,7 +32,7 @@ class ProductController extends Controller
     {
         $query = Product::query();
 
-        $with = ['branch', 'category'];
+        $with = ['branch', 'category', 'tags:product_tags.id,product_tags.name'];
 
         $query->with($with);
 
@@ -92,6 +93,7 @@ class ProductController extends Controller
             'products' => $products,
             'categories' => $categories,
             'branches' => $branches,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['search', 'status', 'category', 'branch', 'type']),
         ]);
     }
@@ -112,6 +114,7 @@ class ProductController extends Controller
         return Inertia::render('products/create', [
             'categories' => $categories,
             'branches' => $branches,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'userBranchId' => $user->branch_id,
         ]);
     }
@@ -133,7 +136,11 @@ class ProductController extends Controller
             $validated['image'] = $this->blob->upload($request->file('image'), 'products');
         }
 
+        $tagIds = $validated['tag_ids'] ?? [];
+        unset($validated['tag_ids'], $validated['sync_tags']);
+
         $product = Product::create($validated);
+        $product->tags()->sync($tagIds);
 
         // Registrar en log - podría implementarse un sistema de auditoría aquí
         // Log::info('Product created', ['product_id' => $product->id, 'user_id' => Auth::id()]);
@@ -182,10 +189,11 @@ class ProductController extends Controller
             ->get(['id', 'name', 'nit']);
 
         // Already linked suppliers with pivot data
-        $product->load('suppliers');
+        $product->load(['suppliers', 'tags:product_tags.id,product_tags.name']);
 
         return Inertia::render('products/edit', [
             'product' => $product,
+            'tags' => ProductTag::query()->orderBy('name')->get(['id', 'name']),
             'categories' => $categories,
             'branches' => $branches,
             'suppliers' => $suppliers,
@@ -223,8 +231,18 @@ class ProductController extends Controller
             unset($validated['image']);
         }
 
+        $syncTags = array_key_exists('tag_ids', $validated) || ($validated['sync_tags'] ?? false);
+        $tagIds = $validated['tag_ids'] ?? [];
+        unset($validated['tag_ids'], $validated['sync_tags']);
+
         // Actualizar el producto
         $product->update($validated);
+
+        if ($syncTags && collect($product->tags()->sync($tagIds))->flatten()->isNotEmpty()) {
+            // Changing only the tags leaves the product row itself untouched,
+            // but the storefront sees a changed product (updated_since sync).
+            $product->touch();
+        }
 
         // Redireccionar con mensaje de éxito
         return redirect()->route('products.show', $product)

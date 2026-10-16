@@ -192,6 +192,13 @@ export interface PaginatedData<T> {
     links: { url: string | null; label: string; active: boolean }[];
 }
 
+export interface ProductTag {
+    id: number;
+    name: string;
+    slug?: string;
+    products_count?: number;
+}
+
 export interface Product {
     id: number;
     name: string;
@@ -217,6 +224,7 @@ export interface Product {
     // Relations
     category?: Category;
     branch?: Branch;
+    tags?: ProductTag[];
 }
 
 export interface Sale {

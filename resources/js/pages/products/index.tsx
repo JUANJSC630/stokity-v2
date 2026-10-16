@@ -12,9 +12,9 @@ import { usePolling } from '@/hooks/use-polling';
 import { usePrinter } from '@/hooks/use-printer';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import { type Branch, type BreadcrumbItem, type Category, type Product } from '@/types';
+import { type Branch, type BreadcrumbItem, type Category, type Product, type ProductTag } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Package, Plus, Printer, Trash2, X } from 'lucide-react';
+import { Package, Plus, Printer, Tag, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -30,6 +30,7 @@ interface ProductsPageProps {
     };
     categories: Category[];
     branches: Branch[];
+    tags?: ProductTag[];
     filters?: {
         search?: string;
         status?: string;
@@ -56,6 +57,7 @@ export default function Products({
     products,
     categories = [],
     branches = [],
+    tags = [],
     filters = { search: '', status: 'all', category: 'all', branch: 'all' },
 }: ProductsPageProps) {
     const onBrand = useOnBrandColor();
@@ -68,6 +70,8 @@ export default function Products({
     const [isSearching, setIsSearching] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [printingLabels, setPrintingLabels] = useState(false);
+    const [bulkTagId, setBulkTagId] = useState('');
+    const [taggingBusy, setTaggingBusy] = useState(false);
     const printer = usePrinter();
 
     // Drop any selected id that's no longer in the visible page (new
@@ -172,6 +176,21 @@ export default function Products({
         }
     };
 
+    const handleBulkTag = (action: 'add' | 'remove') => {
+        if (!bulkTagId) return;
+        setTaggingBusy(true);
+        router.post(
+            '/product-tags/assign',
+            { product_ids: Array.from(selectedIds), tag_id: Number(bulkTagId), action },
+            {
+                preserveScroll: true,
+                onSuccess: () => setSelectedIds(new Set()),
+                onError: (errors) => toast.error(Object.values(errors)[0] ?? 'No se pudo actualizar la etiqueta'),
+                onFinish: () => setTaggingBusy(false),
+            },
+        );
+    };
+
     const refresh = useCallback(
         () =>
             new Promise<void>((resolve) => {
@@ -212,6 +231,16 @@ export default function Products({
                                 <Trash2 className="size-4" aria-hidden="true" />
                                 <span className="hidden sm:inline">Papelera</span>
                                 <span className="sr-only sm:hidden">Papelera</span>
+                            </Link>
+                        )}
+                        {can('products.update') && (
+                            <Link
+                                href="/product-tags"
+                                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10"
+                            >
+                                <Tag className="size-4" aria-hidden="true" />
+                                <span className="hidden sm:inline">Etiquetas</span>
+                                <span className="sr-only sm:hidden">Etiquetas</span>
                             </Link>
                         )}
                         {canCreate && (
@@ -335,7 +364,7 @@ export default function Products({
                     <div
                         role="region"
                         aria-label="Selección"
-                        className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/95 p-2 pl-4 shadow-lg backdrop-blur"
+                        className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/95 p-2 pl-4 shadow-lg backdrop-blur"
                     >
                         <span className="text-sm font-medium tabular-nums">
                             {selectedIds.size} {selectedIds.size === 1 ? 'seleccionado' : 'seleccionados'}
@@ -350,6 +379,38 @@ export default function Products({
                             >
                                 <X className="size-4" aria-hidden="true" />
                             </button>
+                            {can('products.update') && tags.length > 0 && (
+                                <div className="flex items-center gap-2" role="group" aria-label="Etiquetar selección">
+                                    <Select value={bulkTagId} onValueChange={setBulkTagId}>
+                                        <SelectTrigger aria-label="Etiqueta" className={cn(SELECT_TRIGGER, 'w-40')}>
+                                            <SelectValue placeholder="Etiqueta..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {tags.map((tag) => (
+                                                <SelectItem key={tag.id} value={tag.id.toString()}>
+                                                    {tag.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBulkTag('add')}
+                                        disabled={!bulkTagId || taggingBusy}
+                                        className="flex h-11 items-center rounded-xl border border-border/60 px-3 text-sm font-medium hover:bg-muted disabled:opacity-50 sm:h-10"
+                                    >
+                                        Agregar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBulkTag('remove')}
+                                        disabled={!bulkTagId || taggingBusy}
+                                        className="flex h-11 items-center rounded-xl border border-border/60 px-3 text-sm font-medium hover:bg-muted disabled:opacity-50 sm:h-10"
+                                    >
+                                        Quitar
+                                    </button>
+                                </div>
+                            )}
                             <button
                                 type="button"
                                 onClick={handlePrintSelectedLabels}

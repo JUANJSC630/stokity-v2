@@ -46,6 +46,7 @@ class StoreProductController extends Controller
             'branch_id' => 'nullable|integer',
             'per_page' => 'nullable|integer|min:1|max:100',
             'visibility' => 'nullable|string|in:all',
+            'tag' => 'nullable|string|max:200',
             'updated_since' => ['nullable', 'string', function (string $attribute, mixed $value, Closure $fail) {
                 if ($this->parseUpdatedSince((string) $value) === null) {
                     $fail('El parámetro updated_since debe ser una fecha ISO 8601, por ejemplo 2026-10-16T14:03:22-05:00 (codifica el + como %2B en la URL).');
@@ -71,14 +72,14 @@ class StoreProductController extends Controller
                 ->where(fn ($q) => $q
                     ->where(fn ($visible) => $visible->where('status', true)->where('show_in_storefront', true))
                     ->orWhereNotNull('slug'))
-                ->with(['category', 'images', 'branch'])
+                ->with(Product::STORE_RELATIONS)
                 ->orderBy('updated_at')
                 ->orderBy('id');
         } else {
             $query = Product::query()
                 ->where('status', true)
                 ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
-                ->with(['category', 'images', 'branch'])
+                ->with(Product::STORE_RELATIONS)
                 ->orderBy('name');
         }
 
@@ -92,6 +93,13 @@ class StoreProductController extends Controller
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->integer('branch_id'));
+        }
+
+        // `?tag=a,b` matches products carrying ANY of the listed tags.
+        if ($request->filled('tag')) {
+            $slugs = collect(explode(',', $request->string('tag')->value()))->map(fn (string $slug) => trim($slug))->filter()->take(10)->all();
+
+            $query->whereHas('tags', fn ($tags) => $tags->whereIn('product_tags.slug', $slugs));
         }
 
         $products = $query->paginate($request->integer('per_page', 24));
@@ -154,7 +162,7 @@ class StoreProductController extends Controller
                     $query->orWhere('code', $slug);
                 }
             })
-            ->with(['category', 'images', 'branch'])
+            ->with(Product::STORE_RELATIONS)
             ->firstOrFail();
 
         return new StoreProductResource($product);
@@ -211,7 +219,7 @@ class StoreProductController extends Controller
 
         $product->save();
 
-        return new StoreProductResource($product->load(['category', 'images', 'branch']));
+        return new StoreProductResource($product->load(Product::STORE_RELATIONS));
     }
 
     private function canManageMedia(Request $request): bool

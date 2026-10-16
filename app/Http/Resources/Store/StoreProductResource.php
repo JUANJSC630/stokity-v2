@@ -52,6 +52,7 @@ class StoreProductResource extends JsonResource
             'gallery' => StoreProductImageResource::collection($this->whenLoaded('images')),
             'category' => $this->whenLoaded('category', fn () => new StoreCategoryResource($this->category)),
             'branch' => $this->whenLoaded('branch', fn () => new StoreBranchResource($this->branch)),
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => ['slug' => $tag->slug, 'name' => $tag->name])->values()),
             // Curation state is panel-internal, not something a plain
             // read-only storefront integration needs — only a key allowed
             // to manage media/visibility (StoreProductController's
