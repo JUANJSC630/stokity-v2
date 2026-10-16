@@ -4,7 +4,7 @@
 #
 #   scripts/store-api-rehearsal.sh /path/to/production-backup.sql [tenant-slug]
 #
-# What it does, in a throwaway LOCAL database:
+# What it does, in a NEW local database (it never drops or deletes any database):
 #   1. restores the backup,
 #   2. snapshots row counts and categories,
 #   3. runs `php artisan migrate --force` with the current branch (timing each migration),
@@ -15,16 +15,21 @@
 #
 # Safety: it only ever talks to a MySQL on this machine (127.0.0.1/localhost) and refuses any
 # database whose name does not contain "rehearsal" or "scratch" or that is the one in .env.
+# It NEVER drops a database: the name defaults to stokity_v2_rehearsal_<timestamp> and the run
+# refuses to start if that database already exists. Leftover databases are left for you to delete.
 # It prints no key. The log goes to ~/store-api-rehearsal-<timestamp>.log.
 #
-# Env: REHEARSAL_DB (default stokity_v2_rehearsal) · REHEARSAL_PORT (default 8099)
+# Env: REHEARSAL_DB (default stokity_v2_rehearsal_<timestamp>) · REHEARSAL_PORT (default 8099, the
+#      temporary web server) · REHEARSAL_DB_HOST / REHEARSAL_DB_PORT / REHEARSAL_DB_USER /
+#      REHEARSAL_DB_PASSWORD to use another local MySQL (for example a Docker mysql:9.7.2 on 3307)
+#      instead of the one in .env.
 # Exit code: 0 everything passed · 1 something failed · 2 bad usage.
 
 set -u
 
 DUMP="${1:-}"
-TENANT="${2:-luaccesorios}"
-REHEARSAL_DB="${REHEARSAL_DB:-stokity_v2_rehearsal}"
+TENANT="${2:-}"
+REHEARSAL_DB="${REHEARSAL_DB:-stokity_v2_rehearsal_$(date +%Y%m%d%H%M%S)}"
 PORT="${REHEARSAL_PORT:-8099}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 2
@@ -33,9 +38,10 @@ cd "$ROOT" || exit 2
 command -v mysql >/dev/null || { echo "ERROR: no se encontró el cliente mysql." >&2; exit 2; }
 
 env_value() { grep -E "^$1=" .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//'; }
-DB_HOST="$(env_value DB_HOST)"; DB_PORT="$(env_value DB_PORT)"; DB_USER="$(env_value DB_USERNAME)"
+DB_HOST="${REHEARSAL_DB_HOST:-$(env_value DB_HOST)}"; DB_PORT="${REHEARSAL_DB_PORT:-$(env_value DB_PORT)}"; DB_USER="${REHEARSAL_DB_USER:-$(env_value DB_USERNAME)}"
+DB_PASS="${REHEARSAL_DB_PASSWORD-$(env_value DB_PASSWORD)}"
 DEV_DB="$(env_value DB_DATABASE)"
-export MYSQL_PWD="$(env_value DB_PASSWORD)"
+export MYSQL_PWD="$DB_PASS"
 
 case "$DB_HOST" in 127.0.0.1|localhost) ;; *) echo "ERROR: DB_HOST=$DB_HOST no es local; el ensayo solo corre contra MySQL en esta máquina." >&2; exit 2 ;; esac
 case "$REHEARSAL_DB" in *rehearsal*|*scratch*) ;; *) echo "ERROR: el nombre de la base de ensayo debe contener 'rehearsal' o 'scratch'." >&2; exit 2 ;; esac
@@ -58,14 +64,16 @@ ok()   { PASSED=$((PASSED + 1)); echo "  OK     $1"; }
 bad()  { FAILED=$((FAILED + 1)); echo "  FALLA  $1${2:+ — $2}"; }
 sql()  { mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" --batch --skip-column-names "$REHEARSAL_DB" -e "$1"; }
 now_ms() { python3 -c 'import time; print(int(time.time()*1000))'; }
-artisan() { DB_DATABASE="$REHEARSAL_DB" "$@"; }
+artisan() { DB_HOST="$DB_HOST" DB_PORT="$DB_PORT" DB_USERNAME="$DB_USER" DB_PASSWORD="$DB_PASS" DB_DATABASE="$REHEARSAL_DB" "$@"; }
 
 echo "Ensayo del despliegue de la API de tienda"
 echo "Respaldo: $DUMP ($(du -h "$DUMP" | cut -f1)) · Base de ensayo: $REHEARSAL_DB · Rama: $(git rev-parse --abbrev-ref HEAD) $(git rev-parse --short HEAD)"
 echo
 
 echo "[1] Restaurar el respaldo"
-mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -e "DROP DATABASE IF EXISTS \`$REHEARSAL_DB\`; CREATE DATABASE \`$REHEARSAL_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || { echo "ERROR creando la base"; exit 1; }
+EXISTING="$(mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" --batch --skip-column-names -e "select count(*) from information_schema.schemata where schema_name = '$REHEARSAL_DB'")"
+[ "$EXISTING" = "0" ] || { echo "ERROR: la base '$REHEARSAL_DB' ya existe. Este script nunca borra bases: elige otro nombre con REHEARSAL_DB=… (o bórrala tú si ya no la necesitas)." >&2; exit 2; }
+mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -e "CREATE DATABASE \`$REHEARSAL_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || { echo "ERROR creando la base"; exit 1; }
 START=$(now_ms)
 if mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" "$REHEARSAL_DB" < "$DUMP" 2>"$WORK/restore.err"; then
     ok "respaldo restaurado en $(( $(now_ms) - START )) ms"
@@ -73,7 +81,11 @@ else
     bad "restaurar el respaldo" "$(head -c 300 "$WORK/restore.err")"
     echo; echo "Resumen: $PASSED correctas, $FAILED con falla"; exit 1
 fi
-echo "  MySQL del ensayo: $(sql 'select version()')"
+echo "  MySQL del ensayo: $(sql 'select version()') ($DB_HOST:$DB_PORT)"
+if [ -z "$TENANT" ]; then
+    TENANT="$(sql "select slug from tenants where slug in ('lu-accesorios','luaccesorios') order by id limit 1")"
+    [ -n "$TENANT" ] && echo "  negocio detectado: $TENANT" || echo "  (no se encontró lu-accesorios ni luaccesorios en el respaldo)"
+fi
 
 echo; echo "[2] Foto del antes"
 count_tables() {
@@ -153,8 +165,8 @@ if [ -z "$READ_KEY" ] || [ -z "$ORDERS_KEY" ] || [ -z "$ADMIN_KEY" ]; then
 else
     ok "tres llaves creadas en la copia (no se imprimen)"
     # `artisan serve` forwards APP_ENV but not DB_*; a temporary env file pins the copy.
-    grep -vE '^(DB_DATABASE|APP_ENV|APP_DEBUG|CACHE_STORE)=' .env > .env.rehearsal
-    printf 'DB_DATABASE=%s\nAPP_ENV=rehearsal\nAPP_DEBUG=false\nCACHE_STORE=database\n' "$REHEARSAL_DB" >> .env.rehearsal
+    grep -vE '^(DB_HOST|DB_PORT|DB_USERNAME|DB_PASSWORD|DB_DATABASE|APP_ENV|APP_DEBUG|CACHE_STORE)=' .env > .env.rehearsal
+    printf 'DB_HOST=%s\nDB_PORT=%s\nDB_USERNAME=%s\nDB_PASSWORD=%s\nDB_DATABASE=%s\nAPP_ENV=rehearsal\nAPP_DEBUG=false\nCACHE_STORE=database\n' "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASS" "$REHEARSAL_DB" >> .env.rehearsal
     APP_ENV=rehearsal php artisan serve --host=127.0.0.1 --port="$PORT" > "$WORK/server.log" 2>&1 &
     SERVER_PID=$!
     for _ in $(seq 1 30); do curl -s -o /dev/null "http://127.0.0.1:$PORT/api/v1/store/health" && break; sleep 0.5; done
@@ -171,5 +183,6 @@ fi
 
 echo
 echo "Resumen del ensayo: $PASSED correctas, $FAILED con falla"
+echo "Base de ensayo conservada (no se borra): $REHEARSAL_DB en $DB_HOST:$DB_PORT"
 echo "Registro guardado en: $LOG"
 [ "$FAILED" -eq 0 ] && { echo "ENSAYO OK"; exit 0; } || { echo "ENSAYO CON FALLAS"; exit 1; }
