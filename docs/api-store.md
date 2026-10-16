@@ -75,7 +75,9 @@ Si la base de datos no responde: `503` con `"status":"error"` y `"db":"error"`. 
 
 | Parámetro | Descripción |
 |---|---|
-| `q` | Texto a buscar en el nombre (máx. 100 caracteres). |
+| `q` | Texto a buscar en el nombre (máx. 100 caracteres). Distingue tildes según la base de datos; se conserva por compatibilidad. |
+| `search` | Búsqueda por nombre que ignora mayúsculas y tildes (máx. 80 caracteres). Ver sección 4.1. Si se envían `search` y `q`, manda `search`. |
+| `tag` | Slug de etiqueta (`artesanal`). Varios separados por coma = productos con **cualquiera** de ellas. |
 | `category_id`, `branch_id` | Filtros por categoría y sucursal. |
 | `page` | Página (por defecto 1). |
 | `per_page` | 1 a **100** (por defecto 24). |
@@ -99,9 +101,20 @@ Respuesta (producto completo, lista blanca; el resto de campos internos nunca se
       "in_stock": true,
       "available_stock": 98,
       "image_url": "https://….webp",
-      "gallery": [{"id": 1, "url": "https://….webp", "sort_order": 0}],
-      "category": {"id": 10, "name": "Ropa", "description": "…", "created_at": "2026-09-03T10:27:07-05:00", "updated_at": "2026-09-03T10:27:07-05:00"},
+      "gallery": [{"id": 1, "url": "https://….webp", "alt_text": "Camiseta polo azul vista de frente", "sort_order": 0}],
+      "category": {"id": 10, "name": "Ropa", "slug": "ropa", "description": "…", "image_url": null, "created_at": "2026-09-03T10:27:07-05:00", "updated_at": "2026-09-03T10:27:07-05:00"},
       "branch": {"id": 8, "name": "La Unión", "address": "…", "phone": "…"},
+      "tags": [{"slug": "artesanal", "name": "Artesanal"}],
+      "material": "Algodón pima",
+      "dimensions": "Talla M, largo 68 cm",
+      "weight_grams": 180,
+      "origin": "Hecho en Medellín, Colombia",
+      "manufacturing": "supplier",
+      "care_instructions": "Lavar a máquina en frío.",
+      "color": "Azul",
+      "style": "Casual",
+      "seo_title": "Camiseta polo azul",
+      "seo_description": "Camiseta polo de algodón pima, corte clásico.",
       "created_at": "2026-09-03T10:27:07-05:00",
       "updated_at": "2026-09-22T08:13:56-05:00"
     }
@@ -113,9 +126,67 @@ Respuesta (producto completo, lista blanca; el resto de campos internos nunca se
 
 `available_stock` ya descuenta el stock reservado. Para servicios es `null` y `in_stock` es `true`. Las llaves de administración reciben además `show_in_storefront`.
 
+#### Campos de información del producto
+
+Todos opcionales; **siempre están presentes** y valen `null` si el negocio no los llenó. Se editan en el panel de Stokity (formulario del producto, «Información para la tienda web»), no por la API.
+
+| Campo | Tipo | Límite |
+|---|---|---|
+| `material` | texto | 255 |
+| `dimensions` | texto libre | 255 |
+| `weight_grams` | entero | 0 a 100000 |
+| `origin` | texto | 255 |
+| `manufacturing` | `handmade`, `supplier`, `mixed` o `null` | |
+| `care_instructions` | texto | 1000 |
+| `color`, `style` | texto | 60 |
+| `seo_title` | texto | 70 |
+| `seo_description` | texto | 160 |
+
+`gallery[].alt_text` (texto de hasta 255, o `null`) se edita en el panel, en la sección «Fotos de la galería» de cada producto.
+
+`tags` es siempre un arreglo (vacío si el producto no tiene etiquetas), ordenado por nombre. Las etiquetas se administran en el panel (Catálogo → Etiquetas); un producto puede tener hasta 10. El `slug` de una etiqueta no cambia al renombrarla.
+
+### 4.1 Búsqueda
+
+`GET /products?search=brazalete`
+
+- Busca dentro del **nombre** del producto (contiene el texto, no solo al inicio).
+- Ignora mayúsculas y tildes en ambos lados: `brazalete` encuentra «Brazaléte» y «BRAZALETE», y `camion` encuentra «Camión».
+- Máximo 80 caracteres; más responde `422`. Los caracteres `%` y `_` se buscan literalmente.
+- En MySQL la comparación se fuerza a `utf8mb4_unicode_ci`, así que no depende de la collation de la columna.
+- Solo busca entre los productos visibles (o todos, con `visibility=all` y llave de administración).
+- Medido: ~14 ms (mediana) para una búsqueda sobre 1.000 productos en MySQL local, incluyendo todo el procesamiento de la petición.
+
 ### `GET /products/{slug}`
 
 El producto con la misma forma de arriba. `404` si no existe, no está activo o no está publicado.
+
+## 4.2 Categorías
+
+`GET /categories`: categorías activas con al menos un producto visible, ordenadas por nombre.
+
+```json
+{
+  "data": [
+    {
+      "id": 10,
+      "name": "Ropa",
+      "slug": "ropa",
+      "description": "Categoría de ropa",
+      "image_url": null,
+      "products_count": 4,
+      "created_at": "2026-09-03T10:27:07-05:00",
+      "updated_at": "2026-09-03T10:27:07-05:00"
+    }
+  ]
+}
+```
+
+- `slug`: minúsculas, sin tildes, con guiones; **único por negocio** y **estable**: no cambia al renombrar la categoría. Si dos nombres dan el mismo slug, el segundo recibe `-2`, el tercero `-3`... Úsalo en la URL `/category/{slug}`.
+- `products_count`: productos visibles de esa categoría.
+- `image_url`: siempre `null` por ahora (las categorías no tienen imagen); el campo ya es parte del contrato.
+- Dentro de un producto, `category` trae los mismos campos salvo `products_count`.
+- Cambiar el slug a propósito: `php artisan store:categories:regenerate-slug <negocio> <id-categoría>` (cambia una URL pública).
 
 ## 5. Cabeceras condicionales (ETag)
 
@@ -151,7 +222,7 @@ Producto eliminado:
 
 Solo se informan como ocultos o eliminados los productos que alguna vez se publicaron (los que tienen `slug`). El precio y el stock de un producto oculto no se envían.
 
-Qué cuenta como cambio (actualiza `updated_at`): cualquier edición del producto, ventas y devoluciones (stock), reservas y liberaciones de separados/créditos (`reserved_stock`), ajustes de inventario, cambios en la galería de imágenes, y renombrar o desactivar su categoría.
+Qué cuenta como cambio (actualiza `updated_at`): cualquier edición del producto, ventas y devoluciones (stock), reservas y liberaciones de separados/créditos (`reserved_stock`), ajustes de inventario, cambios en la galería de imágenes (incluido su texto alternativo), asignar o quitar etiquetas (o renombrarlas/borrarlas), y renombrar o desactivar su categoría.
 
 ### Algoritmo
 
