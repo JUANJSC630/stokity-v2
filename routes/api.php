@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Store\StoreBranchController;
 use App\Http\Controllers\Api\Store\StoreCategoryController;
+use App\Http\Controllers\Api\Store\StoreHealthController;
 use App\Http\Controllers\Api\Store\StoreInfoController;
 use App\Http\Controllers\Api\Store\StoreOrderReferenceController;
 use App\Http\Controllers\Api\Store\StorePaymentMethodController;
@@ -59,6 +60,11 @@ use Illuminate\Support\Facades\Route;
 | counter row: see StoreOrderReferenceController's docblock for why this
 | repo still has no orders table for the storefront to write to.
 */
+// Uptime monitor: no API key, outside the keyed groups and their limits.
+Route::get('v1/store/health', StoreHealthController::class)
+    ->middleware('throttle:store-health')
+    ->name('api.store.health');
+
 Route::middleware('store.api.key')->prefix('v1/store')->name('api.store.')->group(function () {
     Route::middleware(['throttle:store-api-read', 'store.api.read_catalog'])->group(function () {
         Route::get('info', [StoreInfoController::class, 'show'])->name('info');

@@ -77,6 +77,10 @@ class AppServiceProvider extends ServiceProvider
         // closure runs before ResolveTenantFromApiKey. An unknown/revoked
         // token falls back to the IP and the default limit, so garbage
         // tokens can't mint their own buckets.
+        // Uptime-monitor endpoint: unauthenticated, so keyed by IP, with a
+        // generous budget of its own that never touches a key's buckets.
+        RateLimiter::for('store-health', fn (Request $request) => Limit::perMinute(120)->by('health:'.$request->ip()));
+
         foreach (['read', 'write', 'orders'] as $bucket) {
             RateLimiter::for("store-api-{$bucket}", function (Request $request) use ($bucket) {
                 $token = $request->bearerToken();
