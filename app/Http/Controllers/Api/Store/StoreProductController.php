@@ -9,6 +9,7 @@ use App\Models\TenantApiKey;
 use App\Rules\ExistingHttpsBlobUrl;
 use Carbon\CarbonImmutable;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -42,6 +43,7 @@ class StoreProductController extends Controller
     {
         $request->validate([
             'q' => 'nullable|string|max:100',
+            'search' => 'nullable|string|max:80',
             'category_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
             'per_page' => 'nullable|integer|min:1|max:100',
@@ -83,7 +85,9 @@ class StoreProductController extends Controller
                 ->orderBy('name');
         }
 
-        if ($request->filled('q')) {
+        if ($request->filled('search')) {
+            $this->whereNameMatchesInsensitively($query, $request->string('search')->value());
+        } elseif ($request->filled('q')) {
             $query->where('name', 'like', '%'.$this->escapeLike($request->string('q')->value()).'%');
         }
 
@@ -228,6 +232,26 @@ class StoreProductController extends Controller
         $apiKey = $request->attributes->get('storeApiKey');
 
         return (bool) $apiKey?->can_manage_media;
+    }
+
+    /**
+     * `?search=` (max 80 chars): a contains-match on the product name that
+     * ignores case AND accents ("brazalete" finds "Brazaléte" and "BRAZALETE").
+     * On MySQL the comparison is forced to utf8mb4_unicode_ci instead of
+     * trusting whatever collation the column happens to have, so it behaves
+     * the same on every database. `?q=` is deliberately left as it was.
+     */
+    private function whereNameMatchesInsensitively(Builder $query, string $term): void
+    {
+        $pattern = '%'.$this->escapeLike($term).'%';
+
+        if ($query->getConnection()->getDriverName() === 'mysql') {
+            $query->whereRaw('products.name COLLATE utf8mb4_unicode_ci like ?', [$pattern]);
+
+            return;
+        }
+
+        $query->where('name', 'like', $pattern);
     }
 
     /**
