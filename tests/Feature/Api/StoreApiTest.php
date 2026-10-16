@@ -592,7 +592,7 @@ it('rejects generating an order reference from a key without the can_generate_or
         ->assertForbidden();
 });
 
-it('generates consecutive order reference numbers, prefixed by the tenant slug', function () {
+it('generates consecutive 6-digit order reference numbers with no prefix', function () {
     $world = makeStoreWorld('order-ref-sequence', canGenerateOrderReferences: true);
 
     $first = $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
@@ -605,8 +605,8 @@ it('generates consecutive order reference numbers, prefixed by the tenant slug',
         ->assertCreated()
         ->json('order_number');
 
-    expect($first)->toBe('ORDER-REF-SEQUENCE-000001');
-    expect($second)->toBe('ORDER-REF-SEQUENCE-000002');
+    expect($first)->toBe('000001');
+    expect($second)->toBe('000002');
 });
 
 it('keeps independent order reference counters per tenant', function () {
@@ -624,7 +624,7 @@ it('keeps independent order reference counters per tenant', function () {
         ->assertCreated()
         ->json('order_number');
 
-    expect($bFirst)->toBe('ORDER-REF-TENANT-B-000001');
+    expect($bFirst)->toBe('000001');
 });
 
 it('never repeats or skips a number across many rapid claims (concurrency-safety proxy)', function () {

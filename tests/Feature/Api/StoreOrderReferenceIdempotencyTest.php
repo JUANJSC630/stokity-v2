@@ -43,11 +43,11 @@ it('returns 201 the first time and 200 with the same number on repetition, witho
     $third = postReference($w['plain'], 'checkout-abc-0001')->assertOk();
 
     expect($first->headers->has('Idempotency-Replayed'))->toBeFalse()
-        ->and($first->json('order_number'))->toBe('IDEM-BASIC-000001')
-        ->and($second->json('order_number'))->toBe('IDEM-BASIC-000001')
-        ->and($third->json('order_number'))->toBe('IDEM-BASIC-000001');
+        ->and($first->json('order_number'))->toBe('000001')
+        ->and($second->json('order_number'))->toBe('000001')
+        ->and($third->json('order_number'))->toBe('000001');
 
-    postReference($w['plain'], 'checkout-abc-0002')->assertCreated()->assertJson(['order_number' => 'IDEM-BASIC-000002']);
+    postReference($w['plain'], 'checkout-abc-0002')->assertCreated()->assertJson(['order_number' => '000002']);
 
     expect(StorefrontOrderCounter::where('tenant_id', $w['tenant']->id)->value('next_number'))->toBe(3);
 });
@@ -55,8 +55,8 @@ it('returns 201 the first time and 200 with the same number on repetition, witho
 it('keeps the legacy behaviour without the header: every call burns a new number', function () {
     $w = makeOrdersKey('idem-legacy');
 
-    expect(postReference($w['plain'])->assertCreated()->json('order_number'))->toBe('IDEM-LEGACY-000001')
-        ->and(postReference($w['plain'])->assertCreated()->json('order_number'))->toBe('IDEM-LEGACY-000002');
+    expect(postReference($w['plain'])->assertCreated()->json('order_number'))->toBe('000001')
+        ->and(postReference($w['plain'])->assertCreated()->json('order_number'))->toBe('000002');
     expect(StorefrontIdempotencyKey::count())->toBe(0);
 });
 
@@ -64,19 +64,19 @@ it('scopes the idempotency key to the API key: another key gets its own number',
     $w = makeOrdersKey('idem-keys');
     $other = TenantApiKey::generate($w['tenant'], 'orders-2', null, false, true, null, false)['plainTextKey'];
 
-    postReference($w['plain'], 'shared-header-1')->assertCreated()->assertJson(['order_number' => 'IDEM-KEYS-000001']);
-    postReference($other, 'shared-header-1')->assertCreated()->assertJson(['order_number' => 'IDEM-KEYS-000002']);
-    postReference($w['plain'], 'shared-header-1')->assertOk()->assertJson(['order_number' => 'IDEM-KEYS-000001']);
+    postReference($w['plain'], 'shared-header-1')->assertCreated()->assertJson(['order_number' => '000001']);
+    postReference($other, 'shared-header-1')->assertCreated()->assertJson(['order_number' => '000002']);
+    postReference($w['plain'], 'shared-header-1')->assertOk()->assertJson(['order_number' => '000001']);
 });
 
 it('never shares idempotency keys across businesses', function () {
     $a = makeOrdersKey('idem-a');
     $b = makeOrdersKey('idem-b');
 
-    postReference($a['plain'], 'same-header-xyz')->assertCreated()->assertJson(['order_number' => 'IDEM-A-000001']);
-    postReference($b['plain'], 'same-header-xyz')->assertCreated()->assertJson(['order_number' => 'IDEM-B-000001']);
-    postReference($b['plain'], 'same-header-xyz')->assertOk()->assertJson(['order_number' => 'IDEM-B-000001']);
-    postReference($a['plain'], 'same-header-xyz')->assertOk()->assertJson(['order_number' => 'IDEM-A-000001']);
+    postReference($a['plain'], 'same-header-xyz')->assertCreated()->assertJson(['order_number' => '000001']);
+    postReference($b['plain'], 'same-header-xyz')->assertCreated()->assertJson(['order_number' => '000001']);
+    postReference($b['plain'], 'same-header-xyz')->assertOk()->assertJson(['order_number' => '000001']);
+    postReference($a['plain'], 'same-header-xyz')->assertOk()->assertJson(['order_number' => '000001']);
 });
 
 it('rejects a malformed Idempotency-Key with 422', function (string $header) {
@@ -103,14 +103,14 @@ it('accepts the boundary lengths 8 and 64', function () {
 it('forgets the key after 24 hours and mints a new number', function () {
     $w = makeOrdersKey('idem-expiry');
 
-    postReference($w['plain'], 'expiring-key-1')->assertCreated()->assertJson(['order_number' => 'IDEM-EXPIRY-000001']);
+    postReference($w['plain'], 'expiring-key-1')->assertCreated()->assertJson(['order_number' => '000001']);
 
     $this->travel(23)->hours();
-    postReference($w['plain'], 'expiring-key-1')->assertOk()->assertJson(['order_number' => 'IDEM-EXPIRY-000001']);
+    postReference($w['plain'], 'expiring-key-1')->assertOk()->assertJson(['order_number' => '000001']);
 
     $this->travel(2)->hours();
-    postReference($w['plain'], 'expiring-key-1')->assertCreated()->assertJson(['order_number' => 'IDEM-EXPIRY-000002']);
-    postReference($w['plain'], 'expiring-key-1')->assertOk()->assertJson(['order_number' => 'IDEM-EXPIRY-000002']);
+    postReference($w['plain'], 'expiring-key-1')->assertCreated()->assertJson(['order_number' => '000002']);
+    postReference($w['plain'], 'expiring-key-1')->assertOk()->assertJson(['order_number' => '000002']);
 
     expect(StorefrontIdempotencyKey::count())->toBe(1);
 });

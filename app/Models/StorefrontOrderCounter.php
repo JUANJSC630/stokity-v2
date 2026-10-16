@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  *
  * This table has nothing to do with Sale/Order — no row here ever creates,
  * mirrors, or links to a Sale. It only ever produces a string like
- * "LUACCESORIOS-000123" for a storefront's WhatsApp-checkout message (see
+ * "000123" for a storefront's WhatsApp-checkout message (see
  * LU_ACCESORIOS_STOREFRONT_PLAN.md §5.3: nothing here creates a pedido).
  */
 class StorefrontOrderCounter extends Model

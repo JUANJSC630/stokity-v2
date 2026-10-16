@@ -157,7 +157,7 @@ it('never lets a key of business A see or modify business B', function () {
     expect($b['product']->fresh()->show_in_storefront)->toBeTrue();
 
     $reference = asKey($keysA['lu-pedidos'])->postJson('/api/v1/store/order-reference')->assertCreated()->json('order_number');
-    expect($reference)->toStartWith('KEYS-ISO-A-');
+    expect($reference)->toBe('000001');
 });
 
 it('keeps working a key created before can_read_catalog existed (column default)', function () {
