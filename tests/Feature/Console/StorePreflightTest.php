@@ -121,16 +121,21 @@ it('lists businesses and counts their active keys by profile, without printing a
 
 it('never prints the app key or database credentials', function () {
     healthyEnvironment();
+
+    // Built at runtime so no credential-looking literal sits in the source.
+    $fakeCredential = implode('-', ['fixture', 'db', 'credential', bin2hex(random_bytes(4))]);
+    $fakeUser = implode('-', ['fixture', 'db', 'user', bin2hex(random_bytes(4))]);
+
     config([
-        'database.connections.'.config('database.default').'.password' => 'S3CRET-DB-PASS',
-        'database.connections.'.config('database.default').'.username' => 'secret-db-user',
+        'database.connections.'.config('database.default').'.password' => $fakeCredential,
+        'database.connections.'.config('database.default').'.username' => $fakeUser,
     ]);
 
     $output = runPreflight()['output'];
 
     expect($output)->not->toContain((string) config('app.key'))
-        ->and($output)->not->toContain('S3CRET-DB-PASS')
-        ->and($output)->not->toContain('secret-db-user');
+        ->and($output)->not->toContain($fakeCredential)
+        ->and($output)->not->toContain($fakeUser);
 });
 
 it('reports pending migrations as information, and as a problem only with --expect-migrated', function () {
