@@ -65,8 +65,8 @@ Route::middleware('store.api.key')->prefix('v1/store')->name('api.store.')->grou
         Route::get('categories', [StoreCategoryController::class, 'index'])->name('categories.index');
         Route::get('branches', [StoreBranchController::class, 'index'])->name('branches.index');
         Route::get('payment-methods', [StorePaymentMethodController::class, 'index'])->name('payment-methods.index');
-        Route::get('products', [StoreProductController::class, 'index'])->name('products.index');
-        Route::get('products/{slug}', [StoreProductController::class, 'show'])->name('products.show');
+        Route::get('products', [StoreProductController::class, 'index'])->middleware('store.api.etag')->name('products.index');
+        Route::get('products/{slug}', [StoreProductController::class, 'show'])->middleware('store.api.etag')->name('products.show');
     });
 
     Route::middleware(['throttle:store-api-write', 'store.api.manage_media'])->group(function () {

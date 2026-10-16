@@ -12,6 +12,18 @@ class Category extends Model
 {
     use BelongsToTenant, HasFactory, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        // The storefront embeds `category` inside each product, so renaming
+        // or deactivating one is a change to all its products as seen by
+        // `updated_since` sync.
+        static::saved(function (self $category) {
+            if (! $category->wasRecentlyCreated && $category->wasChanged(['name', 'description', 'status'])) {
+                $category->products()->update(['updated_at' => now()]);
+            }
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *

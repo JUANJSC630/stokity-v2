@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
             'store.api.key' => \App\Http\Middleware\ResolveTenantFromApiKey::class,
+            'store.api.etag' => \App\Http\Middleware\AddStoreConditionalEtag::class,
             'store.api.read_catalog' => \App\Http\Middleware\EnsureStoreApiKeyCanReadCatalog::class,
             'store.api.manage_media' => \App\Http\Middleware\EnsureStoreApiKeyCanManageMedia::class,
             'store.api.generate_order_references' => \App\Http\Middleware\EnsureStoreApiKeyCanGenerateOrderReferences::class,

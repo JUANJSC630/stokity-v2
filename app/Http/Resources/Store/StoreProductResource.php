@@ -20,6 +20,16 @@ class StoreProductResource extends JsonResource
 {
     public function toArray($request): array
     {
+        $isSyncMode = (bool) $request->attributes->get('storeSyncMode');
+
+        if ($isSyncMode && $this->trashed()) {
+            return $this->deletedStub();
+        }
+
+        if ($isSyncMode && ! $this->isVisibleInStorefront()) {
+            return $this->hiddenStub();
+        }
+
         $isService = $this->isService();
 
         return [
@@ -52,6 +62,51 @@ class StoreProductResource extends JsonResource
                 $this->requestCanManageMedia($request),
                 fn () => $this->show_in_storefront,
             ),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+            // Only in `updated_since` mode, where it is how the storefront
+            // learns which products to keep (true) or take down (false).
+            'visible' => $this->when($isSyncMode, true),
+        ];
+    }
+
+    private function isVisibleInStorefront(): bool
+    {
+        return $this->status && $this->show_in_storefront;
+    }
+
+    /**
+     * What `updated_since` returns for a product that was soft-deleted: just
+     * enough to remove it from the storefront — nothing else about it.
+     *
+     * @return array<string, mixed>
+     */
+    private function deletedStub(): array
+    {
+        return [
+            'code' => $this->code,
+            'slug' => $this->slug,
+            'deleted' => true,
+            'deleted_at' => $this->deleted_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * What `updated_since` returns for a product that stopped being public
+     * (deactivated or un-curated). Deliberately NOT the full product: price
+     * and stock of an item the business chose to keep off the public site
+     * must not leak just because it changed.
+     *
+     * @return array<string, mixed>
+     */
+    private function hiddenStub(): array
+    {
+        return [
+            'code' => $this->code,
+            'slug' => $this->slug,
+            'visible' => false,
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 

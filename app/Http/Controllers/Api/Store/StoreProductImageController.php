@@ -103,10 +103,14 @@ class StoreProductImageController extends Controller
         // Transaction so a failure partway through (deadlock, lock timeout)
         // rolls back every reassignment instead of leaving the gallery with
         // some images already moved to their new position and others not.
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $product) {
             foreach ($validated['image_ids'] as $position => $imageId) {
                 ProductImage::whereKey($imageId)->update(['sort_order' => $position]);
             }
+
+            // Query-level updates fire no model events, so the product's
+            // updated_at (what `updated_since` sync reads) is bumped here.
+            $product->touch();
         });
 
         return new StoreProductResource($product->load(['category', 'branch', 'images']));

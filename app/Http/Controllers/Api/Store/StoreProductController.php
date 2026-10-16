@@ -7,6 +7,8 @@ use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\TenantApiKey;
 use App\Rules\ExistingHttpsBlobUrl;
+use Carbon\CarbonImmutable;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -42,17 +44,43 @@ class StoreProductController extends Controller
             'q' => 'nullable|string|max:100',
             'category_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
-            'per_page' => 'nullable|integer|min:1|max:50',
+            'per_page' => 'nullable|integer|min:1|max:100',
             'visibility' => 'nullable|string|in:all',
+            'updated_since' => ['nullable', 'string', function (string $attribute, mixed $value, Closure $fail) {
+                if ($this->parseUpdatedSince((string) $value) === null) {
+                    $fail('El parámetro updated_since debe ser una fecha ISO 8601, por ejemplo 2026-10-16T14:03:22-05:00 (codifica el + como %2B en la URL).');
+                }
+            }],
         ]);
+
+        $since = $request->filled('updated_since') ? $this->parseUpdatedSince($request->string('updated_since')->value()) : null;
 
         $showAll = $request->query('visibility') === 'all' && $this->canManageMedia($request);
 
-        $query = Product::query()
-            ->where('status', true)
-            ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
-            ->with(['category', 'images', 'branch'])
-            ->orderBy('name');
+        if ($since !== null) {
+            $syncedAt = now();
+            $request->attributes->set('storeSyncMode', true);
+
+            $query = Product::query()
+                ->withTrashed()
+                ->where('updated_at', '>=', $since)
+                // Visible products, plus anything that was ever curated (has
+                // a slug) and has since been hidden or deleted — those the
+                // storefront must be told to take down. A product that never
+                // reached the storefront has no slug and stays out.
+                ->where(fn ($q) => $q
+                    ->where(fn ($visible) => $visible->where('status', true)->where('show_in_storefront', true))
+                    ->orWhereNotNull('slug'))
+                ->with(['category', 'images', 'branch'])
+                ->orderBy('updated_at')
+                ->orderBy('id');
+        } else {
+            $query = Product::query()
+                ->where('status', true)
+                ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
+                ->with(['category', 'images', 'branch'])
+                ->orderBy('name');
+        }
 
         if ($request->filled('q')) {
             $query->where('name', 'like', '%'.$this->escapeLike($request->string('q')->value()).'%');
@@ -68,7 +96,37 @@ class StoreProductController extends Controller
 
         $products = $query->paginate($request->integer('per_page', 24));
 
-        return StoreProductResource::collection($products);
+        $collection = StoreProductResource::collection($products);
+
+        if (isset($syncedAt)) {
+            $collection->additional(['meta' => ['synced_at' => $syncedAt->toIso8601String()]]);
+        }
+
+        return $collection;
+    }
+
+    /**
+     * Parses `updated_since` (ISO 8601, with or without zone) into the app
+     * timezone, which is how `updated_at` is stored. A "+" in a query string
+     * decodes to a space, so "…22 05:00" is read as "…22+05:00" — a client
+     * that forgot to URL-encode its offset still gets the right instant.
+     */
+    private function parseUpdatedSince(string $value): ?CarbonImmutable
+    {
+        $value = trim($value);
+        $value = preg_replace('/(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?) (\d{2}:?\d{2})$/', '$1+$2', $value);
+
+        $iso8601 = '/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/';
+
+        if (! preg_match($iso8601, $value)) {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->setTimezone(config('app.timezone'));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
