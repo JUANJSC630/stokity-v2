@@ -15,6 +15,7 @@ class StoreProductImageResource extends JsonResource
             // entries in StoreProductResource need it for the same reason.
             'id' => $this->id,
             'url' => $this->image_url,
+            'alt_text' => $this->alt_text,
             'sort_order' => $this->sort_order,
         ];
     }

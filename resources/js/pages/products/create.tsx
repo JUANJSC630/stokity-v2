@@ -1,5 +1,6 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
 import { ImageField, MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '@/components/products/product-fields';
+import { emptyStorefrontInfo, StorefrontInfoFields, type StorefrontInfoData } from '@/components/products/storefront-info-fields';
 import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
@@ -48,23 +49,25 @@ export default function Create({ categories = [], branches = [], tags = [], user
     })();
 
     // Configurar formulario con Inertia
-    const form = useForm<{
-        name: string;
-        code: string;
-        description: string;
-        type: 'producto' | 'servicio';
-        variable_price: boolean;
-        purchase_price: number;
-        sale_price: number;
-        tax: number;
-        stock: number | '';
-        min_stock: number | '';
-        category_id: string;
-        branch_id: string;
-        status: boolean;
-        image: File | null;
-        tag_ids: number[];
-    }>({
+    const form = useForm<
+        {
+            name: string;
+            code: string;
+            description: string;
+            type: 'producto' | 'servicio';
+            variable_price: boolean;
+            purchase_price: number;
+            sale_price: number;
+            tax: number;
+            stock: number | '';
+            min_stock: number | '';
+            category_id: string;
+            branch_id: string;
+            status: boolean;
+            image: File | null;
+            tag_ids: number[];
+        } & StorefrontInfoData
+    >({
         name: '',
         code: '',
         description: '',
@@ -80,6 +83,7 @@ export default function Create({ categories = [], branches = [], tags = [], user
         status: true,
         image: null as File | null,
         tag_ids: [] as number[],
+        ...emptyStorefrontInfo(),
     });
 
     useScrollToError(form.errors);
@@ -369,6 +373,17 @@ export default function Create({ categories = [], branches = [], tags = [], user
                             </FormPanel>
                         </div>
                     )}
+
+                    <div className="lg:col-start-1">
+                        <StorefrontInfoFields
+                            data={form.data}
+                            errors={form.errors}
+                            onChange={(key, value) => {
+                                form.setData(key, value as never);
+                                form.clearErrors(key);
+                            }}
+                        />
+                    </div>
 
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>

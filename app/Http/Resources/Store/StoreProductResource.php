@@ -63,6 +63,18 @@ class StoreProductResource extends JsonResource
                 $this->requestCanManageMedia($request),
                 fn () => $this->show_in_storefront,
             ),
+            // Facts Ley 1480 (art. 50) requires per piece, plus SEO copy. Always
+            // present (null when the business hasn't filled them in).
+            'material' => $this->material,
+            'dimensions' => $this->dimensions,
+            'weight_grams' => $this->weight_grams,
+            'origin' => $this->origin,
+            'manufacturing' => $this->manufacturing?->value,
+            'care_instructions' => $this->care_instructions,
+            'color' => $this->color,
+            'style' => $this->style,
+            'seo_title' => $this->seo_title,
+            'seo_description' => $this->seo_description,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             // Only in `updated_since` mode, where it is how the storefront

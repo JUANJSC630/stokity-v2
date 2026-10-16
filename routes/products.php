@@ -36,6 +36,7 @@ Route::middleware(['auth', BranchFilterMiddleware::class])->group(function () {
         // Routes with dynamic parameters
         Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+        Route::put('/products/{product}/images-alt-text', [ProductController::class, 'updateImagesAltText'])->name('products.images.alt-text');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
         Route::put('/products/{product}/restore', [ProductController::class, 'restore'])->name('products.restore');
         Route::delete('/products/{product}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force-delete');

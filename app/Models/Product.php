@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProductManufacturing;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -78,6 +79,16 @@ class Product extends Model
         'variable_price',
         'show_in_storefront',
         'slug',
+        'material',
+        'dimensions',
+        'weight_grams',
+        'origin',
+        'manufacturing',
+        'care_instructions',
+        'color',
+        'style',
+        'seo_title',
+        'seo_description',
     ];
 
     /**
@@ -95,6 +106,8 @@ class Product extends Model
         'min_stock' => 'integer',
         'variable_price' => 'boolean',
         'show_in_storefront' => 'boolean',
+        'weight_grams' => 'integer',
+        'manufacturing' => ProductManufacturing::class,
     ];
 
     /**

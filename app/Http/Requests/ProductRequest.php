@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ProductManufacturing;
 use App\Models\ProductTag;
 use App\Rules\TenantExists;
 use App\Tenancy\TenantManager;
@@ -76,6 +77,16 @@ class ProductRequest extends FormRequest
             'category_id' => ['required', TenantExists::in('categories')],
             'branch_id' => ['required', TenantExists::in('branches')],
             'status' => 'boolean',
+            'material' => 'nullable|string|max:255',
+            'dimensions' => 'nullable|string|max:255',
+            'weight_grams' => 'nullable|integer|min:0|max:100000',
+            'origin' => 'nullable|string|max:255',
+            'manufacturing' => ['nullable', Rule::enum(ProductManufacturing::class)],
+            'care_instructions' => 'nullable|string|max:1000',
+            'color' => 'nullable|string|max:60',
+            'style' => 'nullable|string|max:60',
+            'seo_title' => 'nullable|string|max:70',
+            'seo_description' => 'nullable|string|max:160',
             // A browser form sends nothing at all for an empty list, so the edit
             // form adds `sync_tags` to say "these ARE all the tags, even if none".
             'sync_tags' => ['sometimes', 'boolean'],
@@ -105,6 +116,16 @@ class ProductRequest extends FormRequest
             'branch_id' => 'sucursal',
             'status' => 'estado',
             'tag_ids' => 'etiquetas',
+            'material' => 'material',
+            'dimensions' => 'medidas',
+            'weight_grams' => 'peso (gramos)',
+            'origin' => 'origen',
+            'manufacturing' => 'modo de fabricación',
+            'care_instructions' => 'cuidados',
+            'color' => 'color',
+            'style' => 'estilo',
+            'seo_title' => 'título SEO',
+            'seo_description' => 'descripción SEO',
         ];
     }
 

@@ -1,5 +1,7 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
+import { GalleryAltText } from '@/components/products/gallery-alt-text';
 import { ImageField, MoneyField, NumberField, SwitchRow, TaxField } from '@/components/products/product-fields';
+import { emptyStorefrontInfo, StorefrontInfoFields } from '@/components/products/storefront-info-fields';
 import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect, Section } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
@@ -117,6 +119,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
         image: null as File | null,
         tag_ids: (product.tags ?? []).map((tag) => tag.id),
         sync_tags: true,
+        ...emptyStorefrontInfo(product),
         _method: 'PUT',
     });
 
@@ -384,6 +387,17 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </div>
                     )}
 
+                    <div className="lg:col-start-1">
+                        <StorefrontInfoFields
+                            data={form.data}
+                            errors={form.errors}
+                            onChange={(key, value) => {
+                                form.setData(key, value as never);
+                                form.clearErrors(key);
+                            }}
+                        />
+                    </div>
+
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>
                             <Link href="/products">
@@ -407,6 +421,8 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </StickyActions>
                     </div>
                 </form>
+
+                <GalleryAltText productId={product.id} images={product.images ?? []} />
 
                 {/* Proveedores — solo productos físicos */}
                 {!isService && suppliers.length > 0 && (

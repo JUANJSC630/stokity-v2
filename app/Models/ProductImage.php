@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $product_id
  * @property string $image
+ * @property string|null $alt_text
  * @property int $sort_order
  */
 class ProductImage extends Model
@@ -38,6 +39,7 @@ class ProductImage extends Model
     protected $fillable = [
         'product_id',
         'image',
+        'alt_text',
         'sort_order',
     ];
 

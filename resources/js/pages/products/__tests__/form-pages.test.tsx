@@ -186,7 +186,51 @@ describe('New product', () => {
             status: true,
             image: null,
             tag_ids: [],
+            material: '',
+            dimensions: '',
+            weight_grams: '',
+            origin: '',
+            manufacturing: '',
+            care_instructions: '',
+            color: '',
+            style: '',
+            seo_title: '',
+            seo_description: '',
         });
+    });
+
+    it('sends the storefront information the user fills in', () => {
+        renderCreate();
+        typeInto('name', 'Pulsera luna');
+        typeInto('code', 'PUL-1');
+        fireEvent.change(combos()[0], { target: { value: '1' } });
+        fireEvent.change(combos()[1], { target: { value: '2' } });
+        typeInto('sale_price', '45000');
+        typeInto('stock', '5');
+        typeInto('min_stock', '1');
+        typeInto('material', 'Acero dorado');
+        typeInto('dimensions', 'Largo 18 cm, dije 2 cm');
+        typeInto('weight_grams', '12');
+        typeInto('origin', 'Hecho a mano en Zarzal, Colombia');
+        fireEvent.change(combos()[2], { target: { value: 'handmade' } });
+        typeInto('seo_title', 'Pulsera luna dorada');
+        typeInto('seo_description', 'Pulsera artesanal con dije de luna');
+
+        submitForm(/Guardar Producto/);
+
+        expect(env.post).toHaveBeenCalledWith(
+            '/products',
+            expect.anything(),
+            expect.objectContaining({
+                material: 'Acero dorado',
+                dimensions: 'Largo 18 cm, dije 2 cm',
+                weight_grams: 12,
+                origin: 'Hecho a mano en Zarzal, Colombia',
+                manufacturing: 'handmade',
+                seo_title: 'Pulsera luna dorada',
+                seo_description: 'Pulsera artesanal con dije de luna',
+            }),
+        );
     });
 
     it('lets the user deactivate the product before saving', () => {
