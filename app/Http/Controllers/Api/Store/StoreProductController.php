@@ -12,6 +12,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class StoreProductController extends Controller
 {
@@ -245,7 +246,7 @@ class StoreProductController extends Controller
     {
         $pattern = '%'.$this->escapeLike($term).'%';
 
-        if ($query->getConnection()->getDriverName() === 'mysql') {
+        if (DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'mysql') {
             $query->whereRaw('products.name COLLATE utf8mb4_unicode_ci like ?', [$pattern]);
 
             return;

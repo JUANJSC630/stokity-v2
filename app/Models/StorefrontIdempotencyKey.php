@@ -59,7 +59,7 @@ class StorefrontIdempotencyKey extends Model
      */
     public static function claimOrReplay(int $tenantId, int $apiKeyId, string $idempotencyKey, Closure $claimNumber): array
     {
-        if ($existing = static::findLive($tenantId, $apiKeyId, $idempotencyKey)) {
+        if ($existing = self::findLive($tenantId, $apiKeyId, $idempotencyKey)) {
             return ['number' => (int) $existing->order_number, 'replayed' => true];
         }
 
@@ -90,7 +90,7 @@ class StorefrontIdempotencyKey extends Model
 
             return ['number' => $number, 'replayed' => false];
         } catch (UniqueConstraintViolationException $e) {
-            $winner = static::findLive($tenantId, $apiKeyId, $idempotencyKey);
+            $winner = self::findLive($tenantId, $apiKeyId, $idempotencyKey);
 
             if (! $winner || $winner->order_number === null) {
                 throw $e;
