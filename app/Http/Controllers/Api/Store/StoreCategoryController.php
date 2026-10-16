@@ -18,6 +18,7 @@ class StoreCategoryController extends Controller
         // being un-curated), a dead end in the storefront's nav.
         $categories = Category::where('status', true)
             ->whereHas('products', fn ($q) => $q->where('show_in_storefront', true)->where('status', true))
+            ->withCount(['products' => fn ($q) => $q->where('show_in_storefront', true)->where('status', true)])
             ->orderBy('name')
             ->get();
 
