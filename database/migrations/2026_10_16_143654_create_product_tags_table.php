@@ -24,11 +24,13 @@ return new class extends Migration
             $table->unique(['tenant_id', 'slug']);
         });
 
-        // Lu Accesorios gets "Artesanal" out of the box. Idempotent, and a no-op
-        // on databases (tests, other environments) where that business doesn't exist.
-        $tenantId = DB::table('tenants')->where('slug', 'luaccesorios')->value('id');
+        // Lu Accesorios gets "Artesanal" out of the box. The business is called
+        // `lu-accesorios` in production and `luaccesorios` in local databases, so
+        // both spellings are matched. Idempotent, and a no-op on databases (tests,
+        // other environments) where that business doesn't exist.
+        $tenantIds = DB::table('tenants')->whereIn('slug', ['lu-accesorios', 'luaccesorios'])->pluck('id');
 
-        if ($tenantId) {
+        foreach ($tenantIds as $tenantId) {
             DB::table('product_tags')->insertOrIgnore([
                 'tenant_id' => $tenantId,
                 'slug' => 'artesanal',

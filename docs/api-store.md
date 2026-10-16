@@ -247,7 +247,7 @@ Qué cuenta como cambio (actualiza `updated_at`): cualquier edición del product
 POST /api/v1/store/order-reference
 ```
 
-`201` `{"order_number": "LUACCESORIOS-000123"}`. No crea ningún pedido; solo reserva el número.
+`201` `{"order_number": "LUACCESORIOS-000123"}`. No crea ningún pedido; solo reserva el número. El prefijo es el **slug del negocio en mayúsculas** (`luaccesorios` → `LUACCESORIOS-…`; el negocio de producción se llama `lu-accesorios` → `LU-ACCESORIOS-000123`).
 
 ### Idempotencia
 

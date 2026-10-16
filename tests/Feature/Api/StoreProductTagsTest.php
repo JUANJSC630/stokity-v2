@@ -134,15 +134,20 @@ it('includes tags in the PATCH response of an admin key', function () {
     expect($response->json('data.tags'))->toBe([['slug' => 'artesanal', 'name' => 'Artesanal']]);
 });
 
-it('seeds the default Artesanal tag for the Lu Accesorios business only', function () {
-    $lu = Tenant::create(['name' => 'Lu Accesorios', 'slug' => 'luaccesorios', 'status' => 'active']);
+it('seeds the default Artesanal tag for the Lu business under either slug spelling, and for no other', function () {
+    $production = Tenant::create(['name' => 'Lu Accesorios', 'slug' => 'lu-accesorios', 'status' => 'active']);
+    $local = Tenant::create(['name' => 'Lu local', 'slug' => 'luaccesorios', 'status' => 'active']);
     $other = Tenant::create(['name' => 'Otro', 'slug' => 'otro', 'status' => 'active']);
+    $suspended = Tenant::create(['name' => 'El Palenque', 'slug' => 'el-palenque', 'status' => 'suspended']);
     $migration = require database_path('migrations/2026_10_16_143654_create_product_tags_table.php');
 
     Schema::drop('product_product_tag');
     Schema::drop('product_tags');
     $migration->up();
 
-    expect(ProductTag::allTenants()->where('tenant_id', $lu->id)->get(['slug', 'name'])->toArray())->toBe([['slug' => 'artesanal', 'name' => 'Artesanal']])
-        ->and(ProductTag::allTenants()->where('tenant_id', $other->id)->count())->toBe(0);
+    foreach ([$production, $local] as $lu) {
+        expect(ProductTag::allTenants()->where('tenant_id', $lu->id)->get(['slug', 'name'])->toArray())->toBe([['slug' => 'artesanal', 'name' => 'Artesanal']]);
+    }
+
+    expect(ProductTag::allTenants()->whereIn('tenant_id', [$other->id, $suspended->id])->count())->toBe(0);
 });

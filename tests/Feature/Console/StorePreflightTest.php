@@ -76,9 +76,16 @@ it('flags a missing business slug and accepts the one passed with --tenant', fun
     healthyEnvironment();
     Tenant::create(['name' => 'Otro', 'slug' => 'otro-negocio', 'status' => 'active']);
 
-    expect(runPreflight()['output'])->toContain('no existe el negocio con slug "luaccesorios"')
+    expect(runPreflight()['output'])->toContain('no existe el negocio con slug "lu-accesorios" ni "luaccesorios"')
         ->and(runPreflight(['--tenant' => 'otro-negocio'])['output'])->not->toContain('no existe el negocio');
 });
+
+it('accepts either spelling of the Lu business by default: lu-accesorios in production, luaccesorios locally', function (string $slug) {
+    healthyEnvironment();
+    Tenant::create(['name' => 'Lu', 'slug' => $slug, 'status' => 'active']);
+
+    expect(runPreflight()['output'])->not->toContain('no existe el negocio');
+})->with(['production' => 'lu-accesorios', 'local' => 'luaccesorios']);
 
 it('lists businesses and counts their active keys by profile, without printing any key', function () {
     healthyEnvironment();

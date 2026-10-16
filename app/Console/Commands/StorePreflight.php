@@ -20,10 +20,13 @@ use Throwable;
 class StorePreflight extends Command
 {
     /** Cache drivers whose data is visible to every app instance. */
+    /** Production calls Lu's business `lu-accesorios`; local databases use `luaccesorios`. */
+    private const DEFAULT_TENANT_SLUGS = ['lu-accesorios', 'luaccesorios'];
+
     private const SHARED_CACHE_DRIVERS = ['database', 'redis', 'memcached', 'dynamodb', 'mongodb'];
 
     protected $signature = 'store:preflight
-                            {--tenant=luaccesorios : Slug of the business that must exist}
+                            {--tenant= : Slug of the business that must exist (default: lu-accesorios or luaccesorios)}
                             {--expect-migrated : Treat pending migrations as a problem (use after deploying)}';
 
     protected $description = 'Read-only environment check for the storefront API (prints PREFLIGHT OK or PREFLIGHT ATENCION)';
@@ -185,8 +188,10 @@ class StorePreflight extends Command
             $this->describeKeys($tenant->id);
         }
 
-        if ($requiredSlug !== '' && ! $tenants->contains('slug', $requiredSlug)) {
-            $this->problems[] = "no existe el negocio con slug \"{$requiredSlug}\"";
+        $accepted = $requiredSlug !== '' ? [$requiredSlug] : self::DEFAULT_TENANT_SLUGS;
+
+        if ($tenants->whereIn('slug', $accepted)->isEmpty()) {
+            $this->problems[] = 'no existe el negocio con slug "'.implode('" ni "', $accepted).'"';
         }
     }
 
