@@ -23,7 +23,12 @@ vi.mock('@inertiajs/react', async () => {
         Head: () => null,
         Link: 'a',
         usePage: () => ({
-            props: { flash: env.flash, business: { brand_color: '#C4686F' }, auth: { permissions: ['products.update'] }, hasWebStore: env.hasWebStore },
+            props: {
+                flash: env.flash,
+                business: { brand_color: '#C4686F' },
+                auth: { permissions: ['products.update'] },
+                hasWebStore: env.hasWebStore,
+            },
         }),
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
