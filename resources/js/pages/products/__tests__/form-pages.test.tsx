@@ -5,7 +5,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import axios from 'axios';
 import Cookies from 'js-cookie';
 import type { ReactNode } from 'react';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import CreateProduct from '../create';
 import EditProduct from '../edit';
 
@@ -13,6 +13,7 @@ const env = vi.hoisted(() => ({
     post: vi.fn(),
     flash: {} as { error?: string },
     lastData: {} as Record<string, unknown>,
+    hasWebStore: true,
 }));
 
 vi.mock('@inertiajs/react', async () => {
@@ -21,7 +22,14 @@ vi.mock('@inertiajs/react', async () => {
         router: { post: vi.fn(), delete: vi.fn() },
         Head: () => null,
         Link: 'a',
-        usePage: () => ({ props: { flash: env.flash, business: { brand_color: '#C4686F' }, auth: { permissions: ['products.update'] } } }),
+        usePage: () => ({
+            props: {
+                flash: env.flash,
+                business: { brand_color: '#C4686F' },
+                auth: { permissions: ['products.update'] },
+                hasWebStore: env.hasWebStore,
+            },
+        }),
         useForm: (initial: Record<string, unknown>) => {
             const [data, setAll] = React.useState(initial);
             const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -255,6 +263,21 @@ describe('New product', () => {
         typeInto('sale_price', '1000');
         submitForm(/Guardar Producto/);
         expect(env.post.mock.calls[0][2]).toMatchObject({ image: file });
+    });
+});
+
+describe('Product forms without a web store', () => {
+    afterEach(() => {
+        env.hasWebStore = true;
+    });
+
+    it('hides the tags and storefront information when the business has no web store', () => {
+        env.hasWebStore = false;
+        renderCreate();
+
+        expect(screen.queryByText('Etiquetas')).not.toBeInTheDocument();
+        expect(screen.queryByText('Ley 1480', { exact: false })).not.toBeInTheDocument();
+        expect(screen.queryByLabelText('Material')).not.toBeInTheDocument();
     });
 });
 

@@ -73,6 +73,7 @@ class HandleInertiaRequests extends Middleware
                 'plainApiKey' => fn () => $request->session()->get('plainApiKey'),
             ],
             'impersonating' => fn () => $this->impersonationInfo($request),
+            'hasWebStore' => fn () => $this->tenants->get()?->hasWebStore() ?? false,
         ];
     }
 

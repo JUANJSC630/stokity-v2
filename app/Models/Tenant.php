@@ -80,4 +80,13 @@ class Tenant extends Model
     {
         return $this->hasMany(TenantApiKey::class);
     }
+
+    /**
+     * A tenant "has a web store" while at least one storefront API key is
+     * not revoked — that key is what the external store authenticates with.
+     */
+    public function hasWebStore(): bool
+    {
+        return $this->apiKeys()->whereNull('revoked_at')->exists();
+    }
 }
