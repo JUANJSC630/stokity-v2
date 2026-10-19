@@ -10,6 +10,7 @@ import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { usePolling } from '@/hooks/use-polling';
 import { usePrinter } from '@/hooks/use-printer';
+import { useWebStore } from '@/hooks/use-web-store';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Category, type Product, type ProductTag } from '@/types';
@@ -89,6 +90,7 @@ export default function Products({
     usePolling(['products'], 60_000);
 
     const { can } = usePermissions();
+    const hasWebStore = useWebStore();
     // branches.view: only Administrador holds it among the default roles —
     // matches the previous admin-only branch column/filter exactly.
     const isAdmin = can('branches.view');
@@ -236,7 +238,7 @@ export default function Products({
                                 <span className="sr-only sm:hidden">Papelera</span>
                             </Link>
                         )}
-                        {can('products.update') && (
+                        {hasWebStore && can('products.update') && (
                             <Link
                                 href="/product-tags"
                                 className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-card px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10"
@@ -382,7 +384,7 @@ export default function Products({
                             >
                                 <X className="size-4" aria-hidden="true" />
                             </button>
-                            {can('products.update') && tags.length > 0 && (
+                            {hasWebStore && can('products.update') && tags.length > 0 && (
                                 <div className="flex items-center gap-2" role="group" aria-label="Etiquetar selección">
                                     <Select value={bulkTagId} onValueChange={setBulkTagId}>
                                         <SelectTrigger aria-label="Etiqueta" className={cn(SELECT_TRIGGER, 'w-40')}>

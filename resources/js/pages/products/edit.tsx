@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
+import { useWebStore } from '@/hooks/use-web-store';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Category, type Product, type ProductTag, type Supplier, type SupplierProduct } from '@/types';
@@ -40,6 +41,7 @@ interface EditProductProps {
 
 export default function EditProduct({ product, categories = [], branches = [], suppliers = [], tags = [], userBranchId = null }: EditProductProps) {
     const { can } = usePermissions();
+    const hasWebStore = useWebStore();
     const isService = product.type === 'servicio';
     const onBrand = useOnBrandColor();
 
@@ -213,16 +215,18 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                 onChange={(file) => form.setData('image', file)}
                             />
                         </FormPanel>
-                        <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
-                            <TagPicker
-                                tags={tags}
-                                selectedIds={form.data.tag_ids}
-                                onChange={(ids) => form.setData('tag_ids', ids)}
-                                max={10}
-                                error={form.errors.tag_ids}
-                                canManage={can('products.update')}
-                            />
-                        </FormPanel>
+                        {hasWebStore && (
+                            <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
+                                <TagPicker
+                                    tags={tags}
+                                    selectedIds={form.data.tag_ids}
+                                    onChange={(ids) => form.setData('tag_ids', ids)}
+                                    max={10}
+                                    error={form.errors.tag_ids}
+                                    canManage={can('products.update')}
+                                />
+                            </FormPanel>
+                        )}
                         <div className="order-last">
                             <FormPanel title="Estado">
                                 <SwitchRow
@@ -387,16 +391,18 @@ export default function EditProduct({ product, categories = [], branches = [], s
                         </div>
                     )}
 
-                    <div className="lg:col-start-1">
-                        <StorefrontInfoFields
-                            data={form.data}
-                            errors={form.errors}
-                            onChange={(key, value) => {
-                                form.setData(key, value as never);
-                                form.clearErrors(key);
-                            }}
-                        />
-                    </div>
+                    {hasWebStore && (
+                        <div className="lg:col-start-1">
+                            <StorefrontInfoFields
+                                data={form.data}
+                                errors={form.errors}
+                                onChange={(key, value) => {
+                                    form.setData(key, value as never);
+                                    form.clearErrors(key);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>
@@ -422,7 +428,7 @@ export default function EditProduct({ product, categories = [], branches = [], s
                     </div>
                 </form>
 
-                <GalleryAltText productId={product.id} images={product.images ?? []} />
+                {hasWebStore && <GalleryAltText productId={product.id} images={product.images ?? []} />}
 
                 {/* Proveedores — solo productos físicos */}
                 {!isService && suppliers.length > 0 && (

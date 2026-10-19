@@ -104,6 +104,7 @@ export interface SharedData {
         temporaryPassword?: string | null;
     };
     impersonating: { active: boolean; tenantName: string | null };
+    hasWebStore: boolean; // Tenant has an active storefront API key — gates every web-store-only UI
     [key: string]: unknown;
 }
 

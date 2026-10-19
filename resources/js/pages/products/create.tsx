@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useScrollToError } from '@/hooks/use-scroll-to-error';
+import { useWebStore } from '@/hooks/use-web-store';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import { type Branch, type BreadcrumbItem, type Category, type ProductTag } from '@/types';
@@ -34,6 +35,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Create({ categories = [], branches = [], tags = [], userBranchId = null }: CreateProductProps) {
     const onBrand = useOnBrandColor();
     const { can } = usePermissions();
+    const hasWebStore = useWebStore();
 
     // Rastrear si el usuario ingresó explícitamente el precio de venta
     const [salePriceTouched, setSalePriceTouched] = useState(false);
@@ -172,16 +174,18 @@ export default function Create({ categories = [], branches = [], tags = [], user
                         <FormPanel title="Imagen">
                             <ImageField error={form.errors.image} onChange={(file) => form.setData('image', file)} />
                         </FormPanel>
-                        <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
-                            <TagPicker
-                                tags={tags}
-                                selectedIds={form.data.tag_ids}
-                                onChange={(ids) => form.setData('tag_ids', ids)}
-                                max={10}
-                                error={form.errors.tag_ids}
-                                canManage={can('products.update')}
-                            />
-                        </FormPanel>
+                        {hasWebStore && (
+                            <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">
+                                <TagPicker
+                                    tags={tags}
+                                    selectedIds={form.data.tag_ids}
+                                    onChange={(ids) => form.setData('tag_ids', ids)}
+                                    max={10}
+                                    error={form.errors.tag_ids}
+                                    canManage={can('products.update')}
+                                />
+                            </FormPanel>
+                        )}
                         <div className="order-last">
                             <FormPanel title="Estado">
                                 <SwitchRow
@@ -374,16 +378,18 @@ export default function Create({ categories = [], branches = [], tags = [], user
                         </div>
                     )}
 
-                    <div className="lg:col-start-1">
-                        <StorefrontInfoFields
-                            data={form.data}
-                            errors={form.errors}
-                            onChange={(key, value) => {
-                                form.setData(key, value as never);
-                                form.clearErrors(key);
-                            }}
-                        />
-                    </div>
+                    {hasWebStore && (
+                        <div className="lg:col-start-1">
+                            <StorefrontInfoFields
+                                data={form.data}
+                                errors={form.errors}
+                                onChange={(key, value) => {
+                                    form.setData(key, value as never);
+                                    form.clearErrors(key);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <div className="order-[10000] lg:col-span-2">
                         <StickyActions>
