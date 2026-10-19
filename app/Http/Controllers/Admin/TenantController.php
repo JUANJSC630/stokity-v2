@@ -109,6 +109,7 @@ class TenantController extends Controller
                 // would miss — the frontend must not show "Entrar" as
                 // available for a tenant it would actually be rejected for.
                 'can_impersonate' => $tenant->isActive(),
+                'web_store_enabled' => $tenant->web_store_enabled,
             ],
             'metrics' => [
                 'users_count' => $users->count(),

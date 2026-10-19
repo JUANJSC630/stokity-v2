@@ -35,6 +35,12 @@ class TenantApiKeyController extends Controller
             canGenerateOrderReferences: $validated['can_generate_order_references'] ?? false,
         );
 
+        // The first key means a web store is being connected, so show its
+        // fields right away; later the switch is the only thing that changes it.
+        if (! $tenant->web_store_enabled && ! $tenant->apiKeys()->whereNull('revoked_at')->where('id', '!=', $result['key']->id)->exists()) {
+            $tenant->forceFill(['web_store_enabled' => true])->save();
+        }
+
         // Allowed even for a suspended/trial-expired tenant — an admin may
         // legitimately want to pre-provision a key before activating a new
         // business — but ResolveTenantFromApiKey will 403 every request on
@@ -51,6 +57,17 @@ class TenantApiKeyController extends Controller
             // (see TenantApiKey::generate()'s docblock).
             'plainApiKey' => $result['plainTextKey'],
         ]);
+    }
+
+    public function toggleWebStore(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $validated = $request->validate(['enabled' => 'required|boolean']);
+
+        $tenant->forceFill(['web_store_enabled' => $validated['enabled']])->save();
+
+        return back()->with('success', $validated['enabled']
+            ? "Tienda web activada para «{$tenant->name}»."
+            : "Tienda web desactivada para «{$tenant->name}». La conexión de la API no se tocó.");
     }
 
     public function destroy(Tenant $tenant, TenantApiKey $apiKey): RedirectResponse

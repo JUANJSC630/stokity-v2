@@ -10,7 +10,7 @@ vi.mock('@inertiajs/react', async () => {
     const { useState } = await import('react');
 
     return {
-        router: { post: vi.fn(), delete: vi.fn(), visit: vi.fn() },
+        router: { post: vi.fn(), put: vi.fn(), delete: vi.fn(), visit: vi.fn() },
         Head: () => null,
         Link: 'a',
         usePage: vi.fn(() => ({ props: { flash: {} } })),
@@ -45,6 +45,7 @@ const baseProps = {
         created_at: '2026-03-02T10:00:00Z',
         trial_ends_at: '2026-10-10T12:00:00Z',
         can_impersonate: true,
+        web_store_enabled: true,
     },
     metrics: { users_count: 3, products_count: 312, sales_count: 1840 },
     users: [
@@ -117,6 +118,20 @@ afterEach(() => {
 });
 
 describe('Admin tenant detail', () => {
+    it('turns the web store fields off with the switch, without touching the keys', () => {
+        renderPage();
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Mostrar campos de tienda web' }));
+
+        expect(router.put).toHaveBeenCalledWith('/admin/tenants/7/web-store', { enabled: false }, expect.objectContaining({ preserveScroll: true }));
+    });
+
+    it('shows the switch off when the web store is disabled', () => {
+        renderPage({ tenant: { ...baseProps.tenant, web_store_enabled: false } });
+
+        expect(screen.getByRole('switch', { name: 'Mostrar campos de tienda web' })).not.toBeChecked();
+    });
+
     it('shows the business status, last activity and remaining trial, without product or sales counts', () => {
         renderPage();
 

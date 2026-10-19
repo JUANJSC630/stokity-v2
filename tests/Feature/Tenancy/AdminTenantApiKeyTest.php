@@ -177,3 +177,60 @@ it('404s revoking another tenant key', function () {
 
     expect($keyB->fresh()->revoked_at)->toBeNull();
 });
+
+function webStoreTenant(string $name): Tenant
+{
+    return app(TenantProvisioner::class)->create([
+        'business_name' => $name,
+        'branch_name' => 'Principal',
+        'admin_name' => 'Admin',
+        'admin_email' => str($name)->slug().'@web-store.test',
+        'admin_password' => 'password123',
+    ]);
+}
+
+it('enables the web store when the first key is generated, but not on later keys after a switch off', function () {
+    $tenant = webStoreTenant('Switch Primera');
+    $admin = apiKeySuperAdmin();
+    expect($tenant->fresh()->web_store_enabled)->toBeFalse();
+
+    $this->actingAs($admin)->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Primera'])->assertRedirect();
+    expect($tenant->fresh()->web_store_enabled)->toBeTrue();
+
+    $this->actingAs($admin)->put("/admin/tenants/{$tenant->id}/web-store", ['enabled' => false])->assertRedirect();
+    $this->actingAs($admin)->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Segunda'])->assertRedirect();
+    expect($tenant->fresh()->web_store_enabled)->toBeFalse();
+});
+
+it('switches the web store without revoking any key and only changes the UI flag', function () {
+    $tenant = webStoreTenant('Switch Llaves');
+    $admin = apiKeySuperAdmin();
+    $this->actingAs($admin)->post("/admin/tenants/{$tenant->id}/api-keys", ['name' => 'Key'])->assertRedirect();
+
+    $this->actingAs($admin)->put("/admin/tenants/{$tenant->id}/web-store", ['enabled' => false])->assertRedirect()->assertSessionHas('success');
+
+    $fresh = $tenant->fresh();
+    expect($fresh->web_store_enabled)->toBeFalse()
+        ->and($fresh->hasWebStore())->toBeFalse()
+        ->and(TenantApiKey::where('tenant_id', $tenant->id)->whereNull('revoked_at')->count())->toBe(1);
+
+    $this->actingAs($admin)->put("/admin/tenants/{$tenant->id}/web-store", ['enabled' => true])->assertRedirect();
+    expect($tenant->fresh()->hasWebStore())->toBeTrue();
+});
+
+it('does not count the switch as a web store without an active key', function () {
+    $tenant = webStoreTenant('Switch Sin Llave');
+    $this->actingAs(apiKeySuperAdmin())->put("/admin/tenants/{$tenant->id}/web-store", ['enabled' => true])->assertRedirect();
+
+    expect($tenant->fresh()->hasWebStore())->toBeFalse();
+});
+
+it('validates the switch payload and forbids non super admins', function () {
+    $tenant = webStoreTenant('Switch Validacion');
+
+    $this->actingAs(apiKeySuperAdmin())->put("/admin/tenants/{$tenant->id}/web-store", [])->assertSessionHasErrors('enabled');
+
+    $tenantAdmin = User::where('tenant_id', $tenant->id)->first();
+    $this->actingAs($tenantAdmin)->put("/admin/tenants/{$tenant->id}/web-store", ['enabled' => true])->assertForbidden();
+    expect($tenant->fresh()->web_store_enabled)->toBeFalse();
+});

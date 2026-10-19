@@ -33,6 +33,9 @@ it('shares hasWebStore only while the tenant has an active storefront api key', 
     $hasWebStore(false);
 
     $key = app(TenantManager::class)->runAs($tenant, fn () => TenantApiKey::generate($tenant, 'Storefront')['key']);
+    $hasWebStore(false);
+
+    $tenant->forceFill(['web_store_enabled' => true])->save();
     $hasWebStore(true);
 
     $key->revoke();
@@ -42,6 +45,7 @@ it('shares hasWebStore only while the tenant has an active storefront api key', 
 it('does not count another tenant api key as a web store', function () {
     [, $user] = makeWebStoreTenantAdmin('sin-tienda');
     [$other] = makeWebStoreTenantAdmin('otra-tienda');
+    $other->forceFill(['web_store_enabled' => true])->save();
     app(TenantManager::class)->runAs($other, fn () => TenantApiKey::generate($other, 'Storefront'));
 
     $this->actingAs($user)->get(route('dashboard'))
