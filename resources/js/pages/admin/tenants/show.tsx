@@ -3,6 +3,7 @@ import { initialsOf, LastActivity, latestTimestamp, StatusPill, TrialNote } from
 import { SwipeActions, SwipeActionsRow, type SwipeAction } from '@/components/ui/arc/swipe-actions';
 import { SlideConfirm } from '@/components/ui/bencho/slide-confirm';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import { formatDate, formatDateTime, formatRelativeTime } from '@/lib/format';
@@ -22,6 +23,7 @@ interface TenantDetail {
     created_at: string | null;
     trial_ends_at: string | null;
     can_impersonate: boolean;
+    web_store_enabled: boolean;
 }
 
 interface TenantUser {
@@ -450,6 +452,21 @@ export default function TenantShow({ tenant, metrics, users, branches, apiKeys }
                         </button>
                     }
                 >
+                    <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3">
+                        <div className="min-w-0">
+                            <label htmlFor="web-store-switch" className="text-sm font-medium">
+                                Mostrar campos de tienda web
+                            </label>
+                            <p className="text-xs text-muted-foreground">
+                                Etiquetas e info de tienda en el panel del negocio. No afecta la conexión de las API keys.
+                            </p>
+                        </div>
+                        <Switch
+                            id="web-store-switch"
+                            checked={tenant.web_store_enabled}
+                            onCheckedChange={(enabled) => router.put(`/admin/tenants/${tenant.id}/web-store`, { enabled }, { preserveScroll: true })}
+                        />
+                    </div>
                     {apiKeys.length === 0 ? (
                         <EmptyNote>Sin API keys todavía — genera una para conectar la tienda pública de este negocio.</EmptyNote>
                     ) : (

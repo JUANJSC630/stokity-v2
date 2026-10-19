@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $slug
  * @property string $status
  * @property string|null $plan
+ * @property bool $web_store_enabled
  * @property \Illuminate\Support\Carbon|null $trial_ends_at
  */
 class Tenant extends Model
@@ -34,8 +35,13 @@ class Tenant extends Model
         'trial_ends_at',
     ];
 
+    /**
+     * web_store_enabled is deliberately NOT fillable: only the SuperAdmin
+     * switch (Admin\TenantApiKeyController::toggleWebStore) changes it.
+     */
     protected $casts = [
         'trial_ends_at' => 'datetime',
+        'web_store_enabled' => 'boolean',
     ];
 
     /**
@@ -82,11 +88,12 @@ class Tenant extends Model
     }
 
     /**
-     * A tenant "has a web store" while at least one storefront API key is
-     * not revoked — that key is what the external store authenticates with.
+     * A tenant "has a web store" when the SuperAdmin switch is on AND at
+     * least one storefront API key is not revoked. The switch only controls
+     * the panel UI — it never blocks the API itself.
      */
     public function hasWebStore(): bool
     {
-        return $this->apiKeys()->whereNull('revoked_at')->exists();
+        return $this->web_store_enabled && $this->apiKeys()->whereNull('revoked_at')->exists();
     }
 }

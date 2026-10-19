@@ -37,6 +37,7 @@ Route::middleware(['auth', 'super_admin'])->prefix('admin')->name('admin.')->gro
 
     // Storefront API keys (LU_ACCESORIOS_STOREFRONT_PLAN.md / ECOMMERCE_API_PLAN.md).
     Route::post('tenants/{tenant}/api-keys', [TenantApiKeyController::class, 'store'])->name('tenants.api-keys.store');
+    Route::put('tenants/{tenant}/web-store', [TenantApiKeyController::class, 'toggleWebStore'])->name('tenants.web-store.toggle');
     Route::delete('tenants/{tenant}/api-keys/{apiKey}', [TenantApiKeyController::class, 'destroy'])->name('tenants.api-keys.destroy');
 
     Route::get('impersonations', [ImpersonationLogController::class, 'index'])->name('impersonations.index');
