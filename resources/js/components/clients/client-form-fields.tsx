@@ -103,7 +103,7 @@ export function ClientFormFields({ data, errors, setData, simplified = false, ca
                             <label htmlFor="is_wholesale" className="text-sm font-medium">
                                 Cliente mayorista
                             </label>
-                            <p className="text-xs text-muted-foreground">Aplica su descuento automáticamente en el POS al seleccionarlo.</p>
+                            <p className="text-xs text-muted-foreground">Márcalo como cliente mayorista.</p>
                         </div>
                         <Switch
                             id="is_wholesale"
@@ -114,29 +114,6 @@ export function ClientFormFields({ data, errors, setData, simplified = false, ca
                             }}
                         />
                     </div>
-                    {data.is_wholesale && (
-                        <div className="border-t border-border/60 px-5 pt-4 pb-5">
-                            <LabeledField
-                                id="wholesale_discount_pct"
-                                label="Descuento (%)"
-                                required
-                                error={errors.wholesale_discount_pct}
-                                className="max-w-40"
-                            >
-                                <input
-                                    id="wholesale_discount_pct"
-                                    type="number"
-                                    inputMode="decimal"
-                                    min={0}
-                                    max={100}
-                                    step="0.01"
-                                    className={INPUT_CLASS}
-                                    value={data.wholesale_discount_pct}
-                                    onChange={(e) => setData('wholesale_discount_pct', e.target.value)}
-                                />
-                            </LabeledField>
-                        </div>
-                    )}
                 </section>
             )}
         </>

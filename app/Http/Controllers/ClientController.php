@@ -92,7 +92,7 @@ class ClientController extends Controller
 
         $validated = $request->validate([
             'is_wholesale' => ['boolean'],
-            'wholesale_discount_pct' => ['nullable', 'required_if:is_wholesale,true', 'numeric', 'min:0', 'max:100'],
+            'wholesale_discount_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         // A client that isn't wholesale never keeps a stale rate — avoids
