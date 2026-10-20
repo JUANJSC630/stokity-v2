@@ -111,12 +111,12 @@ describe('Client create', () => {
         expect(screen.getByLabelText('Cliente mayorista')).toBeInTheDocument();
     });
 
-    it('asks for the discount once the client is wholesale', () => {
+    it('does not ask for a discount when the client is wholesale', () => {
         permissions.granted = ['clients.wholesale.manage'];
         form.data = { ...form.data, is_wholesale: true };
         render(<Create />);
 
-        expect(screen.getByLabelText(/Descuento \(%\)/)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/Descuento \(%\)/)).not.toBeInTheDocument();
     });
 
     it('in the wholesale dialog asks for the city instead of the address and hides the email', () => {

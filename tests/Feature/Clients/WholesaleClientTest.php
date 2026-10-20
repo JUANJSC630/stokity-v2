@@ -55,13 +55,14 @@ it('lets an admin create a wholesale client with a discount', function () {
     });
 });
 
-it('rejects a wholesale client with no discount percentage', function () {
+it('accepts a wholesale client with no discount percentage', function () {
     $response = $this->actingAs($this->admin)->post(route('clients.store'), [
         'name' => 'Distribuidora XYZ', 'document' => '900123456',
         'is_wholesale' => true,
     ]);
 
-    $response->assertSessionHasErrors('wholesale_discount_pct');
+    $response->assertSessionHasNoErrors();
+    expect(Client::where('document', '900123456')->first()->wholesale_discount_pct)->toBeNull();
 });
 
 it('rejects a discount percentage over 100', function () {
