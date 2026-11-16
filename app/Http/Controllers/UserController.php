@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\TenantExists;
+use App\Rules\UploadableImage;
 use App\Services\BlobStorageService;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
@@ -86,7 +87,7 @@ class UserController extends Controller
             ],
             'password' => 'required|string|min:8|confirmed',
             'status' => 'sometimes|boolean',
-            'photo' => 'nullable|image|max:1024', // 1MB max
+            'photo' => ['nullable', new UploadableImage],
         ]);
 
         // Upload photo to Vercel Blob (persists across deploys, unlike local filesystem)
@@ -180,7 +181,7 @@ class UserController extends Controller
             ],
             'password' => 'nullable|string|min:8|confirmed',
             'status' => 'sometimes|boolean',
-            'photo' => 'nullable|image|max:1024', // 1MB max
+            'photo' => ['nullable', new UploadableImage],
         ]);
 
         // Upload photo to Vercel Blob (persists across deploys, unlike local filesystem)

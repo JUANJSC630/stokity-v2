@@ -1,10 +1,9 @@
 import { INPUT_CLASS, LabeledField } from '@/components/sales/form-fields';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Switch } from '@/components/ui/switch';
-import { prepareImageForUpload } from '@/lib/image-upload';
 import { cn } from '@/lib/utils';
-import { ImagePlus, Package, Wrench } from 'lucide-react';
-import { useState, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
+import { Package, Wrench } from 'lucide-react';
+import { type ReactNode } from 'react';
 
 type ProductKind = 'producto' | 'servicio';
 
@@ -37,82 +36,6 @@ export function TypeSwitch({ value, onChange }: { value: ProductKind; onChange: 
                     </span>
                 </button>
             ))}
-        </div>
-    );
-}
-
-interface ImageFieldProps {
-    /** Address of the image already saved, shown until a new one is picked. */
-    initialPreview?: string | null;
-    error?: string;
-    onChange: (file: File | null) => void;
-}
-
-/** Tap (or drop a file) to pick the photo; big photos are fitted before they are kept. */
-export function ImageField({ initialPreview = null, error, onChange }: ImageFieldProps) {
-    const [preview, setPreview] = useState<string | null>(initialPreview);
-    const [isDragging, setIsDragging] = useState(false);
-
-    const keep = async (picked: File | null) => {
-        const file = picked ? await prepareImageForUpload(picked) : null;
-        onChange(file);
-
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => setPreview(event.target?.result as string);
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleChange = (event: ChangeEvent<HTMLInputElement>) => keep(event.target.files?.[0] || null);
-
-    const handleDrop = async (event: DragEvent<HTMLLabelElement>) => {
-        event.preventDefault();
-        setIsDragging(false);
-        const dropped = event.dataTransfer.files?.[0];
-        if (dropped && dropped.type.startsWith('image/')) {
-            await keep(dropped);
-        }
-    };
-
-    return (
-        <div className="space-y-2 sm:col-span-2">
-            <label
-                htmlFor="image"
-                onDragOver={(event) => {
-                    event.preventDefault();
-                    setIsDragging(true);
-                }}
-                onDragLeave={(event) => {
-                    event.preventDefault();
-                    setIsDragging(false);
-                }}
-                onDrop={handleDrop}
-                className={cn(
-                    'group relative flex aspect-[4/3] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/50 transition-colors hover:border-[var(--brand-primary)]',
-                    isDragging ? 'border-[var(--brand-primary)]' : 'border-border',
-                )}
-            >
-                {preview ? (
-                    <img src={preview} alt="Vista previa" className="size-full object-cover" />
-                ) : (
-                    <span className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <ImagePlus className="size-8" strokeWidth={1.5} aria-hidden="true" />
-                        <span className="text-sm font-medium">Sin imagen</span>
-                    </span>
-                )}
-                <span className="absolute bottom-3 left-1/2 flex h-10 -translate-x-1/2 items-center gap-2 rounded-lg bg-background/90 px-3 text-xs font-medium shadow backdrop-blur">
-                    <ImagePlus className="size-4" aria-hidden="true" />
-                    {preview ? 'Cambiar imagen' : 'Subir imagen'}
-                </span>
-                <input id="image" type="file" className="sr-only" accept="image/*" onChange={handleChange} />
-            </label>
-            {error && (
-                <p role="alert" className="text-xs text-red-500">
-                    {error}
-                </p>
-            )}
-            <p className="text-xs text-muted-foreground">JPG, PNG o GIF. Las fotos grandes se ajustan solas antes de subirse.</p>
         </div>
     );
 }

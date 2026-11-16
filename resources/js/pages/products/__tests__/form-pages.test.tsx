@@ -49,7 +49,10 @@ vi.mock('@inertiajs/react', async () => {
 });
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/hooks/use-scroll-to-error', () => ({ useScrollToError: vi.fn() }));
-vi.mock('@/lib/image-upload', () => ({ prepareImageForUpload: vi.fn(async (file: File) => file) }));
+vi.mock('@/lib/image-upload', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/image-upload')>()),
+    prepareImageForUpload: vi.fn(async (file: File) => file),
+}));
 vi.mock('axios', () => ({
     default: { post: vi.fn(), isAxiosError: (error: unknown) => Boolean((error as { isAxiosError?: boolean })?.isAxiosError) },
 }));
@@ -259,7 +262,7 @@ describe('New product', () => {
             fireEvent.change(field('image'), { target: { files: [file] } });
         });
 
-        await waitFor(() => expect(screen.getByAltText('Vista previa')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByAltText('Vista previa de imagen del producto')).toBeInTheDocument());
         typeInto('sale_price', '1000');
         submitForm(/Guardar Producto/);
         expect(env.post.mock.calls[0][2]).toMatchObject({ image: file });
@@ -366,7 +369,7 @@ describe('Edit product', () => {
         expect(field('min_stock').value).toBe('5');
         expect(document.getElementById('stock')).toBeNull();
         expect(text(document.body)).toContain('El stock se actualiza mediante movimientos de stock');
-        expect(screen.getByAltText('Vista previa')).toHaveAttribute('src', '/img/9.jpg');
+        expect(screen.getByAltText('Vista previa de imagen del producto')).toHaveAttribute('src', '/img/9.jpg');
     });
 
     it('saves with a POST to the product that the server reads as PUT, as multipart', () => {

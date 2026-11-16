@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
+use App\Rules\UploadableImage;
 use App\Services\BlobStorageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class BusinessSettingController extends Controller
             'address' => 'nullable|string|max:255',
             'social_media' => 'nullable|string|max:100',
             'currency_symbol' => 'nullable|string|max:5',
-            'logo' => 'nullable|image|max:4096',
+            'logo' => ['nullable', new UploadableImage],
             'logo_url' => 'nullable|url|max:500',
             'brand_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'brand_color_secondary' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],

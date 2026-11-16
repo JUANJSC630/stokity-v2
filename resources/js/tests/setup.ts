@@ -80,3 +80,7 @@ vi.mock('react-hot-toast', () => ({
         error: vi.fn(),
     }),
 }));
+
+// ── Object URL stub (jsdom has no URL.createObjectURL) ────────────
+URL.createObjectURL = vi.fn((blob: Blob) => `blob:${blob instanceof File ? blob.name : 'preview'}`);
+URL.revokeObjectURL = vi.fn();

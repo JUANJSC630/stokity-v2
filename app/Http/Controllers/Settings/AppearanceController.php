@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\BusinessSetting;
+use App\Rules\UploadableImage;
 use App\Services\BlobStorageService;
 use Illuminate\Http\Request;
 
@@ -30,7 +31,7 @@ class AppearanceController extends Controller
         abort_unless($request->user()->can('settings.appearance.update'), 403, 'No tienes permisos para editar la apariencia.');
 
         $request->validate([
-            'image' => 'required|image|max:2048',
+            'image' => ['required', new UploadableImage],
         ]);
 
         $settings = BusinessSetting::getSettings();

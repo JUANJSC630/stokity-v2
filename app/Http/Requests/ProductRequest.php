@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\ProductManufacturing;
 use App\Models\ProductTag;
 use App\Rules\TenantExists;
+use App\Rules\UploadableImage;
 use App\Tenancy\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -73,7 +74,7 @@ class ProductRequest extends FormRequest
             'min_stock' => $this->input('type', 'producto') === 'servicio'
                 ? 'sometimes|nullable|integer|min:0'
                 : 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => ['nullable', new UploadableImage],
             'category_id' => ['required', TenantExists::in('categories')],
             'branch_id' => ['required', TenantExists::in('branches')],
             'status' => 'boolean',

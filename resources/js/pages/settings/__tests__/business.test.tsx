@@ -38,6 +38,7 @@ vi.mock('@inertiajs/react', async () => {
                         setAll(keyOrObject);
                     }
                 },
+                clearErrors: vi.fn(),
                 post: (url: string, options?: unknown) => env.post(url, options, snapshot.current),
             };
         },
@@ -45,7 +46,10 @@ vi.mock('@inertiajs/react', async () => {
 });
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/layouts/settings/layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
-vi.mock('@/lib/image-upload', () => ({ prepareImageForUpload: vi.fn(async (file: File) => file) }));
+vi.mock('@/lib/image-upload', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/image-upload')>()),
+    prepareImageForUpload: vi.fn(async (file: File) => file),
+}));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/hooks/use-printer', () => ({ usePrinter: () => env.printer }));
 vi.mock('@/services/qzTray', () => ({ printBase64: (...args: unknown[]) => env.printBase64(...args) }));
@@ -111,7 +115,7 @@ describe('Business settings', () => {
         expect(screen.getByLabelText('Dirección')).toHaveValue('Cra 7 # 32-15');
         expect(screen.getByLabelText('Red social')).toHaveValue('@cueros');
         expect(screen.getByLabelText('Símbolo de moneda')).toHaveValue('$');
-        expect(screen.getByAltText('Logo del negocio')).toHaveAttribute('src', 'https://blob.test/logo.png');
+        expect(screen.getByAltText('Vista previa de logo del negocio')).toHaveAttribute('src', 'https://blob.test/logo.png');
         expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
     });
 
@@ -152,8 +156,8 @@ describe('Business settings', () => {
         render(<BusinessSettings business={business as never} />);
         const file = new File(['x'], 'logo.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('Cambiar logo'), { target: { files: [file] } });
-        await waitFor(() => expect(screen.getByAltText('Logo del negocio').getAttribute('src')).toContain('data:'));
+        fireEvent.change(document.getElementById('logo') as HTMLInputElement, { target: { files: [file] } });
+        await waitFor(() => expect(screen.getByAltText('Vista previa de logo del negocio')).toHaveAttribute('src', 'blob:logo.png'));
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
         expect(env.post.mock.calls[0][2]).toMatchObject({ logo: file, logo_url: '' });
@@ -164,9 +168,9 @@ describe('Business settings', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /Usar URL/ }));
         fireEvent.change(screen.getByPlaceholderText('https://...'), { target: { value: 'https://blob.test/nuevo.png' } });
-        expect(screen.getByAltText('Logo del negocio')).toHaveAttribute('src', 'https://blob.test/nuevo.png');
+        expect(screen.getByAltText('Vista previa de logo del negocio')).toHaveAttribute('src', 'https://blob.test/nuevo.png');
         fireEvent.change(screen.getByPlaceholderText('https://...'), { target: { value: 'ftp://x' } });
-        expect(screen.getByAltText('Logo del negocio')).toHaveAttribute('src', 'https://blob.test/nuevo.png');
+        expect(screen.getByAltText('Vista previa de logo del negocio')).toHaveAttribute('src', '/stokity-icon.png');
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
         expect(env.post.mock.calls[0][2]).toMatchObject({ logo: null, logo_url: 'ftp://x' });
