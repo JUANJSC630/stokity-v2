@@ -50,6 +50,8 @@ class StoreProductController extends Controller
             'per_page' => 'nullable|integer|min:1|max:100',
             'visibility' => 'nullable|string|in:all',
             'tag' => 'nullable|string|max:200',
+            // `newest`: newest first, like the products list in this panel (the storefront admin uses it). Default: by name.
+            'sort' => 'nullable|string|in:name,newest',
             'updated_since' => ['nullable', 'string', function (string $attribute, mixed $value, Closure $fail) {
                 if ($this->parseUpdatedSince((string) $value) === null) {
                     $fail('El parámetro updated_since debe ser una fecha ISO 8601, por ejemplo 2026-10-16T14:03:22-05:00 (codifica el + como %2B en la URL).');
@@ -83,7 +85,11 @@ class StoreProductController extends Controller
                 ->where('status', true)
                 ->when(! $showAll, fn ($q) => $q->where('show_in_storefront', true))
                 ->with(Product::STORE_RELATIONS)
-                ->orderBy('name');
+                ->when(
+                    $request->query('sort') === 'newest',
+                    fn ($q) => $q->orderByDesc('created_at')->orderByDesc('id'),
+                    fn ($q) => $q->orderBy('name'),
+                );
         }
 
         if ($request->filled('search')) {

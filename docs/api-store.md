@@ -82,9 +82,10 @@ Si la base de datos no responde: `503` con `"status":"error"` y `"db":"error"`. 
 | `page` | Página (por defecto 1). |
 | `per_page` | 1 a **100** (por defecto 24). |
 | `visibility=all` | Solo para llaves de administración: incluye productos aún no publicados. |
+| `sort` | `name` (por defecto, A a Z) o `newest` (más nuevos primero, por fecha de creación, como la lista de productos del panel). Otro valor responde 422. No aplica en el modo de sincronización. |
 | `updated_since` | ISO 8601. Activa el modo de sincronización (sección 6). |
 
-Sin `updated_since` el orden es por `name` y solo salen productos activos con `show_in_storefront = true`.
+Sin `updated_since` el orden es por `name` (o el que pida `sort`) y solo salen productos activos con `show_in_storefront = true`.
 
 Respuesta (producto completo, lista blanca; el resto de campos internos nunca se exponen):
 
