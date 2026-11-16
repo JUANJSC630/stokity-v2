@@ -1,14 +1,13 @@
+import { ImageUpload } from '@/components/image-upload';
 import InputError from '@/components/input-error';
 import { INPUT_CLASS } from '@/components/sales/form-fields';
 import { BrandSubmit, SettingsSection } from '@/components/settings/settings-section';
 import { Switch } from '@/components/ui/switch';
-import { useOnBrandColor } from '@/hooks/use-on-brand-color';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import { prepareImageForUpload } from '@/lib/image-upload';
 import { type BreadcrumbItem, type BusinessSetting } from '@/types';
 import { Head, useForm } from '@inertiajs/react';
-import { Camera, Link } from 'lucide-react';
+import { Link, Store } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Negocio', href: '/settings/business' }];
@@ -31,27 +30,10 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
         _method: 'POST',
     });
 
-    const [logoPreview, setLogoPreview] = useState<string>(business.logo_url);
     const [showUrlInput, setShowUrlInput] = useState(false);
-    const onBrand = useOnBrandColor();
-
-    const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const picked = e.target.files?.[0] || null;
-        if (!picked) return;
-        const file = await prepareImageForUpload(picked);
-        // File upload takes priority — clear any URL
-        form.setData({ ...form.data, logo: file, logo_url: '' });
-        const reader = new FileReader();
-        reader.onload = (ev) => setLogoPreview(ev.target?.result as string);
-        reader.readAsDataURL(file);
-        setShowUrlInput(false);
-    };
 
     const handleLogoUrlChange = (url: string) => {
         form.setData({ ...form.data, logo: null, logo_url: url });
-        if (url.startsWith('http')) {
-            setLogoPreview(url);
-        }
     };
 
     const submit: FormEventHandler = (e) => {
@@ -71,38 +53,41 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                         title="Información del negocio"
                         description="Configura el nombre, logo y datos de contacto que aparecen en el sistema y los recibos"
                     >
-                        <div className="flex flex-col items-center gap-3 pb-6">
-                            <div className="relative">
-                                <img
-                                    src={logoPreview}
-                                    alt="Logo del negocio"
-                                    className="size-24 rounded-2xl border-2 border-border/60 bg-white object-contain"
-                                />
-                                <label
-                                    htmlFor="logo"
-                                    className="absolute right-0 bottom-0 flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-[var(--brand-primary)] shadow-lg transition-opacity hover:opacity-90"
-                                    style={{ color: onBrand.hex }}
-                                >
-                                    <Camera className="size-5" aria-hidden="true" />
-                                    <span className="sr-only">Cambiar logo</span>
-                                    <input id="logo" type="file" accept="image/*" className="sr-only" onChange={handleLogoChange} />
-                                </label>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">JPG, PNG. Máx 2MB</span>
-                                <span className="text-xs text-muted-foreground">·</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowUrlInput((v) => !v)}
-                                    className="flex h-9 items-center gap-1 text-xs font-medium text-[var(--brand-primary)] hover:underline"
-                                >
-                                    <Link className="size-3" aria-hidden="true" />
-                                    Usar URL
-                                </button>
-                            </div>
+                        <div className="flex flex-col gap-3 pb-6">
+                            <ImageUpload
+                                id="logo"
+                                label="Logo del negocio"
+                                fit="contain"
+                                placeholderIcon={Store}
+                                file={form.data.logo}
+                                currentUrl={form.data.logo_url.startsWith('http') ? form.data.logo_url : business.logo_url}
+                                error={form.errors.logo}
+                                onChange={(file) => {
+                                    form.clearErrors('logo');
+                                    form.setData({ ...form.data, logo: file, logo_url: file ? '' : currentLogoUrl });
+                                    if (file) {
+                                        setShowUrlInput(false);
+                                    }
+                                }}
+                                actions={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowUrlInput((v) => !v)}
+                                        aria-expanded={showUrlInput}
+                                        className="inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-[var(--brand-primary)] transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] sm:h-10"
+                                    >
+                                        <Link className="size-4" aria-hidden="true" />
+                                        Usar URL
+                                    </button>
+                                }
+                            />
                             {showUrlInput && (
                                 <div className="w-full max-w-sm space-y-1">
+                                    <label htmlFor="logo_url" className="text-xs font-medium">
+                                        URL del logo
+                                    </label>
                                     <input
+                                        id="logo_url"
                                         placeholder="https://..."
                                         value={form.data.logo_url}
                                         onChange={(e) => handleLogoUrlChange(e.target.value)}
@@ -112,7 +97,6 @@ export default function BusinessSettings({ business }: { business: BusinessSetti
                                     <InputError message={form.errors.logo_url} />
                                 </div>
                             )}
-                            <InputError message={form.errors.logo} />
                         </div>
 
                         <div className="grid gap-5 sm:grid-cols-2">

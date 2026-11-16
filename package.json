@@ -65,6 +65,7 @@
         "concurrently": "^9.0.1",
         "date-fns": "^3.6.0",
         "globals": "^15.14.0",
+        "heic-to": "^1.6.7",
         "js-cookie": "^3.0.5",
         "laravel-vite-plugin": "^1.0",
         "lucide-react": "^0.475.0",

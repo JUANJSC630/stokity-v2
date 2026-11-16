@@ -54,7 +54,10 @@ vi.mock('@inertiajs/react', async () => {
     };
 });
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
-vi.mock('@/lib/image-upload', () => ({ prepareImageForUpload: vi.fn(async (file: File) => file) }));
+vi.mock('@/lib/image-upload', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/image-upload')>()),
+    prepareImageForUpload: vi.fn(async (file: File) => file),
+}));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
 beforeAll(() => {
@@ -135,14 +138,16 @@ describe('Profile', () => {
 
         expect(screen.getByLabelText('Nombre')).toHaveValue('Juan Pérez');
         expect(screen.getByLabelText('Correo electrónico')).toHaveValue('juan@lu.co');
-        expect(screen.getByAltText('Juan Pérez')).toHaveAttribute('src', '/storage/j.png');
+        expect(screen.getByAltText('Vista previa de foto de perfil')).toHaveAttribute('src', '/storage/j.png');
+        expect(screen.getByRole('button', { name: 'Cambiar foto' })).toBeInTheDocument();
     });
 
-    it('falls back to the app icon when the user has no photo', () => {
+    it('offers to upload a photo when the user has none', () => {
         env.user = { ...env.user, photo_url: undefined };
         render(<Profile mustVerifyEmail={false} />);
 
-        expect(screen.getByAltText('Juan Pérez')).toHaveAttribute('src', '/stokity-icon.png');
+        expect(screen.queryByAltText('Vista previa de foto de perfil')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Subir foto' })).toBeInTheDocument();
     });
 
     it('posts the changes as form data with the PATCH override', () => {
@@ -162,32 +167,21 @@ describe('Profile', () => {
         render(<Profile mustVerifyEmail={false} />);
         const file = new File([new Uint8Array(2048)], 'foto.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [file] } });
+        fireEvent.change(document.getElementById('photo') as HTMLInputElement, { target: { files: [file] } });
 
-        await waitFor(() => expect(screen.getByText('2.0 KB')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('foto.png · 2 KB. Lista para guardar.'));
         expect(env.clearErrors).toHaveBeenCalledWith('photo');
-        expect(env.setError).not.toHaveBeenCalled();
     });
 
-    it('rejects a photo over 4 MB and says 4 MB, the same limit the server enforces', async () => {
+    it('rejects a photo over 5 MB, the same limit the server enforces, and keeps the saved one', async () => {
         render(<Profile mustVerifyEmail={false} />);
-        const big = new File([new Uint8Array(5 * 1024 * 1024)], 'grande.png', { type: 'image/png' });
+        const big = new File([new Uint8Array(6 * 1024 * 1024)], 'grande.gif', { type: 'image/gif' });
 
-        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [big] } });
+        fireEvent.change(document.getElementById('photo') as HTMLInputElement, { target: { files: [big] } });
 
-        await waitFor(() => expect(env.setError).toHaveBeenCalledWith('photo', 'El archivo no debe pesar más de 4MB'));
-        expect(screen.getByText('JPG, PNG, GIF, WebP. Máx 4MB')).toBeInTheDocument();
-    });
-
-    it('does not post when the chosen photo is too big', async () => {
-        render(<Profile mustVerifyEmail={false} />);
-        const big = new File([new Uint8Array(5 * 1024 * 1024)], 'grande.png', { type: 'image/png' });
-        fireEvent.change(screen.getByLabelText('Cambiar foto'), { target: { files: [big] } });
-        await waitFor(() => expect(env.setError).toHaveBeenCalled());
-
+        expect(await screen.findByRole('alert')).toHaveTextContent('La foto pesa 6 MB y el máximo es 5 MB');
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-        expect(env.post).not.toHaveBeenCalled();
+        expect(env.post).toHaveBeenCalledWith('/profile.update', expect.anything(), expect.objectContaining({ photo: null }));
     });
 
     it('offers to resend the verification email only when it must be verified and is not', () => {
@@ -313,8 +307,8 @@ describe('Appearance', () => {
         expect(submit).toBeDisabled();
 
         const file = new File(['x'], 'p.png', { type: 'image/png' });
-        fireEvent.change(screen.getByLabelText('Subir imagen'), { target: { files: [file] } });
-        await waitFor(() => expect(screen.getByAltText('Vista previa')).toBeInTheDocument());
+        fireEvent.change(document.getElementById('image') as HTMLInputElement, { target: { files: [file] } });
+        await waitFor(() => expect(screen.getByAltText('Vista previa de imagen')).toHaveAttribute('src', 'blob:p.png'));
         fireEvent.click(screen.getByRole('button', { name: 'Cambiar imagen por defecto' }));
 
         const call = env.post.mock.calls.find(([url]) => url === '/appearance.default-product-image');
@@ -327,7 +321,7 @@ describe('Appearance', () => {
         env.business = { ...env.business, default_product_image_url: '/img/default.png' };
         render(<Appearance />);
 
-        expect(screen.getByAltText('Imagen por defecto actual')).toHaveAttribute('src', '/img/default.png');
+        expect(screen.getByAltText('Vista previa de imagen')).toHaveAttribute('src', '/img/default.png');
     });
 });
 

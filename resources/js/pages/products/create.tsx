@@ -1,5 +1,6 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
-import { ImageField, MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '@/components/products/product-fields';
+import { ImageUpload } from '@/components/image-upload';
+import { MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '@/components/products/product-fields';
 import { emptyStorefrontInfo, StorefrontInfoFields, type StorefrontInfoData } from '@/components/products/storefront-info-fields';
 import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect } from '@/components/sales/form-fields';
@@ -172,7 +173,15 @@ export default function Create({ categories = [], branches = [], tags = [], user
                 <form onSubmit={handleSubmit} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
                     <div className="contents lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:flex lg:flex-col lg:gap-5">
                         <FormPanel title="Imagen">
-                            <ImageField error={form.errors.image} onChange={(file) => form.setData('image', file)} />
+                            <ImageUpload
+                                id="image"
+                                label="Imagen del producto"
+                                layout="canvas"
+                                shape="landscape"
+                                file={form.data.image}
+                                error={form.errors.image}
+                                onChange={(file) => form.setData('image', file)}
+                            />
                         </FormPanel>
                         {hasWebStore && (
                             <FormPanel title="Etiquetas" description="Se muestran en la tienda web, por ejemplo «Artesanal».">

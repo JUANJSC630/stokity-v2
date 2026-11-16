@@ -43,7 +43,10 @@ vi.mock('@inertiajs/react', async () => {
 vi.mock('@/layouts/app-layout', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('@/hooks/use-polling', () => ({ usePolling: vi.fn() }));
 vi.mock('@/hooks/use-scroll-to-error', () => ({ useScrollToError: vi.fn() }));
-vi.mock('@/lib/image-upload', () => ({ prepareImageForUpload: vi.fn(async (file: File) => file) }));
+vi.mock('@/lib/image-upload', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/image-upload')>()),
+    prepareImageForUpload: vi.fn(async (file: File) => file),
+}));
 vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
 beforeAll(() => {
@@ -259,9 +262,9 @@ describe('Create user', () => {
         renderCreate();
         const file = new File(['x'], 'foto.png', { type: 'image/png' });
 
-        fireEvent.change(screen.getByLabelText('Subir foto'), { target: { files: [file] } });
+        fireEvent.change(document.getElementById('photo') as HTMLInputElement, { target: { files: [file] } });
 
-        await waitFor(() => expect(screen.getByAltText('Preview')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByAltText('Vista previa de foto')).toBeInTheDocument());
         fireEvent.click(screen.getByRole('button', { name: /Crear Usuario/ }));
         expect(env.post.mock.calls[0][2].photo).toBe(file);
     });
@@ -292,7 +295,7 @@ describe('Edit user', () => {
         expect(screen.getByLabelText('Rol')).toHaveValue('2');
         expect(screen.getByLabelText('Sucursal')).toHaveValue('2');
         expect(screen.getByRole('switch')).not.toBeChecked();
-        expect(screen.getByAltText('Preview')).toHaveAttribute('src', '/storage/e.png');
+        expect(screen.getByAltText('Vista previa de foto')).toHaveAttribute('src', '/storage/e.png');
     });
 
     it('keeps the branch visible even for a role that sees every branch', () => {

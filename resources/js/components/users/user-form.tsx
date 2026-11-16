@@ -1,14 +1,13 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
+import { ImageUpload } from '@/components/image-upload';
 import { SwitchRow } from '@/components/products/product-fields';
 import { FormPanel, INPUT_CLASS, LabeledField } from '@/components/sales/form-fields';
 import { Button } from '@/components/ui/button';
 import { useOnBrandColor } from '@/hooks/use-on-brand-color';
-import { prepareImageForUpload } from '@/lib/image-upload';
-import { cn } from '@/lib/utils';
 import { type AssignableRole } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Loader2, Save, Upload, UserCircle } from 'lucide-react';
-import { type ChangeEvent, type DragEvent, type FormEvent, useState } from 'react';
+import { Loader2, Save, UserCircle } from 'lucide-react';
+import { type FormEvent } from 'react';
 
 export interface UserFormData {
     name: string;
@@ -57,76 +56,20 @@ export function UserForm({
 }: UserFormProps) {
     const onBrand = useOnBrandColor();
     const isEdit = mode === 'edit';
-    const [photoPreview, setPhotoPreview] = useState<string | null>(initialPhotoUrl);
-    const [isDragging, setIsDragging] = useState(false);
-
-    const pickPhoto = async (picked: File) => {
-        const file = await prepareImageForUpload(picked);
-        setData('photo', file);
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setPhotoPreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
-        const picked = event.target.files?.[0];
-        if (picked) {
-            await pickPhoto(picked);
-        }
-    };
-
-    const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        setIsDragging(false);
-        const dropped = event.dataTransfer.files?.[0];
-        if (dropped && dropped.type.startsWith('image/')) {
-            await pickPhoto(dropped);
-        }
-    };
-
     return (
         <form onSubmit={onSubmit} className="grid items-start gap-5 lg:grid-cols-2">
             <FormPanel title="Información Personal">
-                <div className="flex flex-col items-center gap-3 sm:col-span-2">
-                    <span className="self-start text-xs font-medium">Foto</span>
-                    <div
-                        className={cn(
-                            'relative size-32 overflow-hidden rounded-full border-2 bg-muted transition-colors',
-                            isDragging ? 'border-dashed border-[var(--brand-primary)]' : 'border-border/60',
-                        )}
-                        onDragOver={(event) => {
-                            event.preventDefault();
-                            setIsDragging(true);
-                        }}
-                        onDragLeave={(event) => {
-                            event.preventDefault();
-                            setIsDragging(false);
-                        }}
-                        onDrop={handleDrop}
-                    >
-                        {photoPreview ? (
-                            <img src={photoPreview} alt="Preview" className="size-full object-cover" />
-                        ) : (
-                            <div className="flex size-full flex-col items-center justify-center gap-1 p-4 text-muted-foreground">
-                                <UserCircle className="size-10" strokeWidth={1.5} aria-hidden="true" />
-                                <p className="text-center text-xs">Sin foto de perfil</p>
-                            </div>
-                        )}
-                    </div>
-                    <label
-                        htmlFor="photo"
-                        className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10"
-                    >
-                        <Upload className="size-4" aria-hidden="true" />
-                        Subir foto
-                        <input id="photo" type="file" className="sr-only" accept="image/*" onChange={handlePhotoChange} />
-                    </label>
-                    {errors.photo && <p className="text-xs text-red-500">{errors.photo}</p>}
-                    <p className="text-center text-xs text-muted-foreground">Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB</p>
-                </div>
+                <ImageUpload
+                    id="photo"
+                    label="Foto"
+                    shape="circle"
+                    placeholderIcon={UserCircle}
+                    file={data.photo}
+                    currentUrl={initialPhotoUrl}
+                    error={errors.photo}
+                    onChange={(file) => setData('photo', file)}
+                    className="sm:col-span-2"
+                />
 
                 <LabeledField id="name" label="Nombre" error={errors.name}>
                     <input

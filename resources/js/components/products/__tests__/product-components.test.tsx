@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ImageField, MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '../product-fields';
+import { MoneyField, NumberField, SwitchRow, TaxField, TypeSwitch } from '../product-fields';
 import { ProductCards, ProductTable, priceLabel } from '../product-list';
 import { ProductThumb, StatusPill, StockFigure, TypePill, isLowStock } from '../product-meta';
 
@@ -152,29 +152,6 @@ describe('product fields', () => {
         fireEvent.click(screen.getByRole('button', { name: /Servicio/ }));
 
         expect(onChange).toHaveBeenCalledWith('servicio');
-    });
-
-    it('keeps a picked or dropped image and shows its preview, ignoring other files', async () => {
-        const onChange = vi.fn();
-        render(<ImageField onChange={onChange} />);
-        const picker = document.getElementById('image') as HTMLInputElement;
-        const zone = picker.closest('label') as HTMLElement;
-        const image = new File(['x'], 'a.png', { type: 'image/png' });
-
-        fireEvent.drop(zone, { dataTransfer: { files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] } });
-        expect(onChange).not.toHaveBeenCalled();
-
-        fireEvent.drop(zone, { dataTransfer: { files: [image] } });
-        await waitFor(() => expect(screen.getByAltText('Vista previa')).toBeInTheDocument());
-        expect(onChange).toHaveBeenCalledWith(image);
-        expect(screen.getByText('Cambiar imagen')).toBeInTheDocument();
-    });
-
-    it('starts from the saved image and shows an upload error', () => {
-        render(<ImageField initialPreview="/img/9.jpg" error="La imagen es muy pesada." onChange={vi.fn()} />);
-
-        expect(screen.getByAltText('Vista previa')).toHaveAttribute('src', '/img/9.jpg');
-        expect(screen.getByRole('alert')).toHaveTextContent('La imagen es muy pesada.');
     });
 
     it('lets the tax be typed or switched between 19% and 0%', () => {

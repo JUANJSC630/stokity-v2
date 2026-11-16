@@ -5,6 +5,12 @@ export interface PrepareImageOptions {
     maxBytes?: number;
 }
 
+/** What every image input should offer: common photo formats plus iPhone HEIC/HEIF. */
+export const IMAGE_INPUT_ACCEPT = 'image/*,.heic,.heif';
+
+/** Mirrors App\Rules\UploadableImage::MAX_KILOBYTES. */
+export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+
 const DEFAULT_MAX_DIMENSION = 1600;
 // Kept well under the 2MB PHP upload_max_filesize default so phone photos never hit the server limit.
 const DEFAULT_MAX_BYTES = 1.5 * 1024 * 1024;
@@ -18,23 +24,43 @@ function renamedTo(file: File, extension: string): string {
     return `${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
 }
 
+/** iPhone photos: Windows and some Androids report an empty MIME type, so the extension counts too. */
+export function isHeicFile(file: File): boolean {
+    return /^image\/hei[cf](-sequence)?$/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+}
+
+/** Safari decodes HEIC natively; Chrome, Edge and Firefox need the WASM decoder, loaded only when needed. */
+async function decode(file: File, isHeic: boolean): Promise<ImageBitmap> {
+    try {
+        return await createImageBitmap(file, { imageOrientation: 'from-image' });
+    } catch (error) {
+        if (!isHeic) {
+            throw error;
+        }
+        const { heicTo } = await import('heic-to');
+        return heicTo({ blob: file, type: 'bitmap', options: { imageOrientation: 'from-image' } });
+    }
+}
+
 /**
  * Shrinks a phone-sized photo before upload so it stays under the server limits.
+ * HEIC/HEIF photos are always converted to JPEG, since neither most browsers nor the server can read them.
  * Never throws: if the image cannot be decoded or compressed it returns the original file.
  */
 export async function prepareImageForUpload(file: File, options: PrepareImageOptions = {}): Promise<File> {
     const maxDimension = options.maxDimension ?? DEFAULT_MAX_DIMENSION;
     const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+    const isHeic = isHeicFile(file);
 
-    if (!file.type.startsWith('image/') || file.type === 'image/gif' || typeof createImageBitmap !== 'function') {
+    if ((!isHeic && !file.type.startsWith('image/')) || file.type === 'image/gif' || typeof createImageBitmap !== 'function') {
         return file;
     }
 
     try {
-        const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const bitmap = await decode(file, isHeic);
         const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
 
-        if (scale === 1 && file.size <= maxBytes) {
+        if (!isHeic && scale === 1 && file.size <= maxBytes) {
             bitmap.close();
             return file;
         }
@@ -75,7 +101,7 @@ export async function prepareImageForUpload(file: File, options: PrepareImageOpt
             }
         }
 
-        if (!smallest || smallest.size >= file.size) {
+        if (!smallest || (!isHeic && smallest.size >= file.size)) {
             return file;
         }
 

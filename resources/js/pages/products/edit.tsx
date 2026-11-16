@@ -1,6 +1,7 @@
 import { StickyActions } from '@/components/admin/sticky-actions';
+import { ImageUpload } from '@/components/image-upload';
 import { GalleryAltText } from '@/components/products/gallery-alt-text';
-import { ImageField, MoneyField, NumberField, SwitchRow, TaxField } from '@/components/products/product-fields';
+import { MoneyField, NumberField, SwitchRow, TaxField } from '@/components/products/product-fields';
 import { emptyStorefrontInfo, StorefrontInfoFields } from '@/components/products/storefront-info-fields';
 import { TagPicker } from '@/components/products/tag-picker';
 import { FormPanel, INPUT_CLASS, LabeledField, OptionSelect, Section } from '@/components/sales/form-fields';
@@ -209,8 +210,13 @@ export default function EditProduct({ product, categories = [], branches = [], s
                 <form onSubmit={handleSubmit} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
                     <div className="contents lg:col-start-2 lg:row-span-5 lg:row-start-1 lg:flex lg:flex-col lg:gap-5">
                         <FormPanel title="Imagen">
-                            <ImageField
-                                initialPreview={product.image_url || null}
+                            <ImageUpload
+                                id="image"
+                                label="Imagen del producto"
+                                layout="canvas"
+                                shape="landscape"
+                                file={form.data.image}
+                                currentUrl={product.image_url || null}
                                 error={form.errors.image}
                                 onChange={(file) => form.setData('image', file)}
                             />

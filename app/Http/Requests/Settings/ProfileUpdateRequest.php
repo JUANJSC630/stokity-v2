@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Settings;
 
 use App\Models\User;
+use App\Rules\UploadableImage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,7 +29,7 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
 
-            'photo' => ['nullable', 'image', 'max:4096'],
+            'photo' => ['nullable', new UploadableImage],
         ];
     }
 }

@@ -2,6 +2,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AppearanceTabs from '@/components/appearance-tabs';
+import { ImageUpload } from '@/components/image-upload';
 import InputError from '@/components/input-error';
 import { BrandSubmit, SettingsSection } from '@/components/settings/settings-section';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -10,7 +11,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-import { Upload, UserCircle } from 'lucide-react';
+import { Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -25,7 +26,6 @@ export default function Appearance() {
     const { can } = usePermissions();
     // Configuración del negocio: gated by settings.appearance.update. La preferencia de tema es de cada usuario.
     const isAdmin = can('settings.appearance.update');
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
     const form = useForm({
@@ -45,18 +45,6 @@ export default function Appearance() {
         });
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null;
-        form.setData('image', file);
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setImagePreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsUploading(true);
@@ -65,7 +53,6 @@ export default function Appearance() {
             onSuccess: () => {
                 toast.success('Imagen por defecto actualizada correctamente.');
                 form.reset();
-                setImagePreview(null);
             },
             onError: () => {
                 toast.error('Ocurrió un error al actualizar la imagen.');
@@ -137,41 +124,19 @@ export default function Appearance() {
 
                         <SettingsSection title="Imagen por defecto" description="Se muestra en los productos que no tienen foto.">
                             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="relative aspect-square w-full max-w-[160px] overflow-hidden rounded-2xl border-2 border-border/60 bg-muted">
-                                        {imagePreview ? (
-                                            <img src={imagePreview} alt="Vista previa" className="size-full object-cover" />
-                                        ) : business.default_product_image_url ? (
-                                            <img
-                                                src={business.default_product_image_url}
-                                                alt="Imagen por defecto actual"
-                                                className="size-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex size-full flex-col items-center justify-center gap-2 p-4 text-muted-foreground">
-                                                <UserCircle className="size-12" strokeWidth={1.5} aria-hidden="true" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <label
-                                        htmlFor="image"
-                                        className="flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-border/60 bg-card px-4 text-sm font-medium transition-colors hover:bg-muted sm:h-10"
-                                    >
-                                        <Upload className="size-4" aria-hidden="true" />
-                                        Subir imagen
-                                        <input
-                                            id="image"
-                                            type="file"
-                                            className="sr-only"
-                                            accept="image/jpeg,image/png,image/gif,image/webp"
-                                            onChange={handleImageChange}
-                                        />
-                                    </label>
-                                    {form.errors.image && <p className="text-xs text-red-500">{form.errors.image}</p>}
-                                    <p className="text-center text-xs text-muted-foreground">
-                                        Formatos permitidos: JPG, PNG, GIF, WebP. Tamaño máximo: 2MB
-                                    </p>
-                                </div>
+                                <ImageUpload
+                                    id="image"
+                                    label="Imagen"
+                                    placeholderIcon={Package}
+                                    file={form.data.image}
+                                    currentUrl={business.default_product_image_url}
+                                    error={form.errors.image}
+                                    onChange={(file) => {
+                                        form.clearErrors('image');
+                                        form.setData('image', file);
+                                    }}
+                                    disabled={isUploading}
+                                />
                                 <BrandSubmit fullWidth disabled={isUploading || !form.data.image}>
                                     {isUploading ? 'Cambiando...' : 'Cambiar imagen por defecto'}
                                 </BrandSubmit>

@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { prepareImageForUpload } from '../image-upload';
+import { isHeicFile, prepareImageForUpload } from '../image-upload';
+
+const heicTo = vi.fn();
+vi.mock('heic-to', () => ({ heicTo }));
 
 const MB = 1024 * 1024;
 
@@ -29,7 +32,10 @@ function stubBitmap(width: number, height: number) {
 }
 
 describe('prepareImageForUpload', () => {
-    beforeEach(() => vi.unstubAllGlobals());
+    beforeEach(() => {
+        vi.unstubAllGlobals();
+        heicTo.mockReset();
+    });
     afterEach(() => vi.restoreAllMocks());
 
     it('returns small images within the dimension limit untouched', async () => {
@@ -95,5 +101,60 @@ describe('prepareImageForUpload', () => {
         const file = fileOf(5 * MB);
 
         expect(await prepareImageForUpload(file)).toBe(file);
+    });
+
+    it('converts a small heic to jpeg even when it needs no resizing', async () => {
+        stubBitmap(1200, 900);
+        stubCanvas(() => 300 * 1024);
+
+        const result = await prepareImageForUpload(fileOf(500 * 1024, 'image/heic', 'IMG_1665.HEIC'));
+
+        expect(result.type).toBe('image/jpeg');
+        expect(result.name).toBe('IMG_1665.jpg');
+        expect(heicTo).not.toHaveBeenCalled();
+    });
+
+    it('decodes heic with the wasm decoder when the browser cannot', async () => {
+        vi.stubGlobal('createImageBitmap', vi.fn().mockRejectedValue(new Error('unsupported')));
+        heicTo.mockResolvedValue({ width: 4032, height: 3024, close: vi.fn() });
+        const canvas = stubCanvas(() => 700 * 1024);
+
+        const result = await prepareImageForUpload(fileOf(3 * MB, '', 'IMG_1665.HEIC'));
+
+        expect(heicTo).toHaveBeenCalledWith(expect.objectContaining({ type: 'bitmap' }));
+        expect(canvas.width).toBe(1600);
+        expect(canvas.height).toBe(1200);
+        expect(result.type).toBe('image/jpeg');
+        expect(result.size).toBe(700 * 1024);
+    });
+
+    it('does not load the heic decoder for regular images that fail to decode', async () => {
+        vi.stubGlobal('createImageBitmap', vi.fn().mockRejectedValue(new Error('bad')));
+        const file = fileOf(5 * MB);
+
+        expect(await prepareImageForUpload(file)).toBe(file);
+        expect(heicTo).not.toHaveBeenCalled();
+    });
+
+    it('returns the original heic when no decoder can read it', async () => {
+        vi.stubGlobal('createImageBitmap', vi.fn().mockRejectedValue(new Error('unsupported')));
+        heicTo.mockRejectedValue(new Error('corrupt'));
+        const file = fileOf(3 * MB, 'image/heic', 'IMG_1665.HEIC');
+
+        expect(await prepareImageForUpload(file)).toBe(file);
+    });
+});
+
+describe('isHeicFile', () => {
+    it.each([
+        ['image/heic', 'a.heic', true],
+        ['image/heif', 'a.heif', true],
+        ['image/heic-sequence', 'a.heic', true],
+        ['', 'IMG_1665.HEIC', true],
+        ['application/octet-stream', 'IMG_0402.heic', true],
+        ['image/jpeg', 'a.jpg', false],
+        ['image/png', 'heic.png', false],
+    ])('type %s named %s -> %s', (type, name, expected) => {
+        expect(isHeicFile(new File([], name, { type }))).toBe(expected);
     });
 });
