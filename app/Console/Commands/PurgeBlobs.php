@@ -7,6 +7,7 @@ use App\Services\BlobReferences;
 use App\Services\BlobStorageService;
 use App\Tenancy\TenantManager;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Second half of the deferred delete (BlobStorageService::scheduleDelete()):
@@ -37,38 +38,70 @@ class PurgeBlobs extends Command
             ->limit((int) $this->option('limit'))
             ->get();
 
-        $counts = ['deleted' => 0, 'kept' => 0, 'failed' => 0];
+        $counts = ['deleted' => 0, 'kept' => 0, 'failed' => 0, 'skipped' => 0];
 
-        foreach ($due as $row) {
-            if ($references->isReferenced($row->url)) {
-                $counts['kept']++;
-                $dryRun || $row->delete();
+        foreach ($due as $snapshot) {
+            $outcome = $dryRun
+                ? $this->dryRunOutcome($snapshot, $references)
+                : DB::transaction(fn () => $this->purge($snapshot->id, $blob, $references, $tenants));
 
-                continue;
-            }
-
-            if ($dryRun) {
-                $this->line("Would delete {$row->url}");
-                $counts['deleted']++;
-
-                continue;
-            }
-
-            $deleted = $row->tenant
-                ? $tenants->runAs($row->tenant, fn () => $blob->delete($row->url))
-                : false;
-
-            if ($deleted) {
-                $counts['deleted']++;
-                $row->delete();
-            } else {
-                $counts['failed']++;
-                $row->increment('attempts');
-            }
+            $counts[$outcome]++;
         }
 
-        $this->info(($dryRun ? '[dry-run] ' : '')."Deleted {$counts['deleted']}, kept {$counts['kept']} still referenced, {$counts['failed']} failed.");
+        $this->info(($dryRun ? '[dry-run] ' : '')."Deleted {$counts['deleted']}, kept {$counts['kept']} still referenced, {$counts['failed']} failed, {$counts['skipped']} rescheduled meanwhile.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The queue row is re-read under a lock and kept locked until the file is
+     * gone: the batch above is only a snapshot, so a row rescheduled (new grace
+     * period) or taken out of the queue (URL referenced again, see
+     * BlobStorageService::unscheduleDelete()) since then is skipped, and a
+     * writer re-referencing this URL waits for the purge to finish.
+     *
+     * @return 'deleted'|'kept'|'failed'|'skipped'
+     */
+    private function purge(int $id, BlobStorageService $blob, BlobReferences $references, TenantManager $tenants): string
+    {
+        $row = BlobDeletion::query()->with('tenant')->whereKey($id)->lockForUpdate()->first();
+
+        if (! $row || $row->delete_after->isFuture() || $row->attempts >= self::MAX_ATTEMPTS) {
+            return 'skipped';
+        }
+
+        if ($references->isReferenced($row->url)) {
+            $row->delete();
+
+            return 'kept';
+        }
+
+        $deleted = $row->tenant
+            ? $tenants->runAs($row->tenant, fn () => $blob->delete($row->url))
+            : false;
+
+        if (! $deleted) {
+            $row->increment('attempts');
+
+            return 'failed';
+        }
+
+        $row->delete();
+
+        return 'deleted';
+    }
+
+    /**
+     * @return 'deleted'|'kept'
+     */
+    private function dryRunOutcome(BlobDeletion $row, BlobReferences $references): string
+    {
+        if ($references->isReferenced($row->url)) {
+            return 'kept';
+        }
+
+        $this->line("Would delete {$row->url}");
+
+        return 'deleted';
     }
 }

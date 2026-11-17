@@ -91,8 +91,22 @@ class BlobStorageService
 
             BlobDeletion::query()->updateOrCreate(
                 ['url_hash' => hash('sha256', $url)],
-                ['url' => $url, 'tenant_id' => $tenantId, 'delete_after' => now()->addDays(self::DELETE_GRACE_DAYS)],
+                ['url' => $url, 'tenant_id' => $tenantId, 'delete_after' => now()->addDays(self::DELETE_GRACE_DAYS), 'attempts' => 0],
             );
+        }
+    }
+
+    /**
+     * Take a URL out of the deletion queue because something references it
+     * again (a cover pointed back at it). Callers run this inside the same
+     * transaction as the write that adds the reference: `blobs:purge` locks the
+     * queue row while it deletes, so this either waits for that purge or wins
+     * and the purge finds no row.
+     */
+    public function unscheduleDelete(?string $url): void
+    {
+        if ($url) {
+            BlobDeletion::query()->where('url_hash', hash('sha256', $url))->delete();
         }
     }
 
@@ -135,16 +149,43 @@ class BlobStorageService
 
     /**
      * Which system stores the file behind a URL: `stokity` for this app's own
-     * Blob store (tenant or platform prefix), `storefront` for anything else,
-     * such as a storefront's own store registered through the Store API.
+     * Blob store, `storefront` for anything else (a storefront's own store,
+     * registered through the Store API). Decided by the store's real public
+     * host, so a storefront using a `/stokity/t1/` path in its own store is
+     * still `storefront`. Falls back to the path prefix only when the token
+     * does not reveal the store (tests, misconfiguration).
      */
     public static function storageOwner(string $url): string
     {
         $parts = parse_url($url);
-        $isStokityPath = str_ends_with(strtolower($parts['host'] ?? ''), self::HOST_SUFFIX)
+        $host = strtolower($parts['host'] ?? '');
+        $ownHost = self::ownPublicHost();
+
+        if ($ownHost !== null) {
+            return $host === $ownHost ? 'stokity' : 'storefront';
+        }
+
+        $isStokityPath = str_ends_with($host, self::HOST_SUFFIX)
             && preg_match('#^/stokity/(t\d+|platform)/#', $parts['path'] ?? '') === 1;
 
         return $isStokityPath ? 'stokity' : 'storefront';
+    }
+
+    /**
+     * Public host of this app's own Blob store. A read-write token has the
+     * shape `vercel_blob_rw_<storeId>_<random>` and the store serves files at
+     * `<storeId lowercased>.public.blob.vercel-storage.com` (the same
+     * derivation @vercel/blob does).
+     */
+    public static function ownPublicHost(): ?string
+    {
+        $token = (string) config('services.vercel_blob.token');
+
+        if (preg_match('/^vercel_blob_rw_([a-z\d]+)_[a-z\d]+$/i', $token, $matches) !== 1) {
+            return null;
+        }
+
+        return strtolower($matches[1]).'.public'.self::HOST_SUFFIX;
     }
 
     /**
@@ -162,9 +203,12 @@ class BlobStorageService
         $host = strtolower($parts['host'] ?? '');
         $path = $parts['path'] ?? '';
 
+        $ownHost = self::ownPublicHost();
+
         $isCleanBlobUrl = ($parts['scheme'] ?? null) === 'https'
             && ! isset($parts['user'], $parts['port'])
             && str_ends_with($host, self::HOST_SUFFIX)
+            && ($ownHost === null || $host === $ownHost)
             && ! str_contains($path, '..')
             && ! str_contains($path, '//')
             && ! str_contains($path, '%');

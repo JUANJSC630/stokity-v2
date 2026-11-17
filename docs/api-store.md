@@ -214,7 +214,7 @@ El producto con la misma forma de arriba. `404` si no existe, no está activo o 
 
   Si la imagen borrada era la portada, la portada pasa a la siguiente imagen de la galería (por `sort_order`), o a la imagen por defecto del negocio cuando no queda ninguna (`is_default: true`). Nunca queda una portada apuntando a un archivo borrado.
 
-**Quién borra cada archivo.** `storage_owner` (`image_storage_owner` en la portada) dice dónde vive el archivo: `stokity` (Blob de Stokity) o `storefront` (Blob propio de la tienda).
+**Quién borra cada archivo.** `storage_owner` (`image_storage_owner` en la portada) dice dónde vive el archivo: `stokity` (Blob de Stokity) o `storefront` (cualquier otro almacén, como el Blob propio de la tienda). Se decide por el host real del almacén de Stokity, no por la ruta.
 
 - La tienda borra un archivo de su Blob **solo** si es suyo (`storefront`) y la respuesta del `DELETE` trae `url_still_referenced: false`. Si es `true`, otra portada, imagen o ajuste lo sigue usando: no se borra.
 - Stokity nunca borra archivos de la tienda. Los suyos no se borran al instante: quedan en cola 7 días y una tarea programada (`blobs:purge`) los borra solo si nada los usa para entonces.
@@ -223,7 +223,7 @@ El producto con la misma forma de arriba. `404` si no existe, no está activo o 
 
 **`GET /info` → `images`:**
 
-- `hosts`: todos los hosts desde los que se sirven las fotos del negocio. Construye con esta lista el `img-src` de la CSP y los `remotePatterns` del optimizador, en vez de escribirla a mano. Se calcula con los datos y se guarda 10 minutos.
+- `hosts`: todos los hosts desde los que se sirven las fotos del negocio. Construye con esta lista el `img-src` de la CSP y los `remotePatterns` del optimizador, en vez de escribirla a mano. Se calcula en cada petición, sin caché, así que un host nuevo aparece de inmediato.
 - `broken_count`: portadas e imágenes de galería con `image_ok: false`.
 
 ## 5. Cabeceras condicionales (ETag)

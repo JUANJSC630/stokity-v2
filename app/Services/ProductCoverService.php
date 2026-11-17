@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\DB;
  * cover change goes through here so the two never drift apart, and removing
  * the gallery image that is the cover moves the cover instead of leaving it
  * pointing at a file that is about to be deleted.
+ *
+ * Every write locks and re-reads the product row inside a transaction, so two
+ * concurrent cover changes (or a change racing a gallery delete) serialize
+ * instead of mixing one request's URL with the other's cover_image_id.
  */
 class ProductCoverService
 {
@@ -21,24 +25,21 @@ class ProductCoverService
 
     /**
      * Point the cover at a URL that was just verified to exist. When the URL is
-     * one of the product's gallery images, the cover references that row.
+     * one of the product's gallery images (exact match), the cover references
+     * that row; either way it is healthy, since it was fetched a moment ago.
      */
     public function setFromUrl(Product $product, string $url): void
     {
-        $galleryImage = $product->images()->where('image', $url)->first();
+        $this->write($product, function (Product $locked) use ($url): array {
+            $galleryImage = $locked->images()->get()->first(fn (ProductImage $image) => $image->image === $url);
 
-        if ($galleryImage) {
-            $this->setFromGalleryImage($product, $galleryImage);
-
-            return;
-        }
-
-        $this->replace($product, $url, null);
+            return ['image' => $url, 'cover_image_id' => $galleryImage?->id, 'image_ok' => true, 'image_checked_at' => now()];
+        });
     }
 
     public function setFromGalleryImage(Product $product, ProductImage $image): void
     {
-        $this->replace($product, $image->image, $image->id);
+        $this->write($product, fn () => $this->fieldsFromGalleryImage($image));
     }
 
     /**
@@ -46,7 +47,7 @@ class ProductCoverService
      */
     public function setUploaded(Product $product, string $url): void
     {
-        $this->replace($product, $url, null);
+        $this->write($product, fn () => ['image' => $url, 'cover_image_id' => null, 'image_ok' => true, 'image_checked_at' => now()]);
     }
 
     /**
@@ -65,11 +66,11 @@ class ProductCoverService
 
             if ($wasCover) {
                 $next = $locked->images()->first();
-                $locked->forceFill([
-                    'image' => $next?->image,
-                    'cover_image_id' => $next?->id,
-                    'image_ok' => $next?->image_ok,
-                    'image_checked_at' => $next?->image_checked_at,
+                $locked->forceFill($next ? $this->fieldsFromGalleryImage($next) : [
+                    'image' => null,
+                    'cover_image_id' => null,
+                    'image_ok' => null,
+                    'image_checked_at' => null,
                 ])->save();
             }
 
@@ -90,19 +91,39 @@ class ProductCoverService
         ];
     }
 
-    private function replace(Product $product, string $url, ?int $coverImageId): void
+    /**
+     * A gallery image keeps its own last check: choosing a broken photo as the
+     * cover must not report the cover as healthy.
+     *
+     * @return array<string, mixed>
+     */
+    private function fieldsFromGalleryImage(ProductImage $image): array
     {
-        $previousUrl = $product->image;
+        return [
+            'image' => $image->image,
+            'cover_image_id' => $image->id,
+            'image_ok' => $image->image_ok,
+            'image_checked_at' => $image->image_checked_at,
+        ];
+    }
 
-        $product->forceFill([
-            'image' => $url,
-            'cover_image_id' => $coverImageId,
-            'image_ok' => true,
-            'image_checked_at' => now(),
-        ])->save();
+    /**
+     * @param  callable(Product): array<string, mixed>  $fields
+     */
+    private function write(Product $product, callable $fields): void
+    {
+        $previousUrl = DB::transaction(function () use ($product, $fields): ?string {
+            $locked = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
+            $previousUrl = $locked->image;
+            $newFields = $fields($locked);
 
-        if ($previousUrl && $previousUrl !== $url) {
-            $this->blob->scheduleDelete($previousUrl);
-        }
+            $locked->forceFill($newFields)->save();
+            $this->blob->unscheduleDelete($newFields['image']);
+
+            return $previousUrl !== $newFields['image'] ? $previousUrl : null;
+        });
+
+        $product->refresh();
+        $this->blob->scheduleDelete($previousUrl);
     }
 }

@@ -75,6 +75,42 @@ describe('setting the cover', function () {
             ->assertJsonValidationErrors('image_url');
     });
 
+    it('applies nothing when the cover is rejected, not even the visibility sent with it', function () {
+        ['world' => $world] = worldWithGallery('cover-atomic');
+        ['images' => $other] = worldWithGallery('cover-atomic-other');
+
+        $this->withToken($world['plainKey'])
+            ->patchJson('/api/v1/store/products/'.$world['hiddenProduct']->code, [
+                'show_in_storefront' => true,
+                'cover_image_id' => $other[0]->id,
+            ])
+            ->assertJsonValidationErrors('cover_image_id');
+
+        expect(app(TenantManager::class)->runAs($world['tenant'], fn () => $world['hiddenProduct']->fresh()->show_in_storefront))->toBeFalse();
+    });
+
+    it('keeps the health of a broken gallery image chosen as the cover', function () {
+        ['world' => $world, 'images' => $images] = worldWithGallery('cover-broken');
+        app(TenantManager::class)->runAs($world['tenant'], fn () => $images[0]->forceFill(['image_ok' => false])->save());
+
+        $this->withToken($world['plainKey'])
+            ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, ['cover_image_id' => $images[0]->id])
+            ->assertOk()
+            ->assertJsonPath('data.image_ok', false);
+    });
+
+    it('only links the cover to a gallery image with exactly the same URL', function () {
+        ['world' => $world, 'images' => $images] = worldWithGallery('cover-case');
+        $differentCase = str_replace('/cover-case-0.webp', '/COVER-CASE-0.webp', $images[0]->image);
+        fakeReachableImageUrl($differentCase);
+
+        $this->withToken($world['plainKey'])
+            ->patchJson('/api/v1/store/products/'.$world['visibleProduct']->slug, ['image_url' => $differentCase])
+            ->assertOk()
+            ->assertJsonPath('data.cover_image_id', null)
+            ->assertJsonPath('data.image_url', $differentCase);
+    });
+
     it('keeps a cover that is not in the gallery unlinked', function () {
         ['world' => $world] = worldWithGallery('cover-outside');
         fakeReachableImageUrl(STOREFRONT_BLOB.'/solo-portada.webp');

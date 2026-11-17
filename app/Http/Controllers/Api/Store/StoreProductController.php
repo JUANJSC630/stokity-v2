@@ -225,11 +225,10 @@ class StoreProductController extends Controller
 
         $product = Product::findActiveForStoreApi($identifier);
 
-        if (array_key_exists('show_in_storefront', $validated)) {
-            $product->show_in_storefront = $validated['show_in_storefront'];
-            $product->save();
-        }
-
+        // Everything is validated before the first write, and both changes go
+        // in one transaction: a rejected cover can never leave the product
+        // published (or hidden) by the same request.
+        $galleryImage = null;
         if (array_key_exists('cover_image_id', $validated)) {
             $galleryImage = $product->images()->find($validated['cover_image_id']);
 
@@ -238,13 +237,22 @@ class StoreProductController extends Controller
                     'cover_image_id' => 'Esa imagen no pertenece a la galería de este producto.',
                 ]);
             }
-
-            $covers->setFromGalleryImage($product, $galleryImage);
         }
 
-        if (array_key_exists('image_url', $validated)) {
-            $covers->setFromUrl($product, $validated['image_url']);
-        }
+        DB::transaction(function () use ($validated, $product, $galleryImage, $covers) {
+            if (array_key_exists('show_in_storefront', $validated)) {
+                $product->show_in_storefront = $validated['show_in_storefront'];
+                $product->save();
+            }
+
+            if ($galleryImage) {
+                $covers->setFromGalleryImage($product, $galleryImage);
+            }
+
+            if (array_key_exists('image_url', $validated)) {
+                $covers->setFromUrl($product, $validated['image_url']);
+            }
+        });
 
         return new StoreProductResource($product->load(Product::STORE_RELATIONS));
     }

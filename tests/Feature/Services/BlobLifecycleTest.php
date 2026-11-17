@@ -53,6 +53,25 @@ describe('scheduleDelete', function () {
         Http::assertNothingSent();
     });
 
+    it('gives an exhausted row a fresh set of attempts when it is scheduled again', function () {
+        $url = ($this->ownUrl)('retry');
+        BlobDeletion::create(['tenant_id' => $this->tenant->id, 'url' => $url, 'url_hash' => hash('sha256', $url), 'delete_after' => now(), 'attempts' => 5]);
+
+        app(BlobStorageService::class)->scheduleDelete($url);
+
+        expect(BlobDeletion::first()->attempts)->toBe(0);
+    });
+
+    it('takes a file out of the queue when it is referenced again', function () {
+        Http::fake();
+        $url = ($this->ownUrl)('back-again');
+        app(BlobStorageService::class)->scheduleDelete($url);
+
+        app(BlobStorageService::class)->unscheduleDelete($url);
+
+        expect(BlobDeletion::count())->toBe(0);
+    });
+
     it('queues the same file only once', function () {
         app(BlobStorageService::class)->scheduleDelete(($this->ownUrl)('a'));
         app(BlobStorageService::class)->scheduleDelete(($this->ownUrl)('a'));
@@ -168,6 +187,24 @@ describe('replacing and removing photos from the panel', function () {
     });
 });
 
+describe('storage owner', function () {
+    it('tells files apart by the real host of Stokity\'s store, not by the path', function () {
+        config(['services.vercel_blob.token' => 'vercel_blob_rw_Own123Store_abcDEF456']);
+
+        expect(BlobStorageService::ownPublicHost())->toBe('own123store.public.blob.vercel-storage.com')
+            ->and(BlobStorageService::storageOwner('https://own123store.public.blob.vercel-storage.com/stokity/t1/products/a.webp'))->toBe('stokity')
+            ->and(BlobStorageService::storageOwner('https://other.public.blob.vercel-storage.com/stokity/t1/products/a.webp'))->toBe('storefront');
+    });
+
+    it('never queues a file from another store, even with a Stokity-looking path', function () {
+        config(['services.vercel_blob.token' => 'vercel_blob_rw_Own123Store_abcDEF456']);
+
+        app(BlobStorageService::class)->scheduleDelete("https://other.public.blob.vercel-storage.com/stokity/t{$this->tenant->id}/products/a.webp");
+
+        expect(BlobDeletion::count())->toBe(0);
+    });
+});
+
 describe('images:check-links', function () {
     it('marks found images ok and gone ones broken, leaving unknown answers alone', function () {
         $found = ($this->ownUrl)('found');
@@ -200,5 +237,40 @@ describe('images:check-links', function () {
         expect($product->fresh())
             ->updated_at->toEqual($before)
             ->image_checked_at->not->toBeNull();
+    });
+
+    it('does not move the product\'s updated_at for an unchanged gallery image, but does when it breaks', function () {
+        $url = ($this->ownUrl)('gallery-steady');
+        $product = lifecycleProduct();
+        $image = ProductImage::factory()->create(['product_id' => $product->id, 'image' => $url, 'image_ok' => true]);
+        $before = $product->fresh()->updated_at;
+        app(TenantManager::class)->forget();
+        $this->travel(1)->hours();
+        Http::fake([$url => Http::sequence()->push('', 200)->push('', 404)]);
+
+        $this->artisan('images:check-links')->assertSuccessful();
+        expect(Product::withoutGlobalScopes()->find($product->id)->updated_at)->toEqual($before);
+
+        $this->travel(1)->hours();
+        $this->artisan('images:check-links')->assertSuccessful();
+
+        expect(ProductImage::withoutGlobalScopes()->find($image->id)->image_ok)->toBeFalse()
+            ->and(Product::withoutGlobalScopes()->find($product->id)->updated_at->isAfter($before))->toBeTrue();
+    });
+
+    it('drops the answer for a cover that was replaced while it was being checked', function () {
+        $old = 'https://storefront.public.blob.vercel-storage.com/stokity/products/old.webp';
+        $new = 'https://storefront.public.blob.vercel-storage.com/stokity/products/new.webp';
+        $product = lifecycleProduct(['image' => $old, 'image_ok' => true]);
+        app(TenantManager::class)->forget();
+        Http::fake(function () use ($product, $new) {
+            Product::withoutGlobalScopes()->whereKey($product->id)->update(['image' => $new, 'image_ok' => true]);
+
+            return Http::response('', 404);
+        });
+
+        $this->artisan('images:check-links')->assertSuccessful();
+
+        expect(Product::withoutGlobalScopes()->find($product->id))->image->toBe($new)->image_ok->toBeTrue();
     });
 });
