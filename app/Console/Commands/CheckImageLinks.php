@@ -92,22 +92,30 @@ class CheckImageLinks extends Command
     }
 
     /**
-     * A change of state is saved normally, so the product's updated_at moves
-     * and storefronts syncing with `updated_since` pick it up; an unchanged
-     * state only refreshes the check time, without touching updated_at.
+     * Writes are conditional on the row still holding the URL that was
+     * checked: if the cover changed while the requests were in flight, the
+     * stale answer is dropped instead of overwriting the new photo's health.
+     *
+     * A change of state moves updated_at (and, for a gallery image, its
+     * product's), so storefronts syncing with `updated_since` pick it up; an
+     * unchanged state only refreshes the check time and touches nothing else.
      */
     private function record(Model $row, bool $ok): void
     {
-        $row->setAttribute('image_checked_at', now());
+        $query = $row->newQueryWithoutScopes()
+            ->whereKey($row->getKey())
+            ->where('image', $row->getAttribute('image'));
 
         if ($row->getAttribute('image_ok') === $ok) {
-            $row->timestamps = false;
-            $row->saveQuietly();
+            $query->toBase()->update(['image_checked_at' => now()]);
 
             return;
         }
 
-        $row->setAttribute('image_ok', $ok);
-        $row->save();
+        $changed = $query->update(['image_ok' => $ok, 'image_checked_at' => now()]);
+
+        if ($changed && $row instanceof ProductImage) {
+            Product::withoutGlobalScopes()->whereKey($row->product_id)->touch();
+        }
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Rules\ExistingHttpsBlobUrl;
+use App\Services\BlobStorageService;
 use App\Services\ProductCoverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -62,6 +63,10 @@ class StoreProductImageController extends Controller
                     'image_url' => 'Este producto ya alcanzó el máximo de '.ProductImage::MAX_PER_PRODUCT.' imágenes.',
                 ]);
             }
+
+            // The file may be waiting in the deletion queue (it was a cover
+            // before); referencing it again takes it out, under the same lock.
+            app(BlobStorageService::class)->unscheduleDelete($validated['image_url']);
 
             return $lockedProduct->images()->create([
                 'image' => $validated['image_url'],

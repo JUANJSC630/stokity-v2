@@ -5,8 +5,6 @@ namespace App\Services;
 use App\Models\BusinessSetting;
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Tenancy\TenantManager;
-use Illuminate\Support\Facades\Cache;
 
 /**
  * What a storefront needs to know about the current tenant's images as a whole,
@@ -16,29 +14,27 @@ use Illuminate\Support\Facades\Cache;
  */
 class StoreImageSummary
 {
-    private const CACHE_SECONDS = 600;
-
     /**
+     * Computed on every request, not cached: a storefront builds its CSP from
+     * this list, so a host added a moment ago (a new photo on a new store) must
+     * show up right away or the storefront would block that photo.
+     *
      * @return list<string>
      */
     public function hosts(): array
     {
-        return Cache::remember($this->cacheKey('hosts'), self::CACHE_SECONDS, function (): array {
-            $settings = BusinessSetting::getSettingsReadOnly();
+        $settings = BusinessSetting::getSettingsReadOnly();
 
-            $urls = Product::query()->whereNotNull('image')->distinct()->pluck('image')
-                ->merge(ProductImage::query()->distinct()->pluck('image'))
-                ->push($settings->logo_url, $settings->default_product_image_url);
-
-            return $urls
-                ->filter(fn ($url) => is_string($url) && str_starts_with($url, 'https://'))
-                ->map(fn (string $url) => strtolower((string) parse_url($url, PHP_URL_HOST)))
-                ->filter()
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
-        });
+        return Product::query()->whereNotNull('image')->distinct()->pluck('image')
+            ->merge(ProductImage::query()->distinct()->pluck('image'))
+            ->push($settings->logo_url, $settings->default_product_image_url)
+            ->filter(fn ($url) => is_string($url) && str_starts_with($url, 'https://'))
+            ->map(fn (string $url) => strtolower((string) parse_url($url, PHP_URL_HOST)))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     /**
@@ -49,10 +45,5 @@ class StoreImageSummary
     {
         return Product::query()->where('image_ok', false)->count()
             + ProductImage::query()->where('image_ok', false)->count();
-    }
-
-    private function cacheKey(string $name): string
-    {
-        return 'store-images:'.$name.':t'.app(TenantManager::class)->id();
     }
 }
