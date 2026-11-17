@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $image
  * @property string|null $alt_text
  * @property int $sort_order
+ * @property bool|null $image_ok
+ * @property \Illuminate\Support\Carbon|null $image_checked_at
  */
 class ProductImage extends Model
 {
@@ -41,10 +43,14 @@ class ProductImage extends Model
         'image',
         'alt_text',
         'sort_order',
+        'image_ok',
+        'image_checked_at',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
+        'image_ok' => 'boolean',
+        'image_checked_at' => 'datetime',
     ];
 
     protected $appends = [

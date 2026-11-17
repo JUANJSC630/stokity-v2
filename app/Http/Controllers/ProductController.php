@@ -136,6 +136,7 @@ class ProductController extends Controller
 
         if ($request->hasFile('image')) {
             $validated['image'] = $this->blob->upload($request->file('image'), 'products');
+            $validated += ['image_ok' => true, 'image_checked_at' => now()];
         }
 
         $tagIds = $validated['tag_ids'] ?? [];
@@ -224,11 +225,11 @@ class ProductController extends Controller
         }
 
         if ($request->hasFile('image')) {
-            // Delete old blob if it exists
-            if ($product->image) {
-                $this->blob->delete($product->image);
-            }
+            // The old file is only queued: blobs:purge keeps it while the
+            // gallery (or anything else) still uses the same URL.
+            $this->blob->scheduleDelete($product->image);
             $validated['image'] = $this->blob->upload($request->file('image'), 'products');
+            $validated += ['cover_image_id' => null, 'image_ok' => true, 'image_checked_at' => now()];
         } else {
             unset($validated['image']);
         }
@@ -422,9 +423,9 @@ class ProductController extends Controller
         $product = Product::onlyTrashed()->findOrFail($id);
         abort_if($user->isRestrictedToOwnBranch() && $product->branch_id !== $user->branch_id, 403);
 
-        if ($product->image) {
-            $this->blob->delete($product->image);
-        }
+        // Queued, not deleted: another product may share the file, and the
+        // gallery rows go with the product (cascade) so their files are queued too.
+        $this->blob->scheduleDelete([$product->image, ...$product->images()->pluck('image')->all()]);
 
         $product->forceDelete();
 

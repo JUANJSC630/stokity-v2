@@ -8,6 +8,7 @@ use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Rules\ExistingHttpsBlobUrl;
+use App\Services\ProductCoverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,11 +21,12 @@ use Illuminate\Validation\ValidationException;
  * read-only one (see routes/api.php's docblock on why writes here are a
  * separate, explicit carve-out).
  *
- * Never touches BlobStorageService or Vercel Blob itself: the storefront
- * has already uploaded the file to its OWN Blob store before calling here.
- * This only records/removes the resulting URL against a product — deleting
- * a row here never deletes the underlying blob, which lives outside
- * Stokity's storage and is the storefront's own responsibility to clean up.
+ * Never uploads to Vercel Blob itself: the storefront has already uploaded
+ * the file to its OWN Blob store before calling here. This only records or
+ * removes the resulting URL against a product. Deleting a row never deletes a
+ * storefront file (that store is the storefront's to clean up, guided by
+ * `url_still_referenced`); a Stokity-owned file is only queued for deferred
+ * deletion (BlobStorageService::scheduleDelete()).
  */
 class StoreProductImageController extends Controller
 {
@@ -65,6 +67,9 @@ class StoreProductImageController extends Controller
                 'image' => $validated['image_url'],
                 'alt_text' => $validated['alt_text'] ?? null,
                 'sort_order' => $currentCount,
+                // ExistingHttpsBlobUrl just fetched it successfully.
+                'image_ok' => true,
+                'image_checked_at' => now(),
             ]);
         });
 
@@ -73,13 +78,35 @@ class StoreProductImageController extends Controller
             ->setStatusCode(201);
     }
 
-    public function destroy(string $identifier, int $imageId): JsonResponse
+    /**
+     * Removes a gallery image. If it was the cover, the cover moves to the next
+     * gallery image (or the business default when none is left) instead of
+     * keeping a URL that nobody tracks any more.
+     *
+     * `url_still_referenced` tells the storefront whether the file behind the
+     * deleted image is still used by another product, cover or setting: it must
+     * only delete the file from its own Blob store when this is false.
+     */
+    public function destroy(string $identifier, int $imageId, ProductCoverService $covers): JsonResponse
     {
         $product = Product::findActiveForStoreApi($identifier);
+        $image = $product->images()->findOrFail($imageId);
 
-        $product->images()->findOrFail($imageId)->delete();
+        $result = $covers->removeGalleryImage($product, $image);
 
-        return response()->json(null, 204);
+        return response()->json([
+            'data' => [
+                'deleted_image_id' => $image->id,
+                'deleted_url' => $image->image,
+                'was_cover' => $result['was_cover'],
+                'url_still_referenced' => $result['url_still_referenced'],
+                'cover' => [
+                    'image_id' => $result['cover_image_id'],
+                    'url' => $product->image_url,
+                    'is_default' => $product->image === null,
+                ],
+            ],
+        ]);
     }
 
     /**

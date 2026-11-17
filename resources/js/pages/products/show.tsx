@@ -37,6 +37,7 @@ export default function ProductShow({ product }: ProductShowProps) {
     const onBrand = useOnBrandColor();
     const printer = usePrinter();
     const [printingLabel, setPrintingLabel] = useState(false);
+    const [imageFailed, setImageFailed] = useState(false);
 
     const handlePrintLabel = async () => {
         if (printingLabel) return;
@@ -114,11 +115,12 @@ export default function ProductShow({ product }: ProductShowProps) {
 
                 <section className="grid gap-5 rounded-2xl border border-border/60 bg-card p-4 sm:p-5 md:grid-cols-[minmax(0,18rem)_1fr] md:gap-6">
                     <div className="aspect-[16/10] w-full overflow-hidden rounded-xl border border-border/60 bg-muted md:aspect-square">
-                        {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="size-full object-cover" />
+                        {product.image_url && !imageFailed ? (
+                            <img src={product.image_url} alt={product.name} onError={() => setImageFailed(true)} className="size-full object-cover" />
                         ) : (
-                            <div className="flex size-full items-center justify-center text-muted-foreground">
+                            <div className="flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
                                 <Package className="size-10" aria-hidden="true" />
+                                {imageFailed && <span className="text-xs">La foto ya no existe. Súbela de nuevo desde Editar.</span>}
                             </div>
                         )}
                     </div>

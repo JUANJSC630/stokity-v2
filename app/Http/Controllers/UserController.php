@@ -189,7 +189,7 @@ class UserController extends Controller
             try {
                 // Delete old photo from Blob if it's a Blob URL
                 if ($user->photo) {
-                    $this->blobStorage->delete($user->photo);
+                    $this->blobStorage->scheduleDelete($user->photo);
                 }
                 $validated['photo'] = $this->blobStorage->upload($request->file('photo'), 'users');
             } catch (\Exception $e) {

@@ -1,0 +1,13 @@
+# Config for the "stokity-cron" Railway service (same repo as the web service).
+# Point that service at this file in Settings > Config-as-code; the web service
+# keeps using railway.toml. Runs Laravel's scheduler (routes/console.php) every
+# 5 minutes and exits: no HTTP server, so no healthcheck, and no restart loop.
+# Railway cron times are UTC; scheduled tasks must fall on 5-minute marks.
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "php artisan schedule:run"
+cronSchedule = "*/5 * * * *"
+restartPolicyType = "NEVER"

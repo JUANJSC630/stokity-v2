@@ -37,7 +37,7 @@ class ProfileController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($user->photo) {
-                $this->blob->delete($user->photo);
+                $this->blob->scheduleDelete($user->photo);
             }
             $validated['photo'] = $this->blob->upload($request->file('photo'), 'settings');
         } else {

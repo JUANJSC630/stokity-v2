@@ -370,7 +370,10 @@ it('deletes a product image', function () {
 
     $this->withHeader('Authorization', 'Bearer '.$world['plainKey'])
         ->deleteJson('/api/v1/store/products/'.$world['visibleProduct']->slug.'/images/'.$image->id)
-        ->assertNoContent();
+        ->assertOk()
+        ->assertJsonPath('data.deleted_image_id', $image->id)
+        ->assertJsonPath('data.was_cover', false)
+        ->assertJsonPath('data.url_still_referenced', false);
 
     app(TenantManager::class)->runAs($world['tenant'], function () use ($image) {
         expect(ProductImage::find($image->id))->toBeNull();

@@ -7,12 +7,14 @@ use App\Http\Resources\Store\StoreProductResource;
 use App\Models\Product;
 use App\Models\TenantApiKey;
 use App\Rules\ExistingHttpsBlobUrl;
+use App\Services\ProductCoverService;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class StoreProductController extends Controller
 {
@@ -191,12 +193,13 @@ class StoreProductController extends Controller
      * (`required_without` on each) — an empty PATCH is a client bug, not a
      * meaningful no-op worth silently accepting.
      *
-     * `image_url` replaces Product::$image directly, the same "just point
-     * at a URL the storefront already uploaded to its own Blob" idea as
-     * POST .../images — never BlobStorageService, never a file upload.
-     * Deliberately NOT required to already be one of the product's gallery
-     * images: a storefront may want a cover shot that never goes in the
-     * gallery at all.
+     * The cover is set either by `cover_image_id` (one of the product's
+     * gallery images, the preferred form) or by `image_url` (a URL the
+     * storefront already uploaded to its own Blob, never a file upload).
+     * `image_url` is deliberately NOT required to be a gallery image: a
+     * storefront may want a cover shot that never goes in the gallery. When it
+     * does match a gallery image, ProductCoverService links the cover to that
+     * row, so deleting the image later moves the cover instead of breaking it.
      *
      * Deliberately does NOT filter by show_in_storefront when looking the
      * product up — unlike show()/index(), which exist to show only what's
@@ -205,30 +208,43 @@ class StoreProductController extends Controller
      * requiring it to already be true would make un-hiding (or first
      * curating) a product impossible.
      */
-    public function update(Request $request, string $identifier): StoreProductResource
+    public function update(Request $request, string $identifier, ProductCoverService $covers): StoreProductResource
     {
         $validated = $request->validate([
-            'show_in_storefront' => 'required_without:image_url|boolean',
+            'show_in_storefront' => 'required_without_all:image_url,cover_image_id|boolean',
             'image_url' => [
-                'required_without:show_in_storefront',
+                'required_without_all:show_in_storefront,cover_image_id',
+                'prohibits:cover_image_id',
                 'string',
                 'max:2048',
                 'url',
                 new ExistingHttpsBlobUrl,
             ],
+            'cover_image_id' => ['required_without_all:show_in_storefront,image_url', 'integer'],
         ]);
 
         $product = Product::findActiveForStoreApi($identifier);
 
         if (array_key_exists('show_in_storefront', $validated)) {
             $product->show_in_storefront = $validated['show_in_storefront'];
+            $product->save();
+        }
+
+        if (array_key_exists('cover_image_id', $validated)) {
+            $galleryImage = $product->images()->find($validated['cover_image_id']);
+
+            if (! $galleryImage) {
+                throw ValidationException::withMessages([
+                    'cover_image_id' => 'Esa imagen no pertenece a la galería de este producto.',
+                ]);
+            }
+
+            $covers->setFromGalleryImage($product, $galleryImage);
         }
 
         if (array_key_exists('image_url', $validated)) {
-            $product->image = $validated['image_url'];
+            $covers->setFromUrl($product, $validated['image_url']);
         }
-
-        $product->save();
 
         return new StoreProductResource($product->load(Product::STORE_RELATIONS));
     }

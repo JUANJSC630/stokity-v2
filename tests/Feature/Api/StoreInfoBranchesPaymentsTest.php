@@ -63,7 +63,7 @@ describe('GET /api/v1/store/info', function () {
         $data = $this->withToken($this->keyA)->getJson('/api/v1/store/info')->json('data');
 
         expect(array_keys($data))->toEqualCanonicalizing([
-            'name', 'logo_url', 'phone', 'email', 'address', 'social_media', 'currency_symbol', 'brand_color', 'brand_color_secondary',
+            'name', 'logo_url', 'phone', 'email', 'address', 'social_media', 'currency_symbol', 'brand_color', 'brand_color_secondary', 'images',
         ]);
         expect(json_encode($data))->not->toContain('900123456-7');
     });

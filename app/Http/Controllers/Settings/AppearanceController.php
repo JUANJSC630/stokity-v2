@@ -38,7 +38,7 @@ class AppearanceController extends Controller
 
         // Delete old blob if it exists
         if ($settings->default_product_image) {
-            $this->blob->delete($settings->default_product_image);
+            $this->blob->scheduleDelete($settings->default_product_image);
         }
 
         $url = $this->blob->upload($request->file('image'), 'settings');
