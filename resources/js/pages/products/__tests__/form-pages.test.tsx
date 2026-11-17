@@ -372,6 +372,18 @@ describe('Edit product', () => {
         expect(screen.getByAltText('Vista previa de imagen del producto')).toHaveAttribute('src', '/img/9.jpg');
     });
 
+    it('warns when the nightly check found the photo gone, until a new one is picked', () => {
+        renderEdit({ image_ok: false });
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Esta foto ya no existe. Súbela de nuevo.');
+    });
+
+    it('does not warn about a photo that was found or not checked yet', () => {
+        renderEdit({ image_ok: null });
+
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
     it('saves with a POST to the product that the server reads as PUT, as multipart', () => {
         renderEdit();
         typeInto('name', 'Bolso nuevo');

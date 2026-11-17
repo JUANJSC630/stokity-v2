@@ -76,6 +76,16 @@ describe('product meta', () => {
         rerender(<ProductThumb src="" name="Bolso" />);
         expect(screen.queryByAltText('Bolso')).not.toBeInTheDocument();
     });
+
+    it('falls back to the placeholder when the photo file is gone, and retries a new address', () => {
+        const { rerender } = render(<ProductThumb src="/borrada.webp" name="Escapulario" />);
+
+        fireEvent.error(screen.getByAltText('Escapulario'));
+        expect(screen.queryByAltText('Escapulario')).not.toBeInTheDocument();
+
+        rerender(<ProductThumb src="/nueva.webp" name="Escapulario" />);
+        expect(screen.getByAltText('Escapulario')).toHaveAttribute('src', '/nueva.webp');
+    });
 });
 
 describe('product list', () => {

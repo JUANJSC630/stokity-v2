@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\BlobDeletion;
 use App\Tenancy\TenantManager;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -14,6 +16,9 @@ class BlobStorageService
     private const BASE_URL = 'https://blob.vercel-storage.com';
 
     private const HOST_SUFFIX = '.blob.vercel-storage.com';
+
+    /** Days a replaced or removed file is kept before `blobs:purge` may delete it. */
+    public const DELETE_GRACE_DAYS = 7;
 
     private string $token;
 
@@ -64,30 +69,82 @@ class BlobStorageService
     }
 
     /**
-     * Delete one or more blobs by their public URL.
+     * Queue files for deletion instead of deleting them on the spot.
      *
-     * The Blob store and its token are shared by every tenant, so only URLs the
+     * This is what every "replace" or "remove" in the app calls. The file is
+     * kept for DELETE_GRACE_DAYS and `blobs:purge` deletes it afterwards only if
+     * nothing references the URL by then (BlobReferences), so a cover replaced
+     * by mistake, or a file another row still uses, is never lost. Only URLs the
+     * current tenant owns are queued; foreign ones (a storefront's own Blob
+     * store) are that system's responsibility and silently skipped.
+     *
+     * @param  string|array<int, string|null>|null  $urls
+     */
+    public function scheduleDelete(string|array|null $urls): void
+    {
+        $tenantId = app(TenantManager::class)->id();
+
+        foreach (array_filter((array) $urls) as $url) {
+            if (! $this->ownsUrl($url)) {
+                continue;
+            }
+
+            BlobDeletion::query()->updateOrCreate(
+                ['url_hash' => hash('sha256', $url)],
+                ['url' => $url, 'tenant_id' => $tenantId, 'delete_after' => now()->addDays(self::DELETE_GRACE_DAYS)],
+            );
+        }
+    }
+
+    /**
+     * Delete one or more blobs by their public URL, right now.
+     *
+     * Only `blobs:purge` should call this; app code uses scheduleDelete(). The
+     * Blob store and its token are shared by every tenant, so only URLs the
      * current tenant owns are sent to Vercel; anything else is silently
      * skipped. Legacy blobs uploaded before tenant prefixes existed are
      * skipped too (left orphaned rather than risk deleting another tenant's).
      *
      * @param  string|string[]  $urls
+     * @return bool Whether Vercel confirmed the delete (true when there was nothing to delete).
      */
-    public function delete(string|array $urls): void
+    public function delete(string|array $urls): bool
     {
         $blobUrls = array_values(array_filter((array) $urls, fn (string $url) => $this->ownsUrl($url)));
 
         if (empty($blobUrls)) {
-            return;
+            return true;
         }
 
         try {
-            Http::withToken($this->token)
+            $response = Http::withToken($this->token)
                 ->timeout(10)
                 ->delete(self::BASE_URL, ['urls' => $blobUrls]);
-        } catch (RequestException $e) {
+        } catch (RequestException|ConnectionException $e) {
             Log::warning('Vercel Blob delete failed', ['urls' => $blobUrls, 'error' => $e->getMessage()]);
+
+            return false;
         }
+
+        if ($response->failed()) {
+            Log::warning('Vercel Blob delete failed', ['urls' => $blobUrls, 'status' => $response->status()]);
+        }
+
+        return $response->successful();
+    }
+
+    /**
+     * Which system stores the file behind a URL: `stokity` for this app's own
+     * Blob store (tenant or platform prefix), `storefront` for anything else,
+     * such as a storefront's own store registered through the Store API.
+     */
+    public static function storageOwner(string $url): string
+    {
+        $parts = parse_url($url);
+        $isStokityPath = str_ends_with(strtolower($parts['host'] ?? ''), self::HOST_SUFFIX)
+            && preg_match('#^/stokity/(t\d+|platform)/#', $parts['path'] ?? '') === 1;
+
+        return $isStokityPath ? 'stokity' : 'storefront';
     }
 
     /**

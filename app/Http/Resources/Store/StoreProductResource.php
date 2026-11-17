@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Store;
 
 use App\Models\TenantApiKey;
+use App\Services\BlobStorageService;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -49,6 +50,15 @@ class StoreProductResource extends JsonResource
             // stock so a pending sale never gets double-sold to the web.
             'available_stock' => $isService ? null : $this->availableStock(),
             'image_url' => $this->image_url,
+            // The gallery image the cover is, when it is one (null for a cover
+            // uploaded from Stokity or the business default).
+            'cover_image_id' => $this->cover_image_id,
+            'cover_alt_text' => $this->when(
+                $this->cover_image_id !== null && $this->relationLoaded('images'),
+                fn () => $this->images->firstWhere('id', $this->cover_image_id)?->alt_text,
+            ),
+            'image_ok' => $this->image ? $this->image_ok : true,
+            'image_storage_owner' => $this->image ? BlobStorageService::storageOwner($this->image) : 'stokity',
             'gallery' => StoreProductImageResource::collection($this->whenLoaded('images')),
             'category' => $this->whenLoaded('category', fn () => new StoreCategoryResource($this->category)),
             'branch' => $this->whenLoaded('branch', fn () => new StoreBranchResource($this->branch)),

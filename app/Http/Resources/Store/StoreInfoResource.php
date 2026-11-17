@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Services\StoreImageSummary;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -24,6 +25,15 @@ class StoreInfoResource extends JsonResource
             'currency_symbol' => $this->currency_symbol,
             'brand_color' => $this->brand_color,
             'brand_color_secondary' => $this->brand_color_secondary,
+            'images' => [
+                // Every host this business's photos are served from (Stokity's
+                // Blob store, the storefront's own, ...). Build CSP img-src and
+                // image-optimizer allow lists from this, not by hand.
+                'hosts' => app(StoreImageSummary::class)->hosts(),
+                // Covers and gallery images that answered 404 at the last
+                // nightly `images:check-links` run.
+                'broken_count' => app(StoreImageSummary::class)->brokenCount(),
+            ],
         ];
     }
 }

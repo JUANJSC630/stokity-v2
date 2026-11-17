@@ -18,10 +18,10 @@ Contrato técnico para quien consume la API (por ejemplo la tienda web de Lu Acc
 | `GET /payment-methods` | Métodos de pago activos | lectura |
 | `GET /products` | Listado de productos | lectura |
 | `GET /products/{slug}` | Detalle de un producto | lectura |
-| `PATCH /products/{identifier}` | Visibilidad y foto de portada | administración |
+| `PATCH /products/{identifier}` | Visibilidad y foto de portada (`show_in_storefront`, `cover_image_id` o `image_url`) | administración |
 | `POST /products/{identifier}/images` | Agregar imagen a la galería (cuerpo: `image_url`, y `alt_text` opcional de hasta 255 caracteres) | administración |
 | `PUT /products/{identifier}/images/order` | Reordenar la galería | administración |
-| `DELETE /products/{identifier}/images/{imageId}` | Quitar imagen | administración |
+| `DELETE /products/{identifier}/images/{imageId}` | Quitar imagen (ver §4.3: dice qué quedó de portada y si el archivo sigue en uso) | administración |
 | `POST /order-reference` | Número de referencia de pedido | solo pedidos |
 
 ### Tipos de llave
@@ -102,7 +102,11 @@ Respuesta (producto completo, lista blanca; el resto de campos internos nunca se
       "in_stock": true,
       "available_stock": 98,
       "image_url": "https://….webp",
-      "gallery": [{"id": 1, "url": "https://….webp", "alt_text": "Camiseta polo azul vista de frente", "sort_order": 0}],
+      "cover_image_id": 1,
+      "cover_alt_text": "Camiseta polo azul vista de frente",
+      "image_ok": true,
+      "image_storage_owner": "storefront",
+      "gallery": [{"id": 1, "url": "https://….webp", "alt_text": "Camiseta polo azul vista de frente", "sort_order": 0, "storage_owner": "storefront", "image_ok": true}],
       "category": {"id": 10, "name": "Ropa", "slug": "ropa", "description": "…", "image_url": null, "created_at": "2026-09-03T10:27:07-05:00", "updated_at": "2026-09-03T10:27:07-05:00"},
       "branch": {"id": 8, "name": "La Unión", "address": "…", "phone": "…"},
       "tags": [{"slug": "artesanal", "name": "Artesanal"}],
@@ -188,6 +192,39 @@ El producto con la misma forma de arriba. `404` si no existe, no está activo o 
 - `image_url`: siempre `null` por ahora (las categorías no tienen imagen); el campo ya es parte del contrato.
 - Dentro de un producto, `category` trae los mismos campos salvo `products_count`.
 - Cambiar el slug a propósito: `php artisan store:categories:regenerate-slug <negocio> <id-categoría>` (cambia una URL pública).
+
+## 4.3 Imágenes: portada, galería y archivos
+
+**La portada es una referencia.** `cover_image_id` dice qué imagen de la galería es la portada, o `null` cuando la portada no está en la galería (subida desde Stokity o la imagen por defecto del negocio). `image_url` sigue siendo la URL que se muestra.
+
+- **Fijar la portada:** `PATCH /products/{identifier}` con `{"cover_image_id": 12}` (forma preferida; `422` si la imagen no es de ese producto) o con `{"image_url": "https://…"}`. Si `image_url` coincide con una imagen de la galería, la portada queda enlazada a ella. No se pueden enviar los dos a la vez.
+- **Borrar una imagen de la galería:** `DELETE /products/{identifier}/images/{imageId}` responde `200` (antes `204`):
+
+```json
+{
+  "data": {
+    "deleted_image_id": 12,
+    "deleted_url": "https://….webp",
+    "was_cover": true,
+    "url_still_referenced": false,
+    "cover": {"image_id": 13, "url": "https://….webp", "is_default": false}
+  }
+}
+```
+
+  Si la imagen borrada era la portada, la portada pasa a la siguiente imagen de la galería (por `sort_order`), o a la imagen por defecto del negocio cuando no queda ninguna (`is_default: true`). Nunca queda una portada apuntando a un archivo borrado.
+
+**Quién borra cada archivo.** `storage_owner` (`image_storage_owner` en la portada) dice dónde vive el archivo: `stokity` (Blob de Stokity) o `storefront` (Blob propio de la tienda).
+
+- La tienda borra un archivo de su Blob **solo** si es suyo (`storefront`) y la respuesta del `DELETE` trae `url_still_referenced: false`. Si es `true`, otra portada, imagen o ajuste lo sigue usando: no se borra.
+- Stokity nunca borra archivos de la tienda. Los suyos no se borran al instante: quedan en cola 7 días y una tarea programada (`blobs:purge`) los borra solo si nada los usa para entonces.
+
+**Fotos rotas.** Cada noche `images:check-links` pide cada portada e imagen de galería. `image_ok` es `true` si el archivo existe, `false` si respondió `404`/`410` y `null` si aún no se ha comprobado. Un cambio de `image_ok` mueve `updated_at`, así que la sincronización con `updated_since` lo recibe. Un `5xx` o un tiempo de espera no cambian el estado.
+
+**`GET /info` → `images`:**
+
+- `hosts`: todos los hosts desde los que se sirven las fotos del negocio. Construye con esta lista el `img-src` de la CSP y los `remotePatterns` del optimizador, en vez de escribirla a mano. Se calcula con los datos y se guarda 10 minutos.
+- `broken_count`: portadas e imágenes de galería con `image_ok: false`.
 
 ## 5. Cabeceras condicionales (ETag)
 

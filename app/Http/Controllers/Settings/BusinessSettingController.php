@@ -47,7 +47,7 @@ class BusinessSettingController extends Controller
         if ($request->hasFile('logo')) {
             // New file upload — delete old blob and upload the new one.
             if ($settings->logo && str_starts_with($settings->logo, 'http')) {
-                $this->blob->delete($settings->logo);
+                $this->blob->scheduleDelete($settings->logo);
             }
             $validated['logo'] = $this->blob->upload($request->file('logo'), 'settings');
         } elseif (! empty($validated['logo_url'])) {

@@ -12,6 +12,8 @@ export interface Product {
     min_stock: number;
     image: string | null;
     image_url: string;
+    /** null = not checked yet; false = the file was gone at the last nightly check. */
+    image_ok?: boolean | null;
     category_id: number;
     branch_id: number;
     status: boolean;

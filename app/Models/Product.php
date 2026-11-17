@@ -23,6 +23,9 @@ use Illuminate\Support\Str;
  * @property float $tax
  * @property string|null $image
  * @property string $image_url
+ * @property int|null $cover_image_id
+ * @property bool|null $image_ok
+ * @property \Illuminate\Support\Carbon|null $image_checked_at
  * @property bool $status
  * @property bool $show_in_storefront
  * @property string|null $slug
@@ -72,6 +75,9 @@ class Product extends Model
         'reserved_stock',
         'min_stock',
         'image',
+        'cover_image_id',
+        'image_ok',
+        'image_checked_at',
         'category_id',
         'branch_id',
         'status',
@@ -106,6 +112,8 @@ class Product extends Model
         'min_stock' => 'integer',
         'variable_price' => 'boolean',
         'show_in_storefront' => 'boolean',
+        'image_ok' => 'boolean',
+        'image_checked_at' => 'datetime',
         'weight_grams' => 'integer',
         'manufacturing' => ProductManufacturing::class,
     ];
@@ -146,9 +154,23 @@ class Product extends Model
     /**
      * Additional storefront gallery images, beyond the cover ($image).
      */
+    /**
+     * @return HasMany<ProductImage, $this>
+     */
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
+    }
+
+    /**
+     * The gallery row the cover came from, when it came from one
+     * (ProductCoverService keeps it in sync with `image`).
+     *
+     * @return BelongsTo<ProductImage, $this>
+     */
+    public function coverImage(): BelongsTo
+    {
+        return $this->belongsTo(ProductImage::class, 'cover_image_id');
     }
 
     /**

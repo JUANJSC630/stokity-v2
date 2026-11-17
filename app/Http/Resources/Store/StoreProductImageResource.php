@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Store;
 
+use App\Services\BlobStorageService;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** @mixin \App\Models\ProductImage */
@@ -17,6 +18,12 @@ class StoreProductImageResource extends JsonResource
             'url' => $this->image_url,
             'alt_text' => $this->alt_text,
             'sort_order' => $this->sort_order,
+            // `stokity` or `storefront`: which Blob store holds the file, so the
+            // storefront only ever tries to clean up files that are its own.
+            'storage_owner' => BlobStorageService::storageOwner($this->image),
+            // null = not checked yet; false = the file answered 404 at the last
+            // `images:check-links` run.
+            'image_ok' => $this->image_ok,
         ];
     }
 }

@@ -217,7 +217,10 @@ export default function EditProduct({ product, categories = [], branches = [], s
                                 shape="landscape"
                                 file={form.data.image}
                                 currentUrl={product.image_url || null}
-                                error={form.errors.image}
+                                error={
+                                    form.errors.image ??
+                                    (product.image_ok === false && !form.data.image ? 'Esta foto ya no existe. Súbela de nuevo.' : undefined)
+                                }
                                 onChange={(file) => form.setData('image', file)}
                             />
                         </FormPanel>

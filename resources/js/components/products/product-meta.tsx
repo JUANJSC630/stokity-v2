@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { type Product } from '@/types';
 import { Package, Wrench } from 'lucide-react';
+import { useState } from 'react';
 
 export type ProductLike = Pick<Product, 'type' | 'stock' | 'min_stock'>;
 
@@ -62,8 +63,11 @@ export function StockFigure({ product, className }: { product: ProductLike; clas
     );
 }
 
-/** Product photo with a graceful placeholder while it loads or when the address is empty. */
+/** Product photo with a graceful placeholder while it loads, when the address is empty or when the file is gone. */
 export function ProductThumb({ src, name, size = 'md', className }: { src?: string | null; name: string; size?: 'md' | 'lg'; className?: string }) {
+    const [failedSrc, setFailedSrc] = useState<string | null>(null);
+    const showImage = Boolean(src) && failedSrc !== src;
+
     return (
         <span
             className={cn(
@@ -73,7 +77,15 @@ export function ProductThumb({ src, name, size = 'md', className }: { src?: stri
             )}
         >
             <Package className="size-5" aria-hidden="true" />
-            {src && <img src={src} alt={name} loading="lazy" className="absolute inset-0 size-full object-cover" />}
+            {showImage && (
+                <img
+                    src={src ?? undefined}
+                    alt={name}
+                    loading="lazy"
+                    onError={() => setFailedSrc(src ?? null)}
+                    className="absolute inset-0 size-full object-cover"
+                />
+            )}
         </span>
     );
 }
