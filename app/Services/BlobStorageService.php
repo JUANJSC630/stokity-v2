@@ -20,6 +20,13 @@ class BlobStorageService
     /** Days a replaced or removed file is kept before `blobs:purge` may delete it. */
     public const DELETE_GRACE_DAYS = 7;
 
+    /**
+     * Store id of the production Blob store (public: it is the host of every
+     * photo URL). Only the production app may write to it; see
+     * isProductionStoreBlocked().
+     */
+    public const PRODUCTION_STORE_ID = '4zzvkpkyswa4x2fl';
+
     private string $token;
 
     public function __construct()
@@ -44,6 +51,10 @@ class BlobStorageService
      */
     public function upload(UploadedFile $file, string $folder): string
     {
+        if (self::isProductionStoreBlocked()) {
+            throw new RuntimeException('Refusing to upload to the production Blob store outside production. Set BLOB_READ_WRITE_TOKEN to the development store token.');
+        }
+
         $webp = $this->toWebP($file);
         $filename = uniqid((string) time(), true).'.webp';
         $pathname = $this->tenantPrefix()."/{$folder}/{$filename}";
@@ -130,6 +141,12 @@ class BlobStorageService
             return true;
         }
 
+        if (self::isProductionStoreBlocked()) {
+            Log::warning('Refused to delete from the production Blob store outside production', ['urls' => $blobUrls]);
+
+            return false;
+        }
+
         try {
             $response = Http::withToken($this->token)
                 ->timeout(10)
@@ -179,13 +196,35 @@ class BlobStorageService
      */
     public static function ownPublicHost(): ?string
     {
+        $storeId = self::storeId();
+
+        return $storeId === null ? null : $storeId.'.public'.self::HOST_SUFFIX;
+    }
+
+    /**
+     * Whether the token points at the production store while this is not the
+     * production app. A local or staging copy shares no database with
+     * production, so its uploads would be orphans there and `blobs:purge`
+     * would delete files production still shows (nothing references them in
+     * the local database).
+     */
+    public static function isProductionStoreBlocked(): bool
+    {
+        return self::storeId() === self::PRODUCTION_STORE_ID && ! app()->isProduction();
+    }
+
+    /**
+     * Store id from a `vercel_blob_rw_<storeId>_<random>` token, lowercased.
+     */
+    private static function storeId(): ?string
+    {
         $token = (string) config('services.vercel_blob.token');
 
         if (preg_match('/^vercel_blob_rw_([a-z\d]+)_[a-z\d]+$/i', $token, $matches) !== 1) {
             return null;
         }
 
-        return strtolower($matches[1]).'.public'.self::HOST_SUFFIX;
+        return strtolower($matches[1]);
     }
 
     /**

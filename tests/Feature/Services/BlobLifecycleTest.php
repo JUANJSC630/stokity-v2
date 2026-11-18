@@ -205,6 +205,46 @@ describe('storage owner', function () {
     });
 });
 
+describe('production store guard', function () {
+    beforeEach(function () {
+        $this->productionUrl = 'https://'.BlobStorageService::PRODUCTION_STORE_ID.".public.blob.vercel-storage.com/stokity/t{$this->tenant->id}/products/live.webp";
+        config(['services.vercel_blob.token' => 'vercel_blob_rw_'.strtoupper(BlobStorageService::PRODUCTION_STORE_ID).'_abcDEF456']);
+        Http::fake(['*' => Http::response(['url' => $this->productionUrl])]);
+    });
+
+    it('refuses to upload to the production store outside production', function () {
+        expect(fn () => app(BlobStorageService::class)->upload(UploadedFile::fake()->image('a.jpg'), 'products'))
+            ->toThrow(RuntimeException::class, 'production Blob store');
+
+        Http::assertNothingSent();
+    });
+
+    it('refuses to delete from the production store outside production, so a local purge keeps the file', function () {
+        BlobDeletion::create(['tenant_id' => $this->tenant->id, 'url' => $this->productionUrl, 'url_hash' => hash('sha256', $this->productionUrl), 'delete_after' => now()->subDay(), 'attempts' => 0]);
+
+        $this->artisan('blobs:purge')->assertSuccessful();
+
+        Http::assertNothingSent();
+        expect(BlobDeletion::first()->attempts)->toBe(1);
+    });
+
+    it('lets the production app use the production store', function () {
+        app()->detectEnvironment(fn () => 'production');
+
+        $url = app(BlobStorageService::class)->upload(UploadedFile::fake()->image('a.jpg'), 'products');
+
+        expect($url)->toBe($this->productionUrl)
+            ->and(app(BlobStorageService::class)->delete($this->productionUrl))->toBeTrue();
+    });
+
+    it('lets a development store be used anywhere', function () {
+        config(['services.vercel_blob.token' => 'vercel_blob_rw_Dev123Store_abcDEF456']);
+
+        expect(BlobStorageService::isProductionStoreBlocked())->toBeFalse()
+            ->and(app(BlobStorageService::class)->upload(UploadedFile::fake()->image('a.jpg'), 'products'))->toBe($this->productionUrl);
+    });
+});
+
 describe('images:check-links', function () {
     it('marks found images ok and gone ones broken, leaving unknown answers alone', function () {
         $found = ($this->ownUrl)('found');
